@@ -37,3 +37,5 @@ Winner score and payout amount are separate. Score uses calculateLoveScore. Payo
 All economic parameters must be read from protocol_config, not hardcoded.
 
 Follow docs/naming_rules.md for file names, struct names, instance names, and function names.
+
+Read docs/Shelby_notes.md before implementing Shelby upload, media read, media display, or media registry integration.

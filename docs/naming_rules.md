@@ -38,7 +38,7 @@ read_me.md
 
 naming_rules.md
 
-codex_rules.md
+Codex_rules.md
 
 contract_plan.md
 
