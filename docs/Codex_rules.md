@@ -39,3 +39,4 @@ All economic parameters must be read from protocol_config, not hardcoded.
 Follow docs/naming_rules.md for file names, struct names, instance names, and function names.
 
 Read docs/Shelby_notes.md before implementing Shelby upload, media read, media display, or media registry integration.
+Read docs/Palate_ui_spec.md, docs/design_tokens.md, and docs/frontend_rules.md before implementing any frontend code.
