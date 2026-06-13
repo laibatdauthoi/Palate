@@ -1,0 +1,50 @@
+---
+compiled_package_info:
+  package_name: Palate
+  address_alias_instantiation:
+    palate: "0000000000000000000000000000000000000000000000000000000000000042"
+  source_digest: 6E1A7D09D4BC2E60D7810A1DB4340FB2C62C2708D43203BB069DE78F52624F84
+  build_flags:
+    dev_mode: true
+    test_mode: true
+    verify_mode: false
+    override_std: ~
+    generate_docs: false
+    generate_abis: false
+    generate_move_model: true
+    full_model_generation: true
+    install_dir: ~
+    force_recompilation: false
+    additional_named_addresses: {}
+    fetch_deps_only: false
+    skip_fetch_latest_git_deps: false
+    compiler_config:
+      bytecode_version: 9
+      known_attributes:
+        - bytecode_instruction
+        - deprecated
+        - event
+        - expected_failure
+        - "fmt::skip"
+        - legacy_entry_fun
+        - "lint::allow_unsafe_randomness"
+        - "lint::skip"
+        - module_lock
+        - "mutation::skip"
+        - native_interface
+        - persistent
+        - randomness
+        - resource_group
+        - resource_group_member
+        - test
+        - test_only
+        - verify_only
+        - view
+      skip_attribute_checks: false
+      compiler_version: V2_0
+      language_version: "2.3"
+      experiments:
+        - optimize=on
+      print_errors: true
+dependencies: []
+bytecode_deps: []

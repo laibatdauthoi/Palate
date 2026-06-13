@@ -1,0 +1,7 @@
+[package]
+name = "Palate"
+version = "0.1.0"
+authors = []
+
+[addresses]
+palate = "0x42"
