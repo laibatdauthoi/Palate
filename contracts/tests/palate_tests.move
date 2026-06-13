@@ -785,9 +785,40 @@ module palate::palate_tests {
         assert!(palate::getMatchScoreA(0) != amount, 2);
     }
 
-    #[test(admin = @palate, framework = @0x1, pusher = @0x364, challenger = @0x365, user = @0x366)]
-    #[expected_failure(abort_code = 0, location = palate::palate)]
-    fun placeBuffDoesNotImplementSettlementOrClaims(
+    #[test(admin = @palate, framework = @0x1, pusher = @0x364, challenger = @0x365)]
+    #[expected_failure(abort_code = 23, location = palate::palate)]
+    fun settleMatchRejectsBeforeEndTime(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+
+        palate::settleMatch(&pusher, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x366, challenger = @0x367)]
+    #[expected_failure(abort_code = 24, location = palate::palate)]
+    fun settleMatchRejectsAlreadySettledMatch(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        palate::settleMatch(&pusher, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x368, challenger = @0x369)]
+    fun settleMatchSettlesAfterEndTime(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getMatchStatus(0) == palate::matchStatusSettled(), 0);
+        assert!(palate::getMatchSettledTime(0) == palate::getMatchDurationSeconds(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x370, challenger = @0x371, user = @0x372)]
+    fun sideAWinsWhenScoreAIsGreater(
         admin: signer,
         framework: signer,
         pusher: signer,
@@ -798,8 +829,195 @@ module palate::palate_tests {
         createImageMatch(&pusher, &challenger);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
 
         palate::settleMatch(&user, 0);
+
+        assert!(palate::getMatchWinnerSide(0) == palate::sideA(), 0);
+        assert!(palate::getUserSummaryPushWinCount(signer::address_of(&pusher)) == 1, 1);
+        assert!(palate::getUserSummaryPushLossCount(signer::address_of(&challenger)) == 1, 2);
+        assert!(palate::getUserSummaryBuffWinCount(signer::address_of(&user)) == 1, 3);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x373, challenger = @0x374, user = @0x375)]
+    fun sideBWinsWhenScoreBIsGreater(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideB(), palate::getMinBuffAmount());
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+
+        palate::settleMatch(&user, 0);
+
+        assert!(palate::getMatchWinnerSide(0) == palate::sideB(), 0);
+        assert!(palate::getUserSummaryPushWinCount(signer::address_of(&challenger)) == 1, 1);
+        assert!(palate::getUserSummaryPushLossCount(signer::address_of(&pusher)) == 1, 2);
+        assert!(palate::getUserSummaryBuffWinCount(signer::address_of(&user)) == 1, 3);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x376, challenger = @0x377)]
+    fun sideAWinsWhenScoresAreTied(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getMatchScoreA(0) == 0, 0);
+        assert!(palate::getMatchScoreB(0) == 0, 1);
+        assert!(palate::getMatchWinnerSide(0) == palate::sideA(), 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x378, challenger = @0x379)]
+    fun settledMatchStatusIsSetCorrectly(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getMatchStatus(0) == palate::matchStatusSettled(), 0);
+        assert!(palate::getMatchProtocolFeeBpsSnapshot(0) == palate::getProtocolFeeBps(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x380, challenger = @0x381)]
+    fun bothMediaStatusesBecomeSettled(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getMediaStatus(0) == palate::statusSettled(), 0);
+        assert!(palate::getMediaStatus(1) == palate::statusSettled(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x382, challenger = @0x383)]
+    fun settleMatchDoesNotRequireMinimumBuffCount(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getMatchWinnerSide(0) == palate::sideA(), 0);
+        assert!(palate::getMatchBuffCountA(0) == 0, 1);
+        assert!(palate::getMatchBuffCountB(0) == 0, 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x384, challenger = @0x385)]
+    fun settleMatchDoesNotRequireMinimumTotalScore(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getMatchScoreA(0) == 0, 0);
+        assert!(palate::getMatchScoreB(0) == 0, 1);
+        assert!(palate::getMatchStatus(0) == palate::matchStatusSettled(), 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x386, challenger = @0x387)]
+    fun settleMatchDoesNotCancelLowOrZeroBuffActiveMatches(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getMatchStatus(0) == palate::matchStatusSettled(), 0);
+        assert!(palate::getMatchWinnerSide(0) == palate::sideA(), 1);
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        pusher = @0x388,
+        challenger = @0x389,
+        user_a_one = @0x390,
+        user_a_two = @0x391,
+        user_b = @0x392
+    )]
+    fun winnerSelectionUsesScoreNotRawBuffPool(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user_a_one: signer,
+        user_a_two: signer,
+        user_b: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+
+        palate::findMatch(&user_a_one);
+        palate::placeBuff(&user_a_one, palate::sideA(), palate::getMinBuffAmount());
+        palate::findMatch(&user_a_two);
+        palate::placeBuff(&user_a_two, palate::sideA(), palate::getMinBuffAmount());
+        palate::findMatch(&user_b);
+        palate::placeBuff(&user_b, palate::sideB(), palate::getMinBuffAmount() * 3);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getMatchBuffPoolB(0) > palate::getMatchBuffPoolA(0), 0);
+        assert!(palate::getMatchScoreA(0) == palate::getMatchScoreB(0), 1);
+        assert!(palate::getMatchWinnerSide(0) == palate::sideA(), 2);
+        assert!(palate::getUserSummaryBuffLossCount(signer::address_of(&user_b)) == 1, 3);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x393, challenger = @0x394)]
+    fun matchSettledEventPathSetsSettlementFields(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getMatchWinnerSide(0) == palate::sideA(), 0);
+        assert!(palate::getMatchSettledTime(0) == palate::getMatchDurationSeconds(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x395, challenger = @0x396)]
+    #[expected_failure(abort_code = 0, location = palate::palate)]
+    fun claimPushRemainsOutOfScope(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        palate::claimPush(&pusher, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x397, challenger = @0x398, user = @0x399)]
+    #[expected_failure(abort_code = 0, location = palate::palate)]
+    fun claimBuffRemainsOutOfScope(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        palate::claimBuff(&user, 0);
     }
 
     fun registerImage(user: &signer, blob_ref: vector<u8>, created_time: u64) {

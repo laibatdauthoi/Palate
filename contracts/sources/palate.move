@@ -28,6 +28,8 @@ module palate::palate {
     const E_BUFF_AMOUNT_TOO_LOW: u64 = 20;
     const E_ALREADY_BUFFED_MATCH: u64 = 21;
     const E_UNSUPPORTED_SCORE_ALGORITHM: u64 = 22;
+    const E_MATCH_NOT_EXPIRED: u64 = 23;
+    const E_MATCH_NOT_ACTIVE: u64 = 24;
 
     /// Category values.
     const CATEGORY_MEME: u8 = 1;
@@ -131,6 +133,12 @@ module palate::palate {
         score_b: u64,
         buff_count_a: u64,
         buff_count_b: u64,
+        winner_side: u8,
+        settled_time: u64,
+        protocol_fee_bps_snapshot: u64,
+        push_fee_amount: u64,
+        buff_fee_amount_a: u64,
+        buff_fee_amount_b: u64,
         status: u8,
     }
 
@@ -240,6 +248,15 @@ module palate::palate {
         side: u8,
         buff_amount: u64,
         score: u64,
+    }
+
+    #[event]
+    struct MatchSettledEvent has drop, store {
+        match_id: u64,
+        winner_side: u8,
+        score_a: u64,
+        score_b: u64,
+        settled_time: u64,
     }
 
     public entry fun initialize(account: &signer, treasury_address: address) {
@@ -461,6 +478,12 @@ module palate::palate {
             score_b: 0,
             buff_count_a: 0,
             buff_count_b: 0,
+            winner_side: 0,
+            settled_time: 0,
+            protocol_fee_bps_snapshot: 0,
+            push_fee_amount: 0,
+            buff_fee_amount_a: 0,
+            buff_fee_amount_b: 0,
             status: MATCH_STATUS_ACTIVE,
         });
 
@@ -552,8 +575,78 @@ module palate::palate {
         score + (x_scaled - scale)
     }
 
-    public entry fun settleMatch(_account: &signer, _match_id: u64) {
-        abort E_NOT_IMPLEMENTED
+    public entry fun settleMatch(_account: &signer, match_id: u64) acquires PalateState {
+        assertInitialized();
+
+        let state = borrow_global_mut<PalateState>(@palate);
+        let match_index = findActiveMatchIndex(state, match_id);
+        let current_time = timestamp::now_seconds();
+
+        let media_a_id;
+        let media_b_id;
+        let pusher_a;
+        let pusher_b;
+        let winner_side;
+        let score_a;
+        let score_b;
+        {
+            let active_match = vector::borrow_mut(&mut state.active_matches, match_index);
+            assert!(active_match.status == MATCH_STATUS_ACTIVE, E_MATCH_NOT_ACTIVE);
+            assert!(current_time >= active_match.end_time, E_MATCH_NOT_EXPIRED);
+
+            if (active_match.score_b > active_match.score_a) {
+                winner_side = SIDE_B;
+            } else {
+                winner_side = SIDE_A;
+            };
+
+            active_match.status = MATCH_STATUS_SETTLED;
+            active_match.winner_side = winner_side;
+            active_match.settled_time = current_time;
+            active_match.protocol_fee_bps_snapshot = state.protocol_config.protocol_fee_bps;
+            if (winner_side == SIDE_A) {
+                active_match.push_fee_amount = calculateFeeAmount(
+                    active_match.push_amount_b,
+                    state.protocol_config.protocol_fee_bps,
+                );
+                active_match.buff_fee_amount_b = calculateFeeAmount(
+                    active_match.buff_pool_b,
+                    state.protocol_config.protocol_fee_bps,
+                );
+            } else {
+                active_match.push_fee_amount = calculateFeeAmount(
+                    active_match.push_amount_a,
+                    state.protocol_config.protocol_fee_bps,
+                );
+                active_match.buff_fee_amount_a = calculateFeeAmount(
+                    active_match.buff_pool_a,
+                    state.protocol_config.protocol_fee_bps,
+                );
+            };
+
+            media_a_id = active_match.media_a_id;
+            media_b_id = active_match.media_b_id;
+            pusher_a = active_match.pusher_a;
+            pusher_b = active_match.pusher_b;
+            score_a = active_match.score_a;
+            score_b = active_match.score_b;
+        };
+
+        let media_a_index = findMediaIndex(state, media_a_id);
+        let media_b_index = findMediaIndex(state, media_b_id);
+        vector::borrow_mut(&mut state.media_records, media_a_index).status = STATUS_SETTLED;
+        vector::borrow_mut(&mut state.media_records, media_b_index).status = STATUS_SETTLED;
+
+        updateUserSummaryForPushSettlement(state, pusher_a, pusher_b, winner_side);
+        updateUserSummaryForBuffSettlement(state, match_id, winner_side);
+
+        event::emit(MatchSettledEvent {
+            match_id,
+            winner_side,
+            score_a,
+            score_b,
+            settled_time: current_time,
+        });
     }
 
     public entry fun claimPush(_account: &signer, _match_id: u64) {
@@ -786,6 +879,36 @@ module palate::palate {
     }
 
     #[view]
+    public fun getMatchWinnerSide(match_id: u64): u8 acquires PalateState {
+        getMatch(match_id).winner_side
+    }
+
+    #[view]
+    public fun getMatchSettledTime(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).settled_time
+    }
+
+    #[view]
+    public fun getMatchProtocolFeeBpsSnapshot(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).protocol_fee_bps_snapshot
+    }
+
+    #[view]
+    public fun getMatchPushFeeAmount(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).push_fee_amount
+    }
+
+    #[view]
+    public fun getMatchBuffFeeAmountA(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).buff_fee_amount_a
+    }
+
+    #[view]
+    public fun getMatchBuffFeeAmountB(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).buff_fee_amount_b
+    }
+
+    #[view]
     public fun getMatchBuffPoolA(match_id: u64): u64 acquires PalateState {
         getMatch(match_id).buff_pool_a
     }
@@ -971,8 +1094,28 @@ module palate::palate {
     }
 
     #[view]
+    public fun getUserSummaryPushWinCount(owner: address): u64 acquires PalateState {
+        getUserSummary(owner).push_win_count
+    }
+
+    #[view]
+    public fun getUserSummaryPushLossCount(owner: address): u64 acquires PalateState {
+        getUserSummary(owner).push_loss_count
+    }
+
+    #[view]
     public fun getUserSummaryBuffCount(owner: address): u64 acquires PalateState {
         getUserSummary(owner).buff_count
+    }
+
+    #[view]
+    public fun getUserSummaryBuffWinCount(owner: address): u64 acquires PalateState {
+        getUserSummary(owner).buff_win_count
+    }
+
+    #[view]
+    public fun getUserSummaryBuffLossCount(owner: address): u64 acquires PalateState {
+        getUserSummary(owner).buff_loss_count
     }
 
     #[view]
@@ -1006,6 +1149,11 @@ module palate::palate {
     }
 
     #[view]
+    public fun statusSettled(): u8 {
+        STATUS_SETTLED
+    }
+
+    #[view]
     public fun waitingPushStatusOpen(): u8 {
         WAITING_PUSH_STATUS_OPEN
     }
@@ -1023,6 +1171,11 @@ module palate::palate {
     #[view]
     public fun matchStatusActive(): u8 {
         MATCH_STATUS_ACTIVE
+    }
+
+    #[view]
+    public fun matchStatusSettled(): u8 {
+        MATCH_STATUS_SETTLED
     }
 
     #[view]
@@ -1326,6 +1479,79 @@ module palate::palate {
         };
     }
 
+    fun updateUserSummaryForPushSettlement(
+        state: &mut PalateState,
+        pusher_a: address,
+        pusher_b: address,
+        winner_side: u8,
+    ) {
+        ensureUserSummary(state, pusher_a);
+        ensureUserSummary(state, pusher_b);
+
+        if (winner_side == SIDE_A) {
+            incrementPushWinLoss(state, pusher_a, pusher_b);
+        } else {
+            incrementPushWinLoss(state, pusher_b, pusher_a);
+        };
+    }
+
+    fun incrementPushWinLoss(state: &mut PalateState, winner: address, loser: address) {
+        let length = vector::length(&state.user_summaries);
+        let index = 0;
+        while (index < length) {
+            let record = vector::borrow_mut(&mut state.user_summaries, index);
+            if (record.owner == winner) {
+                record.summary.push_win_count = record.summary.push_win_count + 1;
+            };
+            if (record.owner == loser) {
+                record.summary.push_loss_count = record.summary.push_loss_count + 1;
+            };
+            index = index + 1;
+        };
+    }
+
+    fun updateUserSummaryForBuffSettlement(
+        state: &mut PalateState,
+        match_id: u64,
+        winner_side: u8,
+    ) {
+        let length = vector::length(&state.buff_records);
+        let index = 0;
+        while (index < length) {
+            let record_match_id;
+            let record_user;
+            let record_side;
+            {
+                let buff_record = vector::borrow(&state.buff_records, index);
+                record_match_id = buff_record.match_id;
+                record_user = buff_record.user;
+                record_side = buff_record.side;
+            };
+            if (record_match_id == match_id) {
+                ensureUserSummary(state, record_user);
+                incrementBuffWinLossForUser(state, record_user, record_side == winner_side);
+            };
+            index = index + 1;
+        };
+    }
+
+    fun incrementBuffWinLossForUser(state: &mut PalateState, user: address, won: bool) {
+        let length = vector::length(&state.user_summaries);
+        let index = 0;
+        while (index < length) {
+            let record = vector::borrow_mut(&mut state.user_summaries, index);
+            if (record.owner == user) {
+                if (won) {
+                    record.summary.buff_win_count = record.summary.buff_win_count + 1;
+                } else {
+                    record.summary.buff_loss_count = record.summary.buff_loss_count + 1;
+                };
+                return
+            };
+            index = index + 1;
+        };
+    }
+
     fun getWaitingPushRecord(push_id: u64): WaitingPush acquires PalateState {
         let state = borrow_global<PalateState>(@palate);
         let index = findWaitingPushIndex(state, push_id);
@@ -1335,6 +1561,10 @@ module palate::palate {
     fun calculateMinimumChallengeAmount(push_amount: u64, increment_bps: u64): u64 {
         let increment = (push_amount * increment_bps + 9999) / 10000;
         push_amount + increment
+    }
+
+    fun calculateFeeAmount(amount: u64, fee_bps: u64): u64 {
+        (amount * fee_bps) / 10000
     }
 
     fun createEmptyUserSummary(): UserSummary {
