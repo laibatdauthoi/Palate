@@ -39,6 +39,7 @@ module palate::palate {
     const E_NOT_WINNING_BUFF: u64 = 29;
     const E_BUFF_ALREADY_CLAIMED: u64 = 30;
     const E_INSUFFICIENT_AVAILABLE_BALANCE: u64 = 31;
+    const E_INVALID_SKIP_PENALTY: u64 = 32;
 
     /// Category values.
     const CATEGORY_MEME: u8 = 1;
@@ -315,6 +316,7 @@ module palate::palate {
         let admin_address = signer::address_of(account);
         assert!(admin_address == @palate, E_NOT_MODULE_PUBLISHER);
         assert!(!exists<PalateState>(@palate), E_ALREADY_INITIALIZED);
+        assert!(DEFAULT_BUFF_COMMITMENT_AMOUNT >= DEFAULT_SKIP_PENALTY_AMOUNT, E_INVALID_SKIP_PENALTY);
 
         move_to(account, PalateState {
             protocol_config: ProtocolConfig {
@@ -1345,6 +1347,17 @@ module palate::palate {
     }
 
     #[view]
+    public fun getTotalVaultBalance(): u64 acquires PalateState {
+        assertInitialized();
+        let state = borrow_global<PalateState>(@palate);
+        coin::value(&state.balance_vault)
+            + coin::value(&state.push_escrow)
+            + coin::value(&state.buff_escrow)
+            + coin::value(&state.commitment_escrow)
+            + coin::value(&state.treasury_fees)
+    }
+
+    #[view]
     public fun getProtocolFeeBps(): u64 acquires PalateState {
         getProtocolConfig().protocol_fee_bps
     }
@@ -1531,6 +1544,8 @@ module palate::palate {
         let state = borrow_global_mut<PalateState>(@palate);
         assert!(!hasActiveAssignment(state, user), E_ASSIGNMENT_EXISTS);
 
+        // Test-only shortcut: this bypasses commitment escrow so targeted
+        // tests can set up assignment state without exercising balance flow.
         vector::push_back(&mut state.user_assignments, UserAssignment {
             user,
             match_id,
@@ -1548,6 +1563,51 @@ module palate::palate {
         buff_amount: u64,
     ) acquires PalateState {
         placeBuffInternal(account, expected_match_id, side, buff_amount)
+    }
+
+    #[test_only]
+    public entry fun updateBuffConfigForTesting(
+        account: &signer,
+        min_buff_amount: u64,
+        buff_commitment_amount: u64,
+        skip_penalty_amount: u64,
+    ) acquires PalateState {
+        assertInitialized();
+        assert!(signer::address_of(account) == @palate, E_NOT_MODULE_PUBLISHER);
+        assert!(buff_commitment_amount >= skip_penalty_amount, E_INVALID_SKIP_PENALTY);
+
+        let state = borrow_global_mut<PalateState>(@palate);
+        state.protocol_config.min_buff_amount = min_buff_amount;
+        state.protocol_config.buff_commitment_amount = buff_commitment_amount;
+        state.protocol_config.skip_penalty_amount = skip_penalty_amount;
+    }
+
+    #[test_only]
+    public fun getAggregateTotalDepositedForTesting(): u64 acquires PalateState {
+        assertInitialized();
+        let state = borrow_global<PalateState>(@palate);
+        let total = 0;
+        let index = 0;
+        let length = vector::length(&state.user_balances);
+        while (index < length) {
+            total = total + vector::borrow(&state.user_balances, index).balance.total_deposited;
+            index = index + 1;
+        };
+        total
+    }
+
+    #[test_only]
+    public fun getAggregateTotalWithdrawnForTesting(): u64 acquires PalateState {
+        assertInitialized();
+        let state = borrow_global<PalateState>(@palate);
+        let total = 0;
+        let index = 0;
+        let length = vector::length(&state.user_balances);
+        while (index < length) {
+            total = total + vector::borrow(&state.user_balances, index).balance.total_withdrawn;
+            index = index + 1;
+        };
+        total
     }
 
     fun assertInitialized() {

@@ -1539,6 +1539,248 @@ module palate::palate_tests {
         assert!(!palate::isBuffRewardClaimable(signer::address_of(&user), 0), 8);
     }
 
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        pusher = @0x500,
+        challenger = @0x501,
+        user = @0x502
+    )]
+    fun accountingInvariantHoldsAcrossFullBalanceFlow(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        fundAccount(&framework, &pusher);
+        fundAccount(&framework, &challenger);
+        fundAccount(&framework, &user);
+
+        palate::depositBalance(&pusher, TEST_DEPOSIT);
+        assertVaultInvariant();
+        palate::depositBalance(&challenger, TEST_DEPOSIT);
+        assertVaultInvariant();
+        palate::depositBalance(&user, TEST_DEPOSIT);
+        assertVaultInvariant();
+
+        registerImageWithoutDeposit(&pusher, b"invariant-a.png", 1);
+        registerImageWithoutDeposit(&challenger, b"invariant-b.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+        assertVaultInvariant();
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+        assertVaultInvariant();
+
+        palate::findMatch(&user);
+        assertVaultInvariant();
+        palate::skipMatch(&user);
+        assertVaultInvariant();
+        palate::findMatch(&user);
+        assertVaultInvariant();
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+        assertVaultInvariant();
+
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+        assertVaultInvariant();
+        palate::claimPush(&pusher, 0);
+        assertVaultInvariant();
+        palate::claimBuff(&user, 0);
+        assertVaultInvariant();
+
+        let withdraw_amount = palate::getMinBuffAmount();
+        palate::withdrawBalance(&user, withdraw_amount);
+        assertVaultInvariant();
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x503, challenger = @0x504)]
+    fun claimPushCreditsAvailableBalanceNotWalletUntilWithdraw(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        let pusher_address = signer::address_of(&pusher);
+        let wallet_before_claim = coin::balance<AptosCoin>(pusher_address);
+        let available_before_claim = palate::getAvailableBalance(pusher_address);
+        let claim_amount = palate::estimatePushClaimAmount(pusher_address, 0);
+        palate::claimPush(&pusher, 0);
+
+        assert!(coin::balance<AptosCoin>(pusher_address) == wallet_before_claim, 0);
+        assert!(palate::getAvailableBalance(pusher_address) == available_before_claim + claim_amount, 1);
+
+        palate::withdrawBalance(&pusher, claim_amount);
+        assert!(coin::balance<AptosCoin>(pusher_address) == wallet_before_claim + claim_amount, 2);
+        assertVaultInvariant();
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x505, challenger = @0x506, user = @0x507)]
+    fun claimBuffCreditsAvailableBalanceNotWalletUntilWithdraw(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        let user_address = signer::address_of(&user);
+        let wallet_before_claim = coin::balance<AptosCoin>(user_address);
+        let available_before_claim = palate::getAvailableBalance(user_address);
+        let claim_amount = palate::estimateBuffClaimAmount(user_address, 0);
+        palate::claimBuff(&user, 0);
+
+        assert!(coin::balance<AptosCoin>(user_address) == wallet_before_claim, 0);
+        assert!(palate::getAvailableBalance(user_address) == available_before_claim + claim_amount, 1);
+
+        palate::withdrawBalance(&user, claim_amount);
+        assert!(coin::balance<AptosCoin>(user_address) == wallet_before_claim + claim_amount, 2);
+        assertVaultInvariant();
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x508, challenger = @0x509, user = @0x510)]
+    fun skipMatchUsesPenaltySnapshotAfterConfigChange(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
+
+        let original_penalty = palate::getSkipPenaltyAmount();
+        palate::findMatch(&user);
+        palate::updateBuffConfigForTesting(
+            &admin,
+            palate::getMinBuffAmount(),
+            palate::getBuffCommitmentAmount() * 2,
+            original_penalty / 2,
+        );
+        palate::skipMatch(&user);
+
+        assert!(palate::getTreasuryFeeBalance() == original_penalty, 0);
+        assertVaultInvariant();
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    #[expected_failure(abort_code = 32, location = palate::palate)]
+    fun buffConfigRejectsSkipPenaltyAboveCommitment(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updateBuffConfigForTesting(
+            &admin,
+            palate::getMinBuffAmount(),
+            palate::getBuffCommitmentAmount(),
+            palate::getBuffCommitmentAmount() + 1,
+        );
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        pusher = @0x511,
+        challenger = @0x512,
+        winner_one = @0x513,
+        winner_two = @0x514,
+        winner_three = @0x515,
+        loser = @0x516
+    )]
+    fun buffPayoutRoundingDustRemainsBackedByModuleApt(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        winner_one: signer,
+        winner_two: signer,
+        winner_three: signer,
+        loser: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        let min = palate::getMinBuffAmount();
+
+        fundPalateBalance(&framework, &winner_one);
+        palate::findMatch(&winner_one);
+        palate::placeBuff(&winner_one, palate::sideA(), min);
+        fundPalateBalance(&framework, &winner_two);
+        palate::findMatch(&winner_two);
+        palate::placeBuff(&winner_two, palate::sideA(), min);
+        fundPalateBalance(&framework, &winner_three);
+        palate::findMatch(&winner_three);
+        palate::placeBuff(&winner_three, palate::sideA(), min);
+        fundPalateBalance(&framework, &loser);
+        palate::findMatch(&loser);
+        palate::placeBuff(&loser, palate::sideB(), min);
+
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+        let buff_fee = palate::getMatchBuffFeeAmountB(0);
+
+        palate::claimBuff(&winner_one, 0);
+        palate::claimBuff(&winner_two, 0);
+        palate::claimBuff(&winner_three, 0);
+
+        assert!(palate::getBuffEscrowBalance() == 2, 0);
+        assert!(palate::getTreasuryFeeBalance() == palate::getMatchPushFeeAmount(0) + buff_fee, 1);
+        assertVaultInvariant();
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        pusher = @0x517,
+        challenger = @0x518,
+        user = @0x519,
+        loser = @0x520
+    )]
+    fun treasuryFeesAreBackedAfterSkipPenaltyAndProtocolFees(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+        loser: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+
+        fundPalateBalance(&framework, &user);
+        palate::findMatch(&user);
+        palate::skipMatch(&user);
+        let skip_penalty = palate::getSkipPenaltyAmount();
+
+        fundPalateBalance(&framework, &user);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+        fundPalateBalance(&framework, &loser);
+        palate::findMatch(&loser);
+        palate::placeBuff(&loser, palate::sideB(), palate::getMinBuffAmount());
+
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        let expected_treasury = skip_penalty
+            + palate::getMatchPushFeeAmount(0)
+            + palate::getMatchBuffFeeAmountB(0);
+        assert!(palate::getTreasuryFeeBalance() == expected_treasury, 0);
+        assert!(palate::getTotalVaultBalance() >= palate::getTreasuryFeeBalance(), 1);
+        assertVaultInvariant();
+    }
+
     fun registerImage(framework: &signer, user: &signer, blob_ref: vector<u8>, created_time: u64) {
         fundPalateBalance(framework, user);
         palate::registerMedia(
@@ -1565,6 +1807,18 @@ module palate::palate_tests {
         );
     }
 
+    fun registerImageWithoutDeposit(user: &signer, blob_ref: vector<u8>, created_time: u64) {
+        palate::registerMedia(
+            user,
+            palate::categoryImage(),
+            blob_ref,
+            b"hash",
+            b"image/png",
+            b"Image",
+            created_time,
+        );
+    }
+
     fun createImageMatch(framework: &signer, pusher: &signer, challenger: &signer) {
         registerImage(framework, pusher, b"original.png", 1);
         registerImage(framework, challenger, b"challenger.png", 2);
@@ -1582,5 +1836,13 @@ module palate::palate_tests {
     fun fundPalateBalance(framework: &signer, account: &signer) {
         fundAccount(framework, account);
         palate::depositBalance(account, TEST_DEPOSIT);
+    }
+
+    fun assertVaultInvariant() {
+        assert!(
+            palate::getTotalVaultBalance()
+                == palate::getAggregateTotalDepositedForTesting() - palate::getAggregateTotalWithdrawnForTesting(),
+            999,
+        );
     }
 }
