@@ -1,20 +1,20 @@
-import type { MockMatch } from "@/data/mock_data";
+import type { ActiveMatch } from "@/types/palate";
 import { ActionButton } from "./action_button";
 import { CategoryBadge } from "./category_badge";
 import { CountdownTimer } from "./countdown_timer";
 import { StatusBadge } from "./status_badge";
 
-export function MatchCard({ match }: { match: MockMatch }) {
+export function MatchCard({ match }: { match: ActiveMatch }) {
   return (
     <article className="match_card">
       <div className="match_media_pair">
         <div className={`mini_media media_preview_${match.mediaA.accent}`}>
-          <span>A</span>
+          <span className="mini_side_label">Media A</span>
           <strong>{match.mediaA.title}</strong>
         </div>
         <div className="vs_marker">VS</div>
         <div className={`mini_media media_preview_${match.mediaB.accent}`}>
-          <span>B</span>
+          <span className="mini_side_label">Media B</span>
           <strong>{match.mediaB.title}</strong>
         </div>
       </div>

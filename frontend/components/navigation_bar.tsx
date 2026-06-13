@@ -25,7 +25,7 @@ export function NavigationBar() {
         {nav_items.map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           return (
-            <Link className={`nav_link ${active ? "active" : ""}`} href={item.href} key={item.href}>
+            <Link className={`nav_link ${active ? "active" : ""}`} data-short={item.label.slice(0, 1)} href={item.href} key={item.href}>
               {item.label}
             </Link>
           );

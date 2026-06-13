@@ -5,25 +5,25 @@ import { ActionButton } from "@/components/action_button";
 import { ClaimCard } from "@/components/claim_card";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
-import { mock_claims, mock_stats } from "@/data/mock_data";
-
-const profile_stats = [
-  { label: "Push count", value: mock_stats.pushCount },
-  { label: "Push wins", value: mock_stats.pushWins },
-  { label: "Push losses", value: mock_stats.pushLosses },
-  { label: "Push win rate", value: mock_stats.pushWinRate },
-  { label: "Push profit", value: mock_stats.pushProfit },
-  { label: "Buff count", value: mock_stats.buffCount },
-  { label: "Buff wins", value: mock_stats.buffWins },
-  { label: "Buff losses", value: mock_stats.buffLosses },
-  { label: "Buff win rate", value: mock_stats.buffWinRate },
-  { label: "Buff profit", value: mock_stats.buffProfit },
-  { label: "Total pushed", value: mock_stats.totalPushed },
-  { label: "Total buffed", value: mock_stats.totalBuffed }
-];
+import { usePalate } from "@/providers/palate_provider";
 
 export default function ProfilePage() {
+  const { balance, claimRecords, mockWalletAddress, userSummary } = usePalate();
   const [tab, setTab] = useState<"Stats" | "Claims">("Stats");
+  const profile_stats = [
+    { label: "Push count", value: userSummary.pushCount },
+    { label: "Push wins", value: userSummary.pushWins },
+    { label: "Push losses", value: userSummary.pushLosses },
+    { label: "Push win rate", value: userSummary.pushWinRate },
+    { label: "Push profit", value: userSummary.pushProfit },
+    { label: "Buff count", value: userSummary.buffCount },
+    { label: "Buff wins", value: userSummary.buffWins },
+    { label: "Buff losses", value: userSummary.buffLosses },
+    { label: "Buff win rate", value: userSummary.buffWinRate },
+    { label: "Buff profit", value: userSummary.buffProfit },
+    { label: "Total pushed", value: userSummary.totalPushed },
+    { label: "Total buffed", value: userSummary.totalBuffed }
+  ];
 
   return (
     <div className="page_stack">
@@ -34,23 +34,23 @@ export default function ProfilePage() {
         actions={<ActionButton variant="secondary">Mock Withdraw</ActionButton>}
       />
 
-      <div className="panel_grid">
+      <div className="profile_summary_grid">
         <SectionPanel>
           <div className="stat_card">
             <span>Wallet</span>
-            <strong>{mock_stats.wallet}</strong>
+            <strong>{mockWalletAddress}</strong>
           </div>
         </SectionPanel>
         <SectionPanel accent>
           <div className="stat_card">
             <span>Palate Balance</span>
-            <strong>{mock_stats.availableBalance}</strong>
+            <strong>{balance.availableBalance}</strong>
           </div>
         </SectionPanel>
         <SectionPanel>
           <div className="stat_card">
             <span>Claimable amount</span>
-            <strong>{mock_stats.claimableAmount}</strong>
+            <strong>{userSummary.claimableAmount}</strong>
           </div>
         </SectionPanel>
       </div>
@@ -80,14 +80,14 @@ export default function ProfilePage() {
         <div className="stack">
           <SectionPanel title="Push claims">
             <div className="stack">
-              {mock_claims.filter((claim) => claim.type === "Push").map((claim) => (
+              {claimRecords.filter((claim) => claim.type === "push").map((claim) => (
                 <ClaimCard claim={claim} key={claim.id} />
               ))}
             </div>
           </SectionPanel>
           <SectionPanel title="Buff Rewards">
             <div className="stack">
-              {mock_claims.filter((claim) => claim.type === "Buff").map((claim) => (
+              {claimRecords.filter((claim) => claim.type === "buff").map((claim) => (
                 <ClaimCard claim={claim} key={claim.id} />
               ))}
             </div>

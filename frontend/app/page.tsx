@@ -1,16 +1,21 @@
+"use client";
+
 import { ActionButton } from "@/components/action_button";
 import { MatchCard } from "@/components/match_card";
 import { SectionPanel } from "@/components/section_panel";
-import { mock_matches, mock_stats } from "@/data/mock_data";
-
-const stat_cards = [
-  { label: "Active matches", value: "24" },
-  { label: "Pending Buffs", value: mock_stats.pendingBuffs },
-  { label: "Claimable", value: mock_stats.claimableAmount },
-  { label: "Palate Balance", value: mock_stats.availableBalance }
-];
+import { app_config } from "@/config/app_config";
+import { usePalate } from "@/providers/palate_provider";
 
 export default function HomePage() {
+  const { activeMatches, balance, userSummary } = usePalate();
+  const stat_cards = [
+    { label: "Active matches", value: String(activeMatches.length) },
+    { label: "Pending Buffs", value: userSummary.pendingBuffs },
+    { label: "Claimable", value: userSummary.claimableAmount },
+    { label: "Palate Balance", value: balance.availableBalance }
+  ];
+  const featuredMatch = activeMatches[0];
+
   return (
     <div className="page_stack">
       <section className="home_hero">
@@ -21,15 +26,17 @@ export default function HomePage() {
             Enter a random active match, choose the side that deserves to win, and keep live score, pools, and direction hidden until settlement.
           </p>
           <div className="cluster">
-            <ActionButton href="/buff">Buff Random Match</ActionButton>
+            <ActionButton className="hero_primary_cta" href="/buff">Buff Random Match</ActionButton>
             <ActionButton href="/my-media/upload" variant="secondary">Upload Media</ActionButton>
             <ActionButton href="/push" variant="secondary">Push Media</ActionButton>
           </div>
-          <p className="mock_note">Temporary mock data only. Aptos and Shelby integration come later.</p>
+          <p className="mock_note">{app_config.mockMode ? "Temporary mock data only. Aptos and Shelby integration come later." : app_config.networkLabel}</p>
         </div>
-        <div className="hero_match_preview">
-          <MatchCard match={mock_matches[0]} />
-        </div>
+        {featuredMatch ? (
+          <div className="hero_match_preview">
+            <MatchCard match={featuredMatch} />
+          </div>
+        ) : null}
       </section>
 
       <div className="panel_grid">
@@ -45,7 +52,7 @@ export default function HomePage() {
 
       <SectionPanel title="Featured match preview" copy="The UI can preview active matches without exposing live score, Buff pool, leading side, odds, win probability, or supporter direction.">
         <div className="wide_two_column">
-          {mock_matches.map((match) => (
+          {activeMatches.map((match) => (
             <MatchCard key={match.id} match={match} />
           ))}
         </div>

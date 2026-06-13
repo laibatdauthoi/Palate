@@ -8,9 +8,10 @@ import { ModalShell } from "@/components/modal_shell";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { WaitingPushCard } from "@/components/waiting_push_card";
-import { mock_matches, mock_media, mock_waiting_pushes } from "@/data/mock_data";
+import { usePalate } from "@/providers/palate_provider";
 
 export default function PushPage() {
+  const { activeMatches, mediaRecords, waitingPushes } = usePalate();
   const [tab, setTab] = useState<"Waiting" | "Live Matches">("Waiting");
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -35,13 +36,13 @@ export default function PushPage() {
 
       {tab === "Waiting" ? (
         <div className="stack">
-          {mock_waiting_pushes.map((push) => (
+          {waitingPushes.map((push) => (
             <WaitingPushCard key={push.id} push={push} onChallenge={() => setModalOpen(true)} />
           ))}
         </div>
       ) : (
         <div className="wide_two_column">
-          {mock_matches.map((match) => (
+          {activeMatches.map((match) => (
             <MatchCard key={match.id} match={match} />
           ))}
         </div>
@@ -53,10 +54,10 @@ export default function PushPage() {
           <label className="amount_input">
             <span>Idle media</span>
             <select className="input_control">
-              {mock_media
-                .filter((media) => media.status === "Idle" && media.category === "Meme")
+              {mediaRecords
+                .filter((media) => media.status === "idle" && media.category === "meme")
                 .map((media) => (
-                  <option key={media.id}>{media.title} - {media.category}</option>
+                  <option key={media.id}>{media.title} - Meme</option>
                 ))}
             </select>
           </label>

@@ -1,4 +1,4 @@
-import type { MediaFormat } from "@/data/mock_data";
+import type { MediaFormat } from "@/types/palate";
 
 export function FormatBadge({ format }: { format: MediaFormat }) {
   return <span className="badge format_badge">{format}</span>;

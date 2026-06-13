@@ -1,5 +1,19 @@
-import type { MediaStatus } from "@/data/mock_data";
+import type { MediaStatus } from "@/types/palate";
 
-export function StatusBadge({ status }: { status: MediaStatus | "Active" | "Settled" | "Open" | "Claimable" | "Pending" }) {
-  return <span className={`badge status_badge status_${status.toLowerCase()}`}>{status}</span>;
+type StatusBadgeValue = MediaStatus | "open" | "claimable" | "pending";
+
+const labels: Record<StatusBadgeValue, string> = {
+  idle: "Idle",
+  waiting: "Waiting",
+  active: "Active",
+  settled: "Settled",
+  disabled: "Disabled",
+  banned: "Banned",
+  open: "Open",
+  claimable: "Claimable",
+  pending: "Pending"
+};
+
+export function StatusBadge({ status }: { status: StatusBadgeValue }) {
+  return <span className={`badge status_badge status_${status}`}>{labels[status]}</span>;
 }

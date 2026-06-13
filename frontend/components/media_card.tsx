@@ -1,11 +1,11 @@
-import type { MockMedia } from "@/data/mock_data";
+import type { MediaRecord } from "@/types/palate";
 import { ActionButton } from "./action_button";
 import { CategoryBadge } from "./category_badge";
 import { FormatBadge } from "./format_badge";
 import { StatusBadge } from "./status_badge";
 
 type MediaCardProps = {
-  media: MockMedia;
+  media: MediaRecord;
   actionLabel?: string;
 };
 
@@ -27,7 +27,7 @@ export function MediaCard({ media, actionLabel }: MediaCardProps) {
           <FormatBadge format={media.format} />
         </div>
         <div className="spread media_meta">
-          <span>{media.created}</span>
+          <span>{media.createdTime}</span>
           {actionLabel ? <ActionButton variant="secondary">{actionLabel}</ActionButton> : null}
         </div>
       </div>

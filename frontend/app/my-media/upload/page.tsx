@@ -4,11 +4,13 @@ import { useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
+import { app_config, upload_step_labels } from "@/config/app_config";
+import type { MediaCategory, UploadStep } from "@/types/palate";
 
-const progress_steps = ["Preparing file", "Uploading to Shelby", "Registering on chain", "Completed"];
+const progress_steps: UploadStep[] = ["preparing_file", "uploading_to_shelby", "registering_on_chain", "completed"];
 
 export default function UploadPage() {
-  const [category, setCategory] = useState<"Meme" | "Image">("Meme");
+  const [category, setCategory] = useState<MediaCategory>("meme");
 
   return (
     <div className="page_stack">
@@ -22,10 +24,10 @@ export default function UploadPage() {
         <SectionPanel title="Category-first flow" accent>
           <div className="stack">
             <div className="category_choice_grid">
-              {(["Meme", "Image"] as const).map((item) => (
+              {app_config.supportedCategories.map((item) => (
                 <button className={`category_choice ${category === item ? "active" : ""}`} key={item} onClick={() => setCategory(item)}>
-                  <strong>{item}</strong>
-                  <span>{item === "Meme" ? "Reaction-style or meme content." : "Visual art, animation, posters, AI images, or edited images."}</span>
+                  <strong>{item === "meme" ? "Meme" : "Image"}</strong>
+                  <span>{item === "meme" ? "Reaction-style or meme content." : "Visual art, animation, posters, AI images, or edited images."}</span>
                 </button>
               ))}
             </div>
@@ -35,9 +37,9 @@ export default function UploadPage() {
             </label>
             <label className="amount_input">
               <span>File</span>
-              <input className="input_control" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" />
+              <input className="input_control" type="file" accept={app_config.acceptedUploadMimeTypes.join(",")} />
             </label>
-            <p className="secondary_text">Accepted formats: PNG, JPG, JPEG, WEBP, GIF.</p>
+            <p className="secondary_text">Accepted formats: {app_config.acceptedUploadFormats.join(", ")}.</p>
             <ActionButton>Start Mock Upload</ActionButton>
           </div>
         </SectionPanel>
@@ -45,17 +47,17 @@ export default function UploadPage() {
         <SectionPanel title="Preview and progress">
           <div className="stack">
             <div className="upload_preview">
-              <span>{category} preview placeholder</span>
+              <span>{category === "meme" ? "Meme" : "Image"} preview placeholder</span>
             </div>
             <div className="upload_steps">
               {progress_steps.map((step, index) => (
                 <div className={`upload_step ${index === 1 ? "active" : ""}`} key={step}>
                   <span>{index + 1}</span>
-                  {step}
+                  {upload_step_labels[step]}
                 </div>
               ))}
             </div>
-            <p className="mock_note">Shelby upload and registerMedia are intentionally not integrated in Task F1.</p>
+            <p className="mock_note">Shelby upload and registerMedia are intentionally not integrated in this visual shell.</p>
           </div>
         </SectionPanel>
       </div>

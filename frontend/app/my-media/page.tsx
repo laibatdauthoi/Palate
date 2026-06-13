@@ -5,22 +5,34 @@ import { ActionButton } from "@/components/action_button";
 import { MediaCard } from "@/components/media_card";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
-import { mock_media, type MediaCategory, type MediaStatus } from "@/data/mock_data";
+import { usePalate } from "@/providers/palate_provider";
+import type { MediaCategory, MediaStatus } from "@/types/palate";
 
 const statuses = ["All", "Idle", "Waiting", "Active", "Settled"] as const;
 const categories = ["All Categories", "Meme", "Image"] as const;
+const status_values = {
+  Idle: "idle",
+  Waiting: "waiting",
+  Active: "active",
+  Settled: "settled"
+} as const satisfies Record<Exclude<(typeof statuses)[number], "All">, MediaStatus>;
+const category_values = {
+  Meme: "meme",
+  Image: "image"
+} as const satisfies Record<Exclude<(typeof categories)[number], "All Categories">, MediaCategory>;
 
 export default function MyMediaPage() {
+  const { mediaRecords } = usePalate();
   const [status, setStatus] = useState<(typeof statuses)[number]>("All");
   const [category, setCategory] = useState<(typeof categories)[number]>("All Categories");
 
   const filteredMedia = useMemo(() => {
-    return mock_media.filter((media) => {
-      const statusMatches = status === "All" || media.status === (status as MediaStatus);
-      const categoryMatches = category === "All Categories" || media.category === (category as MediaCategory);
+    return mediaRecords.filter((media) => {
+      const statusMatches = status === "All" || media.status === status_values[status];
+      const categoryMatches = category === "All Categories" || media.category === category_values[category];
       return statusMatches && categoryMatches;
     });
-  }, [category, status]);
+  }, [category, mediaRecords, status]);
 
   return (
     <div className="page_stack">
@@ -32,7 +44,7 @@ export default function MyMediaPage() {
       />
 
       <SectionPanel>
-        <div className="spread">
+        <div className="filter_bar">
           <div className="tabs" aria-label="Status filters">
             {statuses.map((item) => (
               <button className={`tab_button ${status === item ? "active" : ""}`} key={item} onClick={() => setStatus(item)}>
@@ -53,7 +65,7 @@ export default function MyMediaPage() {
           <MediaCard
             key={media.id}
             media={media}
-            actionLabel={media.status === "Idle" ? "Push" : media.status === "Waiting" ? "Waiting" : media.status === "Active" ? "View Match" : "View Result"}
+            actionLabel={media.status === "idle" ? "Push" : media.status === "waiting" ? "Waiting" : media.status === "active" ? "View Match" : "View Result"}
           />
         ))}
       </div>

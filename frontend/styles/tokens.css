@@ -8,6 +8,8 @@
   --surface-elevated: #2d2338;
   --surface-glass: rgba(255, 255, 255, 0.045);
   --surface-glass-strong: rgba(255, 255, 255, 0.075);
+  --surface-ink: rgba(7, 5, 10, 0.72);
+  --surface-ink-strong: rgba(7, 5, 10, 0.88);
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-medium: rgba(255, 255, 255, 0.14);
   --border-focus: rgba(232, 76, 154, 0.52);
@@ -65,6 +67,7 @@
   --shadow-card: 0 12px 30px rgba(0, 0, 0, 0.28);
   --shadow-card-hover: 0 18px 45px rgba(0, 0, 0, 0.36);
   --shadow-modal: 0 30px 90px rgba(0, 0, 0, 0.56);
+  --shadow-panel: 0 24px 70px rgba(0, 0, 0, 0.34);
   --shadow-glow: 0 0 32px rgba(232, 76, 154, 0.16);
   --shadow-glow-strong: 0 0 48px rgba(232, 76, 154, 0.26);
   --transition-fast: 160ms cubic-bezier(0.22, 1, 0.36, 1);

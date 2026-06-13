@@ -1,3 +1,5 @@
+"use client";
+
 import { ActionButton } from "@/components/action_button";
 import { BuffPanel } from "@/components/buff_panel";
 import { EmptyState } from "@/components/empty_state";
@@ -5,9 +7,12 @@ import { ErrorState } from "@/components/error_state";
 import { LoadingState } from "@/components/loading_state";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
-import { mock_matches, mock_stats } from "@/data/mock_data";
+import { usePalate } from "@/providers/palate_provider";
 
 export default function BuffPage() {
+  const { currentAssignment } = usePalate();
+  const assignedMatch = currentAssignment?.match;
+
   return (
     <div className="page_stack">
       <PageHeader
@@ -17,7 +22,7 @@ export default function BuffPage() {
         actions={<ActionButton>Find Match</ActionButton>}
       />
 
-      <BuffPanel match={mock_matches[0]} skipPenalty={mock_stats.skipPenalty} />
+      {assignedMatch ? <BuffPanel match={assignedMatch} skipPenalty={currentAssignment.skipPenaltyAmount} /> : null}
 
       <div className="panel_grid">
         <SectionPanel title="No assigned match">

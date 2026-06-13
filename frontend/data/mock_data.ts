@@ -1,145 +1,142 @@
-export type MediaStatus = "Idle" | "Waiting" | "Active" | "Settled";
-export type MediaCategory = "Meme" | "Image";
-export type MediaFormat = "PNG" | "JPG" | "JPEG" | "WEBP" | "GIF";
+import type { ActiveMatch, ClaimRecord, MediaRecord, PalateBalance, UserSummary, WaitingPush } from "@/types/palate";
 
-export type MockMedia = {
-  id: number;
-  title: string;
-  category: MediaCategory;
-  format: MediaFormat;
-  status: MediaStatus;
-  created: string;
-  accent: string;
-};
+const mock_owner = "0x91f8...2b40";
 
-export type MockWaitingPush = {
-  id: number;
-  media: MockMedia;
-  pusher: string;
-  pushAmount: string;
-  minChallengeAmount: string;
-  created: string;
-};
-
-export type MockMatch = {
-  id: number;
-  mediaA: MockMedia;
-  mediaB: MockMedia;
-  category: MediaCategory;
-  timeRemaining: string;
-  status: "Active" | "Settled";
-};
-
-export type MockClaim = {
-  id: number;
-  type: "Push" | "Buff";
-  matchRef: string;
-  amount: string;
-  settledTime: string;
-  claimable: boolean;
-};
-
-// Temporary mock data for Task F1 visual scaffolding only.
-// Replace with Aptos contract reads and Shelby media sources during integration.
-export const mock_media: MockMedia[] = [
+// Temporary mock data for early visual scaffolding only.
+// Replace with Aptos view calls and Shelby media sources during integration.
+export const mock_media: MediaRecord[] = [
   {
     id: 1,
+    ownerAddress: mock_owner,
     title: "Midnight Signal",
-    category: "Meme",
+    category: "meme",
     format: "GIF",
-    status: "Idle",
-    created: "Today",
+    status: "idle",
+    createdTime: "Today",
+    shelbyBlobRef: "mock://shelby/midnight-signal.gif",
+    contentHash: "mock_hash_midnight_signal",
+    mimeType: "image/gif",
     accent: "pink"
   },
   {
     id: 2,
+    ownerAddress: mock_owner,
     title: "Chrome Shrine",
-    category: "Image",
+    category: "image",
     format: "WEBP",
-    status: "Waiting",
-    created: "Yesterday",
+    status: "waiting",
+    createdTime: "Yesterday",
+    shelbyBlobRef: "mock://shelby/chrome-shrine.webp",
+    contentHash: "mock_hash_chrome_shrine",
+    mimeType: "image/webp",
     accent: "purple"
   },
   {
     id: 3,
+    ownerAddress: mock_owner,
     title: "Noir Reaction",
-    category: "Meme",
+    category: "meme",
     format: "PNG",
-    status: "Active",
-    created: "2 days ago",
+    status: "active",
+    createdTime: "2 days ago",
+    shelbyBlobRef: "mock://shelby/noir-reaction.png",
+    contentHash: "mock_hash_noir_reaction",
+    mimeType: "image/png",
     accent: "pink"
   },
   {
     id: 4,
+    ownerAddress: mock_owner,
     title: "Glass Arena",
-    category: "Image",
+    category: "image",
     format: "JPG",
-    status: "Settled",
-    created: "Last week",
+    status: "settled",
+    createdTime: "Last week",
+    shelbyBlobRef: "mock://shelby/glass-arena.jpg",
+    contentHash: "mock_hash_glass_arena",
+    mimeType: "image/jpeg",
     accent: "purple"
   },
   {
     id: 5,
+    ownerAddress: mock_owner,
     title: "Velvet Glitch",
-    category: "Image",
+    category: "image",
     format: "JPEG",
-    status: "Idle",
-    created: "Last week",
+    status: "idle",
+    createdTime: "Last week",
+    shelbyBlobRef: "mock://shelby/velvet-glitch.jpeg",
+    contentHash: "mock_hash_velvet_glitch",
+    mimeType: "image/jpeg",
     accent: "pink"
   },
   {
     id: 6,
+    ownerAddress: mock_owner,
     title: "Quiet Flex",
-    category: "Meme",
+    category: "meme",
     format: "WEBP",
-    status: "Idle",
-    created: "Last month",
+    status: "idle",
+    createdTime: "Last month",
+    shelbyBlobRef: "mock://shelby/quiet-flex.webp",
+    contentHash: "mock_hash_quiet_flex",
+    mimeType: "image/webp",
     accent: "purple"
   }
 ];
 
-export const mock_waiting_pushes: MockWaitingPush[] = [
+export const mock_waiting_pushes: WaitingPush[] = [
   {
     id: 101,
     media: mock_media[1],
-    pusher: "0x92c4...18af",
+    pusherAddress: "0x92c4...18af",
     pushAmount: "10.00 APT",
     minChallengeAmount: "10.50 APT",
-    created: "18 min ago"
+    createdTime: "18 min ago",
+    status: "open"
   },
   {
     id: 102,
     media: mock_media[0],
-    pusher: "0x71dd...90aa",
+    pusherAddress: "0x71dd...90aa",
     pushAmount: "6.20 APT",
     minChallengeAmount: "6.51 APT",
-    created: "42 min ago"
+    createdTime: "42 min ago",
+    status: "open"
   }
 ];
 
-export const mock_matches: MockMatch[] = [
+export const mock_matches: ActiveMatch[] = [
   {
     id: 501,
     mediaA: mock_media[2],
     mediaB: mock_media[5],
-    category: "Meme",
+    pusherA: "0x85fa...3001",
+    pusherB: "0xbd55...4170",
+    pushAmountA: "8.00 APT",
+    pushAmountB: "8.40 APT",
+    category: "meme",
     timeRemaining: "07:42:18",
-    status: "Active"
+    status: "active"
   },
   {
     id: 502,
     mediaA: mock_media[4],
     mediaB: mock_media[3],
-    category: "Image",
+    pusherA: "0x55a1...84de",
+    pusherB: "0x03fb...9ef1",
+    pushAmountA: "12.00 APT",
+    pushAmountB: "12.60 APT",
+    category: "image",
     timeRemaining: "12:08:44",
-    status: "Active"
+    status: "active"
   }
 ];
 
-export const mock_claims: MockClaim[] = [
+export const mock_claims: ClaimRecord[] = [
   {
     id: 9001,
-    type: "Push",
+    type: "push",
     matchRef: "Match 448",
     amount: "19.975 APT",
     settledTime: "2h ago",
@@ -147,7 +144,7 @@ export const mock_claims: MockClaim[] = [
   },
   {
     id: 9002,
-    type: "Buff",
+    type: "buff",
     matchRef: "Match 451",
     amount: "3.420 APT",
     settledTime: "Yesterday",
@@ -155,7 +152,7 @@ export const mock_claims: MockClaim[] = [
   },
   {
     id: 9003,
-    type: "Buff",
+    type: "buff",
     matchRef: "Match 466",
     amount: "Pending",
     settledTime: "Awaiting settlement",
@@ -163,9 +160,18 @@ export const mock_claims: MockClaim[] = [
   }
 ];
 
-export const mock_stats = {
-  wallet: "0x91f8...2b40",
+export const mock_balance: PalateBalance = {
   availableBalance: "84.250 APT",
+  totalDeposited: "120.000 APT",
+  totalWithdrawn: "18.000 APT",
+  lockedPushAmount: "14.500 APT",
+  lockedBuffAmount: "2.750 APT",
+  lockedCommitmentAmount: "0.500 APT",
+  totalClaimed: "23.395 APT"
+};
+
+export const mock_summary: UserSummary = {
+  walletAddress: mock_owner,
   claimableAmount: "23.395 APT",
   pushProfit: "+12.810 APT",
   buffProfit: "+4.620 APT",

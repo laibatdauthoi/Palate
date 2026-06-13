@@ -1,8 +1,8 @@
-import type { MockClaim } from "@/data/mock_data";
+import type { ClaimRecord } from "@/types/palate";
 import { ActionButton } from "./action_button";
 import { StatusBadge } from "./status_badge";
 
-export function ClaimCard({ claim }: { claim: MockClaim }) {
+export function ClaimCard({ claim }: { claim: ClaimRecord }) {
   return (
     <article className="claim_card">
       <div>
@@ -12,7 +12,7 @@ export function ClaimCard({ claim }: { claim: MockClaim }) {
       </div>
       <div className="claim_amount">
         <strong>{claim.amount}</strong>
-        <StatusBadge status={claim.claimable ? "Claimable" : "Pending"} />
+        <StatusBadge status={claim.claimable ? "claimable" : "pending"} />
       </div>
       <ActionButton variant={claim.claimable ? "primary" : "secondary"} disabled={!claim.claimable}>
         Claim

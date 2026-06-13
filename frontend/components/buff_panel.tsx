@@ -1,4 +1,4 @@
-import type { MockMatch } from "@/data/mock_data";
+import type { ActiveMatch } from "@/types/palate";
 import { ActionButton } from "./action_button";
 import { AmountInput } from "./amount_input";
 import { BuffDecisionCard } from "./buff_decision_card";
@@ -6,7 +6,7 @@ import { CategoryBadge } from "./category_badge";
 import { CountdownTimer } from "./countdown_timer";
 
 type BuffPanelProps = {
-  match: MockMatch;
+  match: ActiveMatch;
   skipPenalty: string;
 };
 
@@ -34,9 +34,9 @@ export function BuffPanel({ match, skipPenalty }: BuffPanelProps) {
       <div className="buff_action_bar">
         <AmountInput label="Buff amount" placeholder="0.10 APT minimum" />
         <div className="buff_action_buttons">
-          <ActionButton>Buff A</ActionButton>
-          <ActionButton>Buff B</ActionButton>
-          <ActionButton variant="danger">Skip Match</ActionButton>
+          <ActionButton className="buff_choice_button">Buff A</ActionButton>
+          <ActionButton className="buff_choice_button">Buff B</ActionButton>
+          <ActionButton className="skip_match_button" variant="danger">Skip Match</ActionButton>
         </div>
         <p className="danger_note">Skip Match penalty: {skipPenalty}. Skipping clears this assignment.</p>
       </div>

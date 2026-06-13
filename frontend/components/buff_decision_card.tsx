@@ -1,11 +1,11 @@
-import type { MockMedia } from "@/data/mock_data";
+import type { MediaRecord } from "@/types/palate";
 import { ActionButton } from "./action_button";
 import { CategoryBadge } from "./category_badge";
 import { FormatBadge } from "./format_badge";
 
 type BuffDecisionCardProps = {
   side: "A" | "B";
-  media: MockMedia;
+  media: MediaRecord;
 };
 
 export function BuffDecisionCard({ side, media }: BuffDecisionCardProps) {
