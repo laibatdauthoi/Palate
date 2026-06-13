@@ -43,6 +43,12 @@ module palate::palate {
     const E_INVALID_SKIP_PENALTY: u64 = 32;
     const E_NOT_TREASURY_AUTHORIZED: u64 = 33;
     const E_TREASURY_FEE_BALANCE_TOO_LOW: u64 = 34;
+    const E_NOT_CONFIG_ADMIN: u64 = 35;
+    const E_INVALID_PROTOCOL_FEE_BPS: u64 = 36;
+    const E_INVALID_PUSH_CONFIG: u64 = 37;
+    const E_INVALID_BUFF_CONFIG: u64 = 38;
+    const E_INVALID_MATCH_CONFIG: u64 = 39;
+    const E_INVALID_SCORE_CONFIG: u64 = 40;
 
     /// Category values.
     const CATEGORY_MEME: u8 = 1;
@@ -84,6 +90,12 @@ module palate::palate {
     const DEFAULT_SCORE_ALGORITHM_TYPE: u8 = SCORE_ALGORITHM_LOG;
     const DEFAULT_SCORE_SCALE: u64 = 1000000;
     const DEFAULT_SCORE_LOG_BASE: u64 = 2;
+    const MAX_BPS: u64 = 10000;
+    const CONFIG_GROUP_FEE: u8 = 1;
+    const CONFIG_GROUP_PUSH: u8 = 2;
+    const CONFIG_GROUP_BUFF: u8 = 3;
+    const CONFIG_GROUP_MATCH: u8 = 4;
+    const CONFIG_GROUP_SCORE: u8 = 5;
 
     struct PalateState has key {
         protocol_config: ProtocolConfig,
@@ -318,6 +330,12 @@ module palate::palate {
         caller: address,
         treasury_address: address,
         amount: u64,
+    }
+
+    #[event]
+    struct ConfigUpdatedEvent has drop, store {
+        admin: address,
+        config_group: u8,
     }
 
     public entry fun initialize(account: &signer, treasury_address: address) {
@@ -933,45 +951,114 @@ module palate::palate {
     }
 
     public entry fun updateFeeConfig(
-        _account: &signer,
-        _protocol_fee_bps: u64,
-        _treasury_address: address,
-    ) {
-        abort E_NOT_IMPLEMENTED
+        account: &signer,
+        protocol_fee_bps: u64,
+        treasury_address: address,
+    ) acquires PalateState {
+        assertInitialized();
+        assert!(protocol_fee_bps <= MAX_BPS, E_INVALID_PROTOCOL_FEE_BPS);
+
+        let admin = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        assertConfigAdmin(state, admin);
+
+        state.protocol_config.protocol_fee_bps = protocol_fee_bps;
+        state.protocol_config.treasury_address = treasury_address;
+        event::emit(ConfigUpdatedEvent {
+            admin,
+            config_group: CONFIG_GROUP_FEE,
+        });
     }
 
     public entry fun updatePushConfig(
-        _account: &signer,
-        _min_push_amount: u64,
-        _min_push_increment_bps: u64,
-    ) {
-        abort E_NOT_IMPLEMENTED
+        account: &signer,
+        min_push_amount: u64,
+        min_push_increment_bps: u64,
+    ) acquires PalateState {
+        assertInitialized();
+        assert!(
+            min_push_amount > 0 && min_push_increment_bps > 0 && min_push_increment_bps <= MAX_BPS,
+            E_INVALID_PUSH_CONFIG,
+        );
+
+        let admin = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        assertConfigAdmin(state, admin);
+
+        state.protocol_config.min_push_amount = min_push_amount;
+        state.protocol_config.min_push_increment_bps = min_push_increment_bps;
+        event::emit(ConfigUpdatedEvent {
+            admin,
+            config_group: CONFIG_GROUP_PUSH,
+        });
     }
 
     public entry fun updateBuffConfig(
-        _account: &signer,
-        _min_buff_amount: u64,
-        _buff_commitment_amount: u64,
-        _skip_penalty_amount: u64,
-    ) {
-        abort E_NOT_IMPLEMENTED
+        account: &signer,
+        min_buff_amount: u64,
+        buff_commitment_amount: u64,
+        skip_penalty_amount: u64,
+    ) acquires PalateState {
+        assertInitialized();
+        assert!(min_buff_amount > 0, E_INVALID_BUFF_CONFIG);
+        assert!(buff_commitment_amount >= skip_penalty_amount, E_INVALID_SKIP_PENALTY);
+
+        let admin = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        assertConfigAdmin(state, admin);
+
+        state.protocol_config.min_buff_amount = min_buff_amount;
+        state.protocol_config.buff_commitment_amount = buff_commitment_amount;
+        state.protocol_config.skip_penalty_amount = skip_penalty_amount;
+        event::emit(ConfigUpdatedEvent {
+            admin,
+            config_group: CONFIG_GROUP_BUFF,
+        });
     }
 
     public entry fun updateMatchConfig(
-        _account: &signer,
-        _match_duration_seconds: u64,
-        _random_retry_count: u64,
-    ) {
-        abort E_NOT_IMPLEMENTED
+        account: &signer,
+        match_duration_seconds: u64,
+        random_retry_count: u64,
+    ) acquires PalateState {
+        assertInitialized();
+        assert!(match_duration_seconds > 0 && random_retry_count > 0, E_INVALID_MATCH_CONFIG);
+
+        let admin = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        assertConfigAdmin(state, admin);
+
+        state.protocol_config.match_duration_seconds = match_duration_seconds;
+        state.protocol_config.random_retry_count = random_retry_count;
+        event::emit(ConfigUpdatedEvent {
+            admin,
+            config_group: CONFIG_GROUP_MATCH,
+        });
     }
 
     public entry fun updateScoreConfig(
-        _account: &signer,
-        _score_algorithm_type: u8,
-        _score_scale: u64,
-        _score_log_base: u64,
-    ) {
-        abort E_NOT_IMPLEMENTED
+        account: &signer,
+        score_algorithm_type: u8,
+        score_scale: u64,
+        score_log_base: u64,
+    ) acquires PalateState {
+        assertInitialized();
+        assert!(
+            score_algorithm_type == SCORE_ALGORITHM_LOG && score_scale > 0 && score_log_base > 1,
+            E_INVALID_SCORE_CONFIG,
+        );
+
+        let admin = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        assertConfigAdmin(state, admin);
+
+        state.protocol_config.score_algorithm_type = score_algorithm_type;
+        state.protocol_config.score_scale = score_scale;
+        state.protocol_config.score_log_base = score_log_base;
+        event::emit(ConfigUpdatedEvent {
+            admin,
+            config_group: CONFIG_GROUP_SCORE,
+        });
     }
 
     #[view]
@@ -1621,6 +1708,7 @@ module palate::palate {
     ) acquires PalateState {
         assertInitialized();
         assert!(signer::address_of(account) == @palate, E_NOT_MODULE_PUBLISHER);
+        assert!(min_buff_amount > 0, E_INVALID_BUFF_CONFIG);
         assert!(buff_commitment_amount >= skip_penalty_amount, E_INVALID_SKIP_PENALTY);
 
         let state = borrow_global_mut<PalateState>(@palate);
@@ -1637,6 +1725,7 @@ module palate::palate {
     ) acquires PalateState {
         assertInitialized();
         assert!(signer::address_of(account) == @palate, E_NOT_MODULE_PUBLISHER);
+        assert!(match_duration_seconds > 0 && random_retry_count > 0, E_INVALID_MATCH_CONFIG);
 
         let state = borrow_global_mut<PalateState>(@palate);
         state.protocol_config.match_duration_seconds = match_duration_seconds;
@@ -1698,6 +1787,11 @@ module palate::palate {
         borrow_global<PalateState>(@palate).total_treasury_withdrawn
     }
 
+    #[test_only]
+    public fun getConfigUpdatedEventCountForTesting(): u64 {
+        vector::length(&event::emitted_events<ConfigUpdatedEvent>())
+    }
+
     fun assertInitialized() {
         assert!(exists<PalateState>(@palate), E_NOT_INITIALIZED);
     }
@@ -1711,6 +1805,10 @@ module palate::palate {
 
     fun assertValidBuffSide(side: u8) {
         assert!(side == SIDE_A || side == SIDE_B, E_INVALID_BUFF_SIDE);
+    }
+
+    fun assertConfigAdmin(state: &PalateState, admin: address) {
+        assert!(admin == state.protocol_config.admin_address, E_NOT_CONFIG_ADMIN);
     }
 
     fun getAssignedMatchIdForAccount(account: &signer): u64 acquires PalateState {

@@ -49,6 +49,160 @@ module palate::palate_tests {
         assert!(palate::getTreasuryFeeBalance() == 0, 4);
     }
 
+    #[test(admin = @palate, framework = @0x1)]
+    fun adminCanUpdateFeeConfig(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updateFeeConfig(&admin, 250, @0xBEEF);
+
+        assert!(palate::getProtocolFeeBps() == 250, 0);
+        assert!(palate::getTreasuryAddress() == @0xBEEF, 1);
+        assert!(palate::getConfigUpdatedEventCountForTesting() == 1, 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x552)]
+    #[expected_failure(abort_code = 35, location = palate::palate)]
+    fun nonAdminCannotUpdateFeeConfig(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+
+        palate::updateFeeConfig(&user, 250, TREASURY);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    #[expected_failure(abort_code = 36, location = palate::palate)]
+    fun invalidFeeConfigIsRejected(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updateFeeConfig(&admin, 10001, TREASURY);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    fun adminCanUpdatePushConfig(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updatePushConfig(&admin, 123456789, 250);
+
+        assert!(palate::getMinPushAmount() == 123456789, 0);
+        assert!(palate::getMinPushIncrementBps() == 250, 1);
+        assert!(palate::getConfigUpdatedEventCountForTesting() == 1, 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x553)]
+    #[expected_failure(abort_code = 35, location = palate::palate)]
+    fun nonAdminCannotUpdatePushConfig(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+
+        palate::updatePushConfig(&user, 123456789, 250);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    #[expected_failure(abort_code = 37, location = palate::palate)]
+    fun invalidPushConfigIsRejected(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updatePushConfig(&admin, 0, 250);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    fun adminCanUpdateBuffConfig(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updateBuffConfig(&admin, 12345, 90000, 80000);
+
+        assert!(palate::getMinBuffAmount() == 12345, 0);
+        assert!(palate::getBuffCommitmentAmount() == 90000, 1);
+        assert!(palate::getSkipPenaltyAmount() == 80000, 2);
+        assert!(palate::getConfigUpdatedEventCountForTesting() == 1, 3);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x554)]
+    #[expected_failure(abort_code = 35, location = palate::palate)]
+    fun nonAdminCannotUpdateBuffConfig(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+
+        palate::updateBuffConfig(&user, 12345, 90000, 80000);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    #[expected_failure(abort_code = 32, location = palate::palate)]
+    fun buffConfigRejectsSkipPenaltyAboveCommitmentThroughProductionUpdate(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updateBuffConfig(&admin, palate::getMinBuffAmount(), 100, 101);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    #[expected_failure(abort_code = 38, location = palate::palate)]
+    fun invalidBuffConfigIsRejected(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updateBuffConfig(&admin, 0, 100, 100);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    fun adminCanUpdateMatchConfig(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updateMatchConfig(&admin, 3600, 3);
+
+        assert!(palate::getMatchDurationSeconds() == 3600, 0);
+        assert!(palate::getRandomRetryCount() == 3, 1);
+        assert!(palate::getConfigUpdatedEventCountForTesting() == 1, 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x555)]
+    #[expected_failure(abort_code = 35, location = palate::palate)]
+    fun nonAdminCannotUpdateMatchConfig(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+
+        palate::updateMatchConfig(&user, 3600, 3);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    #[expected_failure(abort_code = 39, location = palate::palate)]
+    fun matchConfigRejectsZeroRandomRetryCount(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updateMatchConfig(&admin, palate::getMatchDurationSeconds(), 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    fun adminCanUpdateScoreConfig(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updateScoreConfig(&admin, 1, 2000000, 2);
+
+        assert!(palate::getScoreAlgorithmType() == 1, 0);
+        assert!(palate::getScoreScale() == 2000000, 1);
+        assert!(palate::getScoreLogBase() == 2, 2);
+        assert!(palate::getConfigUpdatedEventCountForTesting() == 1, 3);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x556)]
+    #[expected_failure(abort_code = 35, location = palate::palate)]
+    fun nonAdminCannotUpdateScoreConfig(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+
+        palate::updateScoreConfig(&user, 1, 2000000, 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    #[expected_failure(abort_code = 40, location = palate::palate)]
+    fun invalidScoreConfigIsRejected(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        palate::updateScoreConfig(&admin, 2, 2000000, 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    fun configUpdateEventIsEmitted(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        assert!(palate::getConfigUpdatedEventCountForTesting() == 0, 0);
+        palate::updateFeeConfig(&admin, palate::getProtocolFeeBps(), TREASURY);
+        assert!(palate::getConfigUpdatedEventCountForTesting() == 1, 1);
+    }
+
     #[test(admin = @palate, framework = @0x1, user = @0x107)]
     fun depositBalanceIncreasesAvailableBalance(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);
@@ -662,7 +816,7 @@ module palate::palate_tests {
         init(&admin, &framework);
         createImageMatchWithIds(&framework, &user, &invalid_challenger, 0, 1, 0);
         createImageMatchWithIds(&framework, &valid_pusher, &valid_challenger, 2, 3, 1);
-        palate::updateMatchConfigForTesting(&admin, palate::getMatchDurationSeconds(), 1);
+        palate::updateMatchConfig(&admin, palate::getMatchDurationSeconds(), 1);
         setAssignmentNonceForStart(&admin, signer::address_of(&user), 0);
 
         // MVP pseudo-randomness starts at match index 0 here. Retry count is 1,
@@ -689,7 +843,7 @@ module palate::palate_tests {
         init(&admin, &framework);
         createImageMatchWithIds(&framework, &user, &invalid_challenger, 0, 1, 0);
         createImageMatchWithIds(&framework, &valid_pusher, &valid_challenger, 2, 3, 1);
-        palate::updateMatchConfigForTesting(&admin, palate::getMatchDurationSeconds(), 2);
+        palate::updateMatchConfig(&admin, palate::getMatchDurationSeconds(), 2);
         setAssignmentNonceForStart(&admin, signer::address_of(&user), 0);
 
         palate::findMatch(&user);
