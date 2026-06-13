@@ -30,6 +30,12 @@ module palate::palate {
     const E_UNSUPPORTED_SCORE_ALGORITHM: u64 = 22;
     const E_MATCH_NOT_EXPIRED: u64 = 23;
     const E_MATCH_NOT_ACTIVE: u64 = 24;
+    const E_MATCH_NOT_SETTLED: u64 = 25;
+    const E_NOT_WINNING_PUSHER: u64 = 26;
+    const E_PUSH_ALREADY_CLAIMED: u64 = 27;
+    const E_BUFF_RECORD_NOT_FOUND: u64 = 28;
+    const E_NOT_WINNING_BUFF: u64 = 29;
+    const E_BUFF_ALREADY_CLAIMED: u64 = 30;
 
     /// Category values.
     const CATEGORY_MEME: u8 = 1;
@@ -139,6 +145,7 @@ module palate::palate {
         push_fee_amount: u64,
         buff_fee_amount_a: u64,
         buff_fee_amount_b: u64,
+        push_claimed: bool,
         status: u8,
     }
 
@@ -257,6 +264,21 @@ module palate::palate {
         score_a: u64,
         score_b: u64,
         settled_time: u64,
+    }
+
+    #[event]
+    struct PushClaimedEvent has drop, store {
+        match_id: u64,
+        user: address,
+        claim_amount: u64,
+    }
+
+    #[event]
+    struct BuffClaimedEvent has drop, store {
+        match_id: u64,
+        user: address,
+        side: u8,
+        claim_amount: u64,
     }
 
     public entry fun initialize(account: &signer, treasury_address: address) {
@@ -484,6 +506,7 @@ module palate::palate {
             push_fee_amount: 0,
             buff_fee_amount_a: 0,
             buff_fee_amount_b: 0,
+            push_claimed: false,
             status: MATCH_STATUS_ACTIVE,
         });
 
@@ -649,12 +672,70 @@ module palate::palate {
         });
     }
 
-    public entry fun claimPush(_account: &signer, _match_id: u64) {
-        abort E_NOT_IMPLEMENTED
+    public entry fun claimPush(account: &signer, match_id: u64) acquires PalateState {
+        assertInitialized();
+
+        let user = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        let match_index = findActiveMatchIndex(state, match_id);
+        let claim_amount;
+        let own_push_amount;
+        {
+            let active_match = vector::borrow_mut(&mut state.active_matches, match_index);
+            assert!(active_match.status == MATCH_STATUS_SETTLED, E_MATCH_NOT_SETTLED);
+            assert!(isWinningPusher(active_match, user), E_NOT_WINNING_PUSHER);
+            assert!(!active_match.push_claimed, E_PUSH_ALREADY_CLAIMED);
+
+            claim_amount = calculatePushPayoutAmount(active_match, user);
+            own_push_amount = getOwnPushAmount(active_match, user);
+            active_match.push_claimed = true;
+        };
+
+        updateUserSummaryForPushClaim(state, user, claim_amount, own_push_amount);
+
+        // Task 7 intentionally records deterministic claim state only.
+        // Real APT escrow release and coin transfer are a later task.
+        event::emit(PushClaimedEvent {
+            match_id,
+            user,
+            claim_amount,
+        });
     }
 
-    public entry fun claimBuff(_account: &signer, _match_id: u64) {
-        abort E_NOT_IMPLEMENTED
+    public entry fun claimBuff(account: &signer, match_id: u64) acquires PalateState {
+        assertInitialized();
+
+        let user = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        let match_index = findActiveMatchIndex(state, match_id);
+        let active_match = *vector::borrow(&state.active_matches, match_index);
+        assert!(active_match.status == MATCH_STATUS_SETTLED, E_MATCH_NOT_SETTLED);
+
+        let buff_record_index = findBuffRecordIndex(state, user, match_id);
+        let claim_amount;
+        let buff_amount;
+        let side;
+        {
+            let buff_record = vector::borrow_mut(&mut state.buff_records, buff_record_index);
+            assert!(buff_record.side == active_match.winner_side, E_NOT_WINNING_BUFF);
+            assert!(!buff_record.claimed, E_BUFF_ALREADY_CLAIMED);
+
+            claim_amount = calculateBuffPayoutAmount(&active_match, buff_record);
+            buff_amount = buff_record.buff_amount;
+            side = buff_record.side;
+            buff_record.claimed = true;
+        };
+
+        updateUserSummaryForBuffClaim(state, user, claim_amount, buff_amount);
+
+        // Task 7 intentionally records deterministic claim state only.
+        // Real APT escrow release and coin transfer are a later task.
+        event::emit(BuffClaimedEvent {
+            match_id,
+            user,
+            side,
+            claim_amount,
+        });
     }
 
     #[view]
@@ -909,6 +990,41 @@ module palate::palate {
     }
 
     #[view]
+    public fun isPushClaimed(match_id: u64): bool acquires PalateState {
+        getMatch(match_id).push_claimed
+    }
+
+    #[view]
+    public fun isPushRewardClaimable(user: address, match_id: u64): bool acquires PalateState {
+        assertInitialized();
+        let state = borrow_global<PalateState>(@palate);
+        let match_index = findActiveMatchIndex(state, match_id);
+        let active_match = vector::borrow(&state.active_matches, match_index);
+
+        active_match.status == MATCH_STATUS_SETTLED
+            && isWinningPusher(active_match, user)
+            && !active_match.push_claimed
+    }
+
+    #[view]
+    public fun estimatePushClaimAmount(user: address, match_id: u64): u64 acquires PalateState {
+        assertInitialized();
+        let state = borrow_global<PalateState>(@palate);
+        let match_index = findActiveMatchIndex(state, match_id);
+        let active_match = vector::borrow(&state.active_matches, match_index);
+
+        if (
+            active_match.status == MATCH_STATUS_SETTLED
+                && isWinningPusher(active_match, user)
+                && !active_match.push_claimed
+        ) {
+            calculatePushPayoutAmount(active_match, user)
+        } else {
+            0
+        }
+    }
+
+    #[view]
     public fun getMatchBuffPoolA(match_id: u64): u64 acquires PalateState {
         getMatch(match_id).buff_pool_a
     }
@@ -972,6 +1088,57 @@ module palate::palate {
     #[view]
     public fun getBuffRecordClaimed(index: u64): bool acquires PalateState {
         vector::borrow(&borrow_global<PalateState>(@palate).buff_records, index).claimed
+    }
+
+    #[view]
+    public fun isBuffClaimed(user: address, match_id: u64): bool acquires PalateState {
+        assertInitialized();
+        let state = borrow_global<PalateState>(@palate);
+        let (has_record, index) = findBuffRecordIndexMaybe(state, user, match_id);
+        if (!has_record) {
+            return false
+        };
+        vector::borrow(&state.buff_records, index).claimed
+    }
+
+    #[view]
+    public fun isBuffRewardClaimable(user: address, match_id: u64): bool acquires PalateState {
+        assertInitialized();
+        let state = borrow_global<PalateState>(@palate);
+        let match_index = findActiveMatchIndex(state, match_id);
+        let active_match = vector::borrow(&state.active_matches, match_index);
+        if (active_match.status != MATCH_STATUS_SETTLED) {
+            return false
+        };
+
+        let (has_record, buff_record_index) = findBuffRecordIndexMaybe(state, user, match_id);
+        if (!has_record) {
+            return false
+        };
+        let buff_record = vector::borrow(&state.buff_records, buff_record_index);
+        buff_record.side == active_match.winner_side && !buff_record.claimed
+    }
+
+    #[view]
+    public fun estimateBuffClaimAmount(user: address, match_id: u64): u64 acquires PalateState {
+        assertInitialized();
+        let state = borrow_global<PalateState>(@palate);
+        let match_index = findActiveMatchIndex(state, match_id);
+        let active_match = vector::borrow(&state.active_matches, match_index);
+        if (active_match.status != MATCH_STATUS_SETTLED) {
+            return 0
+        };
+
+        let (has_record, buff_record_index) = findBuffRecordIndexMaybe(state, user, match_id);
+        if (!has_record) {
+            return 0
+        };
+        let buff_record = vector::borrow(&state.buff_records, buff_record_index);
+        if (buff_record.side == active_match.winner_side && !buff_record.claimed) {
+            calculateBuffPayoutAmount(active_match, buff_record)
+        } else {
+            0
+        }
     }
 
     #[view]
@@ -1104,6 +1271,11 @@ module palate::palate {
     }
 
     #[view]
+    public fun getUserSummaryPushProfit(owner: address): u64 acquires PalateState {
+        getUserSummary(owner).push_profit
+    }
+
+    #[view]
     public fun getUserSummaryBuffCount(owner: address): u64 acquires PalateState {
         getUserSummary(owner).buff_count
     }
@@ -1116,6 +1288,11 @@ module palate::palate {
     #[view]
     public fun getUserSummaryBuffLossCount(owner: address): u64 acquires PalateState {
         getUserSummary(owner).buff_loss_count
+    }
+
+    #[view]
+    public fun getUserSummaryBuffProfit(owner: address): u64 acquires PalateState {
+        getUserSummary(owner).buff_profit
     }
 
     #[view]
@@ -1386,6 +1563,29 @@ module palate::palate {
         abort E_ASSIGNMENT_NOT_FOUND
     }
 
+    fun findBuffRecordIndex(state: &PalateState, user: address, match_id: u64): u64 {
+        let (has_record, index) = findBuffRecordIndexMaybe(state, user, match_id);
+        if (has_record) {
+            return index
+        };
+
+        abort E_BUFF_RECORD_NOT_FOUND
+    }
+
+    fun findBuffRecordIndexMaybe(state: &PalateState, user: address, match_id: u64): (bool, u64) {
+        let length = vector::length(&state.buff_records);
+        let index = 0;
+        while (index < length) {
+            let buff_record = vector::borrow(&state.buff_records, index);
+            if (buff_record.user == user && buff_record.match_id == match_id) {
+                return (true, index)
+            };
+            index = index + 1;
+        };
+
+        (false, 0)
+    }
+
     fun hasActiveAssignment(state: &PalateState, user: address): bool {
         let length = vector::length(&state.user_assignments);
         let index = 0;
@@ -1550,6 +1750,93 @@ module palate::palate {
             };
             index = index + 1;
         };
+    }
+
+    fun updateUserSummaryForPushClaim(
+        state: &mut PalateState,
+        user: address,
+        claim_amount: u64,
+        own_push_amount: u64,
+    ) {
+        ensureUserSummary(state, user);
+
+        let length = vector::length(&state.user_summaries);
+        let index = 0;
+        while (index < length) {
+            let record = vector::borrow_mut(&mut state.user_summaries, index);
+            if (record.owner == user) {
+                record.summary.push_profit = record.summary.push_profit + (claim_amount - own_push_amount);
+                return
+            };
+            index = index + 1;
+        };
+    }
+
+    fun updateUserSummaryForBuffClaim(
+        state: &mut PalateState,
+        user: address,
+        claim_amount: u64,
+        buff_amount: u64,
+    ) {
+        ensureUserSummary(state, user);
+
+        let length = vector::length(&state.user_summaries);
+        let index = 0;
+        while (index < length) {
+            let record = vector::borrow_mut(&mut state.user_summaries, index);
+            if (record.owner == user) {
+                record.summary.buff_profit = record.summary.buff_profit + (claim_amount - buff_amount);
+                return
+            };
+            index = index + 1;
+        };
+    }
+
+    fun isWinningPusher(active_match: &ActiveMatch, user: address): bool {
+        (active_match.winner_side == SIDE_A && active_match.pusher_a == user)
+            || (active_match.winner_side == SIDE_B && active_match.pusher_b == user)
+    }
+
+    fun getOwnPushAmount(active_match: &ActiveMatch, user: address): u64 {
+        if (active_match.pusher_a == user) {
+            active_match.push_amount_a
+        } else {
+            active_match.push_amount_b
+        }
+    }
+
+    fun calculatePushPayoutAmount(active_match: &ActiveMatch, user: address): u64 {
+        if (!isWinningPusher(active_match, user)) {
+            return 0
+        };
+
+        if (active_match.winner_side == SIDE_A) {
+            active_match.push_amount_a + (active_match.push_amount_b - active_match.push_fee_amount)
+        } else {
+            active_match.push_amount_b + (active_match.push_amount_a - active_match.push_fee_amount)
+        }
+    }
+
+    fun calculateBuffPayoutAmount(active_match: &ActiveMatch, buff_record: &BuffRecord): u64 {
+        if (buff_record.side != active_match.winner_side) {
+            return 0
+        };
+
+        let winning_pool;
+        let losing_pool_after_fee;
+        if (active_match.winner_side == SIDE_A) {
+            winning_pool = active_match.buff_pool_a;
+            losing_pool_after_fee = active_match.buff_pool_b - active_match.buff_fee_amount_b;
+        } else {
+            winning_pool = active_match.buff_pool_b;
+            losing_pool_after_fee = active_match.buff_pool_a - active_match.buff_fee_amount_a;
+        };
+
+        if (winning_pool == 0) {
+            return 0
+        };
+
+        buff_record.buff_amount + (buff_record.buff_amount * losing_pool_after_fee) / winning_pool
     }
 
     fun getWaitingPushRecord(push_id: u64): WaitingPush acquires PalateState {

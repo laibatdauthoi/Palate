@@ -991,19 +991,70 @@ module palate::palate_tests {
     }
 
     #[test(admin = @palate, framework = @0x1, pusher = @0x395, challenger = @0x396)]
-    #[expected_failure(abort_code = 0, location = palate::palate)]
-    fun claimPushRemainsOutOfScope(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+    fun winningPusherCanClaimAfterSettlement(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
         createImageMatch(&pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
         palate::settleMatch(&pusher, 0);
 
         palate::claimPush(&pusher, 0);
+
+        assert!(palate::isPushClaimed(0), 0);
+        assert!(palate::getUserSummaryPushProfit(signer::address_of(&pusher)) == palate::getMinimumChallengeAmount(0) - palate::getMatchPushFeeAmount(0), 1);
     }
 
-    #[test(admin = @palate, framework = @0x1, pusher = @0x397, challenger = @0x398, user = @0x399)]
-    #[expected_failure(abort_code = 0, location = palate::palate)]
-    fun claimBuffRemainsOutOfScope(
+    #[test(admin = @palate, framework = @0x1, pusher = @0x397, challenger = @0x398)]
+    #[expected_failure(abort_code = 26, location = palate::palate)]
+    fun losingPusherCannotClaim(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        palate::claimPush(&challenger, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x399, challenger = @0x400)]
+    #[expected_failure(abort_code = 25, location = palate::palate)]
+    fun pusherCannotClaimBeforeSettlement(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+
+        palate::claimPush(&pusher, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x401, challenger = @0x402)]
+    #[expected_failure(abort_code = 27, location = palate::palate)]
+    fun pusherCannotDoubleClaim(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+        palate::claimPush(&pusher, 0);
+
+        palate::claimPush(&pusher, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x403, challenger = @0x404)]
+    fun pushClaimAmountEqualsOwnPushPlusLoserAfterFee(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        let expected = palate::getMatchPushAmountA(0) + palate::getMatchPushAmountB(0) - palate::getMatchPushFeeAmount(0);
+
+        assert!(palate::estimatePushClaimAmount(signer::address_of(&pusher), 0) == expected, 0);
+        assert!(palate::getMatchPushFeeAmount(0) == (palate::getMatchPushAmountB(0) * palate::getProtocolFeeBps()) / 10000, 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x405, challenger = @0x406, user = @0x407)]
+    fun winningBuffUserCanClaimAfterSettlement(
         admin: signer,
         framework: signer,
         pusher: signer,
@@ -1018,6 +1069,211 @@ module palate::palate_tests {
         palate::settleMatch(&pusher, 0);
 
         palate::claimBuff(&user, 0);
+
+        assert!(palate::isBuffClaimed(signer::address_of(&user), 0), 0);
+        assert!(palate::getUserSummaryBuffProfit(signer::address_of(&user)) == 0, 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x408, challenger = @0x409, winner = @0x410, loser = @0x411)]
+    #[expected_failure(abort_code = 29, location = palate::palate)]
+    fun losingBuffUserCannotClaim(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        winner: signer,
+        loser: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&winner);
+        palate::placeBuff(&winner, palate::sideA(), palate::getMinBuffAmount() * 3);
+        palate::findMatch(&loser);
+        palate::placeBuff(&loser, palate::sideB(), palate::getMinBuffAmount());
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        palate::claimBuff(&loser, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x412, challenger = @0x413, user = @0x414)]
+    #[expected_failure(abort_code = 25, location = palate::palate)]
+    fun buffUserCannotClaimBeforeSettlement(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+
+        palate::claimBuff(&user, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x415, challenger = @0x416, user = @0x417)]
+    #[expected_failure(abort_code = 30, location = palate::palate)]
+    fun buffUserCannotDoubleClaim(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+        palate::claimBuff(&user, 0);
+
+        palate::claimBuff(&user, 0);
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        pusher = @0x417,
+        challenger = @0x418,
+        winner_one = @0x419,
+        winner_two = @0x420,
+        loser = @0x421
+    )]
+    fun buffClaimAmountUsesRawBuffAndLosingPoolAfterFee(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        winner_one: signer,
+        winner_two: signer,
+        loser: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        let min = palate::getMinBuffAmount();
+
+        palate::findMatch(&winner_one);
+        palate::placeBuff(&winner_one, palate::sideA(), min);
+        palate::findMatch(&winner_two);
+        palate::placeBuff(&winner_two, palate::sideA(), min);
+        palate::findMatch(&loser);
+        palate::placeBuff(&loser, palate::sideB(), min * 3);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        let losing_after_fee = palate::getMatchBuffPoolB(0) - palate::getMatchBuffFeeAmountB(0);
+        let expected = min + (min * losing_after_fee) / palate::getMatchBuffPoolA(0);
+
+        assert!(palate::estimateBuffClaimAmount(signer::address_of(&winner_one), 0) == expected, 0);
+        assert!(expected == 24250000, 1);
+        assert!(palate::getMatchBuffFeeAmountB(0) == (palate::getMatchBuffPoolB(0) * palate::getProtocolFeeBps()) / 10000, 2);
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        pusher = @0x422,
+        challenger = @0x423,
+        small = @0x424,
+        large = @0x425,
+        loser = @0x426
+    )]
+    fun buffPayoutShareUsesRawAmountNotCalculatedScore(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        small: signer,
+        large: signer,
+        loser: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        let min = palate::getMinBuffAmount();
+
+        palate::findMatch(&small);
+        palate::placeBuff(&small, palate::sideA(), min);
+        palate::findMatch(&large);
+        palate::placeBuff(&large, palate::sideA(), min * 3);
+        palate::findMatch(&loser);
+        palate::placeBuff(&loser, palate::sideB(), min * 7);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        let small_claim = palate::estimateBuffClaimAmount(signer::address_of(&small), 0);
+        let large_claim = palate::estimateBuffClaimAmount(signer::address_of(&large), 0);
+
+        assert!(large_claim > small_claim * 2, 0);
+        assert!(large_claim < small_claim * 4, 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x427, challenger = @0x428, user = @0x429)]
+    fun zeroLosingBuffPoolIsHandledSafely(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::estimateBuffClaimAmount(signer::address_of(&user), 0) == palate::getMinBuffAmount(), 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x430, challenger = @0x431, loser = @0x432)]
+    fun zeroWinningBuffPoolIsHandledSafely(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        loser: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        assert!(!palate::isBuffRewardClaimable(signer::address_of(&loser), 0), 0);
+        assert!(palate::estimateBuffClaimAmount(signer::address_of(&loser), 0) == 0, 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x433, challenger = @0x434, user = @0x435)]
+    fun claimHelpersReturnCorrectValuesAndClaimsDoNotTransferApt(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+
+        assert!(!palate::isPushRewardClaimable(signer::address_of(&pusher), 0), 0);
+        assert!(palate::estimatePushClaimAmount(signer::address_of(&pusher), 0) == 0, 1);
+        assert!(palate::estimateBuffClaimAmount(signer::address_of(&user), 0) == 0, 2);
+
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::isPushRewardClaimable(signer::address_of(&pusher), 0), 3);
+        assert!(palate::isBuffRewardClaimable(signer::address_of(&user), 0), 4);
+        palate::claimPush(&pusher, 0);
+        palate::claimBuff(&user, 0);
+
+        assert!(palate::isPushClaimed(0), 5);
+        assert!(palate::isBuffClaimed(signer::address_of(&user), 0), 6);
+        assert!(!palate::isPushRewardClaimable(signer::address_of(&pusher), 0), 7);
+        assert!(!palate::isBuffRewardClaimable(signer::address_of(&user), 0), 8);
     }
 
     fun registerImage(user: &signer, blob_ref: vector<u8>, created_time: u64) {
