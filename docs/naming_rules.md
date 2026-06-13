@@ -54,6 +54,16 @@ Words are separated by underscores.
 
 Do not capitalize the first letter unless the word is an abbreviation.
 
+Move exception:
+
+Move struct names must use valid Move naming conventions, so Move structs may use UpperCamelCase. Each Move struct should include a comment mapping it to the approved spec name.
+
+Example:
+
+MediaRecord maps to media_record
+
+Function names should still follow approved function naming where Move allows it.
+
 Correct examples:
 
 class_name
