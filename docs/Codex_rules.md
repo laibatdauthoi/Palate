@@ -4,17 +4,17 @@ Project name is Palate. Always write the product name as Palate in documentation
 
 Use lowercase palate only for technical identifiers where lowercase is standard.
 
-Shelby is only for uploading, storing, and reading user media. Do not store match state, love state, reward state, charts, or history in Shelby.
+Shelby is only for uploading, storing, retrieving, and displaying user media. Do not store match state, buff state, reward state, payout state, leaderboard state, chart state, or user game history in Shelby.
 
-The current MVP uses Aptos smart contracts to handle media registry, ownership, push, challenge, random match assignment, love, settlement, claim, protocol config, and user summary.
+The current MVP uses Aptos smart contracts to handle media registry, ownership, push, challenge, random match assignment, Buff, settlement, claim, protocol config, and user summary.
 
 Do not rename Palate.
 
-Do not add minimum love count.
+Do not add minimum buff count.
 
 Do not add minimum total score.
 
-Do not cancel active matches because of low Love.
+Do not cancel active matches because of low Buff.
 
 Do not extend ties.
 
@@ -28,11 +28,11 @@ If score_a == score_b, media A wins.
 
 Media A is always the original waiting push media. Media B is always the challenger media.
 
-User cannot manually choose match to love. User must call findMatch.
+User cannot manually choose match to Buff. User must call findMatch.
 
-User must love assigned match before finding another match, unless user calls skipMatch and pays skip penalty.
+User must Buff the assigned match before finding another match, unless user calls skipMatch and pays skip penalty.
 
-Winner score and payout amount are separate. Score uses calculateLoveScore. Payout uses raw love amount.
+Winner score and payout amount are separate. Score uses calculateBuffScore. Payout uses raw buff amount.
 
 All economic parameters must be read from protocol_config, not hardcoded.
 
@@ -58,9 +58,11 @@ Buff is a dedicated main page from the MVP and must be placed directly after Hom
 
 Use Buff as the main user-facing term for supporting one side in a random match.
 
+Use Buff terminology in the main contract spec: `placeBuff`, `claimBuff`, `buff_record`, `buff_pool_a`, `buff_pool_b`, `buff_count_a`, `buff_count_b`, `min_buff_amount`, `buff_commitment_amount`, `calculateBuffScore`, `buff_win_count`, `buff_loss_count`, `buff_profit`, and `total_buffed`.
+
 The UI must feel premium, dark, dynamic, and GameFi-like, with mature pink accents. Do not make it cute, candy-like, generic, or overly flashy.
 
-MVP media categories are Meme and Image.
+MVP media categories are meme and image.
 
 GIF is an accepted image format, not a separate category.
 

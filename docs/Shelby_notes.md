@@ -4,7 +4,7 @@
 
 Shelby is used only for uploading, storing, retrieving, and displaying user uploaded media.
 
-Shelby must not be used for match state, love state, reward state, payout state, leaderboard state, chart state, or user game history.
+Shelby must not be used for match state, buff state, reward state, payout state, leaderboard state, chart state, or user game history.
 
 Palate stores actual media files on Shelby. Palate stores game state and media references on the current execution layer.
 
@@ -80,11 +80,21 @@ If an API key is required, use an environment variable such as `NEXT_PUBLIC_SHEL
 
 The Palate frontend should first upload media to Shelby using the official Shelby flow.
 
+The Palate upload flow is:
+
+1. Select category.
+2. Select file.
+3. Validate MIME type.
+4. Upload to Shelby.
+5. Register media on chain.
+
 After Shelby upload succeeds, the frontend calls Palate smart contract function `registerMedia`.
 
 `registerMedia` should store the media reference needed by Palate, not the raw media bytes.
 
 For Palate, the registered media record should include at least uploader address, blob name or Shelby blob reference, content hash, mime type, title, category, created time, and status.
+
+Category is stored in the Palate smart contract. Shelby stores media files only and is not the source of truth for category.
 
 ## Browser Read And Display Flow
 
@@ -94,7 +104,7 @@ Shelby browser download docs state that files can be accessed directly through H
 
 The docs also show SDK access through `shelbyClient.coordination.getAccountBlobs`, which returns blob metadata for an account, including file names, upload timestamps, file sizes, expiration dates, and blob merkle roots.
 
-For Palate, the app should read `media_record` from the smart contract, extract the uploader address and blob name or Shelby reference, then build the Shelby display source using the documented Shelby retrieval method.
+For Palate, the app should read `media_record` from the smart contract, extract the category, uploader address, and blob name or Shelby reference, then build the Shelby display source using the documented Shelby retrieval method.
 
 For image media, render the Shelby direct URL or retrieved blob in an image component.
 

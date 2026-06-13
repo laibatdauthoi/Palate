@@ -19,6 +19,10 @@ Use Next.js with TypeScript.
 
 Use App Router.
 
+The top-level frontend folder must be `frontend/`.
+
+Do not use `app/` as the top-level frontend folder because Next.js already uses `app/` internally.
+
 Do not add a backend database.
 
 Do not add Firebase, Supabase, ordinary S3, IPFS, or local filesystem storage as replacements for Shelby.
@@ -31,19 +35,16 @@ Media files should come from Shelby.
 
 The main user-facing routes are:
 
-/ = Home
-/buff = Buff
-/my-media = My Media
-/push = Push
-/profile = Profile
+frontend/app/page.tsx = Home
+frontend/app/buff/page.tsx = Buff
+frontend/app/my-media/page.tsx = My Media
+frontend/app/my-media/upload/page.tsx = Upload Media
+frontend/app/push/page.tsx = Push
+frontend/app/profile/page.tsx = Profile
 
-Secondary routes may include:
+The public routes are `/`, `/buff`, `/my-media`, `/my-media/upload`, `/push`, and `/profile`.
 
-/my-media/upload
-/push/[match_id]
-/profile/claims
-
-Secondary routes must not become main navigation tabs unless the product spec changes.
+Upload is a secondary route and must not become a main navigation tab unless the product spec changes.
 
 ## 4. Navigation Rule
 
@@ -75,9 +76,9 @@ Use Find Match for assigning a random active match.
 
 Use Skip Match for skipping the assigned match.
 
-Contract-level Love wording may exist internally if already defined in the smart contract spec.
+Contract-level names should use Buff terminology for the MVP.
 
-The UI should hide internal Love terminology from normal users where possible.
+Use `placeBuff`, `claimBuff`, `buff_record`, `buff_pool_a`, `buff_pool_b`, `buff_count_a`, `buff_count_b`, `min_buff_amount`, `buff_commitment_amount`, `calculateBuffScore`, `buff_win_count`, `buff_loss_count`, `buff_profit`, and `total_buffed` where contract terminology appears in frontend integration notes.
 
 ## 6. Styling System
 
@@ -212,7 +213,7 @@ user summary
 
 Shelby is the source for actual media files.
 
-Shelby is not the source of truth for category, match state, reward state, or user history.
+Shelby is not the source of truth for category, match state, buff state, reward state, payout state, leaderboard state, chart state, or user game history.
 
 ## 11. Shelby Integration Rule
 
@@ -257,7 +258,7 @@ The frontend must validate that uploaded files match accepted image MIME types f
 
 Never show live active match score.
 
-Never show live active love pool.
+Never show live active buff pool.
 
 Never show live leading side.
 

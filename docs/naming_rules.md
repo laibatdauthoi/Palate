@@ -64,7 +64,7 @@ active_match
 
 waiting_push
 
-love_record
+buff_record
 
 user_summary
 
@@ -142,15 +142,15 @@ findMatch
 
 skipMatch
 
-placeLove
+placeBuff
 
-calculateLoveScore
+calculateBuffScore
 
 settleMatch
 
 claimPush
 
-claimLove
+claimBuff
 
 updateProtocolConfig
 

@@ -8,7 +8,7 @@ The UI must feel dynamic, powerful, elegant, competitive, cinematic, and slightl
 
 Palate must not look like a generic DeFi dashboard, a normal social media app, or a cute Web3 game.
 
-The product should feel like a dark premium game lobby where media becomes the weapon and taste becomes the competition.
+The product should feel like a dark premium game lobby where media becomes the weapon and preference becomes the competition.
 
 The visual direction is:
 
@@ -61,13 +61,13 @@ Skip Match
 Buff Rewards
 Pending Buffs
 
-The contract may still use Love-related internal names if the current smart contract spec uses `placeLove`, `claimLove`, `love_pool`, and `love_count`.
+The contract should use Buff terminology for the MVP, including `placeBuff`, `claimBuff`, `buff_record`, `buff_pool_a`, `buff_pool_b`, `buff_count_a`, and `buff_count_b`.
 
-For UI, Buff is the user-facing term for placing Love on one side.
+For UI, Buff is the user-facing term for supporting one side.
 
 Avoid using Judge, Vote, Rally, Boost, or Taste as main navigation terms.
 
-Do not show the word Love in primary UI unless required by contract debugging or developer-only labels.
+Do not show legacy pre-Buff wording in primary UI unless required by contract debugging, migration notes, or developer-only labels.
 
 ## 4. Core App Structure
 
@@ -79,7 +79,7 @@ My Media
 Push
 Profile
 
-There may be secondary routes or modals for Upload, Challenge, Match Detail, and Claim Detail, but these should not become main navigation tabs in the MVP.
+There may be a secondary route for Upload and modals for Challenge or Claim Detail, but these should not become main navigation tabs in the MVP.
 
 The app should focus on five actions:
 
@@ -154,7 +154,7 @@ The hero should feel bold and premium.
 
 Possible hero direction:
 
-Taste is the game.
+Buff is the signal.
 Media is the weapon.
 Buff the side you believe deserves to win.
 
@@ -166,7 +166,7 @@ Push Media
 
 Buff Random Match should be the strongest CTA.
 
-Home should include a visual match preview, but must not show live score, live love pool, leading side, odds, or win probability.
+Home should include a visual match preview, but must not show live score, live buff pool, leading side, odds, or win probability.
 
 Home should feel like entering a premium game lobby.
 
@@ -195,7 +195,7 @@ The page must not feel empty even when the only primary action is Find Match.
 Suggested copy:
 
 Buff a random match.
-You will receive one active match. Pick the side you believe has better taste.
+You will receive one active match. Pick the side you believe deserves to win.
 
 State 2: Assigned match.
 
@@ -224,7 +224,7 @@ wallet balance if available
 Do not show:
 
 live score
-live love pool
+live buff pool
 leading side
 win probability
 number of current supporters
@@ -339,16 +339,15 @@ Shelby stores the file.
 
 Palate contract stores the category.
 
-The upload flow:
+The required upload flow:
 
 select category
 select file
-preview file
-enter title
+validate MIME type
 upload to Shelby
 register media on chain
-show completed state
-return to My Media
+
+The UI may also include preview, title entry, completed state, failed state, and return to My Media around the required flow.
 
 The upload screen should show progress states:
 
@@ -435,7 +434,7 @@ View button if needed
 Do not show:
 
 live score
-live love pool
+live buff pool
 leading side
 win probability
 current supporter count
@@ -628,7 +627,7 @@ Do not show raw technical errors as the main user-facing message unless in devel
 
 The frontend must not show live active match score.
 
-The frontend must not show live active love pool.
+The frontend must not show live active buff pool.
 
 The frontend must not show live leading side.
 
