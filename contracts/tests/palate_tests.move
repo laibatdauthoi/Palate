@@ -1,13 +1,19 @@
 #[test_only]
 module palate::palate_tests {
     use palate::palate;
+    use aptos_framework::aptos_coin::{Self, AptosCoin};
+    use aptos_framework::coin;
     use aptos_framework::timestamp;
     use std::signer;
     use std::vector;
 
     const TREASURY: address = @0xCAFE;
+    const TEST_FUNDS: u64 = 1000000000000;
 
     fun init(admin: &signer, framework: &signer) {
+        let (burn_cap, mint_cap) = aptos_coin::initialize_for_test(framework);
+        coin::destroy_burn_cap(burn_cap);
+        coin::destroy_mint_cap(mint_cap);
         timestamp::set_time_has_started_for_testing(framework);
         palate::initialize(admin, TREASURY);
     }
@@ -29,6 +35,16 @@ module palate::palate_tests {
         assert!(palate::getScoreLogBase() == 2, 10);
         assert!(palate::getTreasuryAddress() == TREASURY, 11);
         assert!(palate::getAdminAddress() == @palate, 12);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    fun initializeCreatesEmptyVaultBalances(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        assert!(palate::getPushEscrowBalance() == 0, 0);
+        assert!(palate::getBuffEscrowBalance() == 0, 1);
+        assert!(palate::getCommitmentEscrowBalance() == 0, 2);
+        assert!(palate::getTreasuryFeeBalance() == 0, 3);
     }
 
     #[test(admin = @palate, framework = @0x1, user = @0x100)]
@@ -176,7 +192,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, user = @0x200)]
     fun createPushSucceedsForIdleMediaAtMinAmount(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);
-        registerImage(&user, b"push.png", 1);
+        registerImage(&framework, &user, b"push.png", 1);
 
         palate::createPush(&user, 0, palate::getMinPushAmount());
 
@@ -186,11 +202,24 @@ module palate::palate_tests {
         assert!(palate::getWaitingPushStatus(0) == palate::waitingPushStatusOpen(), 3);
     }
 
+    #[test(admin = @palate, framework = @0x1, user = @0x229)]
+    fun createPushWithdrawsAptAndIncreasesPushEscrow(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"push-escrow.png", 1);
+
+        let user_before = coin::balance<AptosCoin>(signer::address_of(&user));
+        let amount = palate::getMinPushAmount();
+        palate::createPush(&user, 0, amount);
+
+        assert!(palate::getPushEscrowBalance() == amount, 0);
+        assert!(coin::balance<AptosCoin>(signer::address_of(&user)) == user_before - amount, 1);
+    }
+
     #[test(admin = @palate, framework = @0x1, user = @0x201)]
     #[expected_failure(abort_code = 8, location = palate::palate)]
     fun createPushRejectsAmountBelowMinPushAmount(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);
-        registerImage(&user, b"too-low.png", 1);
+        registerImage(&framework, &user, b"too-low.png", 1);
 
         palate::createPush(&user, 0, palate::getMinPushAmount() - 1);
     }
@@ -199,7 +228,7 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 6, location = palate::palate)]
     fun createPushRejectsNonOwnerMedia(admin: signer, framework: signer, owner: signer, other: signer) {
         init(&admin, &framework);
-        registerImage(&owner, b"owned.png", 1);
+        registerImage(&framework, &owner, b"owned.png", 1);
 
         palate::createPush(&other, 0, palate::getMinPushAmount());
     }
@@ -208,7 +237,7 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 7, location = palate::palate)]
     fun createPushRejectsMediaThatIsNotIdle(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);
-        registerImage(&user, b"waiting.png", 1);
+        registerImage(&framework, &user, b"waiting.png", 1);
         palate::createPush(&user, 0, palate::getMinPushAmount());
 
         palate::createPush(&user, 0, palate::getMinPushAmount());
@@ -217,7 +246,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, user = @0x205)]
     fun createPushSetsMediaStatusToWaiting(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);
-        registerImage(&user, b"status-waiting.png", 1);
+        registerImage(&framework, &user, b"status-waiting.png", 1);
 
         palate::createPush(&user, 0, palate::getMinPushAmount());
 
@@ -227,7 +256,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, user = @0x206)]
     fun cancelPushSucceedsForCreatorBeforeChallenger(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);
-        registerImage(&user, b"cancel.png", 1);
+        registerImage(&framework, &user, b"cancel.png", 1);
         palate::createPush(&user, 0, palate::getMinPushAmount());
 
         palate::cancelPush(&user, 0);
@@ -239,7 +268,7 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 10, location = palate::palate)]
     fun cancelPushRejectsNonCreator(admin: signer, framework: signer, owner: signer, other: signer) {
         init(&admin, &framework);
-        registerImage(&owner, b"cancel-non-creator.png", 1);
+        registerImage(&framework, &owner, b"cancel-non-creator.png", 1);
         palate::createPush(&owner, 0, palate::getMinPushAmount());
 
         palate::cancelPush(&other, 0);
@@ -248,7 +277,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, user = @0x209)]
     fun cancelPushRestoresMediaStatusToIdle(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);
-        registerImage(&user, b"restore-idle.png", 1);
+        registerImage(&framework, &user, b"restore-idle.png", 1);
         palate::createPush(&user, 0, palate::getMinPushAmount());
 
         palate::cancelPush(&user, 0);
@@ -256,11 +285,27 @@ module palate::palate_tests {
         assert!(palate::getMediaStatus(0) == palate::statusIdle(), 0);
     }
 
+    #[test(admin = @palate, framework = @0x1, user = @0x230)]
+    fun cancelPushRefundsPusherAndDecreasesPushEscrow(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"cancel-refund.png", 1);
+
+        let balance_before_push = coin::balance<AptosCoin>(signer::address_of(&user));
+        let amount = palate::getMinPushAmount();
+        palate::createPush(&user, 0, amount);
+        assert!(palate::getPushEscrowBalance() == amount, 0);
+
+        palate::cancelPush(&user, 0);
+
+        assert!(palate::getPushEscrowBalance() == 0, 1);
+        assert!(coin::balance<AptosCoin>(signer::address_of(&user)) == balance_before_push, 2);
+    }
+
     #[test(admin = @palate, framework = @0x1, pusher = @0x210, challenger = @0x211)]
     fun challengePushSucceedsWithSameCategoryIdleMedia(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        registerMeme(&pusher, b"original.gif", 1);
-        registerMeme(&challenger, b"challenger.gif", 2);
+        registerMeme(&framework, &pusher, b"original.gif", 1);
+        registerMeme(&framework, &challenger, b"challenger.gif", 2);
         palate::createPush(&pusher, 0, palate::getMinPushAmount());
 
         palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
@@ -269,12 +314,29 @@ module palate::palate_tests {
         assert!(palate::getMatchStatus(0) == palate::matchStatusActive(), 1);
     }
 
+    #[test(admin = @palate, framework = @0x1, pusher = @0x231, challenger = @0x232)]
+    fun challengePushWithdrawsAptAndIncreasesPushEscrow(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &pusher, b"push-side-a.png", 1);
+        registerImage(&framework, &challenger, b"push-side-b.png", 2);
+
+        let push_amount = palate::getMinPushAmount();
+        palate::createPush(&pusher, 0, push_amount);
+
+        let challenger_before = coin::balance<AptosCoin>(signer::address_of(&challenger));
+        let challenge_amount = palate::getMinimumChallengeAmount(0);
+        palate::challengePush(&challenger, 0, 1, challenge_amount);
+
+        assert!(palate::getPushEscrowBalance() == push_amount + challenge_amount, 0);
+        assert!(coin::balance<AptosCoin>(signer::address_of(&challenger)) == challenger_before - challenge_amount, 1);
+    }
+
     #[test(admin = @palate, framework = @0x1, pusher = @0x212, challenger = @0x213)]
     #[expected_failure(abort_code = 12, location = palate::palate)]
     fun challengePushRejectsCrossCategoryMedia(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        registerMeme(&pusher, b"original-meme.gif", 1);
-        registerImage(&challenger, b"challenger-image.png", 2);
+        registerMeme(&framework, &pusher, b"original-meme.gif", 1);
+        registerImage(&framework, &challenger, b"challenger-image.png", 2);
         palate::createPush(&pusher, 0, palate::getMinPushAmount());
 
         palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
@@ -284,8 +346,8 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 13, location = palate::palate)]
     fun challengePushRejectsAmountBelowRequiredIncrement(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        registerImage(&pusher, b"original.png", 1);
-        registerImage(&challenger, b"challenger.png", 2);
+        registerImage(&framework, &pusher, b"original.png", 1);
+        registerImage(&framework, &challenger, b"challenger.png", 2);
         palate::createPush(&pusher, 0, palate::getMinPushAmount());
 
         palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0) - 1);
@@ -301,8 +363,8 @@ module palate::palate_tests {
         challenger: signer,
     ) {
         init(&admin, &framework);
-        registerImage(&pusher, b"original.png", 1);
-        registerImage(&media_owner, b"not-owned.png", 2);
+        registerImage(&framework, &pusher, b"original.png", 1);
+        registerImage(&framework, &media_owner, b"not-owned.png", 2);
         palate::createPush(&pusher, 0, palate::getMinPushAmount());
 
         palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
@@ -312,8 +374,8 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 7, location = palate::palate)]
     fun challengePushRejectsChallengerMediaThatIsNotIdle(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        registerImage(&pusher, b"original.png", 1);
-        registerImage(&challenger, b"busy.png", 2);
+        registerImage(&framework, &pusher, b"original.png", 1);
+        registerImage(&framework, &challenger, b"busy.png", 2);
         palate::createPush(&pusher, 0, palate::getMinPushAmount());
         palate::createPush(&challenger, 1, palate::getMinPushAmount());
 
@@ -323,8 +385,8 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, pusher = @0x221, challenger = @0x222)]
     fun challengePushSetsBothMediaStatusesToActive(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        registerImage(&pusher, b"original.png", 1);
-        registerImage(&challenger, b"challenger.png", 2);
+        registerImage(&framework, &pusher, b"original.png", 1);
+        registerImage(&framework, &challenger, b"challenger.png", 2);
         palate::createPush(&pusher, 0, palate::getMinPushAmount());
 
         palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
@@ -341,8 +403,8 @@ module palate::palate_tests {
         challenger: signer,
     ) {
         init(&admin, &framework);
-        registerMeme(&pusher, b"original.gif", 1);
-        registerMeme(&challenger, b"challenger.gif", 2);
+        registerMeme(&framework, &pusher, b"original.gif", 1);
+        registerMeme(&framework, &challenger, b"challenger.gif", 2);
         palate::createPush(&pusher, 0, palate::getMinPushAmount());
 
         let challenge_amount = palate::getMinimumChallengeAmount(0);
@@ -360,8 +422,8 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, first = @0x225, second = @0x226)]
     fun getWaitingPushesReturnsOpenWaitingPushes(admin: signer, framework: signer, first: signer, second: signer) {
         init(&admin, &framework);
-        registerImage(&first, b"first.png", 1);
-        registerImage(&second, b"second.png", 2);
+        registerImage(&framework, &first, b"first.png", 1);
+        registerImage(&framework, &second, b"second.png", 2);
         palate::createPush(&first, 0, palate::getMinPushAmount());
         palate::createPush(&second, 1, palate::getMinPushAmount());
         palate::cancelPush(&second, 1);
@@ -374,8 +436,8 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, pusher = @0x227, challenger = @0x228)]
     fun getActiveMatchesReturnsActiveMatches(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        registerImage(&pusher, b"original.png", 1);
-        registerImage(&challenger, b"challenger.png", 2);
+        registerImage(&framework, &pusher, b"original.png", 1);
+        registerImage(&framework, &challenger, b"challenger.png", 2);
         palate::createPush(&pusher, 0, palate::getMinPushAmount());
         palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
 
@@ -393,7 +455,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
 
         palate::findMatch(&user);
 
@@ -420,7 +482,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         palate::findMatch(&user);
@@ -430,7 +492,7 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 17, location = palate::palate)]
     fun findMatchDoesNotAssignWhereUserIsPusherA(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
 
         palate::findMatch(&pusher);
     }
@@ -439,7 +501,7 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 17, location = palate::palate)]
     fun findMatchDoesNotAssignWhereUserIsPusherB(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
 
         palate::findMatch(&challenger);
     }
@@ -454,8 +516,8 @@ module palate::palate_tests {
         owner: signer,
     ) {
         init(&admin, &framework);
-        registerImage(&owner, b"owned.png", 1);
-        registerImage(&challenger, b"challenger.png", 2);
+        registerImage(&framework, &owner, b"owned.png", 1);
+        registerImage(&framework, &challenger, b"challenger.png", 2);
         palate::createPush(&owner, 0, palate::getMinPushAmount());
         palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
 
@@ -475,7 +537,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds() + 1);
 
         palate::findMatch(&user);
@@ -490,7 +552,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         let user_address = signer::address_of(&user);
@@ -508,7 +570,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         palate::skipMatch(&user);
@@ -519,7 +581,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, pusher = @0x323, challenger = @0x324, user = @0x325)]
     fun skipMatchClearsAssignment(admin: signer, framework: signer, pusher: signer, challenger: signer, user: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
         palate::skipMatch(&user);
 
@@ -543,7 +605,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
         palate::skipMatch(&user);
 
@@ -561,7 +623,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
@@ -588,7 +650,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         palate::placeBuffForAssignedMatchForTesting(&user, 999, palate::sideA(), palate::getMinBuffAmount());
@@ -604,7 +666,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         palate::placeBuff(&user, 3, palate::getMinBuffAmount());
@@ -620,7 +682,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount() - 1);
@@ -635,7 +697,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         let amount = palate::getMinBuffAmount();
@@ -658,7 +720,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         let amount = palate::getMinBuffAmount();
@@ -681,7 +743,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         let amount = palate::getMinBuffAmount();
@@ -707,7 +769,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
@@ -725,7 +787,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
 
@@ -743,7 +805,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
 
@@ -772,7 +834,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
 
         let amount = palate::getMinBuffAmount() * 3;
@@ -789,7 +851,7 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 23, location = palate::palate)]
     fun settleMatchRejectsBeforeEndTime(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
 
         palate::settleMatch(&pusher, 0);
     }
@@ -798,7 +860,7 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 24, location = palate::palate)]
     fun settleMatchRejectsAlreadySettledMatch(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
         palate::settleMatch(&pusher, 0);
 
@@ -808,7 +870,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, pusher = @0x368, challenger = @0x369)]
     fun settleMatchSettlesAfterEndTime(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
 
         palate::settleMatch(&pusher, 0);
@@ -826,7 +888,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -848,7 +910,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideB(), palate::getMinBuffAmount());
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -864,7 +926,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, pusher = @0x376, challenger = @0x377)]
     fun sideAWinsWhenScoresAreTied(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
 
         palate::settleMatch(&pusher, 0);
@@ -877,7 +939,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, pusher = @0x378, challenger = @0x379)]
     fun settledMatchStatusIsSetCorrectly(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
 
         palate::settleMatch(&pusher, 0);
@@ -889,7 +951,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, pusher = @0x380, challenger = @0x381)]
     fun bothMediaStatusesBecomeSettled(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
 
         palate::settleMatch(&pusher, 0);
@@ -901,7 +963,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, pusher = @0x382, challenger = @0x383)]
     fun settleMatchDoesNotRequireMinimumBuffCount(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
 
         palate::settleMatch(&pusher, 0);
@@ -914,7 +976,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, pusher = @0x384, challenger = @0x385)]
     fun settleMatchDoesNotRequireMinimumTotalScore(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
 
         palate::settleMatch(&pusher, 0);
@@ -932,7 +994,7 @@ module palate::palate_tests {
         challenger: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
 
         palate::settleMatch(&pusher, 0);
@@ -960,7 +1022,7 @@ module palate::palate_tests {
         user_b: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
 
         palate::findMatch(&user_a_one);
         palate::placeBuff(&user_a_one, palate::sideA(), palate::getMinBuffAmount());
@@ -981,7 +1043,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, pusher = @0x393, challenger = @0x394)]
     fun matchSettledEventPathSetsSettlementFields(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
 
         palate::settleMatch(&pusher, 0);
@@ -993,7 +1055,7 @@ module palate::palate_tests {
     #[test(admin = @palate, framework = @0x1, pusher = @0x395, challenger = @0x396)]
     fun winningPusherCanClaimAfterSettlement(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
         palate::settleMatch(&pusher, 0);
 
@@ -1007,7 +1069,7 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 26, location = palate::palate)]
     fun losingPusherCannotClaim(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
         palate::settleMatch(&pusher, 0);
 
@@ -1018,7 +1080,7 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 25, location = palate::palate)]
     fun pusherCannotClaimBeforeSettlement(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
 
         palate::claimPush(&pusher, 0);
     }
@@ -1027,7 +1089,7 @@ module palate::palate_tests {
     #[expected_failure(abort_code = 27, location = palate::palate)]
     fun pusherCannotDoubleClaim(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
         palate::settleMatch(&pusher, 0);
         palate::claimPush(&pusher, 0);
@@ -1043,7 +1105,7 @@ module palate::palate_tests {
         challenger: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
         palate::settleMatch(&pusher, 0);
 
@@ -1062,7 +1124,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -1085,7 +1147,7 @@ module palate::palate_tests {
         loser: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&winner);
         palate::placeBuff(&winner, palate::sideA(), palate::getMinBuffAmount() * 3);
         palate::findMatch(&loser);
@@ -1106,7 +1168,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
 
@@ -1123,7 +1185,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -1152,7 +1214,7 @@ module palate::palate_tests {
         loser: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         let min = palate::getMinBuffAmount();
 
         palate::findMatch(&winner_one);
@@ -1191,7 +1253,7 @@ module palate::palate_tests {
         loser: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         let min = palate::getMinBuffAmount();
 
         palate::findMatch(&small);
@@ -1219,7 +1281,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -1237,7 +1299,7 @@ module palate::palate_tests {
         loser: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
         palate::settleMatch(&pusher, 0);
 
@@ -1254,7 +1316,7 @@ module palate::palate_tests {
         user: signer,
     ) {
         init(&admin, &framework);
-        createImageMatch(&pusher, &challenger);
+        createImageMatch(&framework, &pusher, &challenger);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
 
@@ -1276,7 +1338,8 @@ module palate::palate_tests {
         assert!(!palate::isBuffRewardClaimable(signer::address_of(&user), 0), 8);
     }
 
-    fun registerImage(user: &signer, blob_ref: vector<u8>, created_time: u64) {
+    fun registerImage(framework: &signer, user: &signer, blob_ref: vector<u8>, created_time: u64) {
+        fundAccount(framework, user);
         palate::registerMedia(
             user,
             palate::categoryImage(),
@@ -1288,7 +1351,8 @@ module palate::palate_tests {
         );
     }
 
-    fun registerMeme(user: &signer, blob_ref: vector<u8>, created_time: u64) {
+    fun registerMeme(framework: &signer, user: &signer, blob_ref: vector<u8>, created_time: u64) {
+        fundAccount(framework, user);
         palate::registerMedia(
             user,
             palate::categoryMeme(),
@@ -1300,10 +1364,17 @@ module palate::palate_tests {
         );
     }
 
-    fun createImageMatch(pusher: &signer, challenger: &signer) {
-        registerImage(pusher, b"original.png", 1);
-        registerImage(challenger, b"challenger.png", 2);
+    fun createImageMatch(framework: &signer, pusher: &signer, challenger: &signer) {
+        registerImage(framework, pusher, b"original.png", 1);
+        registerImage(framework, challenger, b"challenger.png", 2);
         palate::createPush(pusher, 0, palate::getMinPushAmount());
         palate::challengePush(challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+    }
+
+    fun fundAccount(framework: &signer, account: &signer) {
+        if (!coin::is_account_registered<AptosCoin>(signer::address_of(account))) {
+            coin::register<AptosCoin>(account);
+        };
+        aptos_coin::mint(framework, signer::address_of(account), TEST_FUNDS);
     }
 }

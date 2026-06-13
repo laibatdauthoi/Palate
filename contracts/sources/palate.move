@@ -1,4 +1,6 @@
 module palate::palate {
+    use aptos_framework::aptos_coin::AptosCoin;
+    use aptos_framework::coin;
     use aptos_framework::event;
     use aptos_framework::timestamp;
     use std::signer;
@@ -87,6 +89,10 @@ module palate::palate {
         user_assignments: vector<UserAssignment>,
         user_media_indices: vector<UserMediaIndex>,
         user_summaries: vector<UserSummaryRecord>,
+        push_escrow: coin::Coin<AptosCoin>,
+        buff_escrow: coin::Coin<AptosCoin>,
+        commitment_escrow: coin::Coin<AptosCoin>,
+        treasury_fees: coin::Coin<AptosCoin>,
         next_media_id: u64,
         next_push_id: u64,
         next_match_id: u64,
@@ -313,6 +319,12 @@ module palate::palate {
             user_assignments: vector::empty<UserAssignment>(),
             user_media_indices: vector::empty<UserMediaIndex>(),
             user_summaries: vector::empty<UserSummaryRecord>(),
+            push_escrow: coin::zero<AptosCoin>(),
+            // Buff escrow, commitment escrow, treasury fee movement, and real claim
+            // transfers are intentionally completed in later accounting tasks.
+            buff_escrow: coin::zero<AptosCoin>(),
+            commitment_escrow: coin::zero<AptosCoin>(),
+            treasury_fees: coin::zero<AptosCoin>(),
             next_media_id: 0,
             next_push_id: 0,
             next_match_id: 0,
@@ -374,19 +386,26 @@ module palate::palate {
         assertInitialized();
 
         let pusher = signer::address_of(account);
+        let media_index;
+        let category;
+        {
+            let state = borrow_global<PalateState>(@palate);
+            assert!(push_amount >= state.protocol_config.min_push_amount, E_PUSH_AMOUNT_TOO_LOW);
+
+            media_index = findMediaIndex(state, media_id);
+            let media = vector::borrow(&state.media_records, media_index);
+            assert!(media.owner == pusher, E_NOT_MEDIA_OWNER);
+            assert!(media.status == STATUS_IDLE, E_MEDIA_NOT_IDLE);
+            category = media.category;
+        };
+
+        let push_coin = coin::withdraw<AptosCoin>(account, push_amount);
+
         let state = borrow_global_mut<PalateState>(@palate);
-        assert!(push_amount >= state.protocol_config.min_push_amount, E_PUSH_AMOUNT_TOO_LOW);
-
-        let media_index = findMediaIndex(state, media_id);
-        let media = vector::borrow_mut(&mut state.media_records, media_index);
-        assert!(media.owner == pusher, E_NOT_MEDIA_OWNER);
-        assert!(media.status == STATUS_IDLE, E_MEDIA_NOT_IDLE);
-
-        media.status = STATUS_WAITING;
-
+        coin::merge(&mut state.push_escrow, push_coin);
+        vector::borrow_mut(&mut state.media_records, media_index).status = STATUS_WAITING;
         let push_id = state.next_push_id;
         state.next_push_id = push_id + 1;
-        let category = media.category;
 
         vector::push_back(&mut state.waiting_pushes, WaitingPush {
             push_id,
@@ -411,20 +430,29 @@ module palate::palate {
         assertInitialized();
 
         let pusher = signer::address_of(account);
-        let state = borrow_global_mut<PalateState>(@palate);
-        let push_index = findWaitingPushIndex(state, push_id);
-
+        let push_index;
         let media_id;
+        let media_index;
+        let push_amount;
         {
+            let state = borrow_global<PalateState>(@palate);
+            push_index = findWaitingPushIndex(state, push_id);
             let waiting_push = vector::borrow(&state.waiting_pushes, push_index);
             assert!(waiting_push.pusher == pusher, E_NOT_PUSH_CREATOR);
             assert!(waiting_push.status == WAITING_PUSH_STATUS_OPEN, E_PUSH_NOT_OPEN);
             media_id = waiting_push.media_id;
+            push_amount = waiting_push.push_amount;
+            media_index = findMediaIndex(state, media_id);
         };
 
-        let media_index = findMediaIndex(state, media_id);
-        vector::borrow_mut(&mut state.media_records, media_index).status = STATUS_IDLE;
-        vector::borrow_mut(&mut state.waiting_pushes, push_index).status = WAITING_PUSH_STATUS_CANCELLED;
+        let refund_coin;
+        {
+            let state = borrow_global_mut<PalateState>(@palate);
+            refund_coin = coin::extract(&mut state.push_escrow, push_amount);
+            vector::borrow_mut(&mut state.media_records, media_index).status = STATUS_IDLE;
+            vector::borrow_mut(&mut state.waiting_pushes, push_index).status = WAITING_PUSH_STATUS_CANCELLED;
+        };
+        coin::deposit<AptosCoin>(pusher, refund_coin);
 
         event::emit(PushCancelledEvent {
             push_id,
@@ -442,14 +470,16 @@ module palate::palate {
         assertInitialized();
 
         let challenger = signer::address_of(account);
-        let state = borrow_global_mut<PalateState>(@palate);
-        let push_index = findWaitingPushIndex(state, push_id);
-
+        let push_index;
         let media_a_id;
         let pusher_a;
         let push_amount_a;
         let category;
+        let media_a_index;
+        let challenger_media_index;
         {
+            let state = borrow_global<PalateState>(@palate);
+            push_index = findWaitingPushIndex(state, push_id);
             let waiting_push = vector::borrow(&state.waiting_pushes, push_index);
             assert!(waiting_push.status == WAITING_PUSH_STATUS_OPEN, E_PUSH_NOT_OPEN);
             assert!(waiting_push.pusher != challenger, E_PUSHER_CANNOT_CHALLENGE_OWN_PUSH);
@@ -457,23 +487,25 @@ module palate::palate {
             pusher_a = waiting_push.pusher;
             push_amount_a = waiting_push.push_amount;
             category = waiting_push.category;
-        };
 
-        let required_amount = calculateMinimumChallengeAmount(
-            push_amount_a,
-            state.protocol_config.min_push_increment_bps,
-        );
-        assert!(push_amount >= required_amount, E_CHALLENGE_AMOUNT_TOO_LOW);
+            let required_amount = calculateMinimumChallengeAmount(
+                push_amount_a,
+                state.protocol_config.min_push_increment_bps,
+            );
+            assert!(push_amount >= required_amount, E_CHALLENGE_AMOUNT_TOO_LOW);
 
-        let challenger_media_index = findMediaIndex(state, challenger_media_id);
-        {
+            challenger_media_index = findMediaIndex(state, challenger_media_id);
             let challenger_media = vector::borrow(&state.media_records, challenger_media_index);
             assert!(challenger_media.owner == challenger, E_NOT_MEDIA_OWNER);
             assert!(challenger_media.status == STATUS_IDLE, E_MEDIA_NOT_IDLE);
             assert!(challenger_media.category == category, E_CATEGORY_MISMATCH);
+            media_a_index = findMediaIndex(state, media_a_id);
         };
 
-        let media_a_index = findMediaIndex(state, media_a_id);
+        let challenge_coin = coin::withdraw<AptosCoin>(account, push_amount);
+
+        let state = borrow_global_mut<PalateState>(@palate);
+        coin::merge(&mut state.push_escrow, challenge_coin);
         vector::borrow_mut(&mut state.media_records, media_a_index).status = STATUS_ACTIVE;
         vector::borrow_mut(&mut state.media_records, challenger_media_index).status = STATUS_ACTIVE;
         vector::borrow_mut(&mut state.waiting_pushes, push_index).status = WAITING_PUSH_STATUS_CHALLENGED;
@@ -1188,6 +1220,30 @@ module palate::palate {
     public fun getNextMediaId(): u64 acquires PalateState {
         assertInitialized();
         borrow_global<PalateState>(@palate).next_media_id
+    }
+
+    #[view]
+    public fun getPushEscrowBalance(): u64 acquires PalateState {
+        assertInitialized();
+        coin::value(&borrow_global<PalateState>(@palate).push_escrow)
+    }
+
+    #[view]
+    public fun getBuffEscrowBalance(): u64 acquires PalateState {
+        assertInitialized();
+        coin::value(&borrow_global<PalateState>(@palate).buff_escrow)
+    }
+
+    #[view]
+    public fun getCommitmentEscrowBalance(): u64 acquires PalateState {
+        assertInitialized();
+        coin::value(&borrow_global<PalateState>(@palate).commitment_escrow)
+    }
+
+    #[view]
+    public fun getTreasuryFeeBalance(): u64 acquires PalateState {
+        assertInitialized();
+        coin::value(&borrow_global<PalateState>(@palate).treasury_fees)
     }
 
     #[view]
