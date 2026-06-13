@@ -5,7 +5,7 @@ export function LoadingState({ label }: { label: string }) {
         <span />
       </div>
       <h3>{label}</h3>
-      <p>Mock transaction state for the UI shell.</p>
+      <p>Transaction state appears here while an action is processing.</p>
     </div>
   );
 }

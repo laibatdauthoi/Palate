@@ -8,9 +8,15 @@ import { CountdownTimer } from "./countdown_timer";
 type BuffPanelProps = {
   match: ActiveMatch;
   skipPenalty: string;
+  buffAmount: string;
+  onBuffAmountChange: (value: string) => void;
+  onBuffA: () => void;
+  onBuffB: () => void;
+  onSkip: () => void;
+  loading?: boolean;
 };
 
-export function BuffPanel({ match, skipPenalty }: BuffPanelProps) {
+export function BuffPanel({ match, skipPenalty, buffAmount, onBuffAmountChange, onBuffA, onBuffB, onSkip, loading = false }: BuffPanelProps) {
   return (
     <section className="buff_panel">
       <div className="buff_panel_top">
@@ -32,11 +38,11 @@ export function BuffPanel({ match, skipPenalty }: BuffPanelProps) {
         <BuffDecisionCard side="B" media={match.mediaB} />
       </div>
       <div className="buff_action_bar">
-        <AmountInput label="Buff amount" placeholder="0.10 APT minimum" />
+        <AmountInput label="Buff amount" onChange={onBuffAmountChange} placeholder="0.10 APT minimum" value={buffAmount} />
         <div className="buff_action_buttons">
-          <ActionButton className="buff_choice_button">Buff A</ActionButton>
-          <ActionButton className="buff_choice_button">Buff B</ActionButton>
-          <ActionButton className="skip_match_button" variant="danger">Skip Match</ActionButton>
+          <ActionButton className="buff_choice_button" disabled={loading} onClick={onBuffA}>{loading ? "Submitting" : "Buff A"}</ActionButton>
+          <ActionButton className="buff_choice_button" disabled={loading} onClick={onBuffB}>{loading ? "Submitting" : "Buff B"}</ActionButton>
+          <ActionButton className="skip_match_button" disabled={loading} onClick={onSkip} variant="danger">{loading ? "Skipping" : "Skip Match"}</ActionButton>
         </div>
         <p className="danger_note">Skip Match penalty: {skipPenalty}. Skipping clears this assignment.</p>
       </div>

@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import { ActionButton } from "@/components/action_button";
+import { AmountInput } from "@/components/amount_input";
 import { ClaimCard } from "@/components/claim_card";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
 
 export default function ProfilePage() {
-  const { balance, claimRecords, mockWalletAddress, userSummary } = usePalate();
+  const { balance, claimMockReward, claimRecords, depositBalance, feedback, mockWalletAddress, processingAction, userSummary, withdrawBalance } = usePalate();
   const [tab, setTab] = useState<"Stats" | "Claims">("Stats");
+  const [balanceAmount, setBalanceAmount] = useState("1.000");
+  const balanceBusy = processingAction === "deposit" || processingAction === "withdraw";
   const profile_stats = [
     { label: "Push count", value: userSummary.pushCount },
     { label: "Push wins", value: userSummary.pushWins },
@@ -26,12 +29,11 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="page_stack">
+    <div className="page_stack page_profile">
       <PageHeader
         eyebrow="Profile"
         title="Balance, stats, and Buff Rewards."
         copy="Claims credit Palate Balance first. Wallet withdrawal is a separate action after available balance updates."
-        actions={<ActionButton variant="secondary">Mock Withdraw</ActionButton>}
       />
 
       <div className="profile_summary_grid">
@@ -54,6 +56,19 @@ export default function ProfilePage() {
           </div>
         </SectionPanel>
       </div>
+
+      <SectionPanel title="Manage Palate Balance" copy="Adjust available Palate Balance for the current session.">
+        <div className="profile_balance_controls">
+          <AmountInput label="Amount" onChange={setBalanceAmount} placeholder="1.000 APT" value={balanceAmount} />
+          <ActionButton disabled={balanceBusy} onClick={() => depositBalance(balanceAmount)} variant="secondary">
+            {processingAction === "deposit" ? "Depositing" : "Deposit"}
+          </ActionButton>
+          <ActionButton disabled={balanceBusy} onClick={() => withdrawBalance(balanceAmount)} variant="secondary">
+            {processingAction === "withdraw" ? "Withdrawing" : "Withdraw"}
+          </ActionButton>
+        </div>
+        {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
+      </SectionPanel>
 
       <SectionPanel>
         <div className="tabs">
@@ -81,16 +96,18 @@ export default function ProfilePage() {
           <SectionPanel title="Push claims">
             <div className="stack">
               {claimRecords.filter((claim) => claim.type === "push").map((claim) => (
-                <ClaimCard claim={claim} key={claim.id} />
+                <ClaimCard claim={claim} key={claim.id} loading={processingAction === "claimReward"} onClaim={() => claimMockReward(claim.id)} />
               ))}
             </div>
+            {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
           </SectionPanel>
           <SectionPanel title="Buff Rewards">
             <div className="stack">
               {claimRecords.filter((claim) => claim.type === "buff").map((claim) => (
-                <ClaimCard claim={claim} key={claim.id} />
+                <ClaimCard claim={claim} key={claim.id} loading={processingAction === "claimReward"} onClaim={() => claimMockReward(claim.id)} />
               ))}
             </div>
+            <p className="mock_note">Claims credit Palate Balance before wallet withdrawal.</p>
           </SectionPanel>
         </div>
       )}

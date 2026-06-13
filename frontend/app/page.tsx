@@ -17,7 +17,7 @@ export default function HomePage() {
   const featuredMatch = activeMatches[0];
 
   return (
-    <div className="page_stack">
+    <div className="page_stack page_home">
       <section className="home_hero">
         <div className="stack">
           <span className="eyebrow">Palate Lobby</span>
@@ -30,7 +30,7 @@ export default function HomePage() {
             <ActionButton href="/my-media/upload" variant="secondary">Upload Media</ActionButton>
             <ActionButton href="/push" variant="secondary">Push Media</ActionButton>
           </div>
-          <p className="mock_note">{app_config.mockMode ? "Temporary mock data only. Aptos and Shelby integration come later." : app_config.networkLabel}</p>
+          <p className="mock_note">{app_config.mockMode ? "Aptos Testnet and Shelby integration are prepared for the next phase." : app_config.networkLabel}</p>
         </div>
         {featuredMatch ? (
           <div className="hero_match_preview">
@@ -50,7 +50,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      <SectionPanel title="Featured match preview" copy="The UI can preview active matches without exposing live score, Buff pool, leading side, odds, win probability, or supporter direction.">
+      <SectionPanel title="Featured matches" copy="Active matches can be shown without exposing live score, Buff pool, leading side, odds, win probability, or supporter direction.">
         <div className="wide_two_column">
           {activeMatches.map((match) => (
             <MatchCard key={match.id} match={match} />

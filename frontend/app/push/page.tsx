@@ -9,14 +9,40 @@ import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { WaitingPushCard } from "@/components/waiting_push_card";
 import { usePalate } from "@/providers/palate_provider";
+import type { MediaCategory } from "@/types/palate";
+
+const category_labels: Record<MediaCategory, string> = {
+  meme: "Meme",
+  image: "Image",
+  audio: "Audio",
+  video: "Video"
+};
 
 export default function PushPage() {
-  const { activeMatches, mediaRecords, waitingPushes } = usePalate();
+  const { activeMatches, challengeMockPush, createMockPush, feedback, mediaRecords, processingAction, waitingPushes } = usePalate();
   const [tab, setTab] = useState<"Waiting" | "Live Matches">("Waiting");
   const [modalOpen, setModalOpen] = useState(false);
+  const [createMediaId, setCreateMediaId] = useState("");
+  const [createAmount, setCreateAmount] = useState("1.000");
+  const [challengePushId, setChallengePushId] = useState<number | null>(null);
+  const [challengeMediaId, setChallengeMediaId] = useState("");
+  const [challengeAmount, setChallengeAmount] = useState("6.510");
+  const openWaitingPushes = waitingPushes.filter((push) => push.status === "open");
+  const selectedPush = openWaitingPushes.find((push) => push.id === challengePushId) ?? openWaitingPushes[0];
+  const idleMedia = mediaRecords.filter((media) => media.status === "idle");
+  const challengeOptions = idleMedia;
+  const pushBusy = processingAction === "createPush" || processingAction === "challengePush";
+
+  function openChallenge(pushId: number) {
+    const push = openWaitingPushes.find((candidate) => candidate.id === pushId);
+    setChallengePushId(pushId);
+    setChallengeAmount(push?.minChallengeAmount.replace(" APT", "") ?? "1.000");
+    setChallengeMediaId("");
+    setModalOpen(true);
+  }
 
   return (
-    <div className="page_stack">
+    <div className="page_stack page_push">
       <PageHeader
         eyebrow="Push"
         title="Challenge the board without exposing live match direction."
@@ -34,10 +60,29 @@ export default function PushPage() {
         </div>
       </SectionPanel>
 
+      <SectionPanel title="Create push" copy="Use Palate Balance and mark selected idle media as waiting for a challenger.">
+        <div className="mock_form_grid">
+          <label className="amount_input">
+            <span>Idle media</span>
+            <select className="input_control" onChange={(event) => setCreateMediaId(event.target.value)} value={createMediaId}>
+              <option value="">Select idle media</option>
+              {idleMedia.map((media) => (
+                <option key={media.id} value={media.id}>{media.title} - {category_labels[media.category]}</option>
+              ))}
+            </select>
+          </label>
+          <AmountInput label="Push amount" onChange={setCreateAmount} placeholder="1.000 APT minimum" value={createAmount} />
+          <ActionButton disabled={pushBusy || !createMediaId} onClick={() => createMockPush(Number(createMediaId), createAmount)}>
+            {processingAction === "createPush" ? "Creating" : "Create Push"}
+          </ActionButton>
+        </div>
+        {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
+      </SectionPanel>
+
       {tab === "Waiting" ? (
         <div className="stack">
-          {waitingPushes.map((push) => (
-            <WaitingPushCard key={push.id} push={push} onChallenge={() => setModalOpen(true)} />
+          {openWaitingPushes.map((push) => (
+            <WaitingPushCard key={push.id} push={push} onChallenge={() => openChallenge(push.id)} />
           ))}
         </div>
       ) : (
@@ -52,22 +97,38 @@ export default function PushPage() {
         <div className="stack">
           <p className="secondary_text">Select same-category idle media and enter a push amount at or above the required minimum.</p>
           <label className="amount_input">
-            <span>Idle media</span>
-            <select className="input_control">
-              {mediaRecords
-                .filter((media) => media.status === "idle" && media.category === "meme")
-                .map((media) => (
-                  <option key={media.id}>{media.title} - Meme</option>
-                ))}
+            <span>Waiting push</span>
+            <select className="input_control" onChange={(event) => setChallengePushId(Number(event.target.value))} value={selectedPush?.id ?? ""}>
+              {openWaitingPushes.map((push) => (
+                <option key={push.id} value={push.id}>{push.media.title} - minimum {push.minChallengeAmount}</option>
+              ))}
             </select>
           </label>
-          <AmountInput label="Challenge amount" placeholder="Minimum 6.51 APT" />
+          <label className="amount_input">
+            <span>Idle media</span>
+            <select className="input_control" onChange={(event) => setChallengeMediaId(event.target.value)} value={challengeMediaId}>
+              <option value="">Select idle media</option>
+              {challengeOptions.map((media) => (
+                <option key={media.id} value={media.id}>{media.title} - {category_labels[media.category]}</option>
+              ))}
+            </select>
+          </label>
+          <AmountInput label="Challenge amount" onChange={setChallengeAmount} placeholder={`Minimum ${selectedPush?.minChallengeAmount ?? "1.000 APT"}`} value={challengeAmount} />
           <div className="state_card">
             <span className="state_mark">Minimum challenge amount</span>
-            <strong>6.51 APT</strong>
+            <strong>{selectedPush?.minChallengeAmount ?? "--"}</strong>
             <p>Cross-category challenge is blocked by contract rules and should also be blocked in the UI.</p>
           </div>
-          <ActionButton>Confirm Mock Challenge</ActionButton>
+          {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
+          <ActionButton
+            disabled={pushBusy || !selectedPush || !challengeMediaId}
+            onClick={() => {
+              if (!selectedPush) return;
+              challengeMockPush(selectedPush.id, Number(challengeMediaId), challengeAmount);
+            }}
+          >
+            {processingAction === "challengePush" ? "Challenging" : "Confirm Challenge"}
+          </ActionButton>
         </div>
       </ModalShell>
     </div>

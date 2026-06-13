@@ -1,5 +1,5 @@
-export type MediaCategory = "meme" | "image";
-export type MediaFormat = "PNG" | "JPG" | "JPEG" | "WEBP" | "GIF";
+export type MediaCategory = "meme" | "image" | "audio" | "video";
+export type MediaFormat = "PNG" | "JPG" | "JPEG" | "WEBP" | "GIF" | "MP3" | "WAV" | "OGG" | "M4A" | "MP4" | "WEBM" | "MOV";
 export type MediaStatus = "idle" | "waiting" | "active" | "settled" | "disabled" | "banned";
 export type MatchStatus = "active" | "settled";
 export type ClaimType = "push" | "buff";
@@ -18,7 +18,7 @@ export type MediaRecord = {
   shelbyBlobRef: string;
   contentHash: string;
   mimeType: string;
-  accent: "pink" | "purple";
+  accent: "pink" | "purple" | "rose" | "deep";
 };
 
 export type WaitingPush = {
@@ -68,6 +68,7 @@ export type ClaimRecord = {
   amount: string;
   settledTime: string;
   claimable: boolean;
+  claimed: boolean;
 };
 
 export type UserSummary = {

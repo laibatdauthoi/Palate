@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { WalletPanel } from "./wallet_panel";
 
 const nav_items = [
@@ -14,11 +16,16 @@ const nav_items = [
 
 export function NavigationBar() {
   const pathname = usePathname();
+  const [logoAvailable, setLogoAvailable] = useState(true);
 
   return (
     <nav className="navigation_bar desktop_only" aria-label="Main navigation">
       <Link className="brand_lockup" href="/">
-        <span className="brand_mark">P</span>
+        {logoAvailable ? (
+          <span className="brand_mark">
+            <Image alt="Palate logo" height={32} onError={() => setLogoAvailable(false)} priority src="/brand/palate_logo.png" width={32} />
+          </span>
+        ) : null}
         <span>Palate</span>
       </Link>
       <div className="nav_links">

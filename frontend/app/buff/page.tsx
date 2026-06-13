@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { BuffPanel } from "@/components/buff_panel";
 import { EmptyState } from "@/components/empty_state";
@@ -10,39 +11,71 @@ import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
 
 export default function BuffPage() {
-  const { currentAssignment } = usePalate();
+  const {
+    completedBuffSide,
+    currentAssignment,
+    feedback,
+    findMatch,
+    noValidMatchAvailable,
+    placeMockBuff,
+    processingAction,
+    skipMatch
+  } = usePalate();
+  const [buffAmount, setBuffAmount] = useState("0.250");
   const assignedMatch = currentAssignment?.match;
+  const buffBusy = processingAction === "findMatch" || processingAction === "placeBuff" || processingAction === "skipMatch";
 
   return (
-    <div className="page_stack">
+    <div className="page_stack page_buff">
       <PageHeader
         eyebrow="Buff"
         title="Receive one random match. Choose with conviction."
         copy="Users cannot manually choose a match to Buff. Existing assignments must be completed or skipped before finding another match."
-        actions={<ActionButton>Find Match</ActionButton>}
+        actions={<ActionButton disabled={buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Match"}</ActionButton>}
       />
 
-      {assignedMatch ? <BuffPanel match={assignedMatch} skipPenalty={currentAssignment.skipPenaltyAmount} /> : null}
+      {feedback ? <div className={`state_card feedback_panel feedback_${feedback.type}`}><p>{feedback.message}</p></div> : null}
+
+      {assignedMatch ? (
+        <BuffPanel
+          buffAmount={buffAmount}
+          loading={buffBusy}
+          match={assignedMatch}
+          onBuffA={() => placeMockBuff("A", buffAmount)}
+          onBuffAmountChange={setBuffAmount}
+          onBuffB={() => placeMockBuff("B", buffAmount)}
+          onSkip={skipMatch}
+          skipPenalty={currentAssignment.skipPenaltyAmount}
+        />
+      ) : null}
 
       <div className="panel_grid">
         <SectionPanel title="No assigned match">
           <div className="stack">
             <p className="secondary_text">Find Match assigns one active valid match. Manual match selection is not available.</p>
-            <ActionButton>Find Match</ActionButton>
+            <ActionButton disabled={buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Match"}</ActionButton>
           </div>
         </SectionPanel>
         <SectionPanel title="Buff completed">
           <div className="stack">
-            <p className="secondary_text">Your Buff is recorded. The result remains pending until the match settles.</p>
-            <ActionButton>Find Next Match</ActionButton>
+            <p className="secondary_text">
+              {completedBuffSide ? `Buff ${completedBuffSide} is recorded. The result remains pending until the match settles.` : "After a Buff, the completed state appears here."}
+            </p>
+            <ActionButton disabled={buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Next Match"}</ActionButton>
           </div>
         </SectionPanel>
-        <EmptyState
-          title="No active match available right now."
-          copy="Try again later or push your own media into a match."
-          actionLabel="Go to Push"
-          actionHref="/push"
-        />
+        {noValidMatchAvailable ? (
+          <EmptyState
+            title="No active match available right now."
+            copy="Try again later or push your own media into a match."
+            actionLabel="Go to Push"
+            actionHref="/push"
+          />
+        ) : (
+          <SectionPanel title="No valid match state">
+            <p className="secondary_text">Use Find Match after all matches have been Buffed to reach this state.</p>
+          </SectionPanel>
+        )}
       </div>
 
       <div className="wide_two_column">

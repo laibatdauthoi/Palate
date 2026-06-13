@@ -45,7 +45,7 @@ export async function getUserSummary(_walletAddress: string): Promise<UserSummar
   notImplemented("getUserSummary");
 }
 
-// Future signed entry-function boundary. Do not submit real transactions in Task F3.
+// Future signed entry-function boundary. Mock UI flows call provider actions until real Aptos transactions are wired.
 export async function submitPalateTransaction(_functionName: string, _args: unknown[]): Promise<never> {
   void _functionName;
   void _args;

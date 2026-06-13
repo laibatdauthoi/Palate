@@ -9,7 +9,7 @@ import { usePalate } from "@/providers/palate_provider";
 import type { MediaCategory, MediaStatus } from "@/types/palate";
 
 const statuses = ["All", "Idle", "Waiting", "Active", "Settled"] as const;
-const categories = ["All Categories", "Meme", "Image"] as const;
+const categories = ["All Categories", "Meme", "Image", "Audio", "Video"] as const;
 const status_values = {
   Idle: "idle",
   Waiting: "waiting",
@@ -18,7 +18,9 @@ const status_values = {
 } as const satisfies Record<Exclude<(typeof statuses)[number], "All">, MediaStatus>;
 const category_values = {
   Meme: "meme",
-  Image: "image"
+  Image: "image",
+  Audio: "audio",
+  Video: "video"
 } as const satisfies Record<Exclude<(typeof categories)[number], "All Categories">, MediaCategory>;
 
 export default function MyMediaPage() {
@@ -35,11 +37,11 @@ export default function MyMediaPage() {
   }, [category, mediaRecords, status]);
 
   return (
-    <div className="page_stack">
+    <div className="page_stack page_media">
       <PageHeader
         eyebrow="Inventory"
         title="My Media"
-        copy="Registered media appears here after Shelby upload and on-chain registration. This shell uses temporary mock data."
+        copy="Registered media appears here after Shelby upload and on-chain registration."
         actions={<ActionButton href="/my-media/upload">Upload Media</ActionButton>}
       />
 

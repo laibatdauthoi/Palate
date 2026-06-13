@@ -18,7 +18,7 @@ export function WaitingPushCard({ push, onChallenge }: WaitingPushCardProps) {
       <div className="waiting_push_body">
         <div className="spread">
           <h3>{push.media.title}</h3>
-          <StatusBadge status="open" />
+          <StatusBadge status={push.status === "open" ? "open" : push.status === "challenged" ? "active" : "disabled"} />
         </div>
         <div className="cluster">
           <CategoryBadge category={push.media.category} />
@@ -42,7 +42,7 @@ export function WaitingPushCard({ push, onChallenge }: WaitingPushCardProps) {
             <dd>{push.createdTime}</dd>
           </div>
         </dl>
-        <ActionButton onClick={onChallenge}>Challenge</ActionButton>
+        <ActionButton disabled={push.status !== "open"} onClick={onChallenge}>{push.status === "open" ? "Challenge" : "Closed"}</ActionButton>
       </div>
     </article>
   );

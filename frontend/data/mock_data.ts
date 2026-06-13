@@ -68,7 +68,7 @@ export const mock_media: MediaRecord[] = [
     shelbyBlobRef: "mock://shelby/velvet-glitch.jpeg",
     contentHash: "mock_hash_velvet_glitch",
     mimeType: "image/jpeg",
-    accent: "pink"
+    accent: "rose"
   },
   {
     id: 6,
@@ -82,6 +82,45 @@ export const mock_media: MediaRecord[] = [
     contentHash: "mock_hash_quiet_flex",
     mimeType: "image/webp",
     accent: "purple"
+  },
+  {
+    id: 7,
+    ownerAddress: mock_owner,
+    title: "Bass Cathedral",
+    category: "audio",
+    format: "MP3",
+    status: "idle",
+    createdTime: "Today",
+    shelbyBlobRef: "mock://shelby/bass-cathedral.mp3",
+    contentHash: "mock_hash_bass_cathedral",
+    mimeType: "audio/mpeg",
+    accent: "deep"
+  },
+  {
+    id: 8,
+    ownerAddress: mock_owner,
+    title: "Afterimage Cut",
+    category: "video",
+    format: "MP4",
+    status: "idle",
+    createdTime: "Yesterday",
+    shelbyBlobRef: "mock://shelby/afterimage-cut.mp4",
+    contentHash: "mock_hash_afterimage_cut",
+    mimeType: "video/mp4",
+    accent: "pink"
+  },
+  {
+    id: 9,
+    ownerAddress: mock_owner,
+    title: "Velour Loop",
+    category: "audio",
+    format: "OGG",
+    status: "waiting",
+    createdTime: "3 days ago",
+    shelbyBlobRef: "mock://shelby/velour-loop.ogg",
+    contentHash: "mock_hash_velour_loop",
+    mimeType: "audio/ogg",
+    accent: "rose"
   }
 ];
 
@@ -102,6 +141,15 @@ export const mock_waiting_pushes: WaitingPush[] = [
     pushAmount: "6.20 APT",
     minChallengeAmount: "6.51 APT",
     createdTime: "42 min ago",
+    status: "open"
+  },
+  {
+    id: 103,
+    media: mock_media[8],
+    pusherAddress: "0x33fa...69ce",
+    pushAmount: "4.00 APT",
+    minChallengeAmount: "4.20 APT",
+    createdTime: "9 min ago",
     status: "open"
   }
 ];
@@ -140,7 +188,8 @@ export const mock_claims: ClaimRecord[] = [
     matchRef: "Match 448",
     amount: "19.975 APT",
     settledTime: "2h ago",
-    claimable: true
+    claimable: true,
+    claimed: false
   },
   {
     id: 9002,
@@ -148,7 +197,8 @@ export const mock_claims: ClaimRecord[] = [
     matchRef: "Match 451",
     amount: "3.420 APT",
     settledTime: "Yesterday",
-    claimable: true
+    claimable: true,
+    claimed: false
   },
   {
     id: 9003,
@@ -156,7 +206,8 @@ export const mock_claims: ClaimRecord[] = [
     matchRef: "Match 466",
     amount: "Pending",
     settledTime: "Awaiting settlement",
-    claimable: false
+    claimable: false,
+    claimed: false
   }
 ];
 

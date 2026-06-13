@@ -15,7 +15,7 @@ function notImplemented(functionName: string): never {
   throw new Error(`${functionName} is not implemented. Future work must use official Shelby upload/read flows and must not invent a replacement storage layer.`);
 }
 
-// Future Shelby upload boundary: encode file, register Shelby blob, then upload file bytes to Shelby RPC.
+// Future Shelby upload boundary: replace provider mock upload with encode file, register Shelby blob, then upload file bytes to Shelby RPC.
 export async function uploadMediaToShelby(_draft: ShelbyUploadDraft): Promise<ShelbyUploadResult> {
   void _draft;
   notImplemented("uploadMediaToShelby");
