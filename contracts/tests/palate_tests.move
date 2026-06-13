@@ -9,6 +9,7 @@ module palate::palate_tests {
 
     const TREASURY: address = @0xCAFE;
     const TEST_FUNDS: u64 = 1000000000000;
+    const TEST_DEPOSIT: u64 = 10000000000;
 
     fun init(admin: &signer, framework: &signer) {
         let (burn_cap, mint_cap) = aptos_coin::initialize_for_test(framework);
@@ -39,6 +40,64 @@ module palate::palate_tests {
 
     #[test(admin = @palate, framework = @0x1)]
     fun initializeCreatesEmptyVaultBalances(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        assert!(palate::getBalanceVaultBalance() == 0, 0);
+        assert!(palate::getPushEscrowBalance() == 0, 1);
+        assert!(palate::getBuffEscrowBalance() == 0, 2);
+        assert!(palate::getCommitmentEscrowBalance() == 0, 3);
+        assert!(palate::getTreasuryFeeBalance() == 0, 4);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x107)]
+    fun depositBalanceIncreasesAvailableBalance(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        fundAccount(&framework, &user);
+
+        palate::depositBalance(&user, TEST_DEPOSIT);
+
+        assert!(palate::getAvailableBalance(signer::address_of(&user)) == TEST_DEPOSIT, 0);
+        assert!(palate::getTotalDeposited(signer::address_of(&user)) == TEST_DEPOSIT, 1);
+        assert!(palate::getBalanceVaultBalance() == TEST_DEPOSIT, 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x108)]
+    fun withdrawBalanceReturnsAptToWallet(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        fundAccount(&framework, &user);
+        palate::depositBalance(&user, TEST_DEPOSIT);
+
+        let wallet_before = coin::balance<AptosCoin>(signer::address_of(&user));
+        let amount = TEST_DEPOSIT / 2;
+        palate::withdrawBalance(&user, amount);
+
+        assert!(palate::getAvailableBalance(signer::address_of(&user)) == TEST_DEPOSIT - amount, 0);
+        assert!(palate::getTotalWithdrawn(signer::address_of(&user)) == amount, 1);
+        assert!(coin::balance<AptosCoin>(signer::address_of(&user)) == wallet_before + amount, 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x109)]
+    #[expected_failure(abort_code = 31, location = palate::palate)]
+    fun withdrawBalanceRejectsInsufficientAvailableBalance(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        fundAccount(&framework, &user);
+        palate::depositBalance(&user, TEST_DEPOSIT);
+
+        palate::withdrawBalance(&user, TEST_DEPOSIT + 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x110)]
+    fun initialUserBalanceIsEmpty(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+
+        assert!(palate::getAvailableBalance(signer::address_of(&user)) == 0, 0);
+        assert!(palate::getLockedPushAmount(signer::address_of(&user)) == 0, 1);
+        assert!(palate::getLockedBuffAmount(signer::address_of(&user)) == 0, 2);
+        assert!(palate::getLockedCommitmentAmount(signer::address_of(&user)) == 0, 3);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    fun legacyVaultHelpersStartEmpty(admin: signer, framework: signer) {
         init(&admin, &framework);
 
         assert!(palate::getPushEscrowBalance() == 0, 0);
@@ -203,16 +262,19 @@ module palate::palate_tests {
     }
 
     #[test(admin = @palate, framework = @0x1, user = @0x229)]
-    fun createPushWithdrawsAptAndIncreasesPushEscrow(admin: signer, framework: signer, user: signer) {
+    fun createPushUsesAvailableBalanceAndIncreasesPushEscrow(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);
         registerImage(&framework, &user, b"push-escrow.png", 1);
 
-        let user_before = coin::balance<AptosCoin>(signer::address_of(&user));
+        let wallet_before = coin::balance<AptosCoin>(signer::address_of(&user));
+        let available_before = palate::getAvailableBalance(signer::address_of(&user));
         let amount = palate::getMinPushAmount();
         palate::createPush(&user, 0, amount);
 
         assert!(palate::getPushEscrowBalance() == amount, 0);
-        assert!(coin::balance<AptosCoin>(signer::address_of(&user)) == user_before - amount, 1);
+        assert!(coin::balance<AptosCoin>(signer::address_of(&user)) == wallet_before, 1);
+        assert!(palate::getAvailableBalance(signer::address_of(&user)) == available_before - amount, 2);
+        assert!(palate::getLockedPushAmount(signer::address_of(&user)) == amount, 3);
     }
 
     #[test(admin = @palate, framework = @0x1, user = @0x201)]
@@ -286,11 +348,12 @@ module palate::palate_tests {
     }
 
     #[test(admin = @palate, framework = @0x1, user = @0x230)]
-    fun cancelPushRefundsPusherAndDecreasesPushEscrow(admin: signer, framework: signer, user: signer) {
+    fun cancelPushRefundsAvailableBalanceAndDecreasesPushEscrow(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);
         registerImage(&framework, &user, b"cancel-refund.png", 1);
 
-        let balance_before_push = coin::balance<AptosCoin>(signer::address_of(&user));
+        let wallet_before_push = coin::balance<AptosCoin>(signer::address_of(&user));
+        let available_before_push = palate::getAvailableBalance(signer::address_of(&user));
         let amount = palate::getMinPushAmount();
         palate::createPush(&user, 0, amount);
         assert!(palate::getPushEscrowBalance() == amount, 0);
@@ -298,7 +361,9 @@ module palate::palate_tests {
         palate::cancelPush(&user, 0);
 
         assert!(palate::getPushEscrowBalance() == 0, 1);
-        assert!(coin::balance<AptosCoin>(signer::address_of(&user)) == balance_before_push, 2);
+        assert!(coin::balance<AptosCoin>(signer::address_of(&user)) == wallet_before_push, 2);
+        assert!(palate::getAvailableBalance(signer::address_of(&user)) == available_before_push, 3);
+        assert!(palate::getLockedPushAmount(signer::address_of(&user)) == 0, 4);
     }
 
     #[test(admin = @palate, framework = @0x1, pusher = @0x210, challenger = @0x211)]
@@ -315,7 +380,7 @@ module palate::palate_tests {
     }
 
     #[test(admin = @palate, framework = @0x1, pusher = @0x231, challenger = @0x232)]
-    fun challengePushWithdrawsAptAndIncreasesPushEscrow(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+    fun challengePushUsesAvailableBalanceAndIncreasesPushEscrow(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
         registerImage(&framework, &pusher, b"push-side-a.png", 1);
         registerImage(&framework, &challenger, b"push-side-b.png", 2);
@@ -323,12 +388,15 @@ module palate::palate_tests {
         let push_amount = palate::getMinPushAmount();
         palate::createPush(&pusher, 0, push_amount);
 
-        let challenger_before = coin::balance<AptosCoin>(signer::address_of(&challenger));
+        let challenger_wallet_before = coin::balance<AptosCoin>(signer::address_of(&challenger));
+        let challenger_available_before = palate::getAvailableBalance(signer::address_of(&challenger));
         let challenge_amount = palate::getMinimumChallengeAmount(0);
         palate::challengePush(&challenger, 0, 1, challenge_amount);
 
         assert!(palate::getPushEscrowBalance() == push_amount + challenge_amount, 0);
-        assert!(coin::balance<AptosCoin>(signer::address_of(&challenger)) == challenger_before - challenge_amount, 1);
+        assert!(coin::balance<AptosCoin>(signer::address_of(&challenger)) == challenger_wallet_before, 1);
+        assert!(palate::getAvailableBalance(signer::address_of(&challenger)) == challenger_available_before - challenge_amount, 2);
+        assert!(palate::getLockedPushAmount(signer::address_of(&challenger)) == challenge_amount, 3);
     }
 
     #[test(admin = @palate, framework = @0x1, pusher = @0x212, challenger = @0x213)]
@@ -457,6 +525,7 @@ module palate::palate_tests {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
 
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         let user_address = signer::address_of(&user);
@@ -464,11 +533,35 @@ module palate::palate_tests {
         assert!(palate::getCurrentAssignmentMatchId(user_address) == 0, 1);
     }
 
+    #[test(admin = @palate, framework = @0x1, pusher = @0x233, challenger = @0x234, user = @0x235)]
+    fun findMatchLocksCommitmentFromAvailableBalance(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
+
+        let user_address = signer::address_of(&user);
+        let available_before = palate::getAvailableBalance(user_address);
+        let commitment = palate::getBuffCommitmentAmount();
+        palate::findMatch(&user);
+
+        assert!(palate::getAvailableBalance(user_address) == available_before - commitment, 0);
+        assert!(palate::getLockedCommitmentAmount(user_address) == commitment, 1);
+        assert!(palate::getCommitmentEscrowBalance() == commitment, 2);
+        assert!(palate::getCurrentAssignmentSkipPenaltyAmount(user_address) == palate::getSkipPenaltyAmount(), 3);
+    }
+
     #[test(admin = @palate, framework = @0x1, user = @0x303)]
     #[expected_failure(abort_code = 17, location = palate::palate)]
     fun findMatchRejectsWhenNoActiveMatchExists(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);
 
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
     }
 
@@ -483,8 +576,10 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
     }
 
@@ -494,6 +589,7 @@ module palate::palate_tests {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
 
+        fundPalateBalance(&framework, &pusher);
         palate::findMatch(&pusher);
     }
 
@@ -503,6 +599,7 @@ module palate::palate_tests {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
 
+        fundPalateBalance(&framework, &challenger);
         palate::findMatch(&challenger);
     }
 
@@ -523,6 +620,7 @@ module palate::palate_tests {
 
         // Use a distinct signer from pusher/challenger to prove media ownership is checked.
         // The owner is also pusher A here, so either exclusion keeps the match invalid.
+        fundPalateBalance(&framework, &owner);
         palate::findMatch(&owner);
         let _ = pusher;
     }
@@ -540,6 +638,7 @@ module palate::palate_tests {
         createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds() + 1);
 
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
     }
 
@@ -553,6 +652,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         let user_address = signer::address_of(&user);
@@ -571,6 +671,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         palate::skipMatch(&user);
@@ -578,10 +679,37 @@ module palate::palate_tests {
         assert!(!palate::hasCurrentAssignment(signer::address_of(&user)), 0);
     }
 
+    #[test(admin = @palate, framework = @0x1, pusher = @0x236, challenger = @0x237, user = @0x238)]
+    fun skipMatchMovesPenaltyToTreasuryAndRefundsRemainder(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
+
+        let user_address = signer::address_of(&user);
+        let available_before = palate::getAvailableBalance(user_address);
+        let commitment = palate::getBuffCommitmentAmount();
+        let penalty = palate::getSkipPenaltyAmount();
+        palate::findMatch(&user);
+        palate::skipMatch(&user);
+
+        assert!(palate::getAvailableBalance(user_address) == available_before - penalty, 0);
+        assert!(palate::getLockedCommitmentAmount(user_address) == 0, 1);
+        assert!(palate::getTreasuryFeeBalance() == penalty, 2);
+        assert!(palate::getCommitmentEscrowBalance() == 0, 3);
+        assert!(commitment >= penalty, 4);
+    }
+
     #[test(admin = @palate, framework = @0x1, pusher = @0x323, challenger = @0x324, user = @0x325)]
     fun skipMatchClearsAssignment(admin: signer, framework: signer, pusher: signer, challenger: signer, user: signer) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
         palate::skipMatch(&user);
 
@@ -606,9 +734,11 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
         palate::skipMatch(&user);
 
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         assert!(palate::getCurrentAssignmentMatchId(signer::address_of(&user)) == 0, 0);
@@ -624,12 +754,40 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
 
         assert!(palate::getBuffRecordCount() == 1, 0);
         assert!(!palate::hasCurrentAssignment(signer::address_of(&user)), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x239, challenger = @0x240, user = @0x241)]
+    fun placeBuffUsesAvailableBalanceAndRefundsCommitment(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
+
+        let user_address = signer::address_of(&user);
+        let available_before_find = palate::getAvailableBalance(user_address);
+        let commitment = palate::getBuffCommitmentAmount();
+        let amount = palate::getMinBuffAmount();
+        palate::findMatch(&user);
+        assert!(palate::getAvailableBalance(user_address) == available_before_find - commitment, 0);
+
+        palate::placeBuff(&user, palate::sideA(), amount);
+
+        assert!(palate::getAvailableBalance(user_address) == available_before_find - amount, 1);
+        assert!(palate::getLockedCommitmentAmount(user_address) == 0, 2);
+        assert!(palate::getLockedBuffAmount(user_address) == amount, 3);
+        assert!(palate::getBuffEscrowBalance() == amount, 4);
     }
 
     #[test(admin = @palate, framework = @0x1, user = @0x333)]
@@ -651,6 +809,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         palate::placeBuffForAssignedMatchForTesting(&user, 999, palate::sideA(), palate::getMinBuffAmount());
@@ -667,6 +826,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         palate::placeBuff(&user, 3, palate::getMinBuffAmount());
@@ -683,6 +843,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount() - 1);
@@ -698,6 +859,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         let amount = palate::getMinBuffAmount();
@@ -721,6 +883,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         let amount = palate::getMinBuffAmount();
@@ -744,6 +907,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         let amount = palate::getMinBuffAmount();
@@ -770,6 +934,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
@@ -788,6 +953,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
 
@@ -806,9 +972,11 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
 
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
     }
 
@@ -835,6 +1003,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
 
         let amount = palate::getMinBuffAmount() * 3;
@@ -889,6 +1058,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -911,6 +1081,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideB(), palate::getMinBuffAmount());
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -1024,10 +1195,13 @@ module palate::palate_tests {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
 
+        fundPalateBalance(&framework, &user_a_one);
         palate::findMatch(&user_a_one);
         palate::placeBuff(&user_a_one, palate::sideA(), palate::getMinBuffAmount());
+        fundPalateBalance(&framework, &user_a_two);
         palate::findMatch(&user_a_two);
         palate::placeBuff(&user_a_two, palate::sideA(), palate::getMinBuffAmount());
+        fundPalateBalance(&framework, &user_b);
         palate::findMatch(&user_b);
         palate::placeBuff(&user_b, palate::sideB(), palate::getMinBuffAmount() * 3);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -1059,10 +1233,17 @@ module palate::palate_tests {
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
         palate::settleMatch(&pusher, 0);
 
+        let pusher_address = signer::address_of(&pusher);
+        let available_before = palate::getAvailableBalance(pusher_address);
+        let locked_before = palate::getLockedPushAmount(pusher_address);
+        let claim_amount = palate::estimatePushClaimAmount(pusher_address, 0);
         palate::claimPush(&pusher, 0);
 
         assert!(palate::isPushClaimed(0), 0);
         assert!(palate::getUserSummaryPushProfit(signer::address_of(&pusher)) == palate::getMinimumChallengeAmount(0) - palate::getMatchPushFeeAmount(0), 1);
+        assert!(palate::getAvailableBalance(pusher_address) == available_before + claim_amount, 2);
+        assert!(palate::getLockedPushAmount(pusher_address) == locked_before - palate::getMatchPushAmountA(0), 3);
+        assert!(palate::getTotalClaimed(pusher_address) == claim_amount, 4);
     }
 
     #[test(admin = @palate, framework = @0x1, pusher = @0x397, challenger = @0x398)]
@@ -1125,15 +1306,23 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
         palate::settleMatch(&pusher, 0);
 
+        let user_address = signer::address_of(&user);
+        let available_before = palate::getAvailableBalance(user_address);
+        let locked_before = palate::getLockedBuffAmount(user_address);
+        let claim_amount = palate::estimateBuffClaimAmount(user_address, 0);
         palate::claimBuff(&user, 0);
 
         assert!(palate::isBuffClaimed(signer::address_of(&user), 0), 0);
         assert!(palate::getUserSummaryBuffProfit(signer::address_of(&user)) == 0, 1);
+        assert!(palate::getAvailableBalance(user_address) == available_before + claim_amount, 2);
+        assert!(palate::getLockedBuffAmount(user_address) == locked_before - palate::getMinBuffAmount(), 3);
+        assert!(palate::getTotalClaimed(user_address) == claim_amount, 4);
     }
 
     #[test(admin = @palate, framework = @0x1, pusher = @0x408, challenger = @0x409, winner = @0x410, loser = @0x411)]
@@ -1148,8 +1337,10 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &winner);
         palate::findMatch(&winner);
         palate::placeBuff(&winner, palate::sideA(), palate::getMinBuffAmount() * 3);
+        fundPalateBalance(&framework, &loser);
         palate::findMatch(&loser);
         palate::placeBuff(&loser, palate::sideB(), palate::getMinBuffAmount());
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -1169,6 +1360,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
 
@@ -1186,6 +1378,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -1217,10 +1410,13 @@ module palate::palate_tests {
         createImageMatch(&framework, &pusher, &challenger);
         let min = palate::getMinBuffAmount();
 
+        fundPalateBalance(&framework, &winner_one);
         palate::findMatch(&winner_one);
         palate::placeBuff(&winner_one, palate::sideA(), min);
+        fundPalateBalance(&framework, &winner_two);
         palate::findMatch(&winner_two);
         palate::placeBuff(&winner_two, palate::sideA(), min);
+        fundPalateBalance(&framework, &loser);
         palate::findMatch(&loser);
         palate::placeBuff(&loser, palate::sideB(), min * 3);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -1256,10 +1452,13 @@ module palate::palate_tests {
         createImageMatch(&framework, &pusher, &challenger);
         let min = palate::getMinBuffAmount();
 
+        fundPalateBalance(&framework, &small);
         palate::findMatch(&small);
         palate::placeBuff(&small, palate::sideA(), min);
+        fundPalateBalance(&framework, &large);
         palate::findMatch(&large);
         palate::placeBuff(&large, palate::sideA(), min * 3);
+        fundPalateBalance(&framework, &loser);
         palate::findMatch(&loser);
         palate::placeBuff(&loser, palate::sideB(), min * 7);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -1282,6 +1481,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
@@ -1317,6 +1517,7 @@ module palate::palate_tests {
     ) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
         palate::findMatch(&user);
         palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
 
@@ -1339,7 +1540,7 @@ module palate::palate_tests {
     }
 
     fun registerImage(framework: &signer, user: &signer, blob_ref: vector<u8>, created_time: u64) {
-        fundAccount(framework, user);
+        fundPalateBalance(framework, user);
         palate::registerMedia(
             user,
             palate::categoryImage(),
@@ -1352,7 +1553,7 @@ module palate::palate_tests {
     }
 
     fun registerMeme(framework: &signer, user: &signer, blob_ref: vector<u8>, created_time: u64) {
-        fundAccount(framework, user);
+        fundPalateBalance(framework, user);
         palate::registerMedia(
             user,
             palate::categoryMeme(),
@@ -1376,5 +1577,10 @@ module palate::palate_tests {
             coin::register<AptosCoin>(account);
         };
         aptos_coin::mint(framework, signer::address_of(account), TEST_FUNDS);
+    }
+
+    fun fundPalateBalance(framework: &signer, account: &signer) {
+        fundAccount(framework, account);
+        palate::depositBalance(account, TEST_DEPOSIT);
     }
 }

@@ -18,9 +18,33 @@ Shelby must not store match state, buff state, reward state, payout state, leade
 
 ## 3. Aptos Role In The Current MVP
 
-Aptos smart contracts handle media registry, media ownership, push state, match state, buff state, settlement result, claim state, protocol config, and user summary.
+Aptos smart contracts handle media registry, media ownership, Palate Balance, push state, match state, buff state, settlement result, claim state, protocol config, and user summary.
 
 Aptos is the current execution and settlement layer for the MVP. This should be written in a way that does not lock the long term product narrative to Aptos only, because Rialo may be used later.
+
+## 3A. Palate Balance
+
+The MVP uses an on-chain Palate Balance model.
+
+Users deposit APT into Palate Balance before gameplay. Palate stores the real APT in module-owned vaults and tracks each user's available and locked balances on chain.
+
+Gameplay actions use Palate Balance instead of withdrawing from the wallet for every action.
+
+The balance model tracks:
+
+available_balance
+total_deposited
+total_withdrawn
+locked_push_amount
+locked_buff_amount
+locked_commitment_amount
+total_claimed
+
+`depositBalance` withdraws APT from the user's wallet into Palate custody and increases available_balance.
+
+`withdrawBalance` sends available Palate Balance back to the user's wallet.
+
+Pushes, challenges, Buff commitments, skip penalties, and Buff amounts move between on-chain balance buckets and module-owned vaults. Claims credit rewards back into available Palate Balance. Claims do not directly transfer rewards to the wallet; users withdraw available Palate Balance separately.
 
 ## 4. Core Data Rule
 
@@ -115,7 +139,9 @@ A user selects one registered idle media and calls `createPush` with a chosen AP
 
 The amount must be greater than or equal to `protocol_config.min_push_amount`.
 
-The contract locks the push amount and creates a `waiting_push`.
+The contract uses the user's available Palate Balance, locks the push amount, and creates a `waiting_push`.
+
+`createPush` must not withdraw directly from the user's wallet. The user should deposit with `depositBalance` first.
 
 If there is no challenger yet, the UI shows the media as waiting for challenger.
 
@@ -128,6 +154,8 @@ The challenger must push more than the original pusher because the challenger ha
 Example: if media A is waiting with 10 APT and the minimum increment is 5 percent, then media B must push at least 10.5 APT to challenge.
 
 When `challengePush` succeeds, the waiting push becomes an active match. Media A is always the original waiting push media. Media B is always the challenger media.
+
+`challengePush` uses available Palate Balance and locks the challenger push amount. It must not withdraw directly from the user's wallet.
 
 ## 10. Active Match
 
@@ -147,11 +175,11 @@ If the user already has an active assignment, the user cannot call `findMatch` a
 
 ## 12. Buff Commitment And Skip Penalty
 
-When a user calls `findMatch`, the user must place `protocol_config.buff_commitment_amount`.
+When a user calls `findMatch`, the user must place `protocol_config.buff_commitment_amount` from available Palate Balance.
 
-If the user completes `placeBuff` for the assigned match, the buff commitment is returned or applied according to the implementation config.
+If the user completes `placeBuff` for the assigned match, the buff commitment is returned to available Palate Balance.
 
-If the user calls `skipMatch`, the user loses `protocol_config.skip_penalty_amount`.
+If the user calls `skipMatch`, the user loses the assignment's skip penalty snapshot. The penalty moves to protocol treasury accounting and any remaining commitment is returned to available Palate Balance.
 
 The purpose of buff commitment and skip penalty is to make match skipping expensive and reduce the ability to spam random assignment until a target match appears.
 
@@ -168,6 +196,8 @@ The MVP may use simple pseudo randomness from timestamp, user address, and nonce
 After a user receives an assigned match, the UI displays media A and media B. The user chooses Buff A or Buff B and enters a buff amount.
 
 `placeBuff` only works for the current assigned match. The buff amount must be greater than or equal to `protocol_config.min_buff_amount`.
+
+`placeBuff` uses available Palate Balance for the raw Buff amount. It locks the Buff amount, returns the assignment commitment to available Palate Balance, updates the raw buff pool, and updates the calculated score.
 
 Each user can Buff a match only once. After a successful Buff, the assignment is cleared, and the user will never receive the same match again.
 
@@ -260,6 +290,8 @@ Users who buffed the winning side can call `claimBuff`.
 Losers cannot claim rewards.
 
 Double claim must be impossible.
+
+Claims credit rewards into available Palate Balance. Claims do not directly transfer APT to the wallet. Users call `withdrawBalance` to move available Palate Balance back to their wallet.
 
 ## 23. Waiting Push Cancel And Expire
 
@@ -355,7 +387,7 @@ Initial score formula is `log2(1 + buff_amount / min_buff_amount)`.
 
 ## 31. Final MVP Summary
 
-The MVP of Palate lets users upload image media to Shelby, register that media on Aptos, create waiting pushes, challenge waiting pushes, receive random matches, Buff one side with APT, settle matches after end time, and claim rewards.
+The MVP of Palate lets users deposit APT into Palate Balance, upload image media to Shelby, register that media on Aptos, create waiting pushes, challenge waiting pushes, receive random matches, Buff one side with APT, settle matches after end time, claim rewards into Palate Balance, and withdraw available Palate Balance.
 
 Active matches always settle to a winner after end time. There is no cancellation because of low Buff. If scores are tied, media A wins because media A is the original waiting push side.
 

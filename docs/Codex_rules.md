@@ -8,6 +8,10 @@ Shelby is only for uploading, storing, retrieving, and displaying user media. Do
 
 The current MVP uses Aptos smart contracts to handle media registry, ownership, push, challenge, random match assignment, Buff, settlement, claim, protocol config, and user summary.
 
+The current MVP uses Palate Balance for gameplay funds. Users deposit APT with `depositBalance`, gameplay actions spend or lock available Palate Balance, claims credit rewards to available Palate Balance, and users withdraw available Palate Balance with `withdrawBalance`.
+
+Do not reintroduce direct wallet withdrawal for every Push, Challenge, Find Match, Skip Match, placeBuff, claimPush, or claimBuff action. Wallet transfer should happen at Palate Balance deposit and withdrawal boundaries.
+
 Do not rename Palate.
 
 Do not add minimum buff count.
