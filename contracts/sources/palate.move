@@ -1,5 +1,6 @@
 module palate::palate {
     use aptos_framework::event;
+    use aptos_framework::timestamp;
     use std::signer;
     use std::vector;
 
@@ -20,6 +21,9 @@ module palate::palate {
     const E_CHALLENGE_AMOUNT_TOO_LOW: u64 = 13;
     const E_PUSHER_CANNOT_CHALLENGE_OWN_PUSH: u64 = 14;
     const E_MATCH_NOT_FOUND: u64 = 15;
+    const E_ASSIGNMENT_EXISTS: u64 = 16;
+    const E_NO_VALID_MATCH: u64 = 17;
+    const E_ASSIGNMENT_NOT_FOUND: u64 = 18;
 
     /// Category values.
     const CATEGORY_MEME: u8 = 1;
@@ -67,6 +71,7 @@ module palate::palate {
         media_records: vector<MediaRecord>,
         waiting_pushes: vector<WaitingPush>,
         active_matches: vector<ActiveMatch>,
+        user_assignments: vector<UserAssignment>,
         user_media_indices: vector<UserMediaIndex>,
         user_summaries: vector<UserSummaryRecord>,
         next_media_id: u64,
@@ -208,6 +213,21 @@ module palate::palate {
         category: u8,
     }
 
+    #[event]
+    struct MatchAssignedEvent has drop, store {
+        user: address,
+        match_id: u64,
+        commitment_amount: u64,
+        assigned_time: u64,
+    }
+
+    #[event]
+    struct MatchSkippedEvent has drop, store {
+        user: address,
+        match_id: u64,
+        skip_penalty_amount: u64,
+    }
+
     public entry fun initialize(account: &signer, treasury_address: address) {
         initializeInternal(account, treasury_address)
     }
@@ -236,6 +256,7 @@ module palate::palate {
             media_records: vector::empty<MediaRecord>(),
             waiting_pushes: vector::empty<WaitingPush>(),
             active_matches: vector::empty<ActiveMatch>(),
+            user_assignments: vector::empty<UserAssignment>(),
             user_media_indices: vector::empty<UserMediaIndex>(),
             user_summaries: vector::empty<UserSummaryRecord>(),
             next_media_id: 0,
@@ -405,7 +426,7 @@ module palate::palate {
 
         let match_id = state.next_match_id;
         state.next_match_id = match_id + 1;
-        let start_time = 0;
+        let start_time = timestamp::now_seconds();
         let end_time = start_time + state.protocol_config.match_duration_seconds;
 
         vector::push_back(&mut state.active_matches, ActiveMatch {
@@ -441,12 +462,49 @@ module palate::palate {
         });
     }
 
-    public entry fun findMatch(_account: &signer) {
-        abort E_NOT_IMPLEMENTED
+    public entry fun findMatch(account: &signer) acquires PalateState {
+        assertInitialized();
+
+        let user = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        assert!(!hasActiveAssignment(state, user), E_ASSIGNMENT_EXISTS);
+
+        let current_time = timestamp::now_seconds();
+        let match_index = findValidAssignmentMatchIndex(state, user, current_time);
+        let active_match = vector::borrow(&state.active_matches, match_index);
+        let match_id = active_match.match_id;
+        let commitment_amount = state.protocol_config.buff_commitment_amount;
+
+        vector::push_back(&mut state.user_assignments, UserAssignment {
+            user,
+            match_id,
+            commitment_amount,
+            assigned_time: current_time,
+        });
+
+        event::emit(MatchAssignedEvent {
+            user,
+            match_id,
+            commitment_amount,
+            assigned_time: current_time,
+        });
     }
 
-    public entry fun skipMatch(_account: &signer) {
-        abort E_NOT_IMPLEMENTED
+    public entry fun skipMatch(account: &signer) acquires PalateState {
+        assertInitialized();
+
+        let user = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        let assignment_index = findAssignmentIndex(state, user);
+        let assignment = *vector::borrow(&state.user_assignments, assignment_index);
+
+        vector::swap_remove(&mut state.user_assignments, assignment_index);
+
+        event::emit(MatchSkippedEvent {
+            user,
+            match_id: assignment.match_id,
+            skip_penalty_amount: state.protocol_config.skip_penalty_amount,
+        });
     }
 
     public entry fun placeBuff(_account: &signer, _side: u8, _buff_amount: u64) {
@@ -691,6 +749,32 @@ module palate::palate {
     }
 
     #[view]
+    public fun hasCurrentAssignment(user: address): bool acquires PalateState {
+        assertInitialized();
+        hasActiveAssignment(borrow_global<PalateState>(@palate), user)
+    }
+
+    #[view]
+    public fun getCurrentAssignmentMatchId(user: address): u64 acquires PalateState {
+        getCurrentAssignment(user).match_id
+    }
+
+    #[view]
+    public fun getCurrentAssignmentCommitmentAmount(user: address): u64 acquires PalateState {
+        getCurrentAssignment(user).commitment_amount
+    }
+
+    #[view]
+    public fun getCurrentAssignmentAssignedTime(user: address): u64 acquires PalateState {
+        getCurrentAssignment(user).assigned_time
+    }
+
+    #[view]
+    public fun getMatchEndTime(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).end_time
+    }
+
+    #[view]
     public fun getMinimumChallengeAmount(push_id: u64): u64 acquires PalateState {
         let state = borrow_global<PalateState>(@palate);
         let push_index = findWaitingPushIndex(state, push_id);
@@ -918,6 +1002,85 @@ module palate::palate {
         };
 
         abort E_MATCH_NOT_FOUND
+    }
+
+    fun findAssignmentIndex(state: &PalateState, user: address): u64 {
+        let length = vector::length(&state.user_assignments);
+        let index = 0;
+        while (index < length) {
+            let assignment = vector::borrow(&state.user_assignments, index);
+            if (assignment.user == user) {
+                return index
+            };
+            index = index + 1;
+        };
+
+        abort E_ASSIGNMENT_NOT_FOUND
+    }
+
+    fun hasActiveAssignment(state: &PalateState, user: address): bool {
+        let length = vector::length(&state.user_assignments);
+        let index = 0;
+        while (index < length) {
+            let assignment = vector::borrow(&state.user_assignments, index);
+            if (assignment.user == user) {
+                return true
+            };
+            index = index + 1;
+        };
+
+        false
+    }
+
+    fun getCurrentAssignment(user: address): UserAssignment acquires PalateState {
+        let state = borrow_global<PalateState>(@palate);
+        let index = findAssignmentIndex(state, user);
+        *vector::borrow(&state.user_assignments, index)
+    }
+
+    fun findValidAssignmentMatchIndex(state: &PalateState, user: address, current_time: u64): u64 {
+        let length = vector::length(&state.active_matches);
+        let index = 0;
+        while (index < length) {
+            if (isValidAssignmentMatch(state, index, user, current_time)) {
+                return index
+            };
+            index = index + 1;
+        };
+
+        abort E_NO_VALID_MATCH
+    }
+
+    fun isValidAssignmentMatch(
+        state: &PalateState,
+        match_index: u64,
+        user: address,
+        current_time: u64,
+    ): bool {
+        let active_match = vector::borrow(&state.active_matches, match_index);
+        if (active_match.status != MATCH_STATUS_ACTIVE) {
+            return false
+        };
+        if (current_time >= active_match.end_time) {
+            return false
+        };
+        if (active_match.pusher_a == user || active_match.pusher_b == user) {
+            return false
+        };
+
+        let media_a = vector::borrow(&state.media_records, findMediaIndex(state, active_match.media_a_id));
+        if (media_a.owner == user) {
+            return false
+        };
+
+        let media_b = vector::borrow(&state.media_records, findMediaIndex(state, active_match.media_b_id));
+        if (media_b.owner == user) {
+            return false
+        };
+
+        // TODO(Task 5): exclude matches already buffed by this user once placeBuff
+        // creates durable buff_record history.
+        true
     }
 
     fun getWaitingPushRecord(push_id: u64): WaitingPush acquires PalateState {
