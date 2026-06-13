@@ -40,10 +40,28 @@ Follow docs/naming_rules.md for file names, struct names, instance names, and fu
 
 Read docs/Shelby_notes.md before implementing Shelby upload, media read, media display, or media registry integration.
 
-Read docs/Palate_ui_spec.md, docs/design_tokens.md, and docs/frontend_rules.md before implementing any frontend code.
+Before implementing anything, read:
+
+docs/Palate_spec.md
+docs/Palate_ui_spec.md
+docs/design_tokens.md
+docs/frontend_rules.md
+docs/Shelby_notes.md
+docs/naming_rules.md
+docs/Codex_rules.md
+
+Do not write code until an implementation plan is approved.
 
 The main navigation order is Home, Buff, My Media, Push, Profile.
 
 Buff is a dedicated main page from the MVP and must be placed directly after Home.
 
+Use Buff as the main user-facing term for supporting one side in a random match.
+
 The UI must feel premium, dark, dynamic, and GameFi-like, with mature pink accents. Do not make it cute, candy-like, generic, or overly flashy.
+
+MVP media categories are Meme and Image.
+
+GIF is an accepted image format, not a separate category.
+
+Category is stored in the Palate smart contract. Shelby stores the file only.

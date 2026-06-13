@@ -34,11 +34,63 @@ When a user connects a wallet, the app reads registered media from Aptos and ren
 
 ## 5. MVP Category
 
-The MVP should only support the `image` category.
+The MVP supports two user-facing content categories:
 
-The `image` category can include normal images, memes, AI images, posters, edited images, illustrations, and other image based content.
+meme
+image
 
-The MVP should not split meme and image into separate categories. Meme is not a reliable file type. A smart contract cannot know whether an image is really a meme. If meme is added later, it should be a self selected category, and the contract should only validate the mime type.
+Users must select a category before uploading media to Shelby.
+
+Category and file format are different.
+
+Category means the content competition group.
+
+File format means the technical file type.
+
+For the MVP:
+
+category = meme or image
+
+accepted image formats = PNG, JPG, JPEG, WEBP, GIF
+
+Meme is not a file type. Meme is a user-selected content category.
+
+GIF is not a separate category in the MVP. GIF is an accepted image format.
+
+A user may upload a GIF into the meme category if the content is meme or reaction-style content.
+
+A user may upload a GIF into the image category if the content is visual art, animation, poster-style content, edited image, AI image, or non-meme image content.
+
+The smart contract cannot prove whether an image is truly a meme. The contract only stores and enforces the category selected by the user during registration.
+
+Shelby stores the media file.
+
+Palate smart contract stores the media category.
+
+The upload flow is:
+
+1. User selects category.
+2. User selects file.
+3. Frontend validates the file MIME type against the selected category.
+4. Frontend uploads the file to Shelby.
+5. User calls registerMedia on the smart contract.
+6. registerMedia stores category, uploader address, blob name or Shelby reference, content hash, MIME type, title, created time, and status.
+
+Matches must be category-matched.
+
+A meme can only challenge another meme.
+
+An image can only challenge another image.
+
+The challenge flow must not allow media from different categories to enter the same match.
+
+Matches are separated by content category, not by file format.
+
+A GIF meme can compete against a PNG meme.
+
+A GIF image can compete against a WEBP image if both are registered under the image category.
+
+If a user intentionally selects the wrong category, the MVP handles it through reporting, admin disable, or future moderation. The contract should not attempt to classify meme content automatically.
 
 ## 6. User Profile
 
@@ -94,7 +146,7 @@ If the user already has an active assignment, the user cannot call `findMatch` a
 
 ## 12. Judge Commitment And Skip Penalty
 
-When a user calls `findMatch`, the user must place `protocol_config.judge_commitment_amount`.
+When a user calls `findMatch`, the user must place `protocol_config.buff_commitment_amount`.
 
 If the user completes `placeLove` for the assigned match, the judge commitment is returned or applied according to the implementation config.
 
@@ -146,7 +198,7 @@ Do not hardcode economic parameters inside business functions.
 
 All adjustable parameters must be stored in `protocol_config`.
 
-`protocol_config` should include `protocol_fee_bps`, `min_push_amount`, `min_love_amount`, `min_push_increment_bps`, `match_duration_seconds`, `judge_commitment_amount`, `skip_penalty_amount`, `random_retry_count`, `score_algorithm_type`, `score_scale`, `score_log_base`, `treasury_address`, and `admin_address`.
+`protocol_config` should include `protocol_fee_bps`, `min_push_amount`, `min_buff_amount`, `min_push_increment_bps`, `match_duration_seconds`, `buff_commitment_amount`, `skip_penalty_amount`, `random_retry_count`, `score_algorithm_type`, `score_scale`, `score_log_base`, `treasury_address`, and `admin_address`.
 
 Functions such as `createPush`, `challengePush`, `findMatch`, `skipMatch`, `placeLove`, `settleMatch`, `claimPush`, and `claimLove` must read from `protocol_config`.
 
@@ -158,7 +210,7 @@ The contract should expose grouped config update functions instead of one huge u
 
 `updatePushConfig` updates min push amount and min push increment.
 
-`updateLoveConfig` updates min love amount, judge commitment, and skip penalty.
+`updateLoveConfig` updates min love amount, buff commitment, and skip penalty.
 
 `updateMatchConfig` updates match duration and random retry count.
 
@@ -288,7 +340,7 @@ Initial match duration is 24 hours.
 
 Initial min love amount is 0.1 APT.
 
-Initial judge commitment amount is 0.5 APT.
+Initial buff commitment amount is 0.5 APT.
 
 Initial skip penalty amount is 0.5 APT or higher if abuse appears.
 
