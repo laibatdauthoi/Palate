@@ -170,4 +170,237 @@ module palate::palate_tests {
         assert!(palate::getMediaMimeType(0) == b"image/gif", 2);
         assert!(palate::getMediaMimeType(1) == b"image/gif", 3);
     }
+
+    #[test(admin = @palate, user = @0x200)]
+    fun createPushSucceedsForIdleMediaAtMinAmount(admin: signer, user: signer) {
+        init(&admin);
+        registerImage(&user, b"push.png", 1);
+
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+
+        assert!(palate::getWaitingPushMediaId(0) == 0, 0);
+        assert!(palate::getWaitingPushPusher(0) == signer::address_of(&user), 1);
+        assert!(palate::getWaitingPushAmount(0) == palate::getMinPushAmount(), 2);
+        assert!(palate::getWaitingPushStatus(0) == palate::waitingPushStatusOpen(), 3);
+    }
+
+    #[test(admin = @palate, user = @0x201)]
+    #[expected_failure(abort_code = 8, location = palate::palate)]
+    fun createPushRejectsAmountBelowMinPushAmount(admin: signer, user: signer) {
+        init(&admin);
+        registerImage(&user, b"too-low.png", 1);
+
+        palate::createPush(&user, 0, palate::getMinPushAmount() - 1);
+    }
+
+    #[test(admin = @palate, owner = @0x202, other = @0x203)]
+    #[expected_failure(abort_code = 6, location = palate::palate)]
+    fun createPushRejectsNonOwnerMedia(admin: signer, owner: signer, other: signer) {
+        init(&admin);
+        registerImage(&owner, b"owned.png", 1);
+
+        palate::createPush(&other, 0, palate::getMinPushAmount());
+    }
+
+    #[test(admin = @palate, user = @0x204)]
+    #[expected_failure(abort_code = 7, location = palate::palate)]
+    fun createPushRejectsMediaThatIsNotIdle(admin: signer, user: signer) {
+        init(&admin);
+        registerImage(&user, b"waiting.png", 1);
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+    }
+
+    #[test(admin = @palate, user = @0x205)]
+    fun createPushSetsMediaStatusToWaiting(admin: signer, user: signer) {
+        init(&admin);
+        registerImage(&user, b"status-waiting.png", 1);
+
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+
+        assert!(palate::getMediaStatus(0) == palate::statusWaiting(), 0);
+    }
+
+    #[test(admin = @palate, user = @0x206)]
+    fun cancelPushSucceedsForCreatorBeforeChallenger(admin: signer, user: signer) {
+        init(&admin);
+        registerImage(&user, b"cancel.png", 1);
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+
+        palate::cancelPush(&user, 0);
+
+        assert!(palate::getWaitingPushStatus(0) == palate::waitingPushStatusCancelled(), 0);
+    }
+
+    #[test(admin = @palate, owner = @0x207, other = @0x208)]
+    #[expected_failure(abort_code = 10, location = palate::palate)]
+    fun cancelPushRejectsNonCreator(admin: signer, owner: signer, other: signer) {
+        init(&admin);
+        registerImage(&owner, b"cancel-non-creator.png", 1);
+        palate::createPush(&owner, 0, palate::getMinPushAmount());
+
+        palate::cancelPush(&other, 0);
+    }
+
+    #[test(admin = @palate, user = @0x209)]
+    fun cancelPushRestoresMediaStatusToIdle(admin: signer, user: signer) {
+        init(&admin);
+        registerImage(&user, b"restore-idle.png", 1);
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+
+        palate::cancelPush(&user, 0);
+
+        assert!(palate::getMediaStatus(0) == palate::statusIdle(), 0);
+    }
+
+    #[test(admin = @palate, pusher = @0x210, challenger = @0x211)]
+    fun challengePushSucceedsWithSameCategoryIdleMedia(admin: signer, pusher: signer, challenger: signer) {
+        init(&admin);
+        registerMeme(&pusher, b"original.gif", 1);
+        registerMeme(&challenger, b"challenger.gif", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+
+        assert!(palate::getWaitingPushStatus(0) == palate::waitingPushStatusChallenged(), 0);
+        assert!(palate::getMatchStatus(0) == palate::matchStatusActive(), 1);
+    }
+
+    #[test(admin = @palate, pusher = @0x212, challenger = @0x213)]
+    #[expected_failure(abort_code = 12, location = palate::palate)]
+    fun challengePushRejectsCrossCategoryMedia(admin: signer, pusher: signer, challenger: signer) {
+        init(&admin);
+        registerMeme(&pusher, b"original-meme.gif", 1);
+        registerImage(&challenger, b"challenger-image.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+    }
+
+    #[test(admin = @palate, pusher = @0x214, challenger = @0x215)]
+    #[expected_failure(abort_code = 13, location = palate::palate)]
+    fun challengePushRejectsAmountBelowRequiredIncrement(admin: signer, pusher: signer, challenger: signer) {
+        init(&admin);
+        registerImage(&pusher, b"original.png", 1);
+        registerImage(&challenger, b"challenger.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0) - 1);
+    }
+
+    #[test(admin = @palate, pusher = @0x216, media_owner = @0x217, challenger = @0x218)]
+    #[expected_failure(abort_code = 6, location = palate::palate)]
+    fun challengePushRejectsNonOwnerChallengerMedia(
+        admin: signer,
+        pusher: signer,
+        media_owner: signer,
+        challenger: signer,
+    ) {
+        init(&admin);
+        registerImage(&pusher, b"original.png", 1);
+        registerImage(&media_owner, b"not-owned.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+    }
+
+    #[test(admin = @palate, pusher = @0x219, challenger = @0x220)]
+    #[expected_failure(abort_code = 7, location = palate::palate)]
+    fun challengePushRejectsChallengerMediaThatIsNotIdle(admin: signer, pusher: signer, challenger: signer) {
+        init(&admin);
+        registerImage(&pusher, b"original.png", 1);
+        registerImage(&challenger, b"busy.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+        palate::createPush(&challenger, 1, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+    }
+
+    #[test(admin = @palate, pusher = @0x221, challenger = @0x222)]
+    fun challengePushSetsBothMediaStatusesToActive(admin: signer, pusher: signer, challenger: signer) {
+        init(&admin);
+        registerImage(&pusher, b"original.png", 1);
+        registerImage(&challenger, b"challenger.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+
+        assert!(palate::getMediaStatus(0) == palate::statusActive(), 0);
+        assert!(palate::getMediaStatus(1) == palate::statusActive(), 1);
+    }
+
+    #[test(admin = @palate, pusher = @0x223, challenger = @0x224)]
+    fun challengePushCreatesActiveMatchWithOriginalAsAAndChallengerAsB(
+        admin: signer,
+        pusher: signer,
+        challenger: signer,
+    ) {
+        init(&admin);
+        registerMeme(&pusher, b"original.gif", 1);
+        registerMeme(&challenger, b"challenger.gif", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        let challenge_amount = palate::getMinimumChallengeAmount(0);
+        palate::challengePush(&challenger, 0, 1, challenge_amount);
+
+        assert!(palate::getMatchMediaAId(0) == 0, 0);
+        assert!(palate::getMatchMediaBId(0) == 1, 1);
+        assert!(palate::getMatchPusherA(0) == signer::address_of(&pusher), 2);
+        assert!(palate::getMatchPusherB(0) == signer::address_of(&challenger), 3);
+        assert!(palate::getMatchPushAmountA(0) == palate::getMinPushAmount(), 4);
+        assert!(palate::getMatchPushAmountB(0) == challenge_amount, 5);
+        assert!(palate::getMatchCategory(0) == palate::categoryMeme(), 6);
+    }
+
+    #[test(admin = @palate, first = @0x225, second = @0x226)]
+    fun getWaitingPushesReturnsOpenWaitingPushes(admin: signer, first: signer, second: signer) {
+        init(&admin);
+        registerImage(&first, b"first.png", 1);
+        registerImage(&second, b"second.png", 2);
+        palate::createPush(&first, 0, palate::getMinPushAmount());
+        palate::createPush(&second, 1, palate::getMinPushAmount());
+        palate::cancelPush(&second, 1);
+
+        let pushes = palate::getWaitingPushes();
+        assert!(vector::length(&pushes) == 1, 0);
+        assert!(*vector::borrow(&pushes, 0) == 0, 1);
+    }
+
+    #[test(admin = @palate, pusher = @0x227, challenger = @0x228)]
+    fun getActiveMatchesReturnsActiveMatches(admin: signer, pusher: signer, challenger: signer) {
+        init(&admin);
+        registerImage(&pusher, b"original.png", 1);
+        registerImage(&challenger, b"challenger.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+
+        let matches = palate::getActiveMatches();
+        assert!(vector::length(&matches) == 1, 0);
+        assert!(*vector::borrow(&matches, 0) == 0, 1);
+    }
+
+    fun registerImage(user: &signer, blob_ref: vector<u8>, created_time: u64) {
+        palate::registerMedia(
+            user,
+            palate::categoryImage(),
+            blob_ref,
+            b"hash",
+            b"image/png",
+            b"Image",
+            created_time,
+        );
+    }
+
+    fun registerMeme(user: &signer, blob_ref: vector<u8>, created_time: u64) {
+        palate::registerMedia(
+            user,
+            palate::categoryMeme(),
+            blob_ref,
+            b"hash",
+            b"image/gif",
+            b"Meme",
+            created_time,
+        );
+    }
 }

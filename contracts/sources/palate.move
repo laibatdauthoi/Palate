@@ -1,4 +1,5 @@
 module palate::palate {
+    use aptos_framework::event;
     use std::signer;
     use std::vector;
 
@@ -9,6 +10,16 @@ module palate::palate {
     const E_INVALID_CATEGORY: u64 = 3;
     const E_MEDIA_NOT_FOUND: u64 = 4;
     const E_NOT_MODULE_PUBLISHER: u64 = 5;
+    const E_NOT_MEDIA_OWNER: u64 = 6;
+    const E_MEDIA_NOT_IDLE: u64 = 7;
+    const E_PUSH_AMOUNT_TOO_LOW: u64 = 8;
+    const E_PUSH_NOT_FOUND: u64 = 9;
+    const E_NOT_PUSH_CREATOR: u64 = 10;
+    const E_PUSH_NOT_OPEN: u64 = 11;
+    const E_CATEGORY_MISMATCH: u64 = 12;
+    const E_CHALLENGE_AMOUNT_TOO_LOW: u64 = 13;
+    const E_PUSHER_CANNOT_CHALLENGE_OWN_PUSH: u64 = 14;
+    const E_MATCH_NOT_FOUND: u64 = 15;
 
     /// Category values.
     const CATEGORY_MEME: u8 = 1;
@@ -54,9 +65,13 @@ module palate::palate {
     struct PalateState has key {
         protocol_config: ProtocolConfig,
         media_records: vector<MediaRecord>,
+        waiting_pushes: vector<WaitingPush>,
+        active_matches: vector<ActiveMatch>,
         user_media_indices: vector<UserMediaIndex>,
         user_summaries: vector<UserSummaryRecord>,
         next_media_id: u64,
+        next_push_id: u64,
+        next_match_id: u64,
     }
 
     /// Spec name: media_record. Move requires struct names to start uppercase.
@@ -164,6 +179,35 @@ module palate::palate {
         admin_address: address,
     }
 
+    #[event]
+    struct PushCreatedEvent has drop, store {
+        push_id: u64,
+        media_id: u64,
+        pusher: address,
+        category: u8,
+        push_amount: u64,
+    }
+
+    #[event]
+    struct PushCancelledEvent has drop, store {
+        push_id: u64,
+        media_id: u64,
+        pusher: address,
+    }
+
+    #[event]
+    struct PushChallengedEvent has drop, store {
+        push_id: u64,
+        match_id: u64,
+        media_a_id: u64,
+        media_b_id: u64,
+        pusher_a: address,
+        pusher_b: address,
+        push_amount_a: u64,
+        push_amount_b: u64,
+        category: u8,
+    }
+
     public entry fun initialize(account: &signer, treasury_address: address) {
         initializeInternal(account, treasury_address)
     }
@@ -190,9 +234,13 @@ module palate::palate {
                 admin_address,
             },
             media_records: vector::empty<MediaRecord>(),
+            waiting_pushes: vector::empty<WaitingPush>(),
+            active_matches: vector::empty<ActiveMatch>(),
             user_media_indices: vector::empty<UserMediaIndex>(),
             user_summaries: vector::empty<UserSummaryRecord>(),
             next_media_id: 0,
+            next_push_id: 0,
+            next_match_id: 0,
         });
     }
 
@@ -247,21 +295,150 @@ module palate::palate {
         vector::empty<u64>()
     }
 
-    public entry fun createPush(_account: &signer, _media_id: u64, _push_amount: u64) {
-        abort E_NOT_IMPLEMENTED
+    public entry fun createPush(account: &signer, media_id: u64, push_amount: u64) acquires PalateState {
+        assertInitialized();
+
+        let pusher = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        assert!(push_amount >= state.protocol_config.min_push_amount, E_PUSH_AMOUNT_TOO_LOW);
+
+        let media_index = findMediaIndex(state, media_id);
+        let media = vector::borrow_mut(&mut state.media_records, media_index);
+        assert!(media.owner == pusher, E_NOT_MEDIA_OWNER);
+        assert!(media.status == STATUS_IDLE, E_MEDIA_NOT_IDLE);
+
+        media.status = STATUS_WAITING;
+
+        let push_id = state.next_push_id;
+        state.next_push_id = push_id + 1;
+        let category = media.category;
+
+        vector::push_back(&mut state.waiting_pushes, WaitingPush {
+            push_id,
+            media_id,
+            pusher,
+            category,
+            push_amount,
+            created_time: 0,
+            status: WAITING_PUSH_STATUS_OPEN,
+        });
+
+        event::emit(PushCreatedEvent {
+            push_id,
+            media_id,
+            pusher,
+            category,
+            push_amount,
+        });
     }
 
-    public entry fun cancelPush(_account: &signer, _push_id: u64) {
-        abort E_NOT_IMPLEMENTED
+    public entry fun cancelPush(account: &signer, push_id: u64) acquires PalateState {
+        assertInitialized();
+
+        let pusher = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        let push_index = findWaitingPushIndex(state, push_id);
+
+        let media_id;
+        {
+            let waiting_push = vector::borrow(&state.waiting_pushes, push_index);
+            assert!(waiting_push.pusher == pusher, E_NOT_PUSH_CREATOR);
+            assert!(waiting_push.status == WAITING_PUSH_STATUS_OPEN, E_PUSH_NOT_OPEN);
+            media_id = waiting_push.media_id;
+        };
+
+        let media_index = findMediaIndex(state, media_id);
+        vector::borrow_mut(&mut state.media_records, media_index).status = STATUS_IDLE;
+        vector::borrow_mut(&mut state.waiting_pushes, push_index).status = WAITING_PUSH_STATUS_CANCELLED;
+
+        event::emit(PushCancelledEvent {
+            push_id,
+            media_id,
+            pusher,
+        });
     }
 
     public entry fun challengePush(
-        _account: &signer,
-        _push_id: u64,
-        _challenger_media_id: u64,
-        _push_amount: u64,
-    ) {
-        abort E_NOT_IMPLEMENTED
+        account: &signer,
+        push_id: u64,
+        challenger_media_id: u64,
+        push_amount: u64,
+    ) acquires PalateState {
+        assertInitialized();
+
+        let challenger = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        let push_index = findWaitingPushIndex(state, push_id);
+
+        let media_a_id;
+        let pusher_a;
+        let push_amount_a;
+        let category;
+        {
+            let waiting_push = vector::borrow(&state.waiting_pushes, push_index);
+            assert!(waiting_push.status == WAITING_PUSH_STATUS_OPEN, E_PUSH_NOT_OPEN);
+            assert!(waiting_push.pusher != challenger, E_PUSHER_CANNOT_CHALLENGE_OWN_PUSH);
+            media_a_id = waiting_push.media_id;
+            pusher_a = waiting_push.pusher;
+            push_amount_a = waiting_push.push_amount;
+            category = waiting_push.category;
+        };
+
+        let required_amount = calculateMinimumChallengeAmount(
+            push_amount_a,
+            state.protocol_config.min_push_increment_bps,
+        );
+        assert!(push_amount >= required_amount, E_CHALLENGE_AMOUNT_TOO_LOW);
+
+        let challenger_media_index = findMediaIndex(state, challenger_media_id);
+        {
+            let challenger_media = vector::borrow(&state.media_records, challenger_media_index);
+            assert!(challenger_media.owner == challenger, E_NOT_MEDIA_OWNER);
+            assert!(challenger_media.status == STATUS_IDLE, E_MEDIA_NOT_IDLE);
+            assert!(challenger_media.category == category, E_CATEGORY_MISMATCH);
+        };
+
+        let media_a_index = findMediaIndex(state, media_a_id);
+        vector::borrow_mut(&mut state.media_records, media_a_index).status = STATUS_ACTIVE;
+        vector::borrow_mut(&mut state.media_records, challenger_media_index).status = STATUS_ACTIVE;
+        vector::borrow_mut(&mut state.waiting_pushes, push_index).status = WAITING_PUSH_STATUS_CHALLENGED;
+
+        let match_id = state.next_match_id;
+        state.next_match_id = match_id + 1;
+        let start_time = 0;
+        let end_time = start_time + state.protocol_config.match_duration_seconds;
+
+        vector::push_back(&mut state.active_matches, ActiveMatch {
+            match_id,
+            media_a_id,
+            media_b_id: challenger_media_id,
+            pusher_a,
+            pusher_b: challenger,
+            push_amount_a,
+            push_amount_b: push_amount,
+            category,
+            start_time,
+            end_time,
+            buff_pool_a: 0,
+            buff_pool_b: 0,
+            score_a: 0,
+            score_b: 0,
+            buff_count_a: 0,
+            buff_count_b: 0,
+            status: MATCH_STATUS_ACTIVE,
+        });
+
+        event::emit(PushChallengedEvent {
+            push_id,
+            match_id,
+            media_a_id,
+            media_b_id: challenger_media_id,
+            pusher_a,
+            pusher_b: challenger,
+            push_amount_a,
+            push_amount_b: push_amount,
+            category,
+        });
     }
 
     public entry fun findMatch(_account: &signer) {
@@ -310,16 +487,47 @@ module palate::palate {
         createEmptyUserSummary()
     }
 
-    public fun getMatch(_match_id: u64): ActiveMatch {
-        abort E_NOT_IMPLEMENTED
+    #[view]
+    public fun getMatch(match_id: u64): ActiveMatch acquires PalateState {
+        let state = borrow_global<PalateState>(@palate);
+        let index = findActiveMatchIndex(state, match_id);
+        *vector::borrow(&state.active_matches, index)
     }
 
-    public fun getWaitingPushes(): vector<u64> {
-        abort E_NOT_IMPLEMENTED
+    #[view]
+    public fun getWaitingPushes(): vector<u64> acquires PalateState {
+        assertInitialized();
+
+        let state = borrow_global<PalateState>(@palate);
+        let ids = vector::empty<u64>();
+        let length = vector::length(&state.waiting_pushes);
+        let index = 0;
+        while (index < length) {
+            let waiting_push = vector::borrow(&state.waiting_pushes, index);
+            if (waiting_push.status == WAITING_PUSH_STATUS_OPEN) {
+                vector::push_back(&mut ids, waiting_push.push_id);
+            };
+            index = index + 1;
+        };
+        ids
     }
 
-    public fun getActiveMatches(): vector<u64> {
-        abort E_NOT_IMPLEMENTED
+    #[view]
+    public fun getActiveMatches(): vector<u64> acquires PalateState {
+        assertInitialized();
+
+        let state = borrow_global<PalateState>(@palate);
+        let ids = vector::empty<u64>();
+        let length = vector::length(&state.active_matches);
+        let index = 0;
+        while (index < length) {
+            let active_match = vector::borrow(&state.active_matches, index);
+            if (active_match.status == MATCH_STATUS_ACTIVE) {
+                vector::push_back(&mut ids, active_match.match_id);
+            };
+            index = index + 1;
+        };
+        ids
     }
 
     public entry fun updateFeeConfig(
@@ -415,6 +623,82 @@ module palate::palate {
     #[view]
     public fun getMediaStatus(media_id: u64): u8 acquires PalateState {
         getMediaRecord(media_id).status
+    }
+
+    #[view]
+    public fun getWaitingPushMediaId(push_id: u64): u64 acquires PalateState {
+        getWaitingPushRecord(push_id).media_id
+    }
+
+    #[view]
+    public fun getWaitingPushPusher(push_id: u64): address acquires PalateState {
+        getWaitingPushRecord(push_id).pusher
+    }
+
+    #[view]
+    public fun getWaitingPushCategory(push_id: u64): u8 acquires PalateState {
+        getWaitingPushRecord(push_id).category
+    }
+
+    #[view]
+    public fun getWaitingPushAmount(push_id: u64): u64 acquires PalateState {
+        getWaitingPushRecord(push_id).push_amount
+    }
+
+    #[view]
+    public fun getWaitingPushStatus(push_id: u64): u8 acquires PalateState {
+        getWaitingPushRecord(push_id).status
+    }
+
+    #[view]
+    public fun getMatchMediaAId(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).media_a_id
+    }
+
+    #[view]
+    public fun getMatchMediaBId(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).media_b_id
+    }
+
+    #[view]
+    public fun getMatchPusherA(match_id: u64): address acquires PalateState {
+        getMatch(match_id).pusher_a
+    }
+
+    #[view]
+    public fun getMatchPusherB(match_id: u64): address acquires PalateState {
+        getMatch(match_id).pusher_b
+    }
+
+    #[view]
+    public fun getMatchPushAmountA(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).push_amount_a
+    }
+
+    #[view]
+    public fun getMatchPushAmountB(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).push_amount_b
+    }
+
+    #[view]
+    public fun getMatchCategory(match_id: u64): u8 acquires PalateState {
+        getMatch(match_id).category
+    }
+
+    #[view]
+    public fun getMatchStatus(match_id: u64): u8 acquires PalateState {
+        getMatch(match_id).status
+    }
+
+    #[view]
+    public fun getMinimumChallengeAmount(push_id: u64): u64 acquires PalateState {
+        let state = borrow_global<PalateState>(@palate);
+        let push_index = findWaitingPushIndex(state, push_id);
+        let waiting_push = vector::borrow(&state.waiting_pushes, push_index);
+        calculateMinimumChallengeAmount(
+            waiting_push.push_amount,
+            state.protocol_config.min_push_increment_bps,
+        )
     }
 
     #[view]
@@ -518,6 +802,36 @@ module palate::palate {
         STATUS_IDLE
     }
 
+    #[view]
+    public fun statusWaiting(): u8 {
+        STATUS_WAITING
+    }
+
+    #[view]
+    public fun statusActive(): u8 {
+        STATUS_ACTIVE
+    }
+
+    #[view]
+    public fun waitingPushStatusOpen(): u8 {
+        WAITING_PUSH_STATUS_OPEN
+    }
+
+    #[view]
+    public fun waitingPushStatusCancelled(): u8 {
+        WAITING_PUSH_STATUS_CANCELLED
+    }
+
+    #[view]
+    public fun waitingPushStatusChallenged(): u8 {
+        WAITING_PUSH_STATUS_CHALLENGED
+    }
+
+    #[view]
+    public fun matchStatusActive(): u8 {
+        MATCH_STATUS_ACTIVE
+    }
+
     fun assertInitialized() {
         assert!(exists<PalateState>(@palate), E_NOT_INITIALIZED);
     }
@@ -576,6 +890,45 @@ module palate::palate {
         };
 
         abort E_MEDIA_NOT_FOUND
+    }
+
+    fun findWaitingPushIndex(state: &PalateState, push_id: u64): u64 {
+        let length = vector::length(&state.waiting_pushes);
+        let index = 0;
+        while (index < length) {
+            let waiting_push = vector::borrow(&state.waiting_pushes, index);
+            if (waiting_push.push_id == push_id) {
+                return index
+            };
+            index = index + 1;
+        };
+
+        abort E_PUSH_NOT_FOUND
+    }
+
+    fun findActiveMatchIndex(state: &PalateState, match_id: u64): u64 {
+        let length = vector::length(&state.active_matches);
+        let index = 0;
+        while (index < length) {
+            let active_match = vector::borrow(&state.active_matches, index);
+            if (active_match.match_id == match_id) {
+                return index
+            };
+            index = index + 1;
+        };
+
+        abort E_MATCH_NOT_FOUND
+    }
+
+    fun getWaitingPushRecord(push_id: u64): WaitingPush acquires PalateState {
+        let state = borrow_global<PalateState>(@palate);
+        let index = findWaitingPushIndex(state, push_id);
+        *vector::borrow(&state.waiting_pushes, index)
+    }
+
+    fun calculateMinimumChallengeAmount(push_amount: u64, increment_bps: u64): u64 {
+        let increment = (push_amount * increment_bps + 9999) / 10000;
+        push_amount + increment
     }
 
     fun createEmptyUserSummary(): UserSummary {
