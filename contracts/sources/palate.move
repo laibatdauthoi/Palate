@@ -40,6 +40,8 @@ module palate::palate {
     const E_BUFF_ALREADY_CLAIMED: u64 = 30;
     const E_INSUFFICIENT_AVAILABLE_BALANCE: u64 = 31;
     const E_INVALID_SKIP_PENALTY: u64 = 32;
+    const E_NOT_TREASURY_AUTHORIZED: u64 = 33;
+    const E_TREASURY_FEE_BALANCE_TOO_LOW: u64 = 34;
 
     /// Category values.
     const CATEGORY_MEME: u8 = 1;
@@ -97,6 +99,7 @@ module palate::palate {
         buff_escrow: coin::Coin<AptosCoin>,
         commitment_escrow: coin::Coin<AptosCoin>,
         treasury_fees: coin::Coin<AptosCoin>,
+        total_treasury_withdrawn: u64,
         next_media_id: u64,
         next_push_id: u64,
         next_match_id: u64,
@@ -308,6 +311,13 @@ module palate::palate {
         claim_amount: u64,
     }
 
+    #[event]
+    struct TreasuryFeesWithdrawnEvent has drop, store {
+        caller: address,
+        treasury_address: address,
+        amount: u64,
+    }
+
     public entry fun initialize(account: &signer, treasury_address: address) {
         initializeInternal(account, treasury_address)
     }
@@ -347,6 +357,7 @@ module palate::palate {
             buff_escrow: coin::zero<AptosCoin>(),
             commitment_escrow: coin::zero<AptosCoin>(),
             treasury_fees: coin::zero<AptosCoin>(),
+            total_treasury_withdrawn: 0,
             next_media_id: 0,
             next_push_id: 0,
             next_match_id: 0,
@@ -415,6 +426,37 @@ module palate::palate {
         };
 
         coin::deposit<AptosCoin>(owner, withdraw_coin);
+    }
+
+    public entry fun withdrawTreasuryFees(account: &signer, amount: u64) acquires PalateState {
+        assertInitialized();
+
+        let caller = signer::address_of(account);
+        let treasury_address;
+        let fee_coin;
+        {
+            let state = borrow_global_mut<PalateState>(@palate);
+            treasury_address = state.protocol_config.treasury_address;
+            assert!(
+                caller == treasury_address || caller == state.protocol_config.admin_address,
+                E_NOT_TREASURY_AUTHORIZED,
+            );
+            assert!(
+                amount <= coin::value(&state.treasury_fees),
+                E_TREASURY_FEE_BALANCE_TOO_LOW,
+            );
+
+            fee_coin = coin::extract(&mut state.treasury_fees, amount);
+            state.total_treasury_withdrawn = state.total_treasury_withdrawn + amount;
+        };
+
+        // Admin may trigger collection, but fees always leave Palate custody to the configured treasury wallet.
+        coin::deposit<AptosCoin>(treasury_address, fee_coin);
+        event::emit(TreasuryFeesWithdrawnEvent {
+            caller,
+            treasury_address,
+            amount,
+        });
     }
 
     #[view]
@@ -1608,6 +1650,12 @@ module palate::palate {
             index = index + 1;
         };
         total
+    }
+
+    #[test_only]
+    public fun getTotalTreasuryWithdrawnForTesting(): u64 acquires PalateState {
+        assertInitialized();
+        borrow_global<PalateState>(@palate).total_treasury_withdrawn
     }
 
     fun assertInitialized() {

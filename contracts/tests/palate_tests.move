@@ -1781,6 +1781,145 @@ module palate::palate_tests {
         assertVaultInvariant();
     }
 
+    #[test(admin = @palate, framework = @0x1, pusher = @0x521, challenger = @0x522, user = @0x523)]
+    fun treasuryFeeBalanceIncreasesAfterSkipPenalty(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+
+        let penalty = createSkipPenalty(&framework, &pusher, &challenger, &user);
+
+        assert!(palate::getTreasuryFeeBalance() == penalty, 0);
+        assertVaultInvariant();
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x524, challenger = @0x525)]
+    fun treasuryFeeBalanceIncreasesAfterSettlementProtocolFee(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getTreasuryFeeBalance() == palate::getMatchPushFeeAmount(0), 0);
+        assert!(palate::getTreasuryFeeBalance() > 0, 1);
+        assertVaultInvariant();
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        treasury = @0xCAFE,
+        pusher = @0x526,
+        challenger = @0x527,
+        user = @0x528
+    )]
+    fun configuredTreasuryCanWithdrawTreasuryFees(
+        admin: signer,
+        framework: signer,
+        treasury: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        fundAccount(&framework, &treasury);
+        let fee_amount = createSkipPenalty(&framework, &pusher, &challenger, &user);
+        let treasury_wallet_before = coin::balance<AptosCoin>(TREASURY);
+        let user_available_before = palate::getAvailableBalance(signer::address_of(&user));
+
+        palate::withdrawTreasuryFees(&treasury, fee_amount);
+
+        assert!(palate::getTreasuryFeeBalance() == 0, 0);
+        assert!(coin::balance<AptosCoin>(TREASURY) == treasury_wallet_before + fee_amount, 1);
+        assert!(palate::getAvailableBalance(signer::address_of(&user)) == user_available_before, 2);
+        assertVaultInvariant();
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        treasury = @0xCAFE,
+        pusher = @0x529,
+        challenger = @0x530,
+        user = @0x531
+    )]
+    fun adminCanWithdrawTreasuryFeesToConfiguredTreasuryWallet(
+        admin: signer,
+        framework: signer,
+        treasury: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        fundAccount(&framework, &treasury);
+        let fee_amount = createSkipPenalty(&framework, &pusher, &challenger, &user);
+        let treasury_wallet_before = coin::balance<AptosCoin>(TREASURY);
+
+        palate::withdrawTreasuryFees(&admin, fee_amount);
+
+        assert!(palate::getTreasuryFeeBalance() == 0, 0);
+        assert!(coin::balance<AptosCoin>(TREASURY) == treasury_wallet_before + fee_amount, 1);
+        assertVaultInvariant();
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        pusher = @0x532,
+        challenger = @0x533,
+        user = @0x534,
+        unauthorized = @0x535
+    )]
+    #[expected_failure(abort_code = 33, location = palate::palate)]
+    fun unauthorizedUserCannotWithdrawTreasuryFees(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+        unauthorized: signer,
+    ) {
+        init(&admin, &framework);
+        createSkipPenalty(&framework, &pusher, &challenger, &user);
+
+        palate::withdrawTreasuryFees(&unauthorized, palate::getTreasuryFeeBalance());
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        treasury = @0xCAFE,
+        pusher = @0x536,
+        challenger = @0x537,
+        user = @0x538
+    )]
+    #[expected_failure(abort_code = 34, location = palate::palate)]
+    fun cannotWithdrawMoreThanTreasuryFeeBalance(
+        admin: signer,
+        framework: signer,
+        treasury: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        fundAccount(&framework, &treasury);
+        createSkipPenalty(&framework, &pusher, &challenger, &user);
+
+        palate::withdrawTreasuryFees(&treasury, palate::getTreasuryFeeBalance() + 1);
+    }
+
     fun registerImage(framework: &signer, user: &signer, blob_ref: vector<u8>, created_time: u64) {
         fundPalateBalance(framework, user);
         palate::registerMedia(
@@ -1826,6 +1965,19 @@ module palate::palate_tests {
         palate::challengePush(challenger, 0, 1, palate::getMinimumChallengeAmount(0));
     }
 
+    fun createSkipPenalty(
+        framework: &signer,
+        pusher: &signer,
+        challenger: &signer,
+        user: &signer,
+    ): u64 {
+        createImageMatch(framework, pusher, challenger);
+        fundPalateBalance(framework, user);
+        palate::findMatch(user);
+        palate::skipMatch(user);
+        palate::getSkipPenaltyAmount()
+    }
+
     fun fundAccount(framework: &signer, account: &signer) {
         if (!coin::is_account_registered<AptosCoin>(signer::address_of(account))) {
             coin::register<AptosCoin>(account);
@@ -1841,7 +1993,9 @@ module palate::palate_tests {
     fun assertVaultInvariant() {
         assert!(
             palate::getTotalVaultBalance()
-                == palate::getAggregateTotalDepositedForTesting() - palate::getAggregateTotalWithdrawnForTesting(),
+                == palate::getAggregateTotalDepositedForTesting()
+                    - palate::getAggregateTotalWithdrawnForTesting()
+                    - palate::getTotalTreasuryWithdrawnForTesting(),
             999,
         );
     }
