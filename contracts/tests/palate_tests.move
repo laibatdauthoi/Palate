@@ -553,8 +553,7 @@ module palate::palate_tests {
     }
 
     #[test(admin = @palate, framework = @0x1, pusher = @0x330, challenger = @0x331, user = @0x332)]
-    #[expected_failure(abort_code = 0, location = palate::palate)]
-    fun assignmentFlowDoesNotImplementPlaceBuffOrSettlement(
+    fun placeBuffSucceedsForCurrentAssignedMatch(
         admin: signer,
         framework: signer,
         pusher: signer,
@@ -565,7 +564,242 @@ module palate::palate_tests {
         createImageMatch(&pusher, &challenger);
         palate::findMatch(&user);
 
-        palate::placeBuff(&user, 1, palate::getMinBuffAmount());
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+
+        assert!(palate::getBuffRecordCount() == 1, 0);
+        assert!(!palate::hasCurrentAssignment(signer::address_of(&user)), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x333)]
+    #[expected_failure(abort_code = 18, location = palate::palate)]
+    fun placeBuffRejectsWhenUserHasNoAssignment(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x334, challenger = @0x335, user = @0x336)]
+    #[expected_failure(abort_code = 15, location = palate::palate)]
+    fun placeBuffRejectsWhenAssignedMatchIdDoesNotMatch(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+
+        palate::placeBuffForAssignedMatchForTesting(&user, 999, palate::sideA(), palate::getMinBuffAmount());
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x337, challenger = @0x338, user = @0x339)]
+    #[expected_failure(abort_code = 19, location = palate::palate)]
+    fun placeBuffRejectsInvalidSide(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+
+        palate::placeBuff(&user, 3, palate::getMinBuffAmount());
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x340, challenger = @0x341, user = @0x342)]
+    #[expected_failure(abort_code = 20, location = palate::palate)]
+    fun placeBuffRejectsAmountBelowMinBuffAmount(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount() - 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x343, challenger = @0x344, user = @0x345)]
+    fun placeBuffUpdatesPoolScoreAndCountForSideA(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+
+        let amount = palate::getMinBuffAmount();
+        let config = palate::getProtocolConfig();
+        let expected_score = palate::calculateBuffScore(amount, &config);
+        palate::placeBuff(&user, palate::sideA(), amount);
+
+        assert!(palate::getMatchBuffPoolA(0) == amount, 0);
+        assert!(palate::getMatchScoreA(0) == expected_score, 1);
+        assert!(palate::getMatchBuffCountA(0) == 1, 2);
+        assert!(palate::getMatchBuffPoolB(0) == 0, 3);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x346, challenger = @0x347, user = @0x348)]
+    fun placeBuffUpdatesPoolScoreAndCountForSideB(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+
+        let amount = palate::getMinBuffAmount();
+        let config = palate::getProtocolConfig();
+        let expected_score = palate::calculateBuffScore(amount, &config);
+        palate::placeBuff(&user, palate::sideB(), amount);
+
+        assert!(palate::getMatchBuffPoolB(0) == amount, 0);
+        assert!(palate::getMatchScoreB(0) == expected_score, 1);
+        assert!(palate::getMatchBuffCountB(0) == 1, 2);
+        assert!(palate::getMatchBuffPoolA(0) == 0, 3);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x349, challenger = @0x350, user = @0x351)]
+    fun placeBuffCreatesDurableBuffRecord(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+
+        let amount = palate::getMinBuffAmount();
+        let config = palate::getProtocolConfig();
+        let expected_score = palate::calculateBuffScore(amount, &config);
+        palate::placeBuff(&user, palate::sideA(), amount);
+
+        assert!(palate::getBuffRecordCount() == 1, 0);
+        assert!(palate::getBuffRecordMatchId(0) == 0, 1);
+        assert!(palate::getBuffRecordUser(0) == signer::address_of(&user), 2);
+        assert!(palate::getBuffRecordSide(0) == palate::sideA(), 3);
+        assert!(palate::getBuffRecordAmount(0) == amount, 4);
+        assert!(palate::getBuffRecordScore(0) == expected_score, 5);
+        assert!(!palate::getBuffRecordClaimed(0), 6);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x352, challenger = @0x353, user = @0x354)]
+    fun placeBuffClearsAssignmentAfterSuccess(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+
+        assert!(!palate::hasCurrentAssignment(signer::address_of(&user)), 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x355, challenger = @0x356, user = @0x357)]
+    #[expected_failure(abort_code = 21, location = palate::palate)]
+    fun userCannotBuffSameMatchTwice(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+
+        palate::assignMatchForTesting(&admin, signer::address_of(&user), 0);
+        palate::placeBuff(&user, palate::sideB(), palate::getMinBuffAmount());
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x358, challenger = @0x359, user = @0x360)]
+    #[expected_failure(abort_code = 17, location = palate::palate)]
+    fun findMatchExcludesMatchesAlreadyBuffedByUser(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+
+        palate::findMatch(&user);
+    }
+
+    #[test(admin = @palate, framework = @0x1)]
+    fun calculateBuffScoreReturnsDeterministicValues(admin: signer, framework: signer) {
+        init(&admin, &framework);
+
+        let config = palate::getProtocolConfig();
+        let min = palate::getMinBuffAmount();
+        let scale = palate::getScoreScale();
+
+        assert!(palate::calculateBuffScore(min, &config) == scale, 0);
+        assert!(palate::calculateBuffScore(min * 3, &config) == scale * 2, 1);
+        assert!(palate::calculateBuffScore(min * 7, &config) == scale * 3, 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x361, challenger = @0x362, user = @0x363)]
+    fun buffPoolUsesRawAmountWhileScoreUsesCalculatedScore(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+
+        let amount = palate::getMinBuffAmount() * 3;
+        let config = palate::getProtocolConfig();
+        let expected_score = palate::calculateBuffScore(amount, &config);
+        palate::placeBuff(&user, palate::sideA(), amount);
+
+        assert!(palate::getMatchBuffPoolA(0) == amount, 0);
+        assert!(palate::getMatchScoreA(0) == expected_score, 1);
+        assert!(palate::getMatchScoreA(0) != amount, 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x364, challenger = @0x365, user = @0x366)]
+    #[expected_failure(abort_code = 0, location = palate::palate)]
+    fun placeBuffDoesNotImplementSettlementOrClaims(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&pusher, &challenger);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+
+        palate::settleMatch(&user, 0);
     }
 
     fun registerImage(user: &signer, blob_ref: vector<u8>, created_time: u64) {

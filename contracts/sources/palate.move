@@ -24,6 +24,10 @@ module palate::palate {
     const E_ASSIGNMENT_EXISTS: u64 = 16;
     const E_NO_VALID_MATCH: u64 = 17;
     const E_ASSIGNMENT_NOT_FOUND: u64 = 18;
+    const E_INVALID_BUFF_SIDE: u64 = 19;
+    const E_BUFF_AMOUNT_TOO_LOW: u64 = 20;
+    const E_ALREADY_BUFFED_MATCH: u64 = 21;
+    const E_UNSUPPORTED_SCORE_ALGORITHM: u64 = 22;
 
     /// Category values.
     const CATEGORY_MEME: u8 = 1;
@@ -71,6 +75,7 @@ module palate::palate {
         media_records: vector<MediaRecord>,
         waiting_pushes: vector<WaitingPush>,
         active_matches: vector<ActiveMatch>,
+        buff_records: vector<BuffRecord>,
         user_assignments: vector<UserAssignment>,
         user_media_indices: vector<UserMediaIndex>,
         user_summaries: vector<UserSummaryRecord>,
@@ -228,6 +233,15 @@ module palate::palate {
         skip_penalty_amount: u64,
     }
 
+    #[event]
+    struct BuffPlacedEvent has drop, store {
+        match_id: u64,
+        user: address,
+        side: u8,
+        buff_amount: u64,
+        score: u64,
+    }
+
     public entry fun initialize(account: &signer, treasury_address: address) {
         initializeInternal(account, treasury_address)
     }
@@ -256,6 +270,7 @@ module palate::palate {
             media_records: vector::empty<MediaRecord>(),
             waiting_pushes: vector::empty<WaitingPush>(),
             active_matches: vector::empty<ActiveMatch>(),
+            buff_records: vector::empty<BuffRecord>(),
             user_assignments: vector::empty<UserAssignment>(),
             user_media_indices: vector::empty<UserMediaIndex>(),
             user_summaries: vector::empty<UserSummaryRecord>(),
@@ -507,12 +522,34 @@ module palate::palate {
         });
     }
 
-    public entry fun placeBuff(_account: &signer, _side: u8, _buff_amount: u64) {
-        abort E_NOT_IMPLEMENTED
+    public entry fun placeBuff(account: &signer, side: u8, buff_amount: u64) acquires PalateState {
+        placeBuffInternal(account, getAssignedMatchIdForAccount(account), side, buff_amount)
     }
 
-    public fun calculateBuffScore(_buff_amount: u64, _config: &ProtocolConfig): u64 {
-        abort E_NOT_IMPLEMENTED
+    public fun calculateBuffScore(buff_amount: u64, config: &ProtocolConfig): u64 {
+        assert!(config.score_algorithm_type == SCORE_ALGORITHM_LOG, E_UNSUPPORTED_SCORE_ALGORITHM);
+
+        // MVP deterministic fixed-point approximation of:
+        // log2(1 + buff_amount / min_buff_amount).
+        //
+        // The integer part is exact by repeatedly halving a scaled value. The
+        // fractional part uses a simple linear approximation over [1, 2). All
+        // Buff scoring is routed through this function so the approximation can
+        // be replaced later without changing Buff placement state updates.
+        let scale = config.score_scale;
+        let min_buff_amount = config.min_buff_amount;
+        let whole = buff_amount / min_buff_amount + 1;
+        let remainder = buff_amount % min_buff_amount;
+        let x_scaled = whole * scale + (remainder * scale) / min_buff_amount;
+        let score = 0;
+        let two_scaled = scale * config.score_log_base;
+
+        while (x_scaled >= two_scaled) {
+            x_scaled = x_scaled / config.score_log_base;
+            score = score + scale;
+        };
+
+        score + (x_scaled - scale)
     }
 
     public entry fun settleMatch(_account: &signer, _match_id: u64) {
@@ -749,6 +786,78 @@ module palate::palate {
     }
 
     #[view]
+    public fun getMatchBuffPoolA(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).buff_pool_a
+    }
+
+    #[view]
+    public fun getMatchBuffPoolB(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).buff_pool_b
+    }
+
+    #[view]
+    public fun getMatchScoreA(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).score_a
+    }
+
+    #[view]
+    public fun getMatchScoreB(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).score_b
+    }
+
+    #[view]
+    public fun getMatchBuffCountA(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).buff_count_a
+    }
+
+    #[view]
+    public fun getMatchBuffCountB(match_id: u64): u64 acquires PalateState {
+        getMatch(match_id).buff_count_b
+    }
+
+    #[view]
+    public fun getBuffRecordCount(): u64 acquires PalateState {
+        assertInitialized();
+        vector::length(&borrow_global<PalateState>(@palate).buff_records)
+    }
+
+    #[view]
+    public fun getBuffRecordMatchId(index: u64): u64 acquires PalateState {
+        vector::borrow(&borrow_global<PalateState>(@palate).buff_records, index).match_id
+    }
+
+    #[view]
+    public fun getBuffRecordUser(index: u64): address acquires PalateState {
+        vector::borrow(&borrow_global<PalateState>(@palate).buff_records, index).user
+    }
+
+    #[view]
+    public fun getBuffRecordSide(index: u64): u8 acquires PalateState {
+        vector::borrow(&borrow_global<PalateState>(@palate).buff_records, index).side
+    }
+
+    #[view]
+    public fun getBuffRecordAmount(index: u64): u64 acquires PalateState {
+        vector::borrow(&borrow_global<PalateState>(@palate).buff_records, index).buff_amount
+    }
+
+    #[view]
+    public fun getBuffRecordScore(index: u64): u64 acquires PalateState {
+        vector::borrow(&borrow_global<PalateState>(@palate).buff_records, index).score
+    }
+
+    #[view]
+    public fun getBuffRecordClaimed(index: u64): bool acquires PalateState {
+        vector::borrow(&borrow_global<PalateState>(@palate).buff_records, index).claimed
+    }
+
+    #[view]
+    public fun hasBuffedMatch(user: address, match_id: u64): bool acquires PalateState {
+        assertInitialized();
+        hasBuffedMatchInternal(borrow_global<PalateState>(@palate), user, match_id)
+    }
+
+    #[view]
     public fun hasCurrentAssignment(user: address): bool acquires PalateState {
         assertInitialized();
         hasActiveAssignment(borrow_global<PalateState>(@palate), user)
@@ -916,6 +1025,46 @@ module palate::palate {
         MATCH_STATUS_ACTIVE
     }
 
+    #[view]
+    public fun sideA(): u8 {
+        SIDE_A
+    }
+
+    #[view]
+    public fun sideB(): u8 {
+        SIDE_B
+    }
+
+    #[test_only]
+    public entry fun assignMatchForTesting(
+        account: &signer,
+        user: address,
+        match_id: u64,
+    ) acquires PalateState {
+        assertInitialized();
+        assert!(signer::address_of(account) == @palate, E_NOT_MODULE_PUBLISHER);
+
+        let state = borrow_global_mut<PalateState>(@palate);
+        assert!(!hasActiveAssignment(state, user), E_ASSIGNMENT_EXISTS);
+
+        vector::push_back(&mut state.user_assignments, UserAssignment {
+            user,
+            match_id,
+            commitment_amount: state.protocol_config.buff_commitment_amount,
+            assigned_time: timestamp::now_seconds(),
+        });
+    }
+
+    #[test_only]
+    public entry fun placeBuffForAssignedMatchForTesting(
+        account: &signer,
+        expected_match_id: u64,
+        side: u8,
+        buff_amount: u64,
+    ) acquires PalateState {
+        placeBuffInternal(account, expected_match_id, side, buff_amount)
+    }
+
     fun assertInitialized() {
         assert!(exists<PalateState>(@palate), E_NOT_INITIALIZED);
     }
@@ -925,6 +1074,72 @@ module palate::palate {
             category == CATEGORY_MEME || category == CATEGORY_IMAGE,
             E_INVALID_CATEGORY,
         );
+    }
+
+    fun assertValidBuffSide(side: u8) {
+        assert!(side == SIDE_A || side == SIDE_B, E_INVALID_BUFF_SIDE);
+    }
+
+    fun getAssignedMatchIdForAccount(account: &signer): u64 acquires PalateState {
+        let user = signer::address_of(account);
+        getCurrentAssignment(user).match_id
+    }
+
+    fun placeBuffInternal(
+        account: &signer,
+        expected_match_id: u64,
+        side: u8,
+        buff_amount: u64,
+    ) acquires PalateState {
+        assertInitialized();
+        assertValidBuffSide(side);
+
+        let user = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        assert!(buff_amount >= state.protocol_config.min_buff_amount, E_BUFF_AMOUNT_TOO_LOW);
+
+        let assignment_index = findAssignmentIndex(state, user);
+        let assignment = *vector::borrow(&state.user_assignments, assignment_index);
+        assert!(assignment.match_id == expected_match_id, E_MATCH_NOT_FOUND);
+        assert!(!hasBuffedMatchInternal(state, user, assignment.match_id), E_ALREADY_BUFFED_MATCH);
+
+        let match_index = findActiveMatchIndex(state, assignment.match_id);
+        let score = calculateBuffScore(buff_amount, &state.protocol_config);
+
+        {
+            let active_match = vector::borrow_mut(&mut state.active_matches, match_index);
+            assert!(active_match.status == MATCH_STATUS_ACTIVE, E_NO_VALID_MATCH);
+            assert!(timestamp::now_seconds() < active_match.end_time, E_NO_VALID_MATCH);
+
+            if (side == SIDE_A) {
+                active_match.buff_pool_a = active_match.buff_pool_a + buff_amount;
+                active_match.score_a = active_match.score_a + score;
+                active_match.buff_count_a = active_match.buff_count_a + 1;
+            } else {
+                active_match.buff_pool_b = active_match.buff_pool_b + buff_amount;
+                active_match.score_b = active_match.score_b + score;
+                active_match.buff_count_b = active_match.buff_count_b + 1;
+            };
+        };
+
+        vector::push_back(&mut state.buff_records, BuffRecord {
+            match_id: assignment.match_id,
+            user,
+            side,
+            buff_amount,
+            score,
+            claimed: false,
+        });
+        updateUserSummaryForBuff(state, user, buff_amount);
+        vector::swap_remove(&mut state.user_assignments, assignment_index);
+
+        event::emit(BuffPlacedEvent {
+            match_id: assignment.match_id,
+            user,
+            side,
+            buff_amount,
+            score,
+        });
     }
 
     fun addUserMediaId(state: &mut PalateState, owner: address, media_id: u64) {
@@ -1078,9 +1293,37 @@ module palate::palate {
             return false
         };
 
-        // TODO(Task 5): exclude matches already buffed by this user once placeBuff
-        // creates durable buff_record history.
-        true
+        !hasBuffedMatchInternal(state, user, active_match.match_id)
+    }
+
+    fun hasBuffedMatchInternal(state: &PalateState, user: address, match_id: u64): bool {
+        let length = vector::length(&state.buff_records);
+        let index = 0;
+        while (index < length) {
+            let buff_record = vector::borrow(&state.buff_records, index);
+            if (buff_record.user == user && buff_record.match_id == match_id) {
+                return true
+            };
+            index = index + 1;
+        };
+
+        false
+    }
+
+    fun updateUserSummaryForBuff(state: &mut PalateState, user: address, buff_amount: u64) {
+        ensureUserSummary(state, user);
+
+        let length = vector::length(&state.user_summaries);
+        let index = 0;
+        while (index < length) {
+            let record = vector::borrow_mut(&mut state.user_summaries, index);
+            if (record.owner == user) {
+                record.summary.buff_count = record.summary.buff_count + 1;
+                record.summary.total_buffed = record.summary.total_buffed + buff_amount;
+                return
+            };
+            index = index + 1;
+        };
     }
 
     fun getWaitingPushRecord(push_id: u64): WaitingPush acquires PalateState {
