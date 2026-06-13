@@ -642,6 +642,96 @@ module palate::palate_tests {
         palate::findMatch(&user);
     }
 
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        user = @0x539,
+        invalid_challenger = @0x540,
+        valid_pusher = @0x541,
+        valid_challenger = @0x542
+    )]
+    #[expected_failure(abort_code = 17, location = palate::palate)]
+    fun findMatchUsesRandomRetryCountAndStopsBeforeLaterValidMatch(
+        admin: signer,
+        framework: signer,
+        user: signer,
+        invalid_challenger: signer,
+        valid_pusher: signer,
+        valid_challenger: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatchWithIds(&framework, &user, &invalid_challenger, 0, 1, 0);
+        createImageMatchWithIds(&framework, &valid_pusher, &valid_challenger, 2, 3, 1);
+        palate::updateMatchConfigForTesting(&admin, palate::getMatchDurationSeconds(), 1);
+        setAssignmentNonceForStart(&admin, signer::address_of(&user), 0);
+
+        // MVP pseudo-randomness starts at match index 0 here. Retry count is 1,
+        // so findMatch must not scan forward to the valid match at index 1.
+        palate::findMatch(&user);
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        user = @0x543,
+        invalid_challenger = @0x544,
+        valid_pusher = @0x545,
+        valid_challenger = @0x546
+    )]
+    fun findMatchRetryCountCanReachLaterValidMatch(
+        admin: signer,
+        framework: signer,
+        user: signer,
+        invalid_challenger: signer,
+        valid_pusher: signer,
+        valid_challenger: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatchWithIds(&framework, &user, &invalid_challenger, 0, 1, 0);
+        createImageMatchWithIds(&framework, &valid_pusher, &valid_challenger, 2, 3, 1);
+        palate::updateMatchConfigForTesting(&admin, palate::getMatchDurationSeconds(), 2);
+        setAssignmentNonceForStart(&admin, signer::address_of(&user), 0);
+
+        palate::findMatch(&user);
+
+        assert!(palate::getCurrentAssignmentMatchId(signer::address_of(&user)) == 1, 0);
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        user = @0x547,
+        pusher_one = @0x548,
+        challenger_one = @0x549,
+        pusher_two = @0x550,
+        challenger_two = @0x551
+    )]
+    fun repeatedFindSkipCanReachMoreThanFirstActiveMatchWithMvpPseudoRandomness(
+        admin: signer,
+        framework: signer,
+        user: signer,
+        pusher_one: signer,
+        challenger_one: signer,
+        pusher_two: signer,
+        challenger_two: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatchWithIds(&framework, &pusher_one, &challenger_one, 0, 1, 0);
+        createImageMatchWithIds(&framework, &pusher_two, &challenger_two, 2, 3, 1);
+        fundPalateBalance(&framework, &user);
+
+        // This documents MVP pseudo-random assignment behavior only. It is not
+        // intended to be mainnet-secure randomness.
+        setAssignmentNonceForStart(&admin, signer::address_of(&user), 1);
+        palate::findMatch(&user);
+        assert!(palate::getCurrentAssignmentMatchId(signer::address_of(&user)) == 1, 0);
+        palate::skipMatch(&user);
+
+        setAssignmentNonceForStart(&admin, signer::address_of(&user), 0);
+        palate::findMatch(&user);
+        assert!(palate::getCurrentAssignmentMatchId(signer::address_of(&user)) == 0, 1);
+    }
+
     #[test(admin = @palate, framework = @0x1, pusher = @0x317, challenger = @0x318, user = @0x319)]
     fun getCurrentAssignmentReturnsAssignedMatch(
         admin: signer,
@@ -1965,6 +2055,20 @@ module palate::palate_tests {
         palate::challengePush(challenger, 0, 1, palate::getMinimumChallengeAmount(0));
     }
 
+    fun createImageMatchWithIds(
+        framework: &signer,
+        pusher: &signer,
+        challenger: &signer,
+        media_a_id: u64,
+        media_b_id: u64,
+        push_id: u64,
+    ) {
+        registerImage(framework, pusher, b"original.png", media_a_id + 1);
+        registerImage(framework, challenger, b"challenger.png", media_b_id + 1);
+        palate::createPush(pusher, media_a_id, palate::getMinPushAmount());
+        palate::challengePush(challenger, push_id, media_b_id, palate::getMinimumChallengeAmount(push_id));
+    }
+
     fun createSkipPenalty(
         framework: &signer,
         pusher: &signer,
@@ -1988,6 +2092,18 @@ module palate::palate_tests {
     fun fundPalateBalance(framework: &signer, account: &signer) {
         fundAccount(framework, account);
         palate::depositBalance(account, TEST_DEPOSIT);
+    }
+
+    fun setAssignmentNonceForStart(admin: &signer, user: address, target_start_index: u64) {
+        let nonce = 0;
+        while (nonce < 128) {
+            palate::setAssignmentNonceForTesting(admin, nonce);
+            if (palate::getNextAssignmentStartIndexForTesting(user) == target_start_index) {
+                return
+            };
+            nonce = nonce + 1;
+        };
+        abort 998
     }
 
     fun assertVaultInvariant() {

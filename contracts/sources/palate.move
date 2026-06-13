@@ -3,6 +3,7 @@ module palate::palate {
     use aptos_framework::coin;
     use aptos_framework::event;
     use aptos_framework::timestamp;
+    use std::bcs;
     use std::signer;
     use std::vector;
 
@@ -100,6 +101,7 @@ module palate::palate {
         commitment_escrow: coin::Coin<AptosCoin>,
         treasury_fees: coin::Coin<AptosCoin>,
         total_treasury_withdrawn: u64,
+        assignment_nonce: u64,
         next_media_id: u64,
         next_push_id: u64,
         next_match_id: u64,
@@ -358,6 +360,7 @@ module palate::palate {
             commitment_escrow: coin::zero<AptosCoin>(),
             treasury_fees: coin::zero<AptosCoin>(),
             total_treasury_withdrawn: 0,
+            assignment_nonce: 0,
             next_media_id: 0,
             next_push_id: 0,
             next_match_id: 0,
@@ -629,13 +632,15 @@ module palate::palate {
         assert!(!hasActiveAssignment(state, user), E_ASSIGNMENT_EXISTS);
 
         let current_time = timestamp::now_seconds();
-        let match_index = findValidAssignmentMatchIndex(state, user, current_time);
+        let assignment_nonce = state.assignment_nonce;
+        let match_index = findValidAssignmentMatchIndex(state, user, current_time, assignment_nonce);
         let active_match = vector::borrow(&state.active_matches, match_index);
         let match_id = active_match.match_id;
         let commitment_amount = state.protocol_config.buff_commitment_amount;
         let skip_penalty_amount_snapshot = state.protocol_config.skip_penalty_amount;
 
         debitAvailableToCommitmentEscrow(state, user, commitment_amount);
+        state.assignment_nonce = assignment_nonce + 1;
 
         vector::push_back(&mut state.user_assignments, UserAssignment {
             user,
@@ -1625,6 +1630,41 @@ module palate::palate {
     }
 
     #[test_only]
+    public entry fun updateMatchConfigForTesting(
+        account: &signer,
+        match_duration_seconds: u64,
+        random_retry_count: u64,
+    ) acquires PalateState {
+        assertInitialized();
+        assert!(signer::address_of(account) == @palate, E_NOT_MODULE_PUBLISHER);
+
+        let state = borrow_global_mut<PalateState>(@palate);
+        state.protocol_config.match_duration_seconds = match_duration_seconds;
+        state.protocol_config.random_retry_count = random_retry_count;
+    }
+
+    #[test_only]
+    public entry fun setAssignmentNonceForTesting(account: &signer, assignment_nonce: u64) acquires PalateState {
+        assertInitialized();
+        assert!(signer::address_of(account) == @palate, E_NOT_MODULE_PUBLISHER);
+
+        borrow_global_mut<PalateState>(@palate).assignment_nonce = assignment_nonce;
+    }
+
+    #[test_only]
+    public fun getNextAssignmentStartIndexForTesting(user: address): u64 acquires PalateState {
+        assertInitialized();
+
+        let state = borrow_global<PalateState>(@palate);
+        calculateAssignmentStartIndex(
+            user,
+            timestamp::now_seconds(),
+            state.assignment_nonce,
+            vector::length(&state.active_matches),
+        )
+    }
+
+    #[test_only]
     public fun getAggregateTotalDepositedForTesting(): u64 acquires PalateState {
         assertInitialized();
         let state = borrow_global<PalateState>(@palate);
@@ -2066,17 +2106,59 @@ module palate::palate {
         *vector::borrow(&state.user_assignments, index)
     }
 
-    fun findValidAssignmentMatchIndex(state: &PalateState, user: address, current_time: u64): u64 {
+    fun findValidAssignmentMatchIndex(
+        state: &PalateState,
+        user: address,
+        current_time: u64,
+        assignment_nonce: u64,
+    ): u64 {
         let length = vector::length(&state.active_matches);
-        let index = 0;
-        while (index < length) {
-            if (isValidAssignmentMatch(state, index, user, current_time)) {
-                return index
+        assert!(length > 0, E_NO_VALID_MATCH);
+
+        let retry_count = state.protocol_config.random_retry_count;
+        assert!(retry_count > 0, E_NO_VALID_MATCH);
+
+        // MVP pseudo-randomness only. This uses public on-chain inputs to avoid
+        // always assigning the first valid match, but it is not mainnet-grade secure randomness.
+        let start_index = calculateAssignmentStartIndex(user, current_time, assignment_nonce, length);
+        let attempts = 0;
+        while (attempts < retry_count && attempts < length) {
+            let candidate_index = (start_index + attempts) % length;
+            if (isValidAssignmentMatch(state, candidate_index, user, current_time)) {
+                return candidate_index
             };
-            index = index + 1;
+            attempts = attempts + 1;
         };
 
         abort E_NO_VALID_MATCH
+    }
+
+    fun calculateAssignmentStartIndex(
+        user: address,
+        current_time: u64,
+        assignment_nonce: u64,
+        active_match_count: u64,
+    ): u64 {
+        assert!(active_match_count > 0, E_NO_VALID_MATCH);
+
+        let user_entropy = calculateAddressEntropy(user, active_match_count);
+        let start_index = user_entropy;
+        start_index = (start_index + current_time % active_match_count) % active_match_count;
+        start_index = (start_index + assignment_nonce % active_match_count) % active_match_count;
+        start_index
+    }
+
+    fun calculateAddressEntropy(user: address, modulo: u64): u64 {
+        let bytes = bcs::to_bytes(&user);
+        let entropy = 0;
+        let index = 0;
+        let length = vector::length(&bytes);
+        while (index < length) {
+            let byte = *vector::borrow(&bytes, index);
+            entropy = (entropy + ((byte as u64) * (index + 1))) % modulo;
+            index = index + 1;
+        };
+        entropy
     }
 
     fun isValidAssignmentMatch(
