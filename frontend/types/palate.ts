@@ -6,6 +6,41 @@ export type ClaimType = "push" | "buff";
 export type UploadStep = "preparing_file" | "uploading_to_shelby" | "registering_on_chain" | "completed" | "failed";
 export type WalletStatus = "disconnected" | "connecting" | "connected" | "wrong_network" | "error";
 export type BuffSide = "A" | "B";
+export type ChainReadStatus = "idle" | "loading" | "ready" | "error";
+
+export type ChainCategoryConstants = {
+  meme: number;
+  image: number;
+  audio: number;
+  video: number;
+};
+
+export type ChainProtocolConfig = {
+  protocolFeeBps: string;
+  minPushAmount: string;
+  minBuffAmount: string;
+  minPushIncrementBps: string;
+  matchDurationSeconds: string;
+  buffCommitmentAmount: string;
+  skipPenaltyAmount: string;
+  randomRetryCount: string;
+  scoreAlgorithmType: number;
+  scoreScale: string;
+  scoreLogBase: string;
+  treasuryAddress: string;
+  adminAddress: string;
+};
+
+export type ChainReadState = {
+  status: ChainReadStatus;
+  networkLabel: string;
+  moduleAddress: string;
+  moduleName: string;
+  categories: ChainCategoryConstants | null;
+  treasuryAddress: string | null;
+  protocolConfig: ChainProtocolConfig | null;
+  error: string | null;
+};
 
 export type MediaRecord = {
   id: number;

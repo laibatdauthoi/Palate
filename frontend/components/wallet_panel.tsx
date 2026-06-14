@@ -14,8 +14,12 @@ const wallet_status_copy = {
   error: "Error"
 } as const;
 
+function shortenAddress(address: string) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
 export function WalletPanel() {
-  const { balance } = usePalate();
+  const { balance, chainRead } = usePalate();
   const {
     availableWallets,
     connectWallet,
@@ -31,7 +35,8 @@ export function WalletPanel() {
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const connected = walletStatus === "connected";
   const statusCopy = connected ? "Connected" : wallet_status_copy[walletStatus];
-  const addressCopy = walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : statusCopy;
+  const addressCopy = walletAddress ? shortenAddress(walletAddress) : statusCopy;
+  const chainStatusCopy = chainRead.status === "ready" ? "Ready" : chainRead.status === "loading" ? "Loading" : chainRead.status === "error" ? "Error" : "Idle";
 
   async function handleConnect(nextWalletName: string) {
     await connectWallet(nextWalletName);
@@ -61,6 +66,17 @@ export function WalletPanel() {
           <p className="wallet_message">Switch to Aptos Testnet before future on-chain actions.</p>
         ) : null}
         {walletError ? <p className="wallet_message wallet_message_error">{walletError}</p> : null}
+        <div className="chain_status_panel">
+          <div className="wallet_panel_header">
+            <span className="chain_status_network">{chainRead.networkLabel}</span>
+            <span className={`chain_status_pill chain_status_${chainRead.status}`}>{chainStatusCopy}</span>
+          </div>
+          <div className="chain_status_rows">
+            <span>Module {shortenAddress(chainRead.moduleAddress)}</span>
+            {chainRead.treasuryAddress ? <span>Treasury {shortenAddress(chainRead.treasuryAddress)}</span> : null}
+            {chainRead.error ? <span className="chain_status_error">Read unavailable</span> : null}
+          </div>
+        </div>
         <div className="wallet_actions">
           {connected ? (
             <ActionButton className="wallet_compact_button" onClick={disconnectWallet} variant="secondary">Disconnect</ActionButton>

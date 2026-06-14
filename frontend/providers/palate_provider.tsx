@@ -1,11 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { mock_balance, mock_claims, mock_matches, mock_media, mock_summary, mock_waiting_pushes } from "@/data/mock_data";
+import { app_config } from "@/config/app_config";
+import { getChainReadSnapshot } from "@/services/aptos_service";
 import type {
   ActiveMatch,
   BuffAssignment,
   BuffSide,
+  ChainReadState,
   ClaimRecord,
   MediaCategory,
   MediaFormat,
@@ -45,6 +48,7 @@ type PalateContextValue = {
   uploadStep: UploadStep | null;
   processingAction: string | null;
   feedback: Feedback;
+  chainRead: ChainReadState;
   clearFeedback: () => void;
   connectMockWallet: () => void;
   disconnectMockWallet: () => void;
@@ -63,6 +67,17 @@ type PalateContextValue = {
 
 const PalateContext = createContext<PalateContextValue | null>(null);
 const mockWalletAddress = mock_summary.walletAddress;
+
+const initial_chain_read_state: ChainReadState = {
+  status: "idle",
+  networkLabel: app_config.networkLabel,
+  moduleAddress: app_config.moduleAddress,
+  moduleName: app_config.moduleName,
+  categories: null,
+  treasuryAddress: null,
+  protocolConfig: null,
+  error: null
+};
 
 function parseApt(value: string) {
   const parsed = Number.parseFloat(value.replace("APT", "").trim());
@@ -125,6 +140,44 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [uploadStep, setUploadStep] = useState<UploadStep | null>(null);
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const [chainRead, setChainRead] = useState<ChainReadState>(initial_chain_read_state);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadChainReadState() {
+      setChainRead((current) => ({ ...current, status: "loading", error: null }));
+
+      try {
+        const snapshot = await getChainReadSnapshot();
+
+        if (cancelled) return;
+
+        setChainRead((current) => ({
+          ...current,
+          status: "ready",
+          categories: snapshot.categories,
+          treasuryAddress: snapshot.treasuryAddress,
+          protocolConfig: snapshot.protocolConfig,
+          error: null
+        }));
+      } catch (error) {
+        if (cancelled) return;
+
+        setChainRead((current) => ({
+          ...current,
+          status: "error",
+          error: error instanceof Error ? error.message : "Aptos read failed."
+        }));
+      }
+    }
+
+    loadChainReadState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function updateAvailableBalance(nextAmount: number) {
     setBalance((current) => ({ ...current, availableBalance: formatApt(nextAmount) }));
@@ -166,6 +219,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       uploadStep,
       processingAction,
       feedback,
+      chainRead,
       clearFeedback: () => setFeedback(null),
       connectMockWallet: () => {
         setWalletStatus("connecting");

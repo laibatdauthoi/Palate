@@ -2015,6 +2015,84 @@ select.input_control option:checked,
   line-height: 1;
 }
 
+.chain_status_panel {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(255, 47, 159, 0.18);
+  border-radius: 13px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
+    rgba(0, 0, 0, 0.2);
+  padding: 8px;
+}
+
+.chain_status_network {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chain_status_pill {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 47, 159, 0.28);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 47, 159, 0.1);
+  color: var(--accent-soft);
+  padding: 3px 6px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.chain_status_ready {
+  border-color: rgba(97, 255, 190, 0.28);
+  background: rgba(97, 255, 190, 0.08);
+  color: #b9ffe4;
+}
+
+.chain_status_error {
+  border-color: rgba(255, 92, 122, 0.35);
+  background: rgba(255, 92, 122, 0.1);
+  color: #ffd7df;
+}
+
+.chain_status_loading {
+  border-color: rgba(242, 184, 75, 0.32);
+  background: rgba(242, 184, 75, 0.1);
+  color: var(--warning-color);
+}
+
+.chain_status_rows {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.chain_status_rows span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chain_status_rows .chain_status_error {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .wallet_balance {
   border-color: transparent;
 }
