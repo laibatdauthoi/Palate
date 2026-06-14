@@ -11,10 +11,11 @@ import { usePalateWallet } from "@/providers/wallet_provider";
 
 export default function ProfilePage() {
   const { balance, claimMockReward, claimRecords, depositBalance, feedback, processingAction, userSummary, withdrawBalance } = usePalate();
-  const { walletAddress } = usePalateWallet();
+  const { walletAddress, walletStatus } = usePalateWallet();
   const [tab, setTab] = useState<"Stats" | "Claims">("Stats");
   const [balanceAmount, setBalanceAmount] = useState("1.000");
   const balanceBusy = processingAction === "deposit" || processingAction === "withdraw";
+  const walletReady = walletStatus === "connected" && Boolean(walletAddress);
   const profile_stats = [
     { label: "Push count", value: userSummary.pushCount },
     { label: "Push wins", value: userSummary.pushWins },
@@ -59,16 +60,17 @@ export default function ProfilePage() {
         </SectionPanel>
       </div>
 
-      <SectionPanel title="Manage Palate Balance" copy="Adjust available Palate Balance for the current session.">
+      <SectionPanel title="Manage Palate Balance" copy="Deposit and withdraw available Palate Balance on Aptos Testnet.">
         <div className="profile_balance_controls">
           <AmountInput label="Amount" onChange={setBalanceAmount} placeholder="1.000 APT" value={balanceAmount} />
-          <ActionButton disabled={balanceBusy} onClick={() => depositBalance(balanceAmount)} variant="secondary">
+          <ActionButton disabled={balanceBusy || !walletReady} onClick={() => depositBalance(balanceAmount)} variant="secondary">
             {processingAction === "deposit" ? "Depositing" : "Deposit"}
           </ActionButton>
-          <ActionButton disabled={balanceBusy} onClick={() => withdrawBalance(balanceAmount)} variant="secondary">
+          <ActionButton disabled={balanceBusy || !walletReady} onClick={() => withdrawBalance(balanceAmount)} variant="secondary">
             {processingAction === "withdraw" ? "Withdrawing" : "Withdraw"}
           </ActionButton>
         </div>
+        {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to manage Palate Balance.</p> : null}
         {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
       </SectionPanel>
 

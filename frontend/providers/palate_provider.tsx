@@ -3,7 +3,16 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { mock_balance, mock_claims, mock_matches, mock_media, mock_summary, mock_waiting_pushes } from "@/data/mock_data";
 import { app_config } from "@/config/app_config";
-import { getChainReadSnapshot } from "@/services/aptos_service";
+import {
+  buildDepositBalancePayload,
+  buildWithdrawBalancePayload,
+  getChainReadSnapshot,
+  getPalateBalance,
+  parseAptToOctas,
+  shortenTransactionHash,
+  waitForPalateTransaction
+} from "@/services/aptos_service";
+import { usePalateWallet } from "@/providers/wallet_provider";
 import type {
   ActiveMatch,
   BuffAssignment,
@@ -125,6 +134,7 @@ function getAccentForCategory(category: MediaCategory): MediaRecord["accent"] {
 }
 
 export function PalateProvider({ children }: { children: ReactNode }) {
+  const { signAndSubmitTransaction, walletAddress, walletStatus: walletConnectionStatus } = usePalateWallet();
   const [walletStatus, setWalletStatus] = useState<WalletStatus>("connected");
   const [balance, setBalance] = useState<PalateBalance>(mock_balance);
   const [mediaRecords, setMediaRecords] = useState<MediaRecord[]>(mock_media);
@@ -203,6 +213,73 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setProcessingAction(null);
   }
 
+  async function refreshPalateBalanceForWallet(ownerAddress: string) {
+    const nextBalance = await getPalateBalance(ownerAddress);
+    setBalance(nextBalance);
+  }
+
+  useEffect(() => {
+    if (walletConnectionStatus !== "connected" || !walletAddress) return;
+
+    let cancelled = false;
+    const ownerAddress = walletAddress;
+
+    async function refreshOnWalletConnect() {
+      try {
+        const nextBalance = await getPalateBalance(ownerAddress);
+        if (!cancelled) {
+          setBalance(nextBalance);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setFeedback({ type: "error", message: error instanceof Error ? error.message : "Unable to load Palate Balance." });
+        }
+      }
+    }
+
+    refreshOnWalletConnect();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [walletAddress, walletConnectionStatus]);
+
+  async function runBalanceTransaction(actionName: "deposit" | "withdraw", amount: string) {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      setFeedback({ type: "error", message: "Connect wallet to manage Palate Balance." });
+      return;
+    }
+
+    setProcessingAction(actionName);
+    setFeedback(null);
+
+    try {
+      const amountOctas = parseAptToOctas(amount);
+
+      if (actionName === "withdraw") {
+        const availableOctas = BigInt(parseAptToOctas(balance.availableBalance, { allowZero: true }));
+        if (BigInt(amountOctas) > availableOctas) {
+          setFeedback({ type: "error", message: "Withdraw rejected: amount exceeds available Palate Balance." });
+          return;
+        }
+      }
+
+      const data = actionName === "deposit" ? buildDepositBalancePayload(amountOctas) : buildWithdrawBalancePayload(amountOctas);
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Transaction submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshPalateBalanceForWallet(walletAddress);
+      setFeedback({
+        type: "success",
+        message: `${actionName === "deposit" ? "Deposit" : "Withdraw"} confirmed ${shortenTransactionHash(transactionHash)}.`
+      });
+    } catch (error) {
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Transaction failed." });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
   const value: PalateContextValue = {
       walletStatus,
       setWalletStatus,
@@ -240,33 +317,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         setWalletStatus("error");
         setFeedback({ type: "error", message: "Wallet error state." });
       },
-      depositBalance: async (amount) => {
-        await runMockAction("deposit", () => {
-          const depositAmount = parseApt(amount);
-          if (depositAmount <= 0) {
-            setFeedback({ type: "error", message: "Enter an amount greater than 0 APT." });
-            return;
-          }
-          addAvailableBalance(depositAmount);
-          setFeedback({ type: "success", message: `Deposit added ${formatApt(depositAmount)} to Palate Balance.` });
-        });
-      },
-      withdrawBalance: async (amount) => {
-        await runMockAction("withdraw", () => {
-          const withdrawAmount = parseApt(amount);
-          const available = getAvailableBalanceNumber();
-          if (withdrawAmount <= 0) {
-            setFeedback({ type: "error", message: "Enter an amount greater than 0 APT." });
-            return;
-          }
-          if (withdrawAmount > available) {
-            setFeedback({ type: "error", message: "Withdraw rejected: amount exceeds available Palate Balance." });
-            return;
-          }
-          subtractAvailableBalance(withdrawAmount);
-          setFeedback({ type: "success", message: `Withdraw removed ${formatApt(withdrawAmount)} from Palate Balance.` });
-        });
-      },
+      depositBalance: async (amount) => runBalanceTransaction("deposit", amount),
+      withdrawBalance: async (amount) => runBalanceTransaction("withdraw", amount),
       findMatch: async () => {
         await runMockAction("findMatch", () => {
           if (currentAssignment) {

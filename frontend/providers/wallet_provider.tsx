@@ -6,6 +6,7 @@ import {
   type AdapterNotDetectedWallet,
   type AdapterWallet
 } from "@aptos-labs/wallet-adapter-react";
+import type { InputTransactionData } from "@aptos-labs/wallet-adapter-core";
 import { Network } from "@aptos-labs/ts-sdk";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import type { WalletStatus } from "@/types/palate";
@@ -21,6 +22,7 @@ type WalletContextValue = {
   walletError: string | null;
   connectWallet: (walletName: string) => Promise<void>;
   disconnectWallet: () => Promise<void>;
+  signAndSubmitTransaction: (transaction: InputTransactionData) => Promise<string>;
 };
 
 const WalletContext = createContext<WalletContextValue | null>(null);
@@ -43,6 +45,7 @@ function WalletBridge({ children }: { children: ReactNode }) {
     isLoading,
     network,
     notDetectedWallets,
+    signAndSubmitTransaction,
     wallet,
     wallets
   } = useWallet();
@@ -87,6 +90,11 @@ function WalletBridge({ children }: { children: ReactNode }) {
       disconnectWallet: async () => {
         setWalletError(null);
         await Promise.resolve(disconnect());
+      },
+      signAndSubmitTransaction: async (transaction: InputTransactionData) => {
+        setWalletError(null);
+        const result = await signAndSubmitTransaction(transaction);
+        return result.hash;
       }
     }),
     [
@@ -95,6 +103,7 @@ function WalletBridge({ children }: { children: ReactNode }) {
       disconnect,
       networkName,
       notDetectedWallets,
+      signAndSubmitTransaction,
       wallet?.name,
       walletAddress,
       walletError,

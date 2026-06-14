@@ -1,5 +1,5 @@
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
-import type { SimpleEntryFunctionArgumentTypes } from "@aptos-labs/ts-sdk";
+import type { InputGenerateTransactionPayloadData, SimpleEntryFunctionArgumentTypes } from "@aptos-labs/ts-sdk";
 import { app_config } from "@/config/app_config";
 import type {
   ActiveMatch,
@@ -15,6 +15,7 @@ import type {
 
 const aptos_config = new AptosConfig({ network: Network.TESTNET });
 const aptos = new Aptos(aptos_config);
+const OCTAS_PER_APT = BigInt(100000000);
 
 const module_id = `${app_config.moduleAddress}::${app_config.moduleName}`;
 
@@ -44,6 +45,37 @@ function asString(value: unknown) {
 
 function asNumber(value: unknown) {
   return Number(value);
+}
+
+export function parseAptToOctas(amount: string, options: { allowZero?: boolean } = {}): string {
+  const normalized = amount.replace(/apt/gi, "").trim();
+  if (!/^\d+(\.\d{0,8})?$/.test(normalized)) {
+    throw new Error("Enter a valid APT amount with up to 8 decimal places.");
+  }
+
+  const [wholePart, decimalPart = ""] = normalized.split(".");
+  const wholeOctas = BigInt(wholePart || "0") * OCTAS_PER_APT;
+  const decimalOctas = BigInt(decimalPart.padEnd(8, "0") || "0");
+  const total = wholeOctas + decimalOctas;
+
+  if (!options.allowZero && total <= BigInt(0)) {
+    throw new Error("Enter an amount greater than 0 APT.");
+  }
+
+  return total.toString();
+}
+
+export function formatOctasToApt(octas: string | number | bigint): string {
+  const value = BigInt(octas);
+  const whole = value / OCTAS_PER_APT;
+  const fractional = value % OCTAS_PER_APT;
+  const fractionalText = fractional.toString().padStart(8, "0").replace(/0+$/, "");
+
+  return `${whole.toString()}${fractionalText ? `.${fractionalText}` : ""} APT`;
+}
+
+export function shortenTransactionHash(hash: string) {
+  return `${hash.slice(0, 8)}...${hash.slice(-6)}`;
 }
 
 export const aptos_service_config = {
@@ -132,6 +164,31 @@ export async function getProtocolConfig(): Promise<ChainProtocolConfig> {
   };
 }
 
+function entryPayload(functionName: string, functionArguments: SimpleEntryFunctionArgumentTypes[]): InputGenerateTransactionPayloadData {
+  return {
+    function: viewFunction(functionName),
+    typeArguments: [],
+    functionArguments
+  };
+}
+
+export function buildDepositBalancePayload(amountOctas: string): InputGenerateTransactionPayloadData {
+  return entryPayload("depositBalance", [amountOctas]);
+}
+
+export function buildWithdrawBalancePayload(amountOctas: string): InputGenerateTransactionPayloadData {
+  return entryPayload("withdrawBalance", [amountOctas]);
+}
+
+export async function waitForPalateTransaction(transactionHash: string) {
+  return aptos.waitForTransaction({
+    transactionHash,
+    options: {
+      checkSuccess: true
+    }
+  });
+}
+
 export async function getChainReadSnapshot() {
   const [categories, protocolConfig] = await Promise.all([
     getCategoryConstants(),
@@ -167,10 +224,34 @@ export async function getCurrentAssignment(_walletAddress: string): Promise<Buff
   notImplemented("getCurrentAssignment");
 }
 
-// Future Aptos view call boundary: read Palate Balance from contract state.
-export async function getPalateBalance(_walletAddress: string): Promise<PalateBalance> {
-  void _walletAddress;
-  notImplemented("getPalateBalance");
+export async function getPalateBalance(walletAddress: string): Promise<PalateBalance> {
+  const [
+    availableBalance,
+    lockedPushAmount,
+    lockedBuffAmount,
+    lockedCommitmentAmount,
+    totalDeposited,
+    totalWithdrawn,
+    totalClaimed
+  ] = await Promise.all([
+    viewOne("getAvailableBalance", [walletAddress]),
+    viewOne("getLockedPushAmount", [walletAddress]),
+    viewOne("getLockedBuffAmount", [walletAddress]),
+    viewOne("getLockedCommitmentAmount", [walletAddress]),
+    viewOne("getTotalDeposited", [walletAddress]),
+    viewOne("getTotalWithdrawn", [walletAddress]),
+    viewOne("getTotalClaimed", [walletAddress])
+  ]);
+
+  return {
+    availableBalance: formatOctasToApt(asString(availableBalance)),
+    lockedPushAmount: formatOctasToApt(asString(lockedPushAmount)),
+    lockedBuffAmount: formatOctasToApt(asString(lockedBuffAmount)),
+    lockedCommitmentAmount: formatOctasToApt(asString(lockedCommitmentAmount)),
+    totalDeposited: formatOctasToApt(asString(totalDeposited)),
+    totalWithdrawn: formatOctasToApt(asString(totalWithdrawn)),
+    totalClaimed: formatOctasToApt(asString(totalClaimed))
+  };
 }
 
 // Future Aptos view call boundary: read claim helpers and claim state.
