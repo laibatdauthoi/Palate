@@ -7,7 +7,10 @@ import type {
   ChainCategoryConstants,
   ChainProtocolConfig,
   ClaimRecord,
+  MediaCategory,
+  MediaFormat,
   MediaRecord,
+  MediaStatus,
   PalateBalance,
   UserSummary,
   WaitingPush
@@ -45,6 +48,85 @@ function asString(value: unknown) {
 
 function asNumber(value: unknown) {
   return Number(value);
+}
+
+function encodeUtf8(value: string): SimpleEntryFunctionArgumentTypes {
+  return new TextEncoder().encode(value);
+}
+
+function decodeUtf8(value: unknown) {
+  if (Array.isArray(value)) {
+    return new TextDecoder().decode(new Uint8Array(value.map((item) => Number(item))));
+  }
+
+  if (typeof value === "string") {
+    if (value.startsWith("0x")) {
+      const hex = value.slice(2);
+      const bytes = hex.match(/.{1,2}/g)?.map((chunk) => Number.parseInt(chunk, 16)) ?? [];
+      return new TextDecoder().decode(new Uint8Array(bytes));
+    }
+
+    return value;
+  }
+
+  return String(value ?? "");
+}
+
+function categoryToChainValue(category: MediaCategory, constants?: ChainCategoryConstants | null) {
+  const fallback: ChainCategoryConstants = { meme: 1, image: 2, audio: 3, video: 4 };
+  return constants?.[category] ?? fallback[category];
+}
+
+function chainCategoryToFrontend(category: number): MediaCategory {
+  if (category === 1) return "meme";
+  if (category === 2) return "image";
+  if (category === 3) return "audio";
+  if (category === 4) return "video";
+  return "image";
+}
+
+function chainStatusToFrontend(status: number): MediaStatus {
+  if (status === 1) return "idle";
+  if (status === 2) return "waiting";
+  if (status === 3) return "active";
+  if (status === 4) return "settled";
+  if (status === 5) return "disabled";
+  if (status === 6) return "banned";
+  return "idle";
+}
+
+function mimeTypeToFormat(mimeType: string): MediaFormat {
+  const normalized = mimeType.toLowerCase();
+  if (normalized.includes("png")) return "PNG";
+  if (normalized.includes("webp")) return "WEBP";
+  if (normalized.includes("gif")) return "GIF";
+  if (normalized.includes("mpeg")) return "MP3";
+  if (normalized.includes("wav")) return "WAV";
+  if (normalized.includes("ogg")) return "OGG";
+  if (normalized.includes("audio/mp4")) return "M4A";
+  if (normalized.includes("video/mp4")) return "MP4";
+  if (normalized.includes("webm")) return "WEBM";
+  if (normalized.includes("quicktime")) return "MOV";
+  return "JPG";
+}
+
+function accentForCategory(category: MediaCategory): MediaRecord["accent"] {
+  if (category === "meme") return "pink";
+  if (category === "image") return "rose";
+  if (category === "audio") return "deep";
+  return "purple";
+}
+
+function formatChainTime(createdTime: string) {
+  const seconds = Number(createdTime);
+  if (!Number.isFinite(seconds) || seconds <= 0) return "On chain";
+  const millis = seconds > 9999999999 ? seconds : seconds * 1000;
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(millis));
 }
 
 export function parseAptToOctas(amount: string, options: { allowZero?: boolean } = {}): string {
@@ -180,6 +262,27 @@ export function buildWithdrawBalancePayload(amountOctas: string): InputGenerateT
   return entryPayload("withdrawBalance", [amountOctas]);
 }
 
+export type RegisterMediaInput = {
+  category: MediaCategory;
+  shelbyBlobRef: string;
+  contentHash: string;
+  mimeType: string;
+  title: string;
+  createdTime: string;
+  categoryConstants?: ChainCategoryConstants | null;
+};
+
+export function buildRegisterMediaPayload(input: RegisterMediaInput): InputGenerateTransactionPayloadData {
+  return entryPayload("registerMedia", [
+    categoryToChainValue(input.category, input.categoryConstants),
+    encodeUtf8(input.shelbyBlobRef),
+    encodeUtf8(input.contentHash),
+    encodeUtf8(input.mimeType),
+    encodeUtf8(input.title),
+    input.createdTime
+  ]);
+}
+
 export async function waitForPalateTransaction(transactionHash: string) {
   return aptos.waitForTransaction({
     transactionHash,
@@ -202,10 +305,50 @@ export async function getChainReadSnapshot() {
   };
 }
 
-// Future Aptos view call boundary: read registered media from Palate contract state.
-export async function getUserMedia(_walletAddress: string): Promise<MediaRecord[]> {
-  void _walletAddress;
-  notImplemented("getUserMedia");
+async function getMediaRecordById(mediaId: string): Promise<MediaRecord> {
+  const [
+    ownerAddress,
+    category,
+    shelbyBlobRef,
+    contentHash,
+    mimeType,
+    title,
+    createdTime,
+    status
+  ] = await Promise.all([
+    viewOne("getMediaOwner", [mediaId]),
+    viewOne("getMediaCategory", [mediaId]),
+    viewOne("getMediaShelbyBlobRef", [mediaId]),
+    viewOne("getMediaContentHash", [mediaId]),
+    viewOne("getMediaMimeType", [mediaId]),
+    viewOne("getMediaTitle", [mediaId]),
+    viewOne("getMediaCreatedTime", [mediaId]),
+    viewOne("getMediaStatus", [mediaId])
+  ]);
+
+  const mediaCategory = chainCategoryToFrontend(asNumber(category));
+  const mediaMimeType = decodeUtf8(mimeType);
+
+  return {
+    id: Number(mediaId),
+    ownerAddress: asString(ownerAddress),
+    title: decodeUtf8(title) || `Media ${mediaId}`,
+    category: mediaCategory,
+    format: mimeTypeToFormat(mediaMimeType),
+    status: chainStatusToFrontend(asNumber(status)),
+    createdTime: formatChainTime(asString(createdTime)),
+    shelbyBlobRef: decodeUtf8(shelbyBlobRef),
+    contentHash: decodeUtf8(contentHash),
+    mimeType: mediaMimeType,
+    accent: accentForCategory(mediaCategory)
+  };
+}
+
+export async function getUserMedia(walletAddress: string): Promise<MediaRecord[]> {
+  const mediaIds = await viewOne<unknown[]>("getUserMedia", [walletAddress]);
+  const normalizedIds = mediaIds.map((mediaId) => asString(mediaId));
+  const records = await Promise.all(normalizedIds.map((mediaId) => getMediaRecordById(mediaId)));
+  return records.sort((a, b) => b.id - a.id);
 }
 
 // Future Aptos view call boundary: read waiting pushes from Palate contract state.

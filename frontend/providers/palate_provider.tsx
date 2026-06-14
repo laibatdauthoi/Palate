@@ -4,10 +4,12 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { mock_balance, mock_claims, mock_matches, mock_media, mock_summary, mock_waiting_pushes } from "@/data/mock_data";
 import { app_config } from "@/config/app_config";
 import {
+  buildRegisterMediaPayload,
   buildDepositBalancePayload,
   buildWithdrawBalancePayload,
   getChainReadSnapshot,
   getPalateBalance,
+  getUserMedia,
   parseAptToOctas,
   shortenTransactionHash,
   waitForPalateTransaction
@@ -39,6 +41,7 @@ type UploadMediaInput = {
   title: string;
   format: MediaFormat;
   mimeType: string;
+  fileName?: string;
 };
 
 type PalateContextValue = {
@@ -55,6 +58,7 @@ type PalateContextValue = {
   claimRecords: ClaimRecord[];
   userSummary: UserSummary;
   uploadStep: UploadStep | null;
+  mediaReadStatus: "idle" | "loading" | "ready" | "error";
   processingAction: string | null;
   feedback: Feedback;
   chainRead: ChainReadState;
@@ -68,6 +72,7 @@ type PalateContextValue = {
   findMatch: () => Promise<void>;
   placeMockBuff: (side: BuffSide, amount: string) => Promise<void>;
   skipMatch: () => Promise<void>;
+  uploadMedia: (input: UploadMediaInput) => Promise<void>;
   uploadMockMedia: (input: UploadMediaInput) => Promise<void>;
   createMockPush: (mediaId: number, amount: string) => Promise<void>;
   challengeMockPush: (pushId: number, challengerMediaId: number, amount: string) => Promise<void>;
@@ -148,6 +153,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [usedMatchIds, setUsedMatchIds] = useState<number[]>([]);
   const [assignmentCursor, setAssignmentCursor] = useState(0);
   const [uploadStep, setUploadStep] = useState<UploadStep | null>(null);
+  const [mediaReadStatus, setMediaReadStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [chainRead, setChainRead] = useState<ChainReadState>(initial_chain_read_state);
@@ -218,6 +224,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setBalance(nextBalance);
   }
 
+  async function refreshUserMediaForWallet(ownerAddress: string) {
+    setMediaReadStatus("loading");
+    try {
+      const nextMedia = await getUserMedia(ownerAddress);
+      setMediaRecords(nextMedia);
+      setMediaReadStatus("ready");
+    } catch (error) {
+      setMediaReadStatus("error");
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Unable to load My Media from chain." });
+    }
+  }
+
   useEffect(() => {
     if (walletConnectionStatus !== "connected" || !walletAddress) return;
 
@@ -226,13 +244,19 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     async function refreshOnWalletConnect() {
       try {
-        const nextBalance = await getPalateBalance(ownerAddress);
+        const [nextBalance, nextMedia] = await Promise.all([
+          getPalateBalance(ownerAddress),
+          getUserMedia(ownerAddress)
+        ]);
         if (!cancelled) {
           setBalance(nextBalance);
+          setMediaRecords(nextMedia);
+          setMediaReadStatus("ready");
         }
       } catch (error) {
         if (!cancelled) {
           setFeedback({ type: "error", message: error instanceof Error ? error.message : "Unable to load Palate Balance." });
+          setMediaReadStatus("error");
         }
       }
     }
@@ -280,6 +304,51 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function registerMediaOnChain(input: UploadMediaInput) {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      setUploadStep("failed");
+      setFeedback({ type: "error", message: "Connect wallet to register media on chain." });
+      return;
+    }
+
+    setProcessingAction("upload");
+    setFeedback(null);
+
+    try {
+      setUploadStep("preparing_file");
+      await delay(330);
+      setUploadStep("uploading_to_shelby");
+      await delay(430);
+      setUploadStep("registering_on_chain");
+
+      const createdTime = Math.floor(Date.now() / 1000).toString();
+      const safeTitle = input.title.trim() || `Palate ${getCategoryLabel(input.category)}`;
+      const safeFileName = encodeURIComponent(input.fileName || `${safeTitle}.${input.format.toLowerCase()}`);
+      const shelbyBlobRef = `pending-shelby://${walletAddress}/${createdTime}/${safeFileName}`;
+      const contentHash = `pending-content-${createdTime}-${input.format.toLowerCase()}`;
+      const data = buildRegisterMediaPayload({
+        category: input.category,
+        shelbyBlobRef,
+        contentHash,
+        mimeType: input.mimeType || getMimeType(input.format),
+        title: safeTitle,
+        createdTime,
+        categoryConstants: chainRead.categories
+      });
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshUserMediaForWallet(walletAddress);
+      setUploadStep("completed");
+      setFeedback({ type: "success", message: `Media registered on chain ${shortenTransactionHash(transactionHash)}.` });
+    } catch (error) {
+      setUploadStep("failed");
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Media registration failed." });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
   const value: PalateContextValue = {
       walletStatus,
       setWalletStatus,
@@ -294,6 +363,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       claimRecords,
       userSummary,
       uploadStep,
+      mediaReadStatus,
       processingAction,
       feedback,
       chainRead,
@@ -381,6 +451,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           setFeedback({ type: "info", message: `Skip Match applied a ${formatApt(penalty)} penalty and cleared the assignment.` });
         });
       },
+      uploadMedia: registerMediaOnChain,
       uploadMockMedia: async (input) => {
         setProcessingAction("upload");
         setFeedback(null);

@@ -3,10 +3,14 @@
 import { useMemo, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
+import { EmptyState } from "@/components/empty_state";
+import { ErrorState } from "@/components/error_state";
+import { LoadingState } from "@/components/loading_state";
 import { MediaCard } from "@/components/media_card";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
+import { usePalateWallet } from "@/providers/wallet_provider";
 import type { MediaCategory, MediaStatus } from "@/types/palate";
 
 const statuses = ["All", "Idle", "Waiting", "Active", "Settled"] as const;
@@ -26,10 +30,12 @@ const category_values = {
 } as const satisfies Record<Exclude<(typeof categories)[number], "All Categories">, MediaCategory>;
 
 export default function MyMediaPage() {
-  const { mediaRecords } = usePalate();
+  const { mediaReadStatus, mediaRecords } = usePalate();
+  const { walletStatus } = usePalateWallet();
   const [status, setStatus] = useState<(typeof statuses)[number]>("All");
   const [category, setCategory] = useState<CategoryFilter>("All Categories");
   const categoryOptions: DropdownOption<CategoryFilter>[] = categories.map((item) => ({ label: item, value: item }));
+  const walletReady = walletStatus === "connected";
 
   const filteredMedia = useMemo(() => {
     return mediaRecords.filter((media) => {
@@ -59,17 +65,24 @@ export default function MyMediaPage() {
           </div>
           <CustomDropdown label="Category" onChange={setCategory} options={categoryOptions} value={category} />
         </div>
+        {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to load your on-chain media.</p> : null}
       </SectionPanel>
 
-      <div className="media_grid">
-        {filteredMedia.map((media) => (
-          <MediaCard
-            key={media.id}
-            media={media}
-            actionLabel={media.status === "idle" ? "Push" : media.status === "waiting" ? "Waiting" : media.status === "active" ? "View Match" : "View Result"}
-          />
-        ))}
-      </div>
+      {walletReady && mediaReadStatus === "loading" ? <LoadingState label="Loading on-chain media" /> : null}
+      {walletReady && mediaReadStatus === "error" ? <ErrorState title="Media read failed" copy="Local inventory remains available while the chain read is retried later." /> : null}
+      {filteredMedia.length === 0 && mediaReadStatus !== "loading" ? (
+        <EmptyState title="No media found" copy="Upload and register media to start building your Palate inventory." actionLabel="Upload Media" actionHref="/my-media/upload" />
+      ) : (
+        <div className="media_grid">
+          {filteredMedia.map((media) => (
+            <MediaCard
+              key={media.id}
+              media={media}
+              actionLabel={media.status === "idle" ? "Push" : media.status === "waiting" ? "Waiting" : media.status === "active" ? "View Match" : "View Result"}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
