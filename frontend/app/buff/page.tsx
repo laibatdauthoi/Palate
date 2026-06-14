@@ -9,10 +9,12 @@ import { LoadingState } from "@/components/loading_state";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
+import { formatOctasToApt } from "@/services/aptos_service";
 
 export default function BuffPage() {
   const {
     completedBuffSide,
+    chainRead,
     currentAssignment,
     feedback,
     findMatch,
@@ -24,6 +26,7 @@ export default function BuffPage() {
   const [buffAmount, setBuffAmount] = useState("0.250");
   const assignedMatch = currentAssignment?.match;
   const buffBusy = processingAction === "findMatch" || processingAction === "placeBuff" || processingAction === "skipMatch";
+  const minBuffAmountLabel = chainRead.protocolConfig?.minBuffAmount ? formatOctasToApt(chainRead.protocolConfig.minBuffAmount) : "0.1 APT";
 
   return (
     <div className="page_stack page_buff">
@@ -41,6 +44,7 @@ export default function BuffPage() {
           buffAmount={buffAmount}
           loading={buffBusy}
           match={assignedMatch}
+          minBuffAmountLabel={minBuffAmountLabel}
           onBuffA={() => placeMockBuff("A", buffAmount)}
           onBuffAmountChange={setBuffAmount}
           onBuffB={() => placeMockBuff("B", buffAmount)}

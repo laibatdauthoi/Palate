@@ -95,6 +95,18 @@ function chainStatusToFrontend(status: number): MediaStatus {
   return "idle";
 }
 
+function chainWaitingPushStatusToFrontend(status: number): WaitingPush["status"] {
+  if (status === 1) return "open";
+  if (status === 2) return "cancelled";
+  if (status === 3) return "challenged";
+  return "open";
+}
+
+function chainMatchStatusToFrontend(status: number): ActiveMatch["status"] {
+  if (status === 2) return "settled";
+  return "active";
+}
+
 function mimeTypeToFormat(mimeType: string): MediaFormat {
   const normalized = mimeType.toLowerCase();
   if (normalized.includes("png")) return "PNG";
@@ -129,6 +141,18 @@ function formatChainTime(createdTime: string) {
   }).format(new Date(millis));
 }
 
+function formatTimeRemaining(endTime: string) {
+  const endSeconds = Number(endTime);
+  if (!Number.isFinite(endSeconds) || endSeconds <= 0) return "On chain";
+
+  const remainingSeconds = Math.max(0, endSeconds - Math.floor(Date.now() / 1000));
+  const hours = Math.floor(remainingSeconds / 3600);
+  const minutes = Math.floor((remainingSeconds % 3600) / 60);
+  const seconds = remainingSeconds % 60;
+
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
 export function parseAptToOctas(amount: string, options: { allowZero?: boolean } = {}): string {
   const normalized = amount.replace(/apt/gi, "").trim();
   if (!/^\d+(\.\d{0,8})?$/.test(normalized)) {
@@ -158,6 +182,29 @@ export function formatOctasToApt(octas: string | number | bigint): string {
 
 export function shortenTransactionHash(hash: string) {
   return `${hash.slice(0, 8)}...${hash.slice(-6)}`;
+}
+
+export function getReadablePalateError(error: unknown, fallback = "Transaction failed.") {
+  const rawMessage = error instanceof Error ? error.message : String(error ?? "");
+  const normalized = rawMessage.toLowerCase();
+
+  if (rawMessage.includes("E_PUSH_AMOUNT_TOO_LOW") || normalized.includes("abort_code: 8") || normalized.includes("abort code: 8") || normalized.includes("code: 8")) {
+    return "Push amount is below the minimum.";
+  }
+  if (rawMessage.includes("E_CHALLENGE_AMOUNT_TOO_LOW") || normalized.includes("abort_code: 13") || normalized.includes("abort code: 13") || normalized.includes("code: 13")) {
+    return "Challenge amount is below the required minimum.";
+  }
+  if (rawMessage.includes("E_BUFF_AMOUNT_TOO_LOW") || normalized.includes("abort_code: 20") || normalized.includes("abort code: 20") || normalized.includes("code: 20")) {
+    return "Buff amount is below the minimum.";
+  }
+  if (rawMessage.includes("E_CATEGORY_MISMATCH") || normalized.includes("abort_code: 12") || normalized.includes("abort code: 12") || normalized.includes("code: 12")) {
+    return "Media categories must match.";
+  }
+  if (rawMessage.includes("E_INSUFFICIENT_AVAILABLE_BALANCE") || normalized.includes("abort_code: 31") || normalized.includes("abort code: 31") || normalized.includes("code: 31") || normalized.includes("insufficient")) {
+    return "Not enough Palate Balance.";
+  }
+
+  return rawMessage || fallback;
 }
 
 export const aptos_service_config = {
@@ -262,6 +309,14 @@ export function buildWithdrawBalancePayload(amountOctas: string): InputGenerateT
   return entryPayload("withdrawBalance", [amountOctas]);
 }
 
+export function buildCreatePushPayload(mediaId: number | string, pushAmountOctas: string): InputGenerateTransactionPayloadData {
+  return entryPayload("createPush", [String(mediaId), pushAmountOctas]);
+}
+
+export function buildChallengePushPayload(pushId: number | string, challengerMediaId: number | string, pushAmountOctas: string): InputGenerateTransactionPayloadData {
+  return entryPayload("challengePush", [String(pushId), String(challengerMediaId), pushAmountOctas]);
+}
+
 export type RegisterMediaInput = {
   category: MediaCategory;
   shelbyBlobRef: string;
@@ -331,6 +386,8 @@ async function getMediaRecordById(mediaId: string): Promise<MediaRecord> {
 
   return {
     id: Number(mediaId),
+    palateMediaId: Number(mediaId),
+    source: "palate",
     ownerAddress: asString(ownerAddress),
     title: decodeUtf8(title) || `Media ${mediaId}`,
     category: mediaCategory,
@@ -351,14 +408,90 @@ export async function getUserMedia(walletAddress: string): Promise<MediaRecord[]
   return records.sort((a, b) => b.id - a.id);
 }
 
-// Future Aptos view call boundary: read waiting pushes from Palate contract state.
-export async function getWaitingPushes(): Promise<WaitingPush[]> {
-  notImplemented("getWaitingPushes");
+async function getWaitingPushById(pushId: string): Promise<WaitingPush> {
+  const [
+    mediaId,
+    pusherAddress,
+    pushAmount,
+    status,
+    minChallengeAmount
+  ] = await Promise.all([
+    viewOne("getWaitingPushMediaId", [pushId]),
+    viewOne("getWaitingPushPusher", [pushId]),
+    viewOne("getWaitingPushAmount", [pushId]),
+    viewOne("getWaitingPushStatus", [pushId]),
+    viewOne("getMinimumChallengeAmount", [pushId])
+  ]);
+
+  const media = await getMediaRecordById(asString(mediaId));
+
+  return {
+    id: Number(pushId),
+    media,
+    pusherAddress: asString(pusherAddress),
+    pushAmount: formatOctasToApt(asString(pushAmount)),
+    pushAmountOctas: asString(pushAmount),
+    minChallengeAmount: formatOctasToApt(asString(minChallengeAmount)),
+    minChallengeAmountOctas: asString(minChallengeAmount),
+    createdTime: "On chain",
+    status: chainWaitingPushStatusToFrontend(asNumber(status))
+  };
 }
 
-// Future Aptos view call boundary: read active matches from Palate contract state.
+export async function getWaitingPushes(): Promise<WaitingPush[]> {
+  const pushIds = await viewOne<unknown[]>("getWaitingPushes");
+  const normalizedIds = pushIds.map((pushId) => asString(pushId));
+  const records = await Promise.all(normalizedIds.map((pushId) => getWaitingPushById(pushId)));
+  return records.sort((a, b) => b.id - a.id);
+}
+
+async function getActiveMatchById(matchId: string): Promise<ActiveMatch> {
+  const [
+    mediaAId,
+    mediaBId,
+    pusherA,
+    pusherB,
+    pushAmountA,
+    pushAmountB,
+    category,
+    endTime,
+    status
+  ] = await Promise.all([
+    viewOne("getMatchMediaAId", [matchId]),
+    viewOne("getMatchMediaBId", [matchId]),
+    viewOne("getMatchPusherA", [matchId]),
+    viewOne("getMatchPusherB", [matchId]),
+    viewOne("getMatchPushAmountA", [matchId]),
+    viewOne("getMatchPushAmountB", [matchId]),
+    viewOne("getMatchCategory", [matchId]),
+    viewOne("getMatchEndTime", [matchId]),
+    viewOne("getMatchStatus", [matchId])
+  ]);
+
+  const [mediaA, mediaB] = await Promise.all([
+    getMediaRecordById(asString(mediaAId)),
+    getMediaRecordById(asString(mediaBId))
+  ]);
+
+  return {
+    id: Number(matchId),
+    mediaA,
+    mediaB,
+    pusherA: asString(pusherA),
+    pusherB: asString(pusherB),
+    pushAmountA: formatOctasToApt(asString(pushAmountA)),
+    pushAmountB: formatOctasToApt(asString(pushAmountB)),
+    category: chainCategoryToFrontend(asNumber(category)),
+    timeRemaining: formatTimeRemaining(asString(endTime)),
+    status: chainMatchStatusToFrontend(asNumber(status))
+  };
+}
+
 export async function getActiveMatches(): Promise<ActiveMatch[]> {
-  notImplemented("getActiveMatches");
+  const matchIds = await viewOne<unknown[]>("getActiveMatches");
+  const normalizedIds = matchIds.map((matchId) => asString(matchId));
+  const records = await Promise.all(normalizedIds.map((matchId) => getActiveMatchById(matchId)));
+  return records.sort((a, b) => b.id - a.id);
 }
 
 // Future Aptos view call boundary: read current assignment for a wallet.

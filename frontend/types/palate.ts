@@ -3,7 +3,7 @@ export type MediaFormat = "PNG" | "JPG" | "JPEG" | "WEBP" | "GIF" | "MP3" | "WAV
 export type MediaStatus = "idle" | "waiting" | "active" | "settled" | "disabled" | "banned" | "pending_registration" | "registration_failed";
 export type MatchStatus = "active" | "settled";
 export type ClaimType = "push" | "buff";
-export type MediaSource = "palate_contract" | "palate_upload_recovery";
+export type MediaSource = "palate" | "palate_upload_recovery";
 export type UploadStep =
   | "idle"
   | "preparing_file"
@@ -80,7 +80,9 @@ export type WaitingPush = {
   media: MediaRecord;
   pusherAddress: string;
   pushAmount: string;
+  pushAmountOctas?: string;
   minChallengeAmount: string;
+  minChallengeAmountOctas?: string;
   createdTime: string;
   status: "open" | "cancelled" | "challenged";
 };

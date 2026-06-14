@@ -4,12 +4,18 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { mock_balance, mock_claims, mock_matches, mock_media, mock_summary, mock_waiting_pushes } from "@/data/mock_data";
 import { app_config } from "@/config/app_config";
 import {
+  buildChallengePushPayload,
+  buildCreatePushPayload,
   buildRegisterMediaPayload,
   buildDepositBalancePayload,
   buildWithdrawBalancePayload,
+  formatOctasToApt,
+  getActiveMatches as readActiveMatches,
   getChainReadSnapshot,
   getPalateBalance,
+  getReadablePalateError,
   getUserMedia,
+  getWaitingPushes as readWaitingPushes,
   parseAptToOctas,
   shortenTransactionHash,
   waitForPalateTransaction
@@ -106,6 +112,8 @@ type PalateContextValue = {
   clearPendingRegistration: (mediaId: number) => void;
   resetUploadFlow: () => void;
   uploadMockMedia: (input: UploadMediaInput) => Promise<void>;
+  createPush: (mediaId: number, amount: string) => Promise<void>;
+  challengePush: (pushId: number, challengerMediaId: number, amount: string) => Promise<void>;
   createMockPush: (mediaId: number, amount: string) => Promise<void>;
   challengeMockPush: (pushId: number, challengerMediaId: number, amount: string) => Promise<void>;
   claimMockReward: (claimId: number) => Promise<void>;
@@ -316,6 +324,22 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     return parseApt(balance.availableBalance);
   }
 
+  function getRequiredConfigAmount(field: "minPushAmount" | "minBuffAmount") {
+    const value = chainRead.protocolConfig?.[field];
+    if (!value) {
+      throw new Error("Protocol config is still loading. Try again in a moment.");
+    }
+    return BigInt(value);
+  }
+
+  function getMinimumChallengeAmountOctas(push: WaitingPush) {
+    if (push.minChallengeAmountOctas) {
+      return BigInt(push.minChallengeAmountOctas);
+    }
+
+    return BigInt(parseAptToOctas(push.minChallengeAmount));
+  }
+
   function addAvailableBalance(amount: number) {
     updateAvailableBalance(getAvailableBalanceNumber() + amount);
   }
@@ -349,6 +373,21 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function refreshWalletGameState(ownerAddress: string) {
+    const [nextBalance, nextMedia, nextWaitingPushes, nextActiveMatches] = await Promise.all([
+      getPalateBalance(ownerAddress),
+      getUserMedia(ownerAddress),
+      readWaitingPushes(),
+      readActiveMatches()
+    ]);
+
+    setBalance(nextBalance);
+    setMediaRecords(nextMedia);
+    setWaitingPushes(nextWaitingPushes);
+    setActiveMatches(nextActiveMatches);
+    setMediaReadStatus("ready");
+  }
+
   useEffect(() => {
     if (walletConnectionStatus !== "connected" || !walletAddress) return;
 
@@ -357,14 +396,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     async function refreshOnWalletConnect() {
       try {
-        const [nextBalance, nextMedia] = await Promise.all([
-          getPalateBalance(ownerAddress),
-          getUserMedia(ownerAddress)
-        ]);
         if (!cancelled) {
-          setBalance(nextBalance);
-          setMediaRecords(nextMedia);
-          setMediaReadStatus("ready");
+          await refreshWalletGameState(ownerAddress);
         }
       } catch (error) {
         if (!cancelled) {
@@ -411,7 +444,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         message: `${actionName === "deposit" ? "Deposit" : "Withdraw"} confirmed ${shortenTransactionHash(transactionHash)}.`
       });
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Transaction failed." });
+      console.error(`${actionName}Balance failed`, error);
+      setFeedback({ type: "error", message: getReadablePalateError(error, "Transaction failed.") });
     } finally {
       setProcessingAction(null);
     }
@@ -710,6 +744,99 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setFeedback({ type: "info", message: "Registration recovery item cleared from this browser." });
   }
 
+  function getEligiblePalateMedia(mediaId: number) {
+    return mediaRecords.find((media) =>
+      media.id === mediaId
+        && media.source === "palate"
+        && media.palateMediaId !== null
+        && media.palateMediaId !== undefined
+        && media.status === "idle"
+    );
+  }
+
+  async function createPushOnChain(mediaId: number, amount: string) {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      setFeedback({ type: "error", message: "Connect wallet to create a Push." });
+      return;
+    }
+
+    const media = getEligiblePalateMedia(mediaId);
+    if (!media) {
+      setFeedback({ type: "error", message: "Choose registered idle Palate media to create a Push." });
+      return;
+    }
+
+    try {
+      const amountOctas = parseAptToOctas(amount);
+      const minPushAmount = getRequiredConfigAmount("minPushAmount");
+      if (BigInt(amountOctas) < minPushAmount) {
+        setFeedback({ type: "error", message: `Minimum push is ${formatOctasToApt(minPushAmount)}.` });
+        return;
+      }
+
+      setProcessingAction("createPush");
+      setFeedback(null);
+
+      const data = buildCreatePushPayload(media.palateMediaId ?? media.id, amountOctas);
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Create Push submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshWalletGameState(walletAddress);
+      setFeedback({ type: "success", message: `Push created ${shortenTransactionHash(transactionHash)}.` });
+    } catch (error) {
+      console.error("createPush failed", error);
+      setFeedback({ type: "error", message: getReadablePalateError(error, "Create Push failed.") });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
+  async function challengePushOnChain(pushId: number, challengerMediaId: number, amount: string) {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      setFeedback({ type: "error", message: "Connect wallet to challenge a Push." });
+      return;
+    }
+
+    const selectedPush = waitingPushes.find((push) => push.id === pushId && push.status === "open");
+    const challengerMedia = getEligiblePalateMedia(challengerMediaId);
+
+    if (!selectedPush || !challengerMedia) {
+      setFeedback({ type: "error", message: "Select an open waiting push and registered idle challenger media." });
+      return;
+    }
+
+    if (challengerMedia.category !== selectedPush.media.category) {
+      setFeedback({ type: "error", message: "Challenge rejected: media categories must match." });
+      return;
+    }
+
+    try {
+      const amountOctas = parseAptToOctas(amount);
+      const minPushAmount = getRequiredConfigAmount("minPushAmount");
+      const requiredChallengeAmount = getMinimumChallengeAmountOctas(selectedPush);
+      const requiredAmount = requiredChallengeAmount > minPushAmount ? requiredChallengeAmount : minPushAmount;
+      if (BigInt(amountOctas) < requiredAmount) {
+        setFeedback({ type: "error", message: `Minimum challenge is ${formatOctasToApt(requiredAmount)}.` });
+        return;
+      }
+
+      setProcessingAction("challengePush");
+      setFeedback(null);
+
+      const data = buildChallengePushPayload(pushId, challengerMedia.palateMediaId ?? challengerMedia.id, amountOctas);
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Challenge submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshWalletGameState(walletAddress);
+      setFeedback({ type: "success", message: `Challenge accepted ${shortenTransactionHash(transactionHash)}.` });
+    } catch (error) {
+      console.error("challengePush failed", error);
+      setFeedback({ type: "error", message: getReadablePalateError(error, "Challenge Push failed.") });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
   const visibleMediaRecords = [
     ...pendingRegistrationMedia.filter((media) => !walletAddress || media.ownerAddress.toLowerCase() === walletAddress.toLowerCase()),
     ...mediaRecords
@@ -784,13 +911,27 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       },
       placeMockBuff: async (side, amount) => {
         await runMockAction("placeBuff", () => {
+          let buffAmountOctas: string;
+          try {
+            buffAmountOctas = parseAptToOctas(amount);
+          } catch (error) {
+            setFeedback({ type: "error", message: error instanceof Error ? error.message : "Enter a valid Buff amount." });
+            return;
+          }
           const buffAmount = parseApt(amount);
           if (!currentAssignment) {
             setFeedback({ type: "error", message: "Find Match before placing a Buff." });
             return;
           }
-          if (buffAmount < 0.1) {
-            setFeedback({ type: "error", message: "Buff rejected: minimum is 0.10 APT." });
+          let minBuffAmount: bigint;
+          try {
+            minBuffAmount = getRequiredConfigAmount("minBuffAmount");
+          } catch (error) {
+            setFeedback({ type: "error", message: error instanceof Error ? error.message : "Protocol config is still loading." });
+            return;
+          }
+          if (BigInt(buffAmountOctas) < minBuffAmount) {
+            setFeedback({ type: "error", message: `Minimum Buff is ${formatOctasToApt(minBuffAmount)}.` });
             return;
           }
           if (buffAmount > getAvailableBalanceNumber()) {
@@ -847,6 +988,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         setFeedback({ type: "success", message: "Upload completed and media was added to My Media." });
         setProcessingAction(null);
       },
+      createPush: createPushOnChain,
+      challengePush: challengePushOnChain,
       createMockPush: async (mediaId, amount) => {
         await runMockAction("createPush", () => {
           const media = mediaRecords.find((record) => record.id === mediaId);

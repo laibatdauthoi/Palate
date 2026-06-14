@@ -9,6 +9,7 @@ type BuffPanelProps = {
   match: ActiveMatch;
   skipPenalty: string;
   buffAmount: string;
+  minBuffAmountLabel?: string;
   onBuffAmountChange: (value: string) => void;
   onBuffA: () => void;
   onBuffB: () => void;
@@ -16,7 +17,7 @@ type BuffPanelProps = {
   loading?: boolean;
 };
 
-export function BuffPanel({ match, skipPenalty, buffAmount, onBuffAmountChange, onBuffA, onBuffB, onSkip, loading = false }: BuffPanelProps) {
+export function BuffPanel({ match, skipPenalty, buffAmount, minBuffAmountLabel = "0.1 APT", onBuffAmountChange, onBuffA, onBuffB, onSkip, loading = false }: BuffPanelProps) {
   return (
     <section className="buff_panel">
       <div className="buff_panel_top">
@@ -38,7 +39,7 @@ export function BuffPanel({ match, skipPenalty, buffAmount, onBuffAmountChange, 
         <BuffDecisionCard side="B" media={match.mediaB} />
       </div>
       <div className="buff_action_bar">
-        <AmountInput label="Buff amount" onChange={onBuffAmountChange} placeholder="0.10 APT minimum" value={buffAmount} />
+        <AmountInput label="Buff amount" onChange={onBuffAmountChange} placeholder={`Minimum ${minBuffAmountLabel}`} value={buffAmount} />
         <div className="buff_action_buttons">
           <ActionButton className="buff_choice_button" disabled={loading} onClick={onBuffA}>{loading ? "Submitting" : "Buff A"}</ActionButton>
           <ActionButton className="buff_choice_button" disabled={loading} onClick={onBuffB}>{loading ? "Submitting" : "Buff B"}</ActionButton>
