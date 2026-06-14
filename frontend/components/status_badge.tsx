@@ -1,6 +1,6 @@
 import type { MediaStatus } from "@/types/palate";
 
-type StatusBadgeValue = MediaStatus | "open" | "claimable" | "pending" | "claimed";
+type StatusBadgeValue = MediaStatus | "open" | "claimable" | "pending" | "claimed" | "invalid_media_type";
 
 const labels: Record<StatusBadgeValue, string> = {
   idle: "Idle",
@@ -11,6 +11,7 @@ const labels: Record<StatusBadgeValue, string> = {
   banned: "Banned",
   pending_registration: "Pending registration",
   registration_failed: "Registration failed",
+  invalid_media_type: "Invalid media type",
   open: "Open",
   claimable: "Claimable",
   pending: "Pending",

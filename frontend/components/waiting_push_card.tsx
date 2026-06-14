@@ -2,6 +2,7 @@ import type { WaitingPush } from "@/types/palate";
 import { ActionButton } from "./action_button";
 import { CategoryBadge } from "./category_badge";
 import { FormatBadge } from "./format_badge";
+import { MediaRenderer } from "./media_renderer";
 import { StatusBadge } from "./status_badge";
 
 type WaitingPushCardProps = {
@@ -13,7 +14,7 @@ export function WaitingPushCard({ push, onChallenge }: WaitingPushCardProps) {
   return (
     <article className="waiting_push_card">
       <div className={`waiting_media media_preview_${push.media.accent}`}>
-        <span>{push.media.title}</span>
+        <MediaRenderer media={push.media} />
       </div>
       <div className="waiting_push_body">
         <div className="spread">

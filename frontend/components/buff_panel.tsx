@@ -10,6 +10,8 @@ type BuffPanelProps = {
   skipPenalty: string;
   buffAmount: string;
   minBuffAmountLabel?: string;
+  buffHelperText?: string;
+  disableBuffActions?: boolean;
   onBuffAmountChange: (value: string) => void;
   onBuffA: () => void;
   onBuffB: () => void;
@@ -17,7 +19,19 @@ type BuffPanelProps = {
   loading?: boolean;
 };
 
-export function BuffPanel({ match, skipPenalty, buffAmount, minBuffAmountLabel = "0.1 APT", onBuffAmountChange, onBuffA, onBuffB, onSkip, loading = false }: BuffPanelProps) {
+export function BuffPanel({
+  match,
+  skipPenalty,
+  buffAmount,
+  minBuffAmountLabel = "0.1 APT",
+  buffHelperText,
+  disableBuffActions = false,
+  onBuffAmountChange,
+  onBuffA,
+  onBuffB,
+  onSkip,
+  loading = false
+}: BuffPanelProps) {
   return (
     <section className="buff_panel">
       <div className="buff_panel_top">
@@ -39,10 +53,13 @@ export function BuffPanel({ match, skipPenalty, buffAmount, minBuffAmountLabel =
         <BuffDecisionCard side="B" media={match.mediaB} />
       </div>
       <div className="buff_action_bar">
-        <AmountInput label="Buff amount" onChange={onBuffAmountChange} placeholder={`Minimum ${minBuffAmountLabel}`} value={buffAmount} />
+        <div className="amount_field_stack">
+          <AmountInput label="Buff amount" onChange={onBuffAmountChange} placeholder={`Minimum ${minBuffAmountLabel}`} value={buffAmount} />
+          {buffHelperText ? <p className={`amount_helper ${disableBuffActions ? "amount_helper_error" : ""}`}>{buffHelperText}</p> : null}
+        </div>
         <div className="buff_action_buttons">
-          <ActionButton className="buff_choice_button" disabled={loading} onClick={onBuffA}>{loading ? "Submitting" : "Buff A"}</ActionButton>
-          <ActionButton className="buff_choice_button" disabled={loading} onClick={onBuffB}>{loading ? "Submitting" : "Buff B"}</ActionButton>
+          <ActionButton className="buff_choice_button" disabled={loading || disableBuffActions} onClick={onBuffA}>{loading ? "Submitting" : "Buff A"}</ActionButton>
+          <ActionButton className="buff_choice_button" disabled={loading || disableBuffActions} onClick={onBuffB}>{loading ? "Submitting" : "Buff B"}</ActionButton>
           <ActionButton className="skip_match_button" disabled={loading} onClick={onSkip} variant="danger">{loading ? "Skipping" : "Skip Match"}</ActionButton>
         </div>
         <p className="danger_note">Skip Match penalty: {skipPenalty}. Skipping clears this assignment.</p>

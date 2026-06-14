@@ -189,7 +189,7 @@ function getShelbyUploadResult(registeredUpload: RegisteredShelbyUpload): Shelby
 }
 
 export function getShelbyDisplaySource(media: MediaRecord): string {
-  return media.shelbyBlobRef;
+  return media.displayUrl || media.shelbyBlobRef;
 }
 
 export const shelby_service_config = {

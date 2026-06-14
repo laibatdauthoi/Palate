@@ -11,8 +11,9 @@ import { SectionPanel } from "@/components/section_panel";
 import { WaitingPushCard } from "@/components/waiting_push_card";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
-import { formatOctasToApt } from "@/services/aptos_service";
+import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
 import type { MediaCategory } from "@/types/palate";
+import { isMediaCategoryCompatible } from "@/utils/media_file_validation";
 
 const category_labels: Record<MediaCategory, string> = {
   meme: "Meme",
@@ -31,14 +32,31 @@ export default function PushPage() {
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
   const [challengeMediaId, setChallengeMediaId] = useState("");
   const [challengeAmount, setChallengeAmount] = useState("6.510");
-  const openWaitingPushes = waitingPushes.filter((push) => push.status === "open");
+  const openWaitingPushes = waitingPushes.filter((push) =>
+    push.status === "open" && isMediaCategoryCompatible(push.media.category, push.media.mimeType, push.media.originalFileName)
+  );
   const selectedPush = openWaitingPushes.find((push) => push.id === challengePushId) ?? openWaitingPushes[0];
-  const idleMedia = mediaRecords.filter((media) => media.status === "idle" && media.source === "palate" && media.palateMediaId !== null && media.palateMediaId !== undefined);
+  const idleMedia = mediaRecords.filter((media) =>
+    media.status === "idle"
+      && media.source === "palate"
+      && media.palateMediaId !== null
+      && media.palateMediaId !== undefined
+      && isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName)
+  );
   const challengeOptions = selectedPush ? idleMedia.filter((media) => media.category === selectedPush.media.category) : idleMedia;
   const pushBusy = processingAction === "createPush" || processingAction === "challengePush";
   const walletReady = walletStatus === "connected";
-  const minPushLabel = chainRead.protocolConfig?.minPushAmount ? formatOctasToApt(chainRead.protocolConfig.minPushAmount) : "1 APT";
-  const requiredChallengeLabel = selectedPush?.minChallengeAmount ?? minPushLabel;
+  const minPushOctas = chainRead.protocolConfig?.minPushAmount ? BigInt(chainRead.protocolConfig.minPushAmount) : null;
+  const minPushLabel = minPushOctas !== null ? formatOctasToApt(minPushOctas) : "loading";
+  const requiredChallengeOctas = selectedPush?.minChallengeAmountOctas
+    ? BigInt(selectedPush.minChallengeAmountOctas)
+    : minPushOctas;
+  const effectiveChallengeOctas = minPushOctas !== null && requiredChallengeOctas !== null
+    ? (requiredChallengeOctas > minPushOctas ? requiredChallengeOctas : minPushOctas)
+    : null;
+  const requiredChallengeLabel = effectiveChallengeOctas !== null ? formatOctasToApt(effectiveChallengeOctas) : minPushLabel;
+  const createAmountValidation = validateAmount(createAmount, minPushOctas, "Minimum Push");
+  const challengeAmountValidation = validateAmount(challengeAmount, effectiveChallengeOctas, "Minimum challenge");
   const idleMediaOptions: DropdownOption<string>[] = [
     { label: "Select idle media", value: "" },
     ...idleMedia.map((media) => ({
@@ -90,8 +108,13 @@ export default function PushPage() {
       <SectionPanel title="Create push" copy="Use Palate Balance and mark selected idle media as waiting for a challenger.">
         <div className="mock_form_grid">
           <CustomDropdown label="Idle media" onChange={setCreateMediaId} options={idleMediaOptions} value={createMediaId} />
-          <AmountInput label="Push amount" onChange={setCreateAmount} placeholder={`Minimum ${minPushLabel}`} value={createAmount} />
-          <ActionButton disabled={pushBusy || !walletReady || !createMediaId} onClick={() => createPush(Number(createMediaId), createAmount)}>
+          <div className="amount_field_stack">
+            <AmountInput label="Push amount" onChange={setCreateAmount} placeholder={`Minimum ${minPushLabel}`} value={createAmount} />
+            <p className={`amount_helper ${createAmountValidation.valid ? "" : "amount_helper_error"}`}>
+              {createAmountValidation.message}
+            </p>
+          </div>
+          <ActionButton disabled={pushBusy || !walletReady || !createMediaId || !createAmountValidation.valid} onClick={() => createPush(Number(createMediaId), createAmount)}>
             {processingAction === "createPush" ? "Creating" : "Create Push"}
           </ActionButton>
         </div>
@@ -123,7 +146,12 @@ export default function PushPage() {
             value={selectedPush ? String(selectedPush.id) : ""}
           />
           <CustomDropdown label="Idle media" onChange={setChallengeMediaId} options={challengeMediaOptions} value={challengeMediaId} />
-          <AmountInput label="Challenge amount" onChange={setChallengeAmount} placeholder={`Minimum ${requiredChallengeLabel}`} value={challengeAmount} />
+          <div className="amount_field_stack">
+            <AmountInput label="Challenge amount" onChange={setChallengeAmount} placeholder={`Minimum ${requiredChallengeLabel}`} value={challengeAmount} />
+            <p className={`amount_helper ${challengeAmountValidation.valid ? "" : "amount_helper_error"}`}>
+              {challengeAmountValidation.message}
+            </p>
+          </div>
           <div className="state_card">
             <span className="state_mark">Minimum challenge amount</span>
             <strong>{requiredChallengeLabel}</strong>
@@ -131,7 +159,7 @@ export default function PushPage() {
           </div>
           {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
           <ActionButton
-            disabled={pushBusy || !walletReady || !selectedPush || !challengeMediaId}
+            disabled={pushBusy || !walletReady || !selectedPush || !challengeMediaId || !challengeAmountValidation.valid}
             onClick={() => {
               if (!selectedPush) return;
               challengePush(selectedPush.id, Number(challengeMediaId), challengeAmount);
@@ -143,4 +171,23 @@ export default function PushPage() {
       </ModalShell>
     </div>
   );
+}
+
+function validateAmount(value: string, minimumOctas: bigint | null, label: string) {
+  if (minimumOctas === null) {
+    return { valid: false, message: `${label}: loading` };
+  }
+
+  const minimumText = formatOctasToApt(minimumOctas);
+
+  try {
+    const parsed = BigInt(parseAptToOctas(value));
+    if (parsed < minimumOctas) {
+      return { valid: false, message: `${label} is ${minimumText}` };
+    }
+
+    return { valid: true, message: `${label}: ${minimumText}` };
+  } catch {
+    return { valid: false, message: `${label} is ${minimumText}` };
+  }
 }

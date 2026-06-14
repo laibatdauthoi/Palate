@@ -27,6 +27,12 @@ import {
   type RegisteredShelbyUpload
 } from "@/services/shelby_service";
 import { usePalateWallet } from "@/providers/wallet_provider";
+import {
+  detectMediaKindFromFile,
+  getFileCategoryMessage,
+  isCategoryCompatibleWithKind,
+  isMediaCategoryCompatible
+} from "@/utils/media_file_validation";
 import type {
   ActiveMatch,
   BuffAssignment,
@@ -227,6 +233,7 @@ function normalizePendingRegistrations(value: unknown): MediaRecord[] {
       status: item.status === "pending_registration" ? "pending_registration" : "registration_failed",
       createdTime: String(item.createdTime ?? "Pending registration"),
       shelbyBlobRef: String(item.shelbyBlobRef ?? ""),
+      displayUrl: item.displayUrl ? String(item.displayUrl) : undefined,
       contentHash: String(item.contentHash ?? ""),
       mimeType: String(item.mimeType ?? "application/octet-stream"),
       originalFileName: item.originalFileName ? String(item.originalFileName) : undefined,
@@ -478,6 +485,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       createdTime: "Registration failed",
       createdTimeSeconds: draft.createdTimeSeconds,
       shelbyBlobRef: shelbyResult.shelbyBlobRef,
+      displayUrl: shelbyResult.displayUrl,
       contentHash: shelbyResult.contentHash,
       mimeType: shelbyResult.mimeType,
       originalFileName: shelbyResult.originalFileName,
@@ -619,6 +627,13 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const detectedKind = detectMediaKindFromFile(input.file);
+    if (!isCategoryCompatibleWithKind(input.category, detectedKind)) {
+      setUploadStep("failed");
+      setFeedback({ type: "error", message: getFileCategoryMessage(input.file, input.category) ?? "Selected category does not match this file type." });
+      return;
+    }
+
     setProcessingAction("upload");
     setFeedback(null);
     setUploadRecovery(initial_upload_recovery_state);
@@ -751,6 +766,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         && media.palateMediaId !== null
         && media.palateMediaId !== undefined
         && media.status === "idle"
+        && isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName)
     );
   }
 
@@ -802,6 +818,11 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     if (!selectedPush || !challengerMedia) {
       setFeedback({ type: "error", message: "Select an open waiting push and registered idle challenger media." });
+      return;
+    }
+
+    if (!isMediaCategoryCompatible(selectedPush.media.category, selectedPush.media.mimeType, selectedPush.media.originalFileName)) {
+      setFeedback({ type: "error", message: "This waiting Push uses media with an invalid category/file type pair." });
       return;
     }
 

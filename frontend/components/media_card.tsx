@@ -2,7 +2,9 @@ import type { MediaRecord } from "@/types/palate";
 import { ActionButton } from "./action_button";
 import { CategoryBadge } from "./category_badge";
 import { FormatBadge } from "./format_badge";
+import { MediaRenderer } from "./media_renderer";
 import { StatusBadge } from "./status_badge";
+import { isMediaCategoryCompatible } from "@/utils/media_file_validation";
 
 type MediaCardProps = {
   media: MediaRecord;
@@ -14,17 +16,19 @@ type MediaCardProps = {
 };
 
 export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, actionDisabled }: MediaCardProps) {
+  const isInvalidMediaType = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
+
   return (
     <article className="media_card">
-      <div className={`media_preview media_preview_${media.accent}`} role="img" aria-label={media.title}>
+      <div className={`media_preview media_preview_${media.accent}`} aria-label={media.title}>
         <div className="media_preview_inner">
-          <span>{media.title}</span>
+          <MediaRenderer media={media} />
         </div>
       </div>
       <div className="media_card_body">
         <div className="spread">
           <h3>{media.title}</h3>
-          <StatusBadge status={media.status} />
+          <StatusBadge status={isInvalidMediaType ? "invalid_media_type" : media.status} />
         </div>
         <div className="cluster">
           <CategoryBadge category={media.category} />
@@ -33,10 +37,15 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
         <div className="spread media_meta">
           <span>{media.createdTime}</span>
           <div className="media_card_actions">
-            {actionLabel ? <ActionButton disabled={actionDisabled} onClick={onAction} variant="secondary">{actionLabel}</ActionButton> : null}
+            {actionLabel ? <ActionButton disabled={actionDisabled || isInvalidMediaType} onClick={onAction} variant="secondary">{actionLabel}</ActionButton> : null}
             {secondaryActionLabel ? <ActionButton onClick={onSecondaryAction} variant="ghost">{secondaryActionLabel}</ActionButton> : null}
           </div>
         </div>
+        {isInvalidMediaType ? (
+          <div className="invalid_media_note">
+            <span>This file type does not match its category.</span>
+          </div>
+        ) : null}
         {media.source === "palate_upload_recovery" ? (
           <div className="recovery_note">
             <span>This Shelby upload is not registered in Palate yet and cannot be pushed.</span>

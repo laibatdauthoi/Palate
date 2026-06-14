@@ -64,6 +64,7 @@ export type MediaRecord = {
   status: MediaStatus;
   createdTime: string;
   shelbyBlobRef: string;
+  displayUrl?: string;
   contentHash: string;
   mimeType: string;
   originalFileName?: string;

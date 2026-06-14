@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
 import { PageHeader } from "@/components/page_header";
@@ -9,6 +9,14 @@ import { app_config, upload_step_labels } from "@/config/app_config";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import type { MediaCategory, MediaFormat, UploadStep } from "@/types/palate";
+import {
+  detectFormatFromFile,
+  detectMediaKindFromFile,
+  getAllowedCategoriesForKind,
+  getAllowedFormatsForKind,
+  getFileCategoryMessage,
+  isCategoryCompatibleWithKind
+} from "@/utils/media_file_validation";
 
 const progress_steps: UploadStep[] = [
   "preparing_file",
@@ -60,7 +68,12 @@ export default function UploadPage() {
   const walletReady = walletStatus === "connected";
   const shelbyReady = app_config.shelby.enabled;
   const selectedStep = uploadStep ?? "preparing_file";
-  const formatOptions: DropdownOption<MediaFormat>[] = app_config.acceptedUploadFormats.map((candidate) => ({
+  const detectedKind = useMemo(() => detectMediaKindFromFile(selectedFile), [selectedFile]);
+  const allowedCategories = useMemo(() => getAllowedCategoriesForKind(detectedKind), [detectedKind]);
+  const allowedFormats = useMemo(() => getAllowedFormatsForKind(detectedKind), [detectedKind]);
+  const categoryError = getFileCategoryMessage(selectedFile, category);
+  const categoryValid = !selectedFile || isCategoryCompatibleWithKind(category, detectedKind);
+  const formatOptions: DropdownOption<MediaFormat>[] = allowedFormats.map((candidate) => ({
     label: candidate,
     value: candidate
   }));
@@ -78,6 +91,19 @@ export default function UploadPage() {
     resetUploadFlow();
   };
 
+  useEffect(() => {
+    if (!selectedFile) return;
+    if (!allowedCategories.includes(category)) {
+      setCategory(allowedCategories[0] ?? "image");
+    }
+  }, [allowedCategories, category, selectedFile]);
+
+  useEffect(() => {
+    if (!allowedFormats.includes(format)) {
+      setFormat(allowedFormats[0] ?? "PNG");
+    }
+  }, [allowedFormats, format]);
+
   return (
     <div className="page_stack page_upload">
       <PageHeader
@@ -91,7 +117,12 @@ export default function UploadPage() {
           <div className="stack">
             <div className="category_choice_grid">
               {app_config.supportedCategories.map((item) => (
-                <button className={`category_choice ${category === item ? "active" : ""}`} key={item} onClick={() => setCategory(item)}>
+                <button
+                  className={`category_choice ${category === item ? "active" : ""} ${selectedFile && !allowedCategories.includes(item) ? "disabled" : ""}`}
+                  disabled={Boolean(selectedFile) && !allowedCategories.includes(item)}
+                  key={item}
+                  onClick={() => setCategory(item)}
+                >
                   <strong>{category_labels[item]}</strong>
                   <span>{category_copy[item]}</span>
                 </button>
@@ -110,13 +141,13 @@ export default function UploadPage() {
                   type="file"
                   accept={app_config.acceptedUploadMimeTypes.join(",")}
                   onChange={(event) => {
-                  const selectedFile = event.target.files?.[0] ?? null;
-                  const selectedName = selectedFile?.name ?? "";
-                  setSelectedFile(selectedFile);
-                  setFileName(selectedName);
-                  setFileMeta(selectedFile ? { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type || mime_by_format[format] } : null);
-                    const normalizedName = selectedName.toUpperCase();
-                    const matchedFormat = app_config.acceptedUploadFormats.find((candidate) => normalizedName.endsWith(`.${candidate}`));
+                    const selectedFile = event.target.files?.[0] ?? null;
+                    const selectedName = selectedFile?.name ?? "";
+                    const matchedFormat = detectFormatFromFile(selectedFile);
+                    const nextFormat = matchedFormat ?? format;
+                    setSelectedFile(selectedFile);
+                    setFileName(selectedName);
+                    setFileMeta(selectedFile ? { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type || mime_by_format[nextFormat] } : null);
                     if (matchedFormat) setFormat(matchedFormat);
                   }}
                 />
@@ -141,8 +172,13 @@ export default function UploadPage() {
             </label>
             <CustomDropdown label="Format metadata" onChange={setFormat} options={formatOptions} value={format} />
             <p className="secondary_text">Accepted formats: {app_config.acceptedUploadFormats.join(", ")}. GIF remains a format, not a category.</p>
+            {selectedFile ? (
+              <p className={`feedback_text ${categoryError ? "feedback_error" : "feedback_info"}`}>
+                {categoryError ?? `This file can be uploaded as ${allowedCategories.map((item) => category_labels[item]).join(" or ")}.`}
+              </p>
+            ) : null}
             <ActionButton
-              disabled={uploadBusy || !walletReady || !shelbyReady || !selectedFile}
+              disabled={uploadBusy || !walletReady || !shelbyReady || !selectedFile || !categoryValid}
               onClick={() =>
                 uploadMedia({
                   category,

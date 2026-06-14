@@ -9,7 +9,7 @@ import { LoadingState } from "@/components/loading_state";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
-import { formatOctasToApt } from "@/services/aptos_service";
+import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
 
 export default function BuffPage() {
   const {
@@ -26,7 +26,9 @@ export default function BuffPage() {
   const [buffAmount, setBuffAmount] = useState("0.250");
   const assignedMatch = currentAssignment?.match;
   const buffBusy = processingAction === "findMatch" || processingAction === "placeBuff" || processingAction === "skipMatch";
-  const minBuffAmountLabel = chainRead.protocolConfig?.minBuffAmount ? formatOctasToApt(chainRead.protocolConfig.minBuffAmount) : "0.1 APT";
+  const minBuffOctas = chainRead.protocolConfig?.minBuffAmount ? BigInt(chainRead.protocolConfig.minBuffAmount) : null;
+  const minBuffAmountLabel = minBuffOctas !== null ? formatOctasToApt(minBuffOctas) : "loading";
+  const buffAmountValidation = validateBuffAmount(buffAmount, minBuffOctas);
 
   return (
     <div className="page_stack page_buff">
@@ -42,6 +44,8 @@ export default function BuffPage() {
       {assignedMatch ? (
         <BuffPanel
           buffAmount={buffAmount}
+          buffHelperText={buffAmountValidation.message}
+          disableBuffActions={!buffAmountValidation.valid}
           loading={buffBusy}
           match={assignedMatch}
           minBuffAmountLabel={minBuffAmountLabel}
@@ -88,4 +92,23 @@ export default function BuffPage() {
       </div>
     </div>
   );
+}
+
+function validateBuffAmount(value: string, minimumOctas: bigint | null) {
+  if (minimumOctas === null) {
+    return { valid: false, message: "Minimum Buff: loading" };
+  }
+
+  const minimumText = formatOctasToApt(minimumOctas);
+
+  try {
+    const parsed = BigInt(parseAptToOctas(value));
+    if (parsed < minimumOctas) {
+      return { valid: false, message: `Minimum Buff is ${minimumText}` };
+    }
+
+    return { valid: true, message: `Minimum Buff: ${minimumText}` };
+  } catch {
+    return { valid: false, message: `Minimum Buff is ${minimumText}` };
+  }
 }
