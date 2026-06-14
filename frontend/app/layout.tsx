@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { MobileBottomNav } from "@/components/mobile_bottom_nav";
 import { NavigationBar } from "@/components/navigation_bar";
 import { RouteBackground } from "@/components/route_background";
+import { WelcomeIntro } from "@/components/welcome_intro";
 import { PalateProvider } from "@/providers/palate_provider";
 import "@fontsource-variable/fredoka";
 import "@/styles/globals.css";
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     <html lang="en">
       <body>
         <PalateProvider>
+          <WelcomeIntro />
           <div className="app_shell">
             <RouteBackground />
             <NavigationBar />
