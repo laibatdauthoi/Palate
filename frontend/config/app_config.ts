@@ -5,6 +5,11 @@ export const app_config = {
   networkLabel: "Aptos Testnet",
   moduleAddress: "0xe5e752771b9e1b5ac445d3d28f1bf636e6e6c3207e61917c036c1517c2b4373f",
   moduleName: "palate",
+  shelby: {
+    network: "testnet",
+    apiKey: process.env.NEXT_PUBLIC_SHELBY_API_KEY ?? "",
+    enabled: Boolean(process.env.NEXT_PUBLIC_SHELBY_API_KEY)
+  },
   acceptedUploadFormats: ["PNG", "JPG", "JPEG", "WEBP", "GIF", "MP3", "WAV", "OGG", "M4A", "MP4", "WEBM", "MOV"] as MediaFormat[],
   acceptedUploadMimeTypes: [
     "image/png",

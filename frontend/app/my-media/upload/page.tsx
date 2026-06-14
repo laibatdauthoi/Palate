@@ -47,9 +47,11 @@ export default function UploadPage() {
   const [title, setTitle] = useState("");
   const [format, setFormat] = useState<MediaFormat>("PNG");
   const [fileName, setFileName] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileMeta, setFileMeta] = useState<{ name: string; size: number; type: string } | null>(null);
   const uploadBusy = processingAction === "upload";
   const walletReady = walletStatus === "connected";
+  const shelbyReady = app_config.shelby.enabled;
   const selectedStep = uploadStep ?? "preparing_file";
   const formatOptions: DropdownOption<MediaFormat>[] = app_config.acceptedUploadFormats.map((candidate) => ({
     label: candidate,
@@ -93,10 +95,11 @@ export default function UploadPage() {
                   type="file"
                   accept={app_config.acceptedUploadMimeTypes.join(",")}
                   onChange={(event) => {
-                    const selectedFile = event.target.files?.[0] ?? null;
-                    const selectedName = selectedFile?.name ?? "";
-                    setFileName(selectedName);
-                    setFileMeta(selectedFile ? { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type || mime_by_format[format] } : null);
+                  const selectedFile = event.target.files?.[0] ?? null;
+                  const selectedName = selectedFile?.name ?? "";
+                  setSelectedFile(selectedFile);
+                  setFileName(selectedName);
+                  setFileMeta(selectedFile ? { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type || mime_by_format[format] } : null);
                     const normalizedName = selectedName.toUpperCase();
                     const matchedFormat = app_config.acceptedUploadFormats.find((candidate) => normalizedName.endsWith(`.${candidate}`));
                     if (matchedFormat) setFormat(matchedFormat);
@@ -124,20 +127,22 @@ export default function UploadPage() {
             <CustomDropdown label="Format metadata" onChange={setFormat} options={formatOptions} value={format} />
             <p className="secondary_text">Accepted formats: {app_config.acceptedUploadFormats.join(", ")}. GIF remains a format, not a category.</p>
             <ActionButton
-              disabled={uploadBusy || !walletReady}
+              disabled={uploadBusy || !walletReady || !shelbyReady || !selectedFile}
               onClick={() =>
                 uploadMedia({
                   category,
                   title,
                   format,
                   mimeType: mime_by_format[format],
-                  fileName
+                  fileName,
+                  file: selectedFile
                 })
               }
             >
               {uploadBusy ? "Registering" : "Start Upload"}
             </ActionButton>
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to register media on chain.</p> : null}
+            {!shelbyReady ? <p className="feedback_text feedback_error">Shelby API key is not configured.</p> : null}
             {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
           </div>
         </SectionPanel>
@@ -155,7 +160,7 @@ export default function UploadPage() {
                 </div>
               ))}
             </div>
-            <p className="mock_note">Shelby storage is simulated here; final registration is submitted to Palate on Aptos Testnet.</p>
+            <p className="mock_note">Files upload to Shelby first, then Palate registration is submitted on Aptos Testnet.</p>
           </div>
         </SectionPanel>
       </div>

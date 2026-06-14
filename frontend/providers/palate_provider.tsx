@@ -14,6 +14,7 @@ import {
   shortenTransactionHash,
   waitForPalateTransaction
 } from "@/services/aptos_service";
+import { uploadMediaToShelby } from "@/services/shelby_service";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import type {
   ActiveMatch,
@@ -42,6 +43,7 @@ type UploadMediaInput = {
   format: MediaFormat;
   mimeType: string;
   fileName?: string;
+  file?: File | null;
 };
 
 type PalateContextValue = {
@@ -311,6 +313,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (!app_config.shelby.enabled) {
+      setUploadStep("failed");
+      setFeedback({ type: "error", message: "Shelby API key is not configured." });
+      return;
+    }
+
+    if (!input.file) {
+      setUploadStep("failed");
+      setFeedback({ type: "error", message: "Choose a media file before upload." });
+      return;
+    }
+
     setProcessingAction("upload");
     setFeedback(null);
 
@@ -318,19 +332,31 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setUploadStep("preparing_file");
       await delay(330);
       setUploadStep("uploading_to_shelby");
-      await delay(430);
+
+      const safeTitle = input.title.trim() || `Palate ${getCategoryLabel(input.category)}`;
+      const shelbyResult = await uploadMediaToShelby(
+        input.file,
+        walletAddress,
+        {
+          title: safeTitle,
+          category: input.category,
+          mimeType: input.mimeType || input.file.type || getMimeType(input.format),
+          originalFileName: input.fileName || input.file.name
+        },
+        {
+          submitShelbyRegistration: async (data) => signAndSubmitTransaction({ data }),
+          waitForShelbyRegistration: waitForPalateTransaction
+        }
+      );
+
       setUploadStep("registering_on_chain");
 
       const createdTime = Math.floor(Date.now() / 1000).toString();
-      const safeTitle = input.title.trim() || `Palate ${getCategoryLabel(input.category)}`;
-      const safeFileName = encodeURIComponent(input.fileName || `${safeTitle}.${input.format.toLowerCase()}`);
-      const shelbyBlobRef = `pending-shelby://${walletAddress}/${createdTime}/${safeFileName}`;
-      const contentHash = `pending-content-${createdTime}-${input.format.toLowerCase()}`;
       const data = buildRegisterMediaPayload({
         category: input.category,
-        shelbyBlobRef,
-        contentHash,
-        mimeType: input.mimeType || getMimeType(input.format),
+        shelbyBlobRef: shelbyResult.shelbyBlobRef,
+        contentHash: shelbyResult.contentHash,
+        mimeType: shelbyResult.mimeType,
         title: safeTitle,
         createdTime,
         categoryConstants: chainRead.categories
