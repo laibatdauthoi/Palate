@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { ActionButton } from "./action_button";
+import { ModalShell } from "./modal_shell";
 
 const wallet_status_copy = {
   disconnected: "Disconnected",
@@ -27,75 +28,81 @@ export function WalletPanel() {
     walletName,
     walletStatus
   } = usePalateWallet();
-  const [showWalletChoices, setShowWalletChoices] = useState(false);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
   const connected = walletStatus === "connected";
   const statusCopy = connected ? "Connected" : wallet_status_copy[walletStatus];
   const addressCopy = walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : statusCopy;
 
-  async function handleConnect(wallet: string) {
-    await connectWallet(wallet);
-    setShowWalletChoices(false);
+  async function handleConnect(nextWalletName: string) {
+    await connectWallet(nextWalletName);
+    setWalletModalOpen(false);
   }
 
   return (
-    <aside className="wallet_panel">
-      <div className="wallet_panel_header">
-        <div>
-          <span className="eyebrow">Wallet</span>
+    <>
+      <aside className="wallet_panel">
+        <div className="wallet_panel_header">
+          <div className="wallet_identity">
+            <span className="eyebrow">Wallet</span>
+          </div>
+          <span className={`wallet_status wallet_status_${walletStatus}`}>{statusCopy}</span>
+        </div>
+        <div className="wallet_compact_body">
           <strong>{connected ? addressCopy : statusCopy}</strong>
+          <span>Balance {balance.availableBalance}</span>
         </div>
-        <span className={`wallet_status wallet_status_${walletStatus}`}>{statusCopy}</span>
-      </div>
-      <div className="wallet_balance">
-        <span>Palate Balance</span>
-        <strong>{balance.availableBalance}</strong>
-      </div>
-      {connected ? (
-        <div className="wallet_meta">
-          <span>{walletName ?? "Wallet"}</span>
-          <span>{networkName ? `Network: ${networkName}` : "Network unavailable"}</span>
-        </div>
-      ) : null}
-      {walletStatus === "wrong_network" ? (
-        <p className="wallet_message">Switch to Aptos Testnet before future on-chain actions.</p>
-      ) : null}
-      {walletError ? <p className="wallet_message wallet_message_error">{walletError}</p> : null}
-      <div className="wallet_actions">
         {connected ? (
-          <ActionButton onClick={disconnectWallet} variant="secondary">Disconnect</ActionButton>
-        ) : (
-          <ActionButton disabled={walletStatus === "connecting"} onClick={() => setShowWalletChoices((current) => !current)}>
-            {walletStatus === "connecting" ? "Connecting" : "Connect"}
-          </ActionButton>
-        )}
-      </div>
-      {!connected && showWalletChoices ? (
-        <div className="wallet_choice_list">
-          {availableWallets.length > 0 ? (
-            availableWallets.map((wallet) => (
-              <button
-                className="wallet_choice"
-                disabled={walletStatus === "connecting"}
-                key={wallet.name}
-                onClick={() => handleConnect(wallet.name)}
-                type="button"
-              >
-                <span>{wallet.name}</span>
-                {connectingWalletName === wallet.name ? <small>Connecting</small> : null}
-              </button>
-            ))
+          <div className="wallet_meta">
+            <span>{walletName ?? "Wallet"}</span>
+            <span>{networkName ?? "Network unavailable"}</span>
+          </div>
+        ) : null}
+        {walletStatus === "wrong_network" ? (
+          <p className="wallet_message">Switch to Aptos Testnet before future on-chain actions.</p>
+        ) : null}
+        {walletError ? <p className="wallet_message wallet_message_error">{walletError}</p> : null}
+        <div className="wallet_actions">
+          {connected ? (
+            <ActionButton className="wallet_compact_button" onClick={disconnectWallet} variant="secondary">Disconnect</ActionButton>
           ) : (
-            <p className="wallet_message">No browser wallet detected.</p>
+            <ActionButton className="wallet_compact_button" disabled={walletStatus === "connecting"} onClick={() => setWalletModalOpen(true)}>
+              {walletStatus === "connecting" ? "Connecting" : "Connect"}
+            </ActionButton>
+          )}
+        </div>
+      </aside>
+
+      <ModalShell open={walletModalOpen} onClose={() => setWalletModalOpen(false)} title="Connect wallet">
+        <div className="wallet_modal_content">
+          {walletError ? <p className="wallet_message wallet_message_error">{walletError}</p> : null}
+          {availableWallets.length > 0 ? (
+            <div className="wallet_modal_grid">
+              {availableWallets.map((wallet) => (
+                <button
+                  className="wallet_option_card"
+                  disabled={walletStatus === "connecting"}
+                  key={wallet.name}
+                  onClick={() => handleConnect(wallet.name)}
+                  type="button"
+                >
+                  {wallet.icon ? <span aria-hidden="true" className="wallet_option_icon" style={{ backgroundImage: `url(${wallet.icon})` }} /> : null}
+                  <span>{wallet.name}</span>
+                  {connectingWalletName === wallet.name ? <small>Connecting</small> : null}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="wallet_modal_empty">No compatible wallet is available in this browser.</p>
           )}
           {notDetectedWallets.length > 0 ? (
             <div className="wallet_not_detected">
-              {notDetectedWallets.slice(0, 3).map((wallet) => (
+              {notDetectedWallets.slice(0, 6).map((wallet) => (
                 <span key={wallet.name}>{wallet.name}</span>
               ))}
             </div>
           ) : null}
         </div>
-      ) : null}
-    </aside>
+      </ModalShell>
+    </>
   );
 }
