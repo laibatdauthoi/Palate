@@ -47,6 +47,7 @@ export default function UploadPage() {
   const [title, setTitle] = useState("");
   const [format, setFormat] = useState<MediaFormat>("PNG");
   const [fileName, setFileName] = useState("");
+  const [fileMeta, setFileMeta] = useState<{ name: string; size: number; type: string } | null>(null);
   const uploadBusy = processingAction === "upload";
   const walletReady = walletStatus === "connected";
   const selectedStep = uploadStep ?? "preparing_file";
@@ -54,6 +55,11 @@ export default function UploadPage() {
     label: candidate,
     value: candidate
   }));
+  const fileSizeLabel = fileMeta
+    ? fileMeta.size >= 1024 * 1024
+      ? `${(fileMeta.size / 1024 / 1024).toFixed(2)} MB`
+      : `${Math.max(1, Math.round(fileMeta.size / 1024))} KB`
+    : null;
 
   return (
     <div className="page_stack page_upload">
@@ -80,18 +86,40 @@ export default function UploadPage() {
             </label>
             <label className="amount_input">
               <span>File</span>
-              <input
-                className="input_control"
-                type="file"
-                accept={app_config.acceptedUploadMimeTypes.join(",")}
-                onChange={(event) => {
-                  const selectedName = event.target.files?.[0]?.name ?? "";
-                  setFileName(selectedName);
-                  const normalizedName = selectedName.toUpperCase();
-                  const matchedFormat = app_config.acceptedUploadFormats.find((candidate) => normalizedName.endsWith(`.${candidate}`));
-                  if (matchedFormat) setFormat(matchedFormat);
-                }}
-              />
+              <div className="file_picker">
+                <input
+                  className="file_picker_input"
+                  id="palate_upload_file"
+                  type="file"
+                  accept={app_config.acceptedUploadMimeTypes.join(",")}
+                  onChange={(event) => {
+                    const selectedFile = event.target.files?.[0] ?? null;
+                    const selectedName = selectedFile?.name ?? "";
+                    setFileName(selectedName);
+                    setFileMeta(selectedFile ? { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type || mime_by_format[format] } : null);
+                    const normalizedName = selectedName.toUpperCase();
+                    const matchedFormat = app_config.acceptedUploadFormats.find((candidate) => normalizedName.endsWith(`.${candidate}`));
+                    if (matchedFormat) setFormat(matchedFormat);
+                  }}
+                />
+                <label
+                  className="file_picker_button"
+                  htmlFor="palate_upload_file"
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      document.getElementById("palate_upload_file")?.click();
+                    }
+                  }}
+                  tabIndex={0}
+                >
+                  Choose file
+                </label>
+                <div className={`file_picker_display ${fileMeta ? "has_file" : ""}`}>
+                  <strong>{fileMeta?.name ?? "Awaiting media file"}</strong>
+                  <span>{fileMeta ? `${fileMeta.type || mime_by_format[format]} / ${fileSizeLabel}` : "Select a supported media file before registration."}</span>
+                </div>
+              </div>
             </label>
             <CustomDropdown label="Format metadata" onChange={setFormat} options={formatOptions} value={format} />
             <p className="secondary_text">Accepted formats: {app_config.acceptedUploadFormats.join(", ")}. GIF remains a format, not a category.</p>

@@ -237,14 +237,16 @@ MVP categories:
 
 Meme
 Image
+Audio
+Video
 
 Accepted formats:
 
-PNG
-JPG
-JPEG
-WEBP
-GIF
+Image: PNG, JPG, JPEG, WEBP, GIF
+
+Audio: MP3, WAV, OGG, M4A
+
+Video: MP4, WEBM, MOV
 
 GIF is a format, not a category.
 
@@ -252,7 +254,13 @@ Category is stored in the Palate contract.
 
 MIME type and format are stored as metadata.
 
-The frontend must validate that uploaded files match accepted image MIME types for MVP.
+The frontend must validate that uploaded files match accepted MIME types for the selected MVP media surface.
+
+A file only becomes Palate media after `registerMedia` succeeds.
+
+My Media must show media registered in the Palate contract. Existing Shelby-only files that were not registered through Palate are out of scope for the current MVP UI.
+
+Do not add an Others bucket, Shelby-only inventory, import-from-Shelby flow, CATEGORY_OTHERS, or Push support for unregistered Shelby files.
 
 ## 13. Match Fairness UI Rule
 
