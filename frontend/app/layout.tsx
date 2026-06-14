@@ -5,6 +5,7 @@ import { NavigationBar } from "@/components/navigation_bar";
 import { RouteBackground } from "@/components/route_background";
 import { WelcomeIntro } from "@/components/welcome_intro";
 import { PalateProvider } from "@/providers/palate_provider";
+import { WalletProvider } from "@/providers/wallet_provider";
 import "@fontsource-variable/fredoka";
 import "@/styles/globals.css";
 
@@ -20,15 +21,17 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="en">
       <body>
-        <PalateProvider>
-          <WelcomeIntro />
-          <div className="app_shell">
-            <RouteBackground />
-            <NavigationBar />
-            <main className="main_content">{children}</main>
-            <MobileBottomNav />
-          </div>
-        </PalateProvider>
+        <WalletProvider>
+          <PalateProvider>
+            <WelcomeIntro />
+            <div className="app_shell">
+              <RouteBackground />
+              <NavigationBar />
+              <main className="main_content">{children}</main>
+              <MobileBottomNav />
+            </div>
+          </PalateProvider>
+        </WalletProvider>
       </body>
     </html>
   );

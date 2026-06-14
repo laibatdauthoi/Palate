@@ -7,9 +7,11 @@ import { ClaimCard } from "@/components/claim_card";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
+import { usePalateWallet } from "@/providers/wallet_provider";
 
 export default function ProfilePage() {
-  const { balance, claimMockReward, claimRecords, depositBalance, feedback, mockWalletAddress, processingAction, userSummary, withdrawBalance } = usePalate();
+  const { balance, claimMockReward, claimRecords, depositBalance, feedback, processingAction, userSummary, withdrawBalance } = usePalate();
+  const { walletAddress } = usePalateWallet();
   const [tab, setTab] = useState<"Stats" | "Claims">("Stats");
   const [balanceAmount, setBalanceAmount] = useState("1.000");
   const balanceBusy = processingAction === "deposit" || processingAction === "withdraw";
@@ -40,7 +42,7 @@ export default function ProfilePage() {
         <SectionPanel>
           <div className="stat_card">
             <span>Wallet</span>
-            <strong>{mockWalletAddress}</strong>
+            <strong>{walletAddress ?? "Not connected"}</strong>
           </div>
         </SectionPanel>
         <SectionPanel accent>

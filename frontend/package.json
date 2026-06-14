@@ -8,6 +8,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@aptos-labs/ts-sdk": "^5.2.1",
+    "@aptos-labs/wallet-adapter-react": "^8.3.3",
     "@fontsource-variable/fredoka": "^5.2.10",
     "next": "^15.5.19",
     "react": "19.0.0",
