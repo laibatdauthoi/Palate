@@ -515,6 +515,126 @@ module palate::palate_tests {
         palate::createPush(&user, 0, palate::getMinPushAmount());
     }
 
+    #[test(admin = @palate, framework = @0x1, user = @0x56E)]
+    fun ownerCanDeleteIdleUploadedMedia(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        palate::registerMedia(
+            &user,
+            palate::categoryImage(),
+            b"idle-delete.png",
+            b"hash-idle-delete",
+            b"image/png",
+            b"Idle Delete",
+            9010,
+        );
+
+        palate::delete_media(&user, 0);
+
+        let ids = palate::getUserMedia(signer::address_of(&user));
+        assert!(vector::length(&ids) == 0, 0);
+        assert!(palate::getMediaStorageStatus(0) == palate::storageStatusDeleted(), 1);
+        assert!(palate::getMediaStatus(0) == palate::statusDisabled(), 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x56F)]
+    fun ownerCanDeleteInvalidUploadedIdleMedia(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        palate::registerMedia(
+            &user,
+            palate::categoryMeme(),
+            b"bad-audio.mp3",
+            b"hash-bad-audio",
+            b"audio/mpeg",
+            b"Bad Audio Meme",
+            9011,
+        );
+
+        palate::delete_media(&user, 0);
+
+        let ids = palate::getUserMedia(signer::address_of(&user));
+        assert!(vector::length(&ids) == 0, 0);
+        assert!(palate::getMediaStorageStatus(0) == palate::storageStatusDeleted(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x570)]
+    fun ownerCanDeleteShelbyUploadFailedMediaWithGeneralDelete(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        palate::register_shelby_upload_failed_media(
+            &user,
+            palate::categoryImage(),
+            b"failed-general-delete.png",
+            b"hash-failed-general-delete",
+            b"image/png",
+            b"Failed General Delete",
+            9012,
+        );
+
+        palate::delete_media(&user, 0);
+
+        let ids = palate::getUserMedia(signer::address_of(&user));
+        assert!(vector::length(&ids) == 0, 0);
+        assert!(palate::getMediaStorageStatus(0) == palate::storageStatusDeleted(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, owner = @0x571, other = @0x572)]
+    #[expected_failure(abort_code = 6, location = palate::palate)]
+    fun nonOwnerCannotDeleteMedia(admin: signer, framework: signer, owner: signer, other: signer) {
+        init(&admin, &framework);
+        palate::registerMedia(
+            &owner,
+            palate::categoryImage(),
+            b"owned-delete.png",
+            b"hash-owned-delete",
+            b"image/png",
+            b"Owned Delete",
+            9013,
+        );
+
+        palate::delete_media(&other, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x573)]
+    #[expected_failure(abort_code = 7, location = palate::palate)]
+    fun waitingMediaCannotBeDeleted(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"waiting-delete.png", 9014);
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+
+        palate::delete_media(&user, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x574, challenger = @0x575)]
+    #[expected_failure(abort_code = 7, location = palate::palate)]
+    fun activeMediaCannotBeDeleted(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &pusher, b"active-delete-a.png", 9015);
+        registerImage(&framework, &challenger, b"active-delete-b.png", 9016);
+        fundPalateBalance(&framework, &challenger);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+
+        palate::delete_media(&pusher, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x576)]
+    #[expected_failure(abort_code = 41, location = palate::palate)]
+    fun deletedUploadedMediaCannotBePushed(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        fundPalateBalance(&framework, &user);
+        palate::registerMedia(
+            &user,
+            palate::categoryImage(),
+            b"deleted-uploaded-gameplay.png",
+            b"hash-deleted-uploaded-gameplay",
+            b"image/png",
+            b"Deleted Uploaded Gameplay",
+            9017,
+        );
+        palate::delete_media(&user, 0);
+
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+    }
+
     #[test(admin = @palate, framework = @0x1, user = @0x105)]
     fun getUserSummaryReturnsInitialSummary(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);

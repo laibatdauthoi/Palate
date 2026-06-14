@@ -360,6 +360,10 @@ export function buildDeleteFailedMediaPayload(mediaId: number | string): InputGe
   return entryPayload("delete_failed_media", [String(mediaId)]);
 }
 
+export function buildDeleteMediaPayload(mediaId: number | string): InputGenerateTransactionPayloadData {
+  return entryPayload("delete_media", [String(mediaId)]);
+}
+
 export async function waitForPalateTransaction(transactionHash: string) {
   return aptos.waitForTransaction({
     transactionHash,

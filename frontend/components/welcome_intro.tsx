@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
 export function WelcomeIntro() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const [leaving, setLeaving] = useState(false);
   const [showLogo, setShowLogo] = useState(true);
 
@@ -14,8 +14,6 @@ export function WelcomeIntro() {
   }, []);
 
   useEffect(() => {
-    setVisible(true);
-
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const timer = window.setTimeout(dismiss, reducedMotion ? 900 : 3800);
 

@@ -493,12 +493,30 @@ module palate::palate {
     public entry fun delete_failed_media(account: &signer, media_id: u64) acquires PalateState, MediaStorageStatusRegistry {
         assertInitialized();
 
+        deleteMediaInternal(account, media_id, true);
+    }
+
+    public entry fun delete_media(account: &signer, media_id: u64) acquires PalateState, MediaStorageStatusRegistry {
+        assertInitialized();
+
+        deleteMediaInternal(account, media_id, false);
+    }
+
+    fun deleteMediaInternal(account: &signer, media_id: u64, failed_only: bool) acquires PalateState, MediaStorageStatusRegistry {
         let owner = signer::address_of(account);
         let state = borrow_global_mut<PalateState>(@palate);
         let media_index = findMediaIndex(state, media_id);
         let media = vector::borrow(&state.media_records, media_index);
         assert!(media.owner == owner, E_NOT_MEDIA_OWNER);
-        assert!(effectiveMediaStorageStatus(media) == STORAGE_STATUS_SHELBY_UPLOAD_FAILED, E_MEDIA_NOT_FAILED_UPLOAD);
+        let storage_status = effectiveMediaStorageStatus(media);
+        if (failed_only) {
+            assert!(storage_status == STORAGE_STATUS_SHELBY_UPLOAD_FAILED, E_MEDIA_NOT_FAILED_UPLOAD);
+        } else {
+            assert!(storage_status != STORAGE_STATUS_DELETED, E_MEDIA_NOT_UPLOADED);
+            if (storage_status != STORAGE_STATUS_SHELBY_UPLOAD_FAILED) {
+                assert!(media.status == STATUS_IDLE, E_MEDIA_NOT_IDLE);
+            };
+        };
 
         let media_mut = vector::borrow_mut(&mut state.media_records, media_index);
         media_mut.status = STATUS_DISABLED;

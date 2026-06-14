@@ -6,7 +6,7 @@ import { app_config } from "@/config/app_config";
 import {
   buildChallengePushPayload,
   buildCreatePushPayload,
-  buildDeleteFailedMediaPayload,
+  buildDeleteMediaPayload,
   buildRegisterMediaPayload,
   buildRegisterShelbyUploadFailedMediaPayload,
   buildDepositBalancePayload,
@@ -117,7 +117,7 @@ type PalateContextValue = {
   skipMatch: () => Promise<void>;
   uploadMedia: (input: UploadMediaInput) => Promise<void>;
   retryPalateRegistration: (mediaId: number) => Promise<void>;
-  deleteFailedMedia: (mediaId: number) => Promise<void>;
+  deleteMedia: (mediaId: number) => Promise<void>;
   clearPendingRegistration: (mediaId: number) => void;
   resetUploadFlow: () => void;
   uploadMockMedia: (input: UploadMediaInput) => Promise<void>;
@@ -756,26 +756,27 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  async function deleteFailedMedia(mediaId: number) {
+  async function deleteMedia(mediaId: number) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
-      setFeedback({ type: "error", message: "Connect wallet to delete failed media." });
+      setFeedback({ type: "error", message: "Connect wallet to delete media." });
       return;
     }
 
     const media = mediaRecords.find((record) =>
       record.id === mediaId
         && record.source === "palate"
-        && record.storageStatus === "shelby_upload_failed"
+        && (record.storageStatus ?? "uploaded") !== "deleted"
+        && (record.storageStatus === "shelby_upload_failed" || record.status === "idle")
         && record.palateMediaId !== null
         && record.palateMediaId !== undefined
     );
 
     if (!media) {
-      setFeedback({ type: "error", message: "Choose a Shelby upload failed media item to delete." });
+      setFeedback({ type: "error", message: "Choose an idle or failed media item to delete." });
       return;
     }
 
-    setProcessingAction(`deleteFailedMedia:${mediaId}`);
+    setProcessingAction(`deleteMedia:${mediaId}`);
     setFeedback(null);
 
     try {
@@ -784,14 +785,14 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setFeedback({ type: "info", message: `Shelby delete submitted ${shortenTransactionHash(shelbyDeleteHash)}. Waiting for confirmation.` });
       await waitForPalateTransaction(shelbyDeleteHash);
 
-      const palateDeleteData = buildDeleteFailedMediaPayload(media.palateMediaId ?? media.id);
+      const palateDeleteData = buildDeleteMediaPayload(media.palateMediaId ?? media.id);
       const palateDeleteHash = await signAndSubmitTransaction({ data: palateDeleteData });
       setFeedback({ type: "info", message: `Palate delete submitted ${shortenTransactionHash(palateDeleteHash)}. Waiting for confirmation.` });
       await waitForPalateTransaction(palateDeleteHash);
       await refreshUserMediaForWallet(walletAddress);
-      setFeedback({ type: "success", message: `Failed media deleted ${shortenTransactionHash(palateDeleteHash)}.` });
+      setFeedback({ type: "success", message: `Media deleted ${shortenTransactionHash(palateDeleteHash)}.` });
     } catch (error) {
-      console.error("deleteFailedMedia failed", error);
+      console.error("deleteMedia failed", error);
       setFeedback({ type: "error", message: getReadablePalateError(error, "Delete failed. Retry Delete from My Media.") });
     } finally {
       setProcessingAction(null);
@@ -1010,7 +1011,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       },
       uploadMedia: registerMediaOnChain,
       retryPalateRegistration,
-      deleteFailedMedia,
+      deleteMedia,
       clearPendingRegistration,
       resetUploadFlow,
       uploadMockMedia: async (input) => {

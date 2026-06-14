@@ -18,6 +18,7 @@ type MediaCardProps = {
 export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, actionDisabled }: MediaCardProps) {
   const isInvalidMediaType = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
   const isShelbyUploadFailed = media.storageStatus === "shelby_upload_failed";
+  const isDeleteAction = actionLabel === "Delete";
 
   return (
     <article className="media_card">
@@ -38,7 +39,7 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
         <div className="spread media_meta">
           <span>{media.createdTime}</span>
           <div className="media_card_actions">
-            {actionLabel ? <ActionButton disabled={actionDisabled || (isInvalidMediaType && !isShelbyUploadFailed)} onClick={onAction} variant={isShelbyUploadFailed ? "danger" : "secondary"}>{actionLabel}</ActionButton> : null}
+            {actionLabel ? <ActionButton disabled={actionDisabled || (isInvalidMediaType && !isDeleteAction && !isShelbyUploadFailed)} onClick={onAction} variant={isDeleteAction || isShelbyUploadFailed ? "danger" : "secondary"}>{actionLabel}</ActionButton> : null}
             {secondaryActionLabel ? <ActionButton onClick={onSecondaryAction} variant="ghost">{secondaryActionLabel}</ActionButton> : null}
           </div>
         </div>

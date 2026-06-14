@@ -12,7 +12,8 @@ import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
-import type { MediaCategory, MediaStatus } from "@/types/palate";
+import type { MediaCategory, MediaRecord, MediaStatus } from "@/types/palate";
+import { isMediaCategoryCompatible } from "@/utils/media_file_validation";
 
 const statuses = ["All", "Idle", "Waiting", "Active", "Settled", "Shelby Upload Failed", "Registration Failed", "Pending Registration"] as const;
 const categories = ["All Categories", "Meme", "Image", "Audio", "Video"] as const;
@@ -33,7 +34,7 @@ const category_values = {
 } as const satisfies Record<Exclude<(typeof categories)[number], "All Categories">, MediaCategory>;
 
 export default function MyMediaPage() {
-  const { clearPendingRegistration, deleteFailedMedia, mediaReadStatus, mediaRecords, processingAction, retryPalateRegistration } = usePalate();
+  const { clearPendingRegistration, deleteMedia, mediaReadStatus, mediaRecords, processingAction, retryPalateRegistration } = usePalate();
   const { walletStatus } = usePalateWallet();
   const [status, setStatus] = useState<(typeof statuses)[number]>("All");
   const [category, setCategory] = useState<CategoryFilter>("All Categories");
@@ -54,6 +55,51 @@ export default function MyMediaPage() {
     });
   }, [category, mediaRecords, status]);
   const mediaToDelete = deleteMediaId === null ? null : mediaRecords.find((media) => media.id === deleteMediaId) ?? null;
+
+  function renderMediaCard(media: MediaRecord) {
+    const isInvalid = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
+    const isDeletable = media.source === "palate"
+      && media.palateMediaId !== null
+      && media.palateMediaId !== undefined
+      && (media.storageStatus === "shelby_upload_failed" || media.status === "idle");
+    const primaryDelete = media.storageStatus === "shelby_upload_failed" || (isInvalid && isDeletable);
+
+    return (
+      <MediaCard
+        key={media.id}
+        media={media}
+        actionLabel={
+          primaryDelete
+            ? "Delete"
+            : media.status === "registration_failed"
+              ? "Retry registration"
+              : media.status === "pending_registration"
+                ? "Registering"
+                : media.status === "idle"
+                  ? "Push"
+                  : media.status === "waiting"
+                    ? "Waiting"
+                    : media.status === "active"
+                      ? "View Match"
+                      : "View Result"
+        }
+        actionDisabled={
+          media.status === "pending_registration"
+            || processingAction === `retryRegistration:${media.id}`
+            || processingAction === `deleteMedia:${media.id}`
+        }
+        onAction={
+          primaryDelete
+            ? () => setDeleteMediaId(media.id)
+            : media.status === "registration_failed"
+              ? () => retryPalateRegistration(media.id)
+              : undefined
+        }
+        secondaryActionLabel={media.source === "palate_upload_recovery" ? "Clear" : isDeletable && !primaryDelete ? "Delete" : undefined}
+        onSecondaryAction={media.source === "palate_upload_recovery" ? () => clearPendingRegistration(media.id) : isDeletable && !primaryDelete ? () => setDeleteMediaId(media.id) : undefined}
+      />
+    );
+  }
 
   return (
     <div className="page_stack page_media">
@@ -84,67 +130,33 @@ export default function MyMediaPage() {
         <EmptyState title="No media found" copy="Upload and register media to start building your Palate inventory." actionLabel="Upload Media" actionHref="/my-media/upload" />
       ) : (
         <div className="media_grid">
-          {filteredMedia.map((media) => (
-            <MediaCard
-              key={media.id}
-              media={media}
-              actionLabel={
-                media.storageStatus === "shelby_upload_failed"
-                  ? "Delete"
-                  : media.status === "registration_failed"
-                  ? "Retry registration"
-                  : media.status === "pending_registration"
-                    ? "Registering"
-                    : media.status === "idle"
-                      ? "Push"
-                      : media.status === "waiting"
-                        ? "Waiting"
-                        : media.status === "active"
-                          ? "View Match"
-                          : "View Result"
-              }
-              actionDisabled={
-                media.status === "pending_registration"
-                  || processingAction === `retryRegistration:${media.id}`
-                  || processingAction === `deleteFailedMedia:${media.id}`
-              }
-              onAction={
-                media.storageStatus === "shelby_upload_failed"
-                  ? () => setDeleteMediaId(media.id)
-                  : media.status === "registration_failed"
-                    ? () => retryPalateRegistration(media.id)
-                    : undefined
-              }
-              secondaryActionLabel={media.source === "palate_upload_recovery" ? "Clear" : undefined}
-              onSecondaryAction={media.source === "palate_upload_recovery" ? () => clearPendingRegistration(media.id) : undefined}
-            />
-          ))}
+          {filteredMedia.map((media) => renderMediaCard(media))}
         </div>
       )}
 
-      <ModalShell title="Delete failed media" open={deleteMediaId !== null} onClose={() => setDeleteMediaId(null)}>
+      <ModalShell title="Delete media" open={deleteMediaId !== null} onClose={() => setDeleteMediaId(null)}>
         <div className="stack">
           <p className="secondary_text">
-            Delete this failed Shelby upload from Palate. The app will try Shelby deletion first, then mark the Palate record deleted.
+            Delete this media from Palate. The app will try Shelby deletion first, then mark the Palate record deleted.
           </p>
           {mediaToDelete ? (
             <div className="state_card">
-              <span className="state_mark">Failed media</span>
+              <span className="state_mark">{mediaToDelete.storageStatus === "shelby_upload_failed" ? "Failed media" : "Media"}</span>
               <strong>{mediaToDelete.title}</strong>
-              <p>Shelby registration succeeded, but file upload failed.</p>
+              <p>{mediaToDelete.storageStatus === "shelby_upload_failed" ? "Shelby registration succeeded, but file upload failed." : "This idle media will be hidden from My Media and cannot be used in gameplay."}</p>
             </div>
           ) : null}
           <div className="cluster">
             <ActionButton
-              disabled={deleteMediaId === null || processingAction === `deleteFailedMedia:${deleteMediaId}`}
+              disabled={deleteMediaId === null || processingAction === `deleteMedia:${deleteMediaId}`}
               onClick={async () => {
                 if (deleteMediaId === null) return;
-                await deleteFailedMedia(deleteMediaId);
+                await deleteMedia(deleteMediaId);
                 setDeleteMediaId(null);
               }}
               variant="danger"
             >
-              {processingAction === `deleteFailedMedia:${deleteMediaId}` ? "Deleting" : "Delete"}
+              {processingAction === `deleteMedia:${deleteMediaId}` ? "Deleting" : "Delete"}
             </ActionButton>
             <ActionButton onClick={() => setDeleteMediaId(null)} variant="ghost">
               Cancel
