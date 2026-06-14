@@ -10,7 +10,14 @@ import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import type { MediaCategory, MediaFormat, UploadStep } from "@/types/palate";
 
-const progress_steps: UploadStep[] = ["preparing_file", "uploading_to_shelby", "registering_on_chain", "completed"];
+const progress_steps: UploadStep[] = [
+  "preparing_file",
+  "generating_commitments",
+  "registering_shelby_blob",
+  "uploading_to_shelby",
+  "registering_palate_media",
+  "completed"
+];
 const mime_by_format: Record<MediaFormat, string> = {
   PNG: "image/png",
   JPG: "image/jpeg",
@@ -41,7 +48,7 @@ const category_copy: Record<MediaCategory, string> = {
 };
 
 export default function UploadPage() {
-  const { feedback, processingAction, uploadMedia, uploadStep } = usePalate();
+  const { feedback, processingAction, resetUploadFlow, retryShelbyUpload, uploadMedia, uploadRecovery, uploadStep } = usePalate();
   const { walletStatus } = usePalateWallet();
   const [category, setCategory] = useState<MediaCategory>("meme");
   const [title, setTitle] = useState("");
@@ -62,6 +69,14 @@ export default function UploadPage() {
       ? `${(fileMeta.size / 1024 / 1024).toFixed(2)} MB`
       : `${Math.max(1, Math.round(fileMeta.size / 1024))} KB`
     : null;
+  const resetSelectedFile = () => {
+    setSelectedFile(null);
+    setFileName("");
+    setFileMeta(null);
+    const input = document.getElementById("palate_upload_file") as HTMLInputElement | null;
+    if (input) input.value = "";
+    resetUploadFlow();
+  };
 
   return (
     <div className="page_stack page_upload">
@@ -144,6 +159,25 @@ export default function UploadPage() {
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to register media on chain.</p> : null}
             {!shelbyReady ? <p className="feedback_text feedback_error">Shelby API key is not configured.</p> : null}
             {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
+            {uploadRecovery.canRetry ? (
+              <div className="upload_recovery_panel">
+                <strong>Shelby upload can be retried</strong>
+                <p>Your media was not registered in Palate yet. Retry the Shelby upload while this file is still selected.</p>
+                <div className="details_grid">
+                  {uploadRecovery.shelbyRegistrationHash ? <span>Shelby tx {uploadRecovery.shelbyRegistrationHash.slice(0, 10)}...{uploadRecovery.shelbyRegistrationHash.slice(-6)}</span> : null}
+                  {uploadRecovery.blobName ? <span>Blob {uploadRecovery.blobName}</span> : null}
+                  {uploadRecovery.retryCount ? <span>Retries {uploadRecovery.retryCount}</span> : null}
+                </div>
+                <div className="cluster">
+                  <ActionButton disabled={uploadBusy} onClick={retryShelbyUpload} variant="secondary">
+                    Retry Shelby Upload
+                  </ActionButton>
+                  <ActionButton disabled={uploadBusy} onClick={resetSelectedFile} variant="ghost">
+                    Reset
+                  </ActionButton>
+                </div>
+              </div>
+            ) : null}
           </div>
         </SectionPanel>
 
@@ -159,6 +193,18 @@ export default function UploadPage() {
                   {upload_step_labels[step]}
                 </div>
               ))}
+              {uploadStep === "shelby_upload_failed" ? (
+                <div className="upload_step active upload_step_error">
+                  <span>!</span>
+                  {upload_step_labels.shelby_upload_failed}
+                </div>
+              ) : null}
+              {uploadStep === "failed" ? (
+                <div className="upload_step active upload_step_error">
+                  <span>!</span>
+                  {upload_step_labels.failed}
+                </div>
+              ) : null}
             </div>
             <p className="mock_note">Files upload to Shelby first, then Palate registration is submitted on Aptos Testnet.</p>
           </div>

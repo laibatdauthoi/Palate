@@ -30,9 +30,14 @@ export const app_config = {
 } as const;
 
 export const upload_step_labels = {
+  idle: "Ready",
   preparing_file: "Preparing file",
+  generating_commitments: "Generating commitments",
+  registering_shelby_blob: "Registering Shelby blob",
   uploading_to_shelby: "Uploading to Shelby",
-  registering_on_chain: "Registering on chain",
+  shelby_upload_failed: "Shelby upload failed",
+  shelby_uploaded: "Shelby uploaded",
+  registering_palate_media: "Registering in Palate",
   completed: "Completed",
   failed: "Failed"
 } as const;

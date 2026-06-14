@@ -35,6 +35,25 @@ type ShelbyUploadOptions = {
   waitForShelbyRegistration: (transactionHash: string) => Promise<unknown>;
 };
 
+export type PreparedShelbyUpload = {
+  file: File;
+  blobData: Uint8Array;
+  ownerAddress: string;
+  owner: AccountAddress;
+  metadata: ShelbyUploadMetadata;
+  blobName: string;
+  contentHash: string;
+  mimeType: string;
+  size: number;
+  originalFileName: string;
+  displayUrl: string;
+  registrationPayload: InputGenerateTransactionPayloadData;
+};
+
+export type RegisteredShelbyUpload = PreparedShelbyUpload & {
+  shelbyRegistrationHash: string;
+};
+
 const SHELBY_RETENTION_MICROS = 30 * 24 * 60 * 60 * 1_000_000;
 
 function requireShelbyConfigured() {
@@ -78,17 +97,15 @@ function getShelbyDirectUrl(ownerAddress: string, blobName: string) {
   return `https://api.testnet.shelby.xyz/shelby/v1/blobs/${ownerAddress}/${blobName}`;
 }
 
-export async function uploadMediaToShelby(
+export async function prepareShelbyUpload(
   file: File,
   ownerAddress: string,
-  metadata: ShelbyUploadMetadata,
-  options: ShelbyUploadOptions
-): Promise<ShelbyUploadResult> {
+  metadata: ShelbyUploadMetadata
+): Promise<PreparedShelbyUpload> {
   requireShelbyConfigured();
 
   const blobData = new Uint8Array(await file.arrayBuffer());
   const blobName = safeBlobName(metadata.originalFileName || file.name);
-  const shelbyConfig = createShelbyConfig();
   const erasureConfig = defaultErasureCodingConfig();
   const erasureProvider = await createDefaultErasureCodingProvider();
   const commitments = await generateCommitments(erasureProvider, blobData);
@@ -104,28 +121,70 @@ export async function uploadMediaToShelby(
     encoding: erasureConfig.enumIndex
   });
 
-  const shelbyRegistrationHash = await options.submitShelbyRegistration(registrationPayload);
-  await options.waitForShelbyRegistration(shelbyRegistrationHash);
-
-  const rpcClient = new ShelbyRPCClient(shelbyConfig);
-  await rpcClient.putBlob({
-    account: owner,
-    blobName,
-    blobData,
-    totalBytes: blobData.length
-  });
-
-  const displayUrl = getShelbyDirectUrl(ownerAddress, blobName);
-
   return {
-    shelbyBlobRef: displayUrl,
+    file,
+    blobData,
+    ownerAddress,
+    owner,
+    metadata,
+    blobName,
     contentHash: commitments.blob_merkle_root,
     mimeType: metadata.mimeType || file.type,
     size: file.size,
     originalFileName: metadata.originalFileName || file.name,
-    blobName,
-    displayUrl,
+    displayUrl: getShelbyDirectUrl(ownerAddress, blobName),
+    registrationPayload
+  };
+}
+
+export async function registerShelbyBlob(preparedUpload: PreparedShelbyUpload, options: ShelbyUploadOptions): Promise<RegisteredShelbyUpload> {
+  requireShelbyConfigured();
+
+  const shelbyRegistrationHash = await options.submitShelbyRegistration(preparedUpload.registrationPayload);
+  await options.waitForShelbyRegistration(shelbyRegistrationHash);
+
+  return {
+    ...preparedUpload,
     shelbyRegistrationHash
+  };
+}
+
+export async function uploadPreparedBlobToShelby(registeredUpload: RegisteredShelbyUpload): Promise<ShelbyUploadResult> {
+  requireShelbyConfigured();
+
+  const shelbyConfig = createShelbyConfig();
+  const rpcClient = new ShelbyRPCClient(shelbyConfig);
+  await rpcClient.putBlob({
+    account: registeredUpload.owner,
+    blobName: registeredUpload.blobName,
+    blobData: registeredUpload.blobData,
+    totalBytes: registeredUpload.blobData.length
+  });
+
+  return getShelbyUploadResult(registeredUpload);
+}
+
+export async function uploadMediaToShelby(
+  file: File,
+  ownerAddress: string,
+  metadata: ShelbyUploadMetadata,
+  options: ShelbyUploadOptions
+): Promise<ShelbyUploadResult> {
+  const preparedUpload = await prepareShelbyUpload(file, ownerAddress, metadata);
+  const registeredUpload = await registerShelbyBlob(preparedUpload, options);
+  return uploadPreparedBlobToShelby(registeredUpload);
+}
+
+function getShelbyUploadResult(registeredUpload: RegisteredShelbyUpload): ShelbyUploadResult {
+  return {
+    shelbyBlobRef: registeredUpload.displayUrl,
+    contentHash: registeredUpload.contentHash,
+    mimeType: registeredUpload.mimeType,
+    size: registeredUpload.size,
+    originalFileName: registeredUpload.originalFileName,
+    blobName: registeredUpload.blobName,
+    displayUrl: registeredUpload.displayUrl,
+    shelbyRegistrationHash: registeredUpload.shelbyRegistrationHash
   };
 }
 

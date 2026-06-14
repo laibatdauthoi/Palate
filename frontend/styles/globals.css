@@ -1018,9 +1018,15 @@ select.input_control option:checked,
 
 .status_waiting,
 .status_open,
-.status_pending {
+.status_pending,
+.status_pending_registration {
   background: rgba(242, 184, 75, 0.12);
   color: var(--warning-color);
+}
+
+.status_registration_failed {
+  background: rgba(255, 92, 122, 0.12);
+  color: #ffd7df;
 }
 
 .status_active,
@@ -1258,6 +1264,26 @@ select.input_control option:checked,
 .waiting_push_card h3,
 .claim_card h3 {
   margin: 0;
+}
+
+.media_card_actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.recovery_note {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(255, 92, 122, 0.24);
+  border-radius: var(--radius-md);
+  background: rgba(255, 92, 122, 0.08);
+  padding: 10px 12px;
+  color: #ffd7df;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .media_meta {
@@ -2326,6 +2352,46 @@ select.input_control,
   border-color: rgba(255, 47, 159, 0.24);
   background: rgba(255, 47, 159, 0.14);
   color: var(--text-primary);
+}
+
+.upload_step_error {
+  border-color: var(--border-danger);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 92, 122, 0.18), transparent 34%),
+    rgba(255, 92, 122, 0.08);
+  color: #ffd7df;
+}
+
+.upload_step_error span {
+  background: rgba(255, 92, 122, 0.18);
+  color: #ffd7df;
+}
+
+.upload_recovery_panel {
+  display: grid;
+  gap: var(--spacing-sm);
+  border: 1px solid var(--border-danger);
+  border-radius: var(--radius-large);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 92, 122, 0.16), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.018)),
+    rgba(7, 5, 10, 0.58);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-bevel), 0 14px 34px rgba(0, 0, 0, 0.2);
+}
+
+.upload_recovery_panel strong {
+  color: #ffd7df;
+}
+
+.upload_recovery_panel p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.upload_recovery_panel .details_grid {
+  font-size: var(--font-size-caption);
 }
 
 .custom_dropdown_item.selected {

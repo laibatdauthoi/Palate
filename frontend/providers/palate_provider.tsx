@@ -14,7 +14,12 @@ import {
   shortenTransactionHash,
   waitForPalateTransaction
 } from "@/services/aptos_service";
-import { uploadMediaToShelby } from "@/services/shelby_service";
+import {
+  prepareShelbyUpload,
+  registerShelbyBlob,
+  uploadPreparedBlobToShelby,
+  type RegisteredShelbyUpload
+} from "@/services/shelby_service";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import type {
   ActiveMatch,
@@ -46,6 +51,26 @@ type UploadMediaInput = {
   file?: File | null;
 };
 
+type UploadRecoveryState = {
+  canRetry: boolean;
+  retryCount: number;
+  error: string | null;
+  shelbyRegistrationHash: string | null;
+  blobName: string | null;
+  ownerAddress: string | null;
+  contentHash: string | null;
+  fileName: string | null;
+};
+
+type UploadRetryDraft = {
+  registeredUpload: RegisteredShelbyUpload;
+  category: MediaCategory;
+  format: MediaFormat;
+  title: string;
+  mimeType: string;
+  createdTimeSeconds: string;
+};
+
 type PalateContextValue = {
   walletStatus: WalletStatus;
   setWalletStatus: (status: WalletStatus) => void;
@@ -60,6 +85,7 @@ type PalateContextValue = {
   claimRecords: ClaimRecord[];
   userSummary: UserSummary;
   uploadStep: UploadStep | null;
+  uploadRecovery: UploadRecoveryState;
   mediaReadStatus: "idle" | "loading" | "ready" | "error";
   processingAction: string | null;
   feedback: Feedback;
@@ -75,6 +101,10 @@ type PalateContextValue = {
   placeMockBuff: (side: BuffSide, amount: string) => Promise<void>;
   skipMatch: () => Promise<void>;
   uploadMedia: (input: UploadMediaInput) => Promise<void>;
+  retryShelbyUpload: () => Promise<void>;
+  retryPalateRegistration: (mediaId: number) => Promise<void>;
+  clearPendingRegistration: (mediaId: number) => void;
+  resetUploadFlow: () => void;
   uploadMockMedia: (input: UploadMediaInput) => Promise<void>;
   createMockPush: (mediaId: number, amount: string) => Promise<void>;
   challengeMockPush: (pushId: number, challengerMediaId: number, amount: string) => Promise<void>;
@@ -83,6 +113,19 @@ type PalateContextValue = {
 
 const PalateContext = createContext<PalateContextValue | null>(null);
 const mockWalletAddress = mock_summary.walletAddress;
+const MAX_AUTO_SHELBY_UPLOAD_RETRIES = 1;
+const pending_registration_storage_key = "palate_pending_registrations_v1";
+
+const initial_upload_recovery_state: UploadRecoveryState = {
+  canRetry: false,
+  retryCount: 0,
+  error: null,
+  shelbyRegistrationHash: null,
+  blobName: null,
+  ownerAddress: null,
+  contentHash: null,
+  fileName: null
+};
 
 const initial_chain_read_state: ChainReadState = {
   status: "idle",
@@ -140,11 +183,61 @@ function getAccentForCategory(category: MediaCategory): MediaRecord["accent"] {
   return "purple";
 }
 
+function createLocalRecoveryId() {
+  return -Math.abs(Date.now() + Math.floor(Math.random() * 1000));
+}
+
+function getFormatFromMimeType(mimeType: string): MediaFormat {
+  const normalized = mimeType.toLowerCase();
+  if (normalized.includes("png")) return "PNG";
+  if (normalized.includes("webp")) return "WEBP";
+  if (normalized.includes("gif")) return "GIF";
+  if (normalized.includes("mpeg")) return "MP3";
+  if (normalized.includes("wav")) return "WAV";
+  if (normalized.includes("ogg")) return "OGG";
+  if (normalized.includes("audio/mp4")) return "M4A";
+  if (normalized.includes("video/mp4")) return "MP4";
+  if (normalized.includes("webm")) return "WEBM";
+  if (normalized.includes("quicktime")) return "MOV";
+  return "JPG";
+}
+
+function normalizePendingRegistrations(value: unknown): MediaRecord[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((item): item is Partial<MediaRecord> => typeof item === "object" && item !== null)
+    .filter((item) => item.source === "palate_upload_recovery" && typeof item.shelbyBlobRef === "string")
+    .map((item) => ({
+      id: typeof item.id === "number" ? item.id : createLocalRecoveryId(),
+      palateMediaId: null,
+      source: "palate_upload_recovery",
+      ownerAddress: String(item.ownerAddress ?? ""),
+      title: String(item.title ?? item.originalFileName ?? "Unregistered media"),
+      category: (item.category === "meme" || item.category === "image" || item.category === "audio" || item.category === "video") ? item.category : "image",
+      format: item.format ?? getFormatFromMimeType(String(item.mimeType ?? "")),
+      status: item.status === "pending_registration" ? "pending_registration" : "registration_failed",
+      createdTime: String(item.createdTime ?? "Pending registration"),
+      shelbyBlobRef: String(item.shelbyBlobRef ?? ""),
+      contentHash: String(item.contentHash ?? ""),
+      mimeType: String(item.mimeType ?? "application/octet-stream"),
+      originalFileName: item.originalFileName ? String(item.originalFileName) : undefined,
+      fileSize: typeof item.fileSize === "number" ? item.fileSize : undefined,
+      shelbyRegistrationHash: item.shelbyRegistrationHash ? String(item.shelbyRegistrationHash) : null,
+      registrationError: item.registrationError ? String(item.registrationError) : null,
+      registrationRetryCount: typeof item.registrationRetryCount === "number" ? item.registrationRetryCount : 0,
+      createdTimeSeconds: item.createdTimeSeconds ? String(item.createdTimeSeconds) : undefined,
+      accent: item.accent ?? getAccentForCategory((item.category === "meme" || item.category === "image" || item.category === "audio" || item.category === "video") ? item.category : "image")
+    }));
+}
+
 export function PalateProvider({ children }: { children: ReactNode }) {
   const { signAndSubmitTransaction, walletAddress, walletStatus: walletConnectionStatus } = usePalateWallet();
   const [walletStatus, setWalletStatus] = useState<WalletStatus>("connected");
   const [balance, setBalance] = useState<PalateBalance>(mock_balance);
   const [mediaRecords, setMediaRecords] = useState<MediaRecord[]>(mock_media);
+  const [pendingRegistrationMedia, setPendingRegistrationMedia] = useState<MediaRecord[]>([]);
+  const [pendingRegistrationStorageLoaded, setPendingRegistrationStorageLoaded] = useState(false);
   const [waitingPushes, setWaitingPushes] = useState<WaitingPush[]>(mock_waiting_pushes);
   const [activeMatches, setActiveMatches] = useState<ActiveMatch[]>(mock_matches);
   const [claimRecords, setClaimRecords] = useState<ClaimRecord[]>(mock_claims);
@@ -155,10 +248,28 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [usedMatchIds, setUsedMatchIds] = useState<number[]>([]);
   const [assignmentCursor, setAssignmentCursor] = useState(0);
   const [uploadStep, setUploadStep] = useState<UploadStep | null>(null);
+  const [uploadRecovery, setUploadRecovery] = useState<UploadRecoveryState>(initial_upload_recovery_state);
+  const [uploadRetryDraft, setUploadRetryDraft] = useState<UploadRetryDraft | null>(null);
   const [mediaReadStatus, setMediaReadStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [chainRead, setChainRead] = useState<ChainReadState>(initial_chain_read_state);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(pending_registration_storage_key);
+      setPendingRegistrationMedia(stored ? normalizePendingRegistrations(JSON.parse(stored)) : []);
+    } catch {
+      setPendingRegistrationMedia([]);
+    } finally {
+      setPendingRegistrationStorageLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!pendingRegistrationStorageLoaded) return;
+    window.localStorage.setItem(pending_registration_storage_key, JSON.stringify(pendingRegistrationMedia));
+  }, [pendingRegistrationMedia, pendingRegistrationStorageLoaded]);
 
   useEffect(() => {
     let cancelled = false;
@@ -306,6 +417,155 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function getShelbyUploadErrorMessage(error: unknown) {
+    const message = error instanceof Error ? error.message : String(error ?? "Shelby upload failed.");
+    if (message.includes("500") || message.toLowerCase().includes("internal server error")) {
+      return "Shelby upload failed. Your media was not registered in Palate yet. You can retry the Shelby upload.";
+    }
+    return "Shelby upload failed. Your media was not registered in Palate yet. You can retry the Shelby upload.";
+  }
+
+  function getPalateRegistrationErrorMessage(error: unknown) {
+    const message = error instanceof Error ? error.message : String(error ?? "Palate registration failed.");
+    return message || "Palate registration failed.";
+  }
+
+  function addPendingRegistrationMedia(draft: UploadRetryDraft, shelbyResult: Awaited<ReturnType<typeof uploadPreparedBlobToShelby>>, error: unknown) {
+    const registrationError = getPalateRegistrationErrorMessage(error);
+    const pendingMedia: MediaRecord = {
+      id: createLocalRecoveryId(),
+      palateMediaId: null,
+      source: "palate_upload_recovery",
+      ownerAddress: draft.registeredUpload.ownerAddress,
+      title: draft.title,
+      category: draft.category,
+      format: draft.format,
+      status: "registration_failed",
+      createdTime: "Registration failed",
+      createdTimeSeconds: draft.createdTimeSeconds,
+      shelbyBlobRef: shelbyResult.shelbyBlobRef,
+      contentHash: shelbyResult.contentHash,
+      mimeType: shelbyResult.mimeType,
+      originalFileName: shelbyResult.originalFileName,
+      fileSize: shelbyResult.size,
+      shelbyRegistrationHash: draft.registeredUpload.shelbyRegistrationHash,
+      registrationError,
+      registrationRetryCount: 0,
+      accent: getAccentForCategory(draft.category)
+    };
+
+    setPendingRegistrationMedia((records) => {
+      const withoutDuplicate = records.filter((record) => record.shelbyBlobRef !== pendingMedia.shelbyBlobRef);
+      return [pendingMedia, ...withoutDuplicate];
+    });
+  }
+
+  function resetUploadFlow() {
+    setUploadStep("idle");
+    setUploadRecovery(initial_upload_recovery_state);
+    setUploadRetryDraft(null);
+    setProcessingAction(null);
+    setFeedback(null);
+  }
+
+  async function registerPalateMediaAfterShelbyUpload(draft: UploadRetryDraft, shelbyResult: Awaited<ReturnType<typeof uploadPreparedBlobToShelby>>) {
+    if (!walletAddress) {
+      throw new Error("Connect wallet to register media on chain.");
+    }
+
+    setUploadStep("shelby_uploaded");
+    setFeedback({ type: "success", message: "Shelby upload completed. Continue with Palate registration." });
+    setUploadStep("registering_palate_media");
+
+    const data = buildRegisterMediaPayload({
+      category: draft.category,
+      shelbyBlobRef: shelbyResult.shelbyBlobRef,
+      contentHash: shelbyResult.contentHash,
+      mimeType: shelbyResult.mimeType,
+      title: draft.title,
+      createdTime: draft.createdTimeSeconds,
+      categoryConstants: chainRead.categories
+    });
+
+    try {
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshUserMediaForWallet(walletAddress);
+      setUploadStep("completed");
+      setUploadRecovery(initial_upload_recovery_state);
+      setUploadRetryDraft(null);
+      setFeedback({ type: "success", message: `Media registered in Palate ${shortenTransactionHash(transactionHash)}.` });
+    } catch (error) {
+      console.error("Palate registerMedia failed after Shelby upload", error);
+      addPendingRegistrationMedia(draft, shelbyResult, error);
+      setUploadStep("failed");
+      setUploadRecovery(initial_upload_recovery_state);
+      setUploadRetryDraft(null);
+      setFeedback({
+        type: "error",
+        message: "Palate registration failed after Shelby upload. The item is saved in My Media for retry."
+      });
+    }
+  }
+
+  async function uploadShelbyRpcThenRegisterPalate(draft: UploadRetryDraft, retryCount: number, allowAutoRetry: boolean) {
+    setUploadStep("uploading_to_shelby");
+    let shelbyResult: Awaited<ReturnType<typeof uploadPreparedBlobToShelby>>;
+
+    try {
+      shelbyResult = await uploadPreparedBlobToShelby(draft.registeredUpload);
+    } catch (error) {
+      console.error("Shelby RPC upload failed", error);
+
+      if (allowAutoRetry && retryCount < MAX_AUTO_SHELBY_UPLOAD_RETRIES) {
+        const nextRetryCount = retryCount + 1;
+        setUploadRecovery((current) => ({ ...current, retryCount: nextRetryCount, error: "Retrying Shelby upload." }));
+        setFeedback({ type: "info", message: `Shelby upload failed. Retrying upload ${nextRetryCount}/${MAX_AUTO_SHELBY_UPLOAD_RETRIES}.` });
+        await delay(900);
+        await uploadShelbyRpcThenRegisterPalate(draft, nextRetryCount, false);
+        return;
+      }
+
+      const message = getShelbyUploadErrorMessage(error);
+      setUploadStep("shelby_upload_failed");
+      setUploadRecovery((current) => ({
+        ...current,
+        canRetry: true,
+        retryCount,
+        error: message
+      }));
+      setFeedback({ type: "error", message });
+      return;
+    }
+
+    await registerPalateMediaAfterShelbyUpload(draft, shelbyResult);
+  }
+
+  async function retryShelbyUpload() {
+    if (!uploadRetryDraft) {
+      setFeedback({ type: "error", message: "Choose a file before retrying Shelby upload." });
+      return;
+    }
+
+    setProcessingAction("upload");
+    setFeedback(null);
+
+    const nextRetryCount = uploadRecovery.retryCount + 1;
+    setUploadRecovery((current) => ({
+      ...current,
+      canRetry: false,
+      retryCount: nextRetryCount,
+      error: null
+    }));
+
+    try {
+      await uploadShelbyRpcThenRegisterPalate(uploadRetryDraft, nextRetryCount, false);
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
   async function registerMediaOnChain(input: UploadMediaInput) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
       setUploadStep("failed");
@@ -327,14 +587,16 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     setProcessingAction("upload");
     setFeedback(null);
+    setUploadRecovery(initial_upload_recovery_state);
+    setUploadRetryDraft(null);
 
     try {
       setUploadStep("preparing_file");
       await delay(330);
-      setUploadStep("uploading_to_shelby");
+      setUploadStep("generating_commitments");
 
       const safeTitle = input.title.trim() || `Palate ${getCategoryLabel(input.category)}`;
-      const shelbyResult = await uploadMediaToShelby(
+      const preparedUpload = await prepareShelbyUpload(
         input.file,
         walletAddress,
         {
@@ -342,31 +604,36 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           category: input.category,
           mimeType: input.mimeType || input.file.type || getMimeType(input.format),
           originalFileName: input.fileName || input.file.name
-        },
-        {
-          submitShelbyRegistration: async (data) => signAndSubmitTransaction({ data }),
-          waitForShelbyRegistration: waitForPalateTransaction
         }
       );
 
-      setUploadStep("registering_on_chain");
-
-      const createdTime = Math.floor(Date.now() / 1000).toString();
-      const data = buildRegisterMediaPayload({
-        category: input.category,
-        shelbyBlobRef: shelbyResult.shelbyBlobRef,
-        contentHash: shelbyResult.contentHash,
-        mimeType: shelbyResult.mimeType,
-        title: safeTitle,
-        createdTime,
-        categoryConstants: chainRead.categories
+      setUploadStep("registering_shelby_blob");
+      const registeredUpload = await registerShelbyBlob(preparedUpload, {
+        submitShelbyRegistration: async (data) => signAndSubmitTransaction({ data }),
+        waitForShelbyRegistration: waitForPalateTransaction
       });
-      const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
-      await waitForPalateTransaction(transactionHash);
-      await refreshUserMediaForWallet(walletAddress);
-      setUploadStep("completed");
-      setFeedback({ type: "success", message: `Media registered on chain ${shortenTransactionHash(transactionHash)}.` });
+
+      const draft: UploadRetryDraft = {
+        registeredUpload,
+        category: input.category,
+        format: input.format,
+        title: safeTitle,
+        mimeType: registeredUpload.mimeType,
+        createdTimeSeconds: Math.floor(Date.now() / 1000).toString()
+      };
+      setUploadRetryDraft(draft);
+      setUploadRecovery({
+        canRetry: false,
+        retryCount: 0,
+        error: null,
+        shelbyRegistrationHash: registeredUpload.shelbyRegistrationHash,
+        blobName: registeredUpload.blobName,
+        ownerAddress: registeredUpload.ownerAddress,
+        contentHash: registeredUpload.contentHash,
+        fileName: registeredUpload.originalFileName
+      });
+
+      await uploadShelbyRpcThenRegisterPalate(draft, 0, true);
     } catch (error) {
       setUploadStep("failed");
       setFeedback({ type: "error", message: error instanceof Error ? error.message : "Media registration failed." });
@@ -375,12 +642,85 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function retryPalateRegistration(mediaId: number) {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      setFeedback({ type: "error", message: "Connect wallet to retry Palate registration." });
+      return;
+    }
+
+    const pendingMedia = pendingRegistrationMedia.find((media) => media.id === mediaId);
+    if (!pendingMedia || pendingMedia.source !== "palate_upload_recovery") {
+      setFeedback({ type: "error", message: "Registration retry item was not found." });
+      return;
+    }
+
+    if (pendingMedia.ownerAddress && pendingMedia.ownerAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+      setFeedback({ type: "error", message: "Connect the wallet that uploaded this media to retry registration." });
+      return;
+    }
+
+    setProcessingAction(`retryRegistration:${mediaId}`);
+    setFeedback(null);
+    setPendingRegistrationMedia((records) =>
+      records.map((record) =>
+        record.id === mediaId
+          ? { ...record, status: "pending_registration", registrationError: null }
+          : record
+      )
+    );
+
+    try {
+      const data = buildRegisterMediaPayload({
+        category: pendingMedia.category,
+        shelbyBlobRef: pendingMedia.shelbyBlobRef,
+        contentHash: pendingMedia.contentHash,
+        mimeType: pendingMedia.mimeType,
+        title: pendingMedia.title,
+        createdTime: pendingMedia.createdTimeSeconds ?? Math.floor(Date.now() / 1000).toString(),
+        categoryConstants: chainRead.categories
+      });
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshUserMediaForWallet(walletAddress);
+      setPendingRegistrationMedia((records) => records.filter((record) => record.id !== mediaId));
+      setFeedback({ type: "success", message: `Media registered in Palate ${shortenTransactionHash(transactionHash)}.` });
+    } catch (error) {
+      const message = getPalateRegistrationErrorMessage(error);
+      setPendingRegistrationMedia((records) =>
+        records.map((record) =>
+          record.id === mediaId
+            ? {
+                ...record,
+                status: "registration_failed",
+                registrationError: message,
+                registrationRetryCount: (record.registrationRetryCount ?? 0) + 1
+              }
+            : record
+        )
+      );
+      setFeedback({ type: "error", message: "Palate registration failed. You can retry from My Media." });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
+  function clearPendingRegistration(mediaId: number) {
+    setPendingRegistrationMedia((records) => records.filter((record) => record.id !== mediaId));
+    setFeedback({ type: "info", message: "Registration recovery item cleared from this browser." });
+  }
+
+  const visibleMediaRecords = [
+    ...pendingRegistrationMedia.filter((media) => !walletAddress || media.ownerAddress.toLowerCase() === walletAddress.toLowerCase()),
+    ...mediaRecords
+  ];
+
   const value: PalateContextValue = {
       walletStatus,
       setWalletStatus,
       mockWalletAddress,
       balance,
-      mediaRecords,
+      mediaRecords: visibleMediaRecords,
       waitingPushes,
       activeMatches,
       currentAssignment,
@@ -389,6 +729,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       claimRecords,
       userSummary,
       uploadStep,
+      uploadRecovery,
       mediaReadStatus,
       processingAction,
       feedback,
@@ -478,6 +819,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         });
       },
       uploadMedia: registerMediaOnChain,
+      retryShelbyUpload,
+      retryPalateRegistration,
+      clearPendingRegistration,
+      resetUploadFlow,
       uploadMockMedia: async (input) => {
         setProcessingAction("upload");
         setFeedback(null);

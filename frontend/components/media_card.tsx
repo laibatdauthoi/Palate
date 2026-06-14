@@ -7,9 +7,13 @@ import { StatusBadge } from "./status_badge";
 type MediaCardProps = {
   media: MediaRecord;
   actionLabel?: string;
+  onAction?: () => void;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
+  actionDisabled?: boolean;
 };
 
-export function MediaCard({ media, actionLabel }: MediaCardProps) {
+export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, actionDisabled }: MediaCardProps) {
   return (
     <article className="media_card">
       <div className={`media_preview media_preview_${media.accent}`} role="img" aria-label={media.title}>
@@ -28,8 +32,18 @@ export function MediaCard({ media, actionLabel }: MediaCardProps) {
         </div>
         <div className="spread media_meta">
           <span>{media.createdTime}</span>
-          {actionLabel ? <ActionButton variant="secondary">{actionLabel}</ActionButton> : null}
+          <div className="media_card_actions">
+            {actionLabel ? <ActionButton disabled={actionDisabled} onClick={onAction} variant="secondary">{actionLabel}</ActionButton> : null}
+            {secondaryActionLabel ? <ActionButton onClick={onSecondaryAction} variant="ghost">{secondaryActionLabel}</ActionButton> : null}
+          </div>
         </div>
+        {media.source === "palate_upload_recovery" ? (
+          <div className="recovery_note">
+            <span>This Shelby upload is not registered in Palate yet and cannot be pushed.</span>
+            {media.shelbyRegistrationHash ? <span>Shelby tx {media.shelbyRegistrationHash.slice(0, 8)}...{media.shelbyRegistrationHash.slice(-6)}</span> : null}
+            {media.registrationError ? <span>{media.registrationError}</span> : null}
+          </div>
+        ) : null}
       </div>
     </article>
   );

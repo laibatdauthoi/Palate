@@ -1,9 +1,20 @@
 export type MediaCategory = "meme" | "image" | "audio" | "video";
 export type MediaFormat = "PNG" | "JPG" | "JPEG" | "WEBP" | "GIF" | "MP3" | "WAV" | "OGG" | "M4A" | "MP4" | "WEBM" | "MOV";
-export type MediaStatus = "idle" | "waiting" | "active" | "settled" | "disabled" | "banned";
+export type MediaStatus = "idle" | "waiting" | "active" | "settled" | "disabled" | "banned" | "pending_registration" | "registration_failed";
 export type MatchStatus = "active" | "settled";
 export type ClaimType = "push" | "buff";
-export type UploadStep = "preparing_file" | "uploading_to_shelby" | "registering_on_chain" | "completed" | "failed";
+export type MediaSource = "palate_contract" | "palate_upload_recovery";
+export type UploadStep =
+  | "idle"
+  | "preparing_file"
+  | "generating_commitments"
+  | "registering_shelby_blob"
+  | "uploading_to_shelby"
+  | "shelby_upload_failed"
+  | "shelby_uploaded"
+  | "registering_palate_media"
+  | "completed"
+  | "failed";
 export type WalletStatus = "disconnected" | "connecting" | "connected" | "wrong_network" | "error";
 export type BuffSide = "A" | "B";
 export type ChainReadStatus = "idle" | "loading" | "ready" | "error";
@@ -44,6 +55,8 @@ export type ChainReadState = {
 
 export type MediaRecord = {
   id: number;
+  palateMediaId?: number | null;
+  source?: MediaSource;
   ownerAddress: string;
   title: string;
   category: MediaCategory;
@@ -53,6 +66,12 @@ export type MediaRecord = {
   shelbyBlobRef: string;
   contentHash: string;
   mimeType: string;
+  originalFileName?: string;
+  fileSize?: number;
+  shelbyRegistrationHash?: string | null;
+  registrationError?: string | null;
+  registrationRetryCount?: number;
+  createdTimeSeconds?: string;
   accent: "pink" | "purple" | "rose" | "deep";
 };
 

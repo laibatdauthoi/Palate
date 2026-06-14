@@ -9,6 +9,8 @@ const labels: Record<StatusBadgeValue, string> = {
   settled: "Settled",
   disabled: "Disabled",
   banned: "Banned",
+  pending_registration: "Pending registration",
+  registration_failed: "Registration failed",
   open: "Open",
   claimable: "Claimable",
   pending: "Pending",

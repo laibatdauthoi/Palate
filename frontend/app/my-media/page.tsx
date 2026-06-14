@@ -13,14 +13,16 @@ import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import type { MediaCategory, MediaStatus } from "@/types/palate";
 
-const statuses = ["All", "Idle", "Waiting", "Active", "Settled"] as const;
+const statuses = ["All", "Idle", "Waiting", "Active", "Settled", "Registration Failed", "Pending Registration"] as const;
 const categories = ["All Categories", "Meme", "Image", "Audio", "Video"] as const;
 type CategoryFilter = (typeof categories)[number];
 const status_values = {
   Idle: "idle",
   Waiting: "waiting",
   Active: "active",
-  Settled: "settled"
+  Settled: "settled",
+  "Registration Failed": "registration_failed",
+  "Pending Registration": "pending_registration"
 } as const satisfies Record<Exclude<(typeof statuses)[number], "All">, MediaStatus>;
 const category_values = {
   Meme: "meme",
@@ -30,7 +32,7 @@ const category_values = {
 } as const satisfies Record<Exclude<(typeof categories)[number], "All Categories">, MediaCategory>;
 
 export default function MyMediaPage() {
-  const { mediaReadStatus, mediaRecords } = usePalate();
+  const { clearPendingRegistration, mediaReadStatus, mediaRecords, processingAction, retryPalateRegistration } = usePalate();
   const { walletStatus } = usePalateWallet();
   const [status, setStatus] = useState<(typeof statuses)[number]>("All");
   const [category, setCategory] = useState<CategoryFilter>("All Categories");
@@ -78,7 +80,23 @@ export default function MyMediaPage() {
             <MediaCard
               key={media.id}
               media={media}
-              actionLabel={media.status === "idle" ? "Push" : media.status === "waiting" ? "Waiting" : media.status === "active" ? "View Match" : "View Result"}
+              actionLabel={
+                media.status === "registration_failed"
+                  ? "Retry registration"
+                  : media.status === "pending_registration"
+                    ? "Registering"
+                    : media.status === "idle"
+                      ? "Push"
+                      : media.status === "waiting"
+                        ? "Waiting"
+                        : media.status === "active"
+                          ? "View Match"
+                          : "View Result"
+              }
+              actionDisabled={media.status === "pending_registration" || processingAction === `retryRegistration:${media.id}`}
+              onAction={media.status === "registration_failed" ? () => retryPalateRegistration(media.id) : undefined}
+              secondaryActionLabel={media.source === "palate_upload_recovery" ? "Clear" : undefined}
+              onSecondaryAction={media.source === "palate_upload_recovery" ? () => clearPendingRegistration(media.id) : undefined}
             />
           ))}
         </div>
