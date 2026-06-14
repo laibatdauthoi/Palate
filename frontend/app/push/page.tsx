@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
+import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
 import { MatchCard } from "@/components/match_card";
 import { ModalShell } from "@/components/modal_shell";
 import { PageHeader } from "@/components/page_header";
@@ -32,6 +33,26 @@ export default function PushPage() {
   const idleMedia = mediaRecords.filter((media) => media.status === "idle");
   const challengeOptions = idleMedia;
   const pushBusy = processingAction === "createPush" || processingAction === "challengePush";
+  const idleMediaOptions: DropdownOption<string>[] = [
+    { label: "Select idle media", value: "" },
+    ...idleMedia.map((media) => ({
+      label: `${media.title} - ${category_labels[media.category]}`,
+      value: String(media.id)
+    }))
+  ];
+  const waitingPushOptions: DropdownOption<string>[] = openWaitingPushes.length > 0
+    ? openWaitingPushes.map((push) => ({
+        label: `${push.media.title} - minimum ${push.minChallengeAmount}`,
+        value: String(push.id)
+      }))
+    : [{ label: "No waiting pushes", value: "" }];
+  const challengeMediaOptions: DropdownOption<string>[] = [
+    { label: "Select idle media", value: "" },
+    ...challengeOptions.map((media) => ({
+      label: `${media.title} - ${category_labels[media.category]}`,
+      value: String(media.id)
+    }))
+  ];
 
   function openChallenge(pushId: number) {
     const push = openWaitingPushes.find((candidate) => candidate.id === pushId);
@@ -62,15 +83,7 @@ export default function PushPage() {
 
       <SectionPanel title="Create push" copy="Use Palate Balance and mark selected idle media as waiting for a challenger.">
         <div className="mock_form_grid">
-          <label className="amount_input">
-            <span>Idle media</span>
-            <select className="input_control" onChange={(event) => setCreateMediaId(event.target.value)} value={createMediaId}>
-              <option value="">Select idle media</option>
-              {idleMedia.map((media) => (
-                <option key={media.id} value={media.id}>{media.title} - {category_labels[media.category]}</option>
-              ))}
-            </select>
-          </label>
+          <CustomDropdown label="Idle media" onChange={setCreateMediaId} options={idleMediaOptions} value={createMediaId} />
           <AmountInput label="Push amount" onChange={setCreateAmount} placeholder="1.000 APT minimum" value={createAmount} />
           <ActionButton disabled={pushBusy || !createMediaId} onClick={() => createMockPush(Number(createMediaId), createAmount)}>
             {processingAction === "createPush" ? "Creating" : "Create Push"}
@@ -96,23 +109,13 @@ export default function PushPage() {
       <ModalShell title="Challenge Push" open={modalOpen} onClose={() => setModalOpen(false)}>
         <div className="stack">
           <p className="secondary_text">Select same-category idle media and enter a push amount at or above the required minimum.</p>
-          <label className="amount_input">
-            <span>Waiting push</span>
-            <select className="input_control" onChange={(event) => setChallengePushId(Number(event.target.value))} value={selectedPush?.id ?? ""}>
-              {openWaitingPushes.map((push) => (
-                <option key={push.id} value={push.id}>{push.media.title} - minimum {push.minChallengeAmount}</option>
-              ))}
-            </select>
-          </label>
-          <label className="amount_input">
-            <span>Idle media</span>
-            <select className="input_control" onChange={(event) => setChallengeMediaId(event.target.value)} value={challengeMediaId}>
-              <option value="">Select idle media</option>
-              {challengeOptions.map((media) => (
-                <option key={media.id} value={media.id}>{media.title} - {category_labels[media.category]}</option>
-              ))}
-            </select>
-          </label>
+          <CustomDropdown
+            label="Waiting push"
+            onChange={(nextValue) => setChallengePushId(nextValue ? Number(nextValue) : null)}
+            options={waitingPushOptions}
+            value={selectedPush ? String(selectedPush.id) : ""}
+          />
+          <CustomDropdown label="Idle media" onChange={setChallengeMediaId} options={challengeMediaOptions} value={challengeMediaId} />
           <AmountInput label="Challenge amount" onChange={setChallengeAmount} placeholder={`Minimum ${selectedPush?.minChallengeAmount ?? "1.000 APT"}`} value={challengeAmount} />
           <div className="state_card">
             <span className="state_mark">Minimum challenge amount</span>

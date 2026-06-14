@@ -21,6 +21,8 @@ export function RouteBackground() {
       <span className="route_fx route_fx_two" />
       <span className="route_fx route_fx_three" />
       <span className="route_fx route_fx_four" />
+      <span className="route_fx route_fx_five" />
+      <span className="route_fx route_fx_six" />
     </div>
   );
 }

@@ -31,7 +31,9 @@ h2,
 h3,
 strong,
 button,
-  label,
+label,
+select,
+option,
 .nav_link,
 .brand_lockup,
 .badge {
@@ -44,6 +46,10 @@ button,
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255, 47, 159, 0.12), transparent 18%),
+    radial-gradient(circle at 78% 18%, rgba(255, 143, 199, 0.09), transparent 20%),
+    radial-gradient(circle at 54% 80%, rgba(143, 85, 255, 0.08), transparent 26%);
 }
 
 .route_background::before,
@@ -54,24 +60,40 @@ button,
   content: "";
 }
 
+.route_background {
+  z-index: 0;
+}
+
+.navigation_bar,
+.main_content,
+.mobile_bottom_nav {
+  position: relative;
+  z-index: 1;
+}
+
 .route_background::before {
   inset: 10% 8%;
   border: 1px solid rgba(255, 47, 159, 0.08);
   border-radius: 46%;
-  opacity: 0.7;
+  opacity: 0.95;
   transform: rotate(-12deg);
 }
 
 .route_background::after {
   inset: auto 12% 10% 20%;
   height: 44%;
-  background: radial-gradient(circle, rgba(255, 47, 159, 0.11), transparent 58%);
+  background:
+    radial-gradient(circle at 26% 50%, rgba(255, 47, 159, 0.2), transparent 9%),
+    radial-gradient(circle at 58% 44%, rgba(255, 255, 255, 0.12), transparent 5%),
+    radial-gradient(circle at 76% 60%, rgba(255, 143, 199, 0.15), transparent 8%),
+    radial-gradient(circle, rgba(255, 47, 159, 0.13), transparent 58%);
   filter: blur(8px);
-  opacity: 0.7;
+  opacity: 0.9;
+  animation: mote_drift 14s ease-in-out infinite alternate;
 }
 
 .route_fx {
-  opacity: 0.46;
+  opacity: 0.72;
   filter: blur(0.2px);
 }
 
@@ -80,22 +102,24 @@ button,
   height: 36vw;
   min-width: 280px;
   min-height: 280px;
-  border: 1px solid rgba(255, 47, 159, 0.12);
+  border: 1px solid rgba(255, 47, 159, 0.22);
   border-radius: 50%;
   top: 8%;
   right: 8%;
-  animation: orbit_drift 24s linear infinite;
+  box-shadow: inset 0 0 60px rgba(255, 47, 159, 0.06), 0 0 50px rgba(255, 47, 159, 0.09);
+  animation: orbit_drift 20s linear infinite;
 }
 
 .route_fx_two {
   width: 180px;
   height: 180px;
-  border: 1px solid rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 32px;
   left: 15%;
   top: 20%;
   transform: rotate(18deg);
-  animation: shard_float 13s ease-in-out infinite alternate;
+  box-shadow: 0 0 32px rgba(255, 47, 159, 0.08);
+  animation: shard_float 9s ease-in-out infinite alternate;
 }
 
 .route_fx_three {
@@ -103,8 +127,9 @@ button,
   height: 2px;
   top: 44%;
   left: 30%;
-  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.22), transparent);
-  animation: lane_sweep 9s ease-in-out infinite alternate;
+  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.34), rgba(255, 255, 255, 0.16), transparent);
+  box-shadow: 0 0 28px rgba(255, 47, 159, 0.2);
+  animation: lane_sweep 6.5s ease-in-out infinite alternate;
 }
 
 .route_fx_four {
@@ -114,14 +139,59 @@ button,
   bottom: 24%;
   border-radius: 50%;
   background: rgba(255, 47, 159, 0.5);
-  box-shadow: 0 0 38px rgba(255, 47, 159, 0.45), 80px -50px 0 rgba(255, 105, 189, 0.18), -120px 70px 0 rgba(255, 255, 255, 0.08);
-  animation: pulse_particles 5.8s ease-in-out infinite;
+  box-shadow:
+    0 0 38px rgba(255, 47, 159, 0.55),
+    80px -50px 0 rgba(255, 105, 189, 0.28),
+    -120px 70px 0 rgba(255, 255, 255, 0.14),
+    150px 88px 0 rgba(255, 47, 159, 0.18),
+    -210px -90px 0 rgba(255, 143, 199, 0.16);
+  animation: pulse_particles 4.8s ease-in-out infinite;
+}
+
+.route_fx_five {
+  width: 26vw;
+  height: 26vw;
+  min-width: 190px;
+  min-height: 190px;
+  left: 6%;
+  bottom: 8%;
+  border: 1px solid rgba(255, 143, 199, 0.18);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 47, 159, 0.13), transparent 34%),
+    radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.08), transparent 16%);
+  box-shadow: 0 0 58px rgba(255, 47, 159, 0.12);
+  animation: orb_float 7.5s ease-in-out infinite alternate;
+}
+
+.route_fx_six {
+  width: 10px;
+  height: 10px;
+  left: 52%;
+  top: 18%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 0 24px rgba(255, 255, 255, 0.2),
+    42px 60px 0 rgba(255, 47, 159, 0.3),
+    -58px 110px 0 rgba(255, 143, 199, 0.24),
+    116px 160px 0 rgba(255, 47, 159, 0.18),
+    -140px -40px 0 rgba(255, 255, 255, 0.1);
+  animation: particle_rise 5.5s ease-in-out infinite;
 }
 
 .route_home::before {
   border-width: 2px;
-  box-shadow: 0 0 80px rgba(255, 47, 159, 0.08);
-  animation: orbit_drift 28s linear infinite;
+  box-shadow: 0 0 90px rgba(255, 47, 159, 0.16);
+  animation: orbit_drift 22s linear infinite;
+}
+
+.route_home .route_fx_one {
+  border-style: dotted;
+  background:
+    radial-gradient(circle at 20% 28%, rgba(255, 255, 255, 0.16), transparent 4%),
+    radial-gradient(circle at 42% 58%, rgba(255, 47, 159, 0.2), transparent 5%),
+    radial-gradient(circle at 72% 38%, rgba(255, 143, 199, 0.18), transparent 5%);
 }
 
 .route_home .route_fx_two,
@@ -130,15 +200,40 @@ button,
   background: linear-gradient(145deg, rgba(255, 47, 159, 0.12), rgba(255, 255, 255, 0.025));
 }
 
+.route_home .route_fx_five {
+  box-shadow: 0 0 70px rgba(255, 47, 159, 0.18), 90px -80px 0 rgba(255, 143, 199, 0.08);
+}
+
 .route_buff .route_fx_three {
   top: 38%;
   height: 4px;
-  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.42), rgba(255, 255, 255, 0.18), rgba(255, 47, 159, 0.42), transparent);
-  animation: versus_energy 4.8s ease-in-out infinite alternate;
+  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.62), rgba(255, 255, 255, 0.26), rgba(255, 47, 159, 0.62), transparent);
+  box-shadow: 0 0 48px rgba(255, 47, 159, 0.28), 0 50px 0 rgba(255, 47, 159, 0.08), 0 -45px 0 rgba(255, 255, 255, 0.055);
+  animation: versus_energy 3.6s ease-in-out infinite alternate;
 }
 
 .route_buff .route_fx_four {
-  box-shadow: 0 0 42px rgba(255, 47, 159, 0.55), 44px 28px 0 rgba(255, 47, 159, 0.18), -62px -34px 0 rgba(255, 255, 255, 0.09), 116px -12px 0 rgba(255, 105, 189, 0.12);
+  box-shadow: 0 0 42px rgba(255, 47, 159, 0.68), 44px 28px 0 rgba(255, 47, 159, 0.3), -62px -34px 0 rgba(255, 255, 255, 0.16), 116px -12px 0 rgba(255, 105, 189, 0.24), -150px 60px 0 rgba(255, 47, 159, 0.2);
+}
+
+.route_buff .route_fx_five {
+  left: 50%;
+  bottom: 18%;
+  width: 34vw;
+  height: 34vw;
+  border-color: rgba(255, 47, 159, 0.28);
+  animation: battle_pulse 3.2s ease-in-out infinite alternate;
+}
+
+.route_buff .route_fx_six {
+  box-shadow:
+    0 0 28px rgba(255, 255, 255, 0.25),
+    34px 44px 0 rgba(255, 47, 159, 0.4),
+    -70px 82px 0 rgba(255, 143, 199, 0.28),
+    130px 120px 0 rgba(255, 47, 159, 0.24),
+    -160px -30px 0 rgba(255, 255, 255, 0.14),
+    220px 24px 0 rgba(255, 47, 159, 0.18);
+  animation: spark_cross 3s ease-in-out infinite alternate;
 }
 
 .route_media::before {
@@ -147,7 +242,24 @@ button,
     linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 47, 159, 0.045) 1px, transparent 1px);
   background-size: 82px 82px;
-  animation: inventory_scroll 26s linear infinite;
+  box-shadow: 0 0 80px rgba(255, 47, 159, 0.08);
+  animation: inventory_scroll 18s linear infinite;
+}
+
+.route_media .route_fx_two {
+  width: 230px;
+  height: 150px;
+  background:
+    linear-gradient(145deg, rgba(255, 47, 159, 0.18), rgba(255, 255, 255, 0.035)),
+    radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.12), transparent 28%);
+}
+
+.route_media .route_fx_five {
+  border-radius: 24px;
+  transform: rotate(-14deg);
+  background:
+    linear-gradient(145deg, rgba(255, 47, 159, 0.16), rgba(255, 255, 255, 0.04)),
+    radial-gradient(circle at 70% 20%, rgba(255, 255, 255, 0.1), transparent 20%);
 }
 
 .route_upload .route_fx_three {
@@ -155,12 +267,23 @@ button,
   height: 120%;
   width: 3px;
   left: 48%;
-  background: linear-gradient(180deg, transparent, rgba(255, 47, 159, 0.34), transparent);
-  animation: scan_beam 5.5s ease-in-out infinite;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.16), rgba(255, 47, 159, 0.5), transparent);
+  box-shadow: 0 0 42px rgba(255, 47, 159, 0.28);
+  animation: scan_beam 3.8s ease-in-out infinite;
 }
 
 .route_upload .route_fx_four {
-  box-shadow: 0 0 34px rgba(255, 47, 159, 0.42), 70px 90px 0 rgba(255, 255, 255, 0.08), -90px -60px 0 rgba(255, 105, 189, 0.14), 160px -20px 0 rgba(255, 47, 159, 0.1);
+  box-shadow: 0 0 34px rgba(255, 47, 159, 0.56), 70px 90px 0 rgba(255, 255, 255, 0.16), -90px -60px 0 rgba(255, 105, 189, 0.25), 160px -20px 0 rgba(255, 47, 159, 0.2), -180px 120px 0 rgba(255, 143, 199, 0.14);
+}
+
+.route_upload .route_fx_five {
+  width: 18vw;
+  height: 60vh;
+  left: 20%;
+  bottom: -12%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, transparent, rgba(255, 47, 159, 0.14), transparent);
+  animation: upload_stream 4.2s ease-in-out infinite;
 }
 
 .route_push .route_fx_three {
@@ -168,21 +291,46 @@ button,
   left: 5%;
   width: 92vw;
   transform: rotate(-14deg);
-  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.28), transparent);
-  box-shadow: 0 72px 0 rgba(255, 47, 159, 0.07), 0 144px 0 rgba(143, 85, 255, 0.05);
-  animation: challenge_lanes 8s ease-in-out infinite alternate;
+  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.48), rgba(255, 255, 255, 0.12), transparent);
+  box-shadow: 0 72px 0 rgba(255, 47, 159, 0.14), 0 144px 0 rgba(143, 85, 255, 0.08), 0 -80px 0 rgba(255, 143, 199, 0.08);
+  animation: challenge_lanes 4.8s ease-in-out infinite alternate;
+}
+
+.route_push .route_fx_five {
+  width: 80vw;
+  height: 3px;
+  left: -8%;
+  bottom: 28%;
+  border: 0;
+  border-radius: 0;
+  transform: rotate(-18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.44), transparent);
+  box-shadow: 0 44px 0 rgba(255, 143, 199, 0.12), 0 -54px 0 rgba(255, 47, 159, 0.1);
+  animation: challenge_lanes 3.6s ease-in-out infinite alternate-reverse;
 }
 
 .route_profile::after {
   inset: auto 4% -18% 24%;
   height: 62%;
-  background: radial-gradient(circle, rgba(255, 47, 159, 0.19), transparent 60%);
-  animation: vault_glow 6.8s ease-in-out infinite alternate;
+  background:
+    radial-gradient(circle at 45% 62%, rgba(255, 255, 255, 0.1), transparent 8%),
+    radial-gradient(circle, rgba(255, 47, 159, 0.27), transparent 60%);
+  animation: vault_glow 4.8s ease-in-out infinite alternate;
 }
 
 .route_profile .route_fx_four {
   bottom: 18%;
-  box-shadow: 0 0 42px rgba(255, 47, 159, 0.42), 48px -30px 0 rgba(255, 255, 255, 0.08), -72px -64px 0 rgba(255, 105, 189, 0.12), 110px 52px 0 rgba(255, 47, 159, 0.16);
+  box-shadow: 0 0 42px rgba(255, 47, 159, 0.56), 48px -30px 0 rgba(255, 255, 255, 0.15), -72px -64px 0 rgba(255, 105, 189, 0.22), 110px 52px 0 rgba(255, 47, 159, 0.26), -150px 20px 0 rgba(255, 255, 255, 0.08);
+}
+
+.route_profile .route_fx_five {
+  left: 34%;
+  bottom: 0;
+  border-color: rgba(255, 47, 159, 0.24);
+  background:
+    radial-gradient(circle at 50% 55%, rgba(255, 47, 159, 0.2), transparent 36%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08), transparent 18%);
+  animation: vault_ring 5.2s ease-in-out infinite alternate;
 }
 
 body::before,
@@ -394,14 +542,19 @@ img {
 }
 
 .input_control {
+  appearance: none;
   width: 100%;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-medium);
-  background: var(--surface-secondary);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.015)),
+    radial-gradient(circle at 90% 18%, rgba(255, 47, 159, 0.12), transparent 32%),
+    var(--surface-secondary);
   color: var(--text-primary);
   padding: 13px 14px;
   outline: none;
   transition: var(--transition-fast);
+  box-shadow: var(--shadow-bevel);
 }
 
 .input_control:focus {
@@ -411,6 +564,50 @@ img {
 
 .select_control {
   min-width: 150px;
+}
+
+select.input_control,
+.select_control {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 42px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--accent-soft) 50%),
+    linear-gradient(135deg, var(--accent-soft) 50%, transparent 50%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.015)),
+    radial-gradient(circle at 90% 18%, rgba(255, 47, 159, 0.12), transparent 32%);
+  background-position:
+    calc(100% - 22px) 52%,
+    calc(100% - 16px) 52%,
+    0 0,
+    0 0;
+  background-repeat: no-repeat;
+  background-size:
+    6px 6px,
+    6px 6px,
+    100% 100%,
+    100% 100%;
+}
+
+select.input_control:hover,
+.select_control:hover {
+  border-color: rgba(255, 47, 159, 0.36);
+  box-shadow: var(--shadow-glow), var(--shadow-bevel);
+}
+
+select.input_control option,
+.select_control option {
+  background: #15111a;
+  color: var(--text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-body);
+  padding: 12px 14px;
+}
+
+select.input_control option:checked,
+.select_control option:checked {
+  background: linear-gradient(135deg, rgba(255, 47, 159, 0.42), rgba(143, 85, 255, 0.18));
+  color: var(--text-primary);
 }
 
 .mobile_only {
@@ -444,23 +641,19 @@ img {
 }
 
 .brand_mark {
-  display: grid;
-  width: 46px;
-  height: 46px;
-  place-items: center;
-  border: 2px solid rgba(255, 47, 159, 0.64);
-  border-radius: var(--radius-medium);
-  background: linear-gradient(145deg, rgba(255, 47, 159, 0.18), rgba(255, 255, 255, 0.04));
-  box-shadow: var(--shadow-glow), var(--shadow-bevel);
-  color: var(--text-primary);
-  font-size: var(--font-size-heading-3);
-  font-weight: 900;
-  overflow: hidden;
+  display: block;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
 }
 
 .brand_mark img {
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
 }
 
@@ -632,7 +825,7 @@ img {
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   border-radius: 18px;
   padding: 11px 16px;
   color: var(--text-primary);
@@ -651,13 +844,14 @@ img {
 
 .action_button_primary {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 44%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 52%),
     var(--gradient-primary);
-  box-shadow: var(--shadow-glow), var(--shadow-bevel), 0 14px 30px rgba(255, 47, 159, 0.18);
+  border-color: rgba(255, 143, 199, 0.26);
+  box-shadow: 0 0 22px rgba(255, 47, 159, 0.22), 0 8px 18px rgba(0, 0, 0, 0.24);
 }
 
 .action_button_primary:hover {
-  box-shadow: var(--shadow-glow-strong), 0 18px 38px rgba(255, 47, 159, 0.22);
+  box-shadow: 0 0 30px rgba(255, 47, 159, 0.32), 0 10px 22px rgba(0, 0, 0, 0.26);
 }
 
 .action_button_secondary {
@@ -665,7 +859,7 @@ img {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 46%),
     var(--surface-secondary);
-  box-shadow: var(--shadow-bevel);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
 }
 
 .action_button_secondary:hover,
@@ -1629,6 +1823,153 @@ img {
   border-color: transparent;
 }
 
+.brand_mark {
+  border-width: 0;
+}
+
+.hero_primary_cta,
+.page_header_actions .action_button,
+.action_button_primary {
+  border: 1px solid rgba(255, 143, 199, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.02) 48%, rgba(255, 47, 159, 0.08) 100%),
+    var(--gradient-primary);
+  box-shadow: 0 0 24px rgba(255, 47, 159, 0.22), 0 10px 20px rgba(0, 0, 0, 0.22);
+}
+
+.hero_primary_cta:hover,
+.page_header_actions .action_button:hover,
+.action_button_primary:hover {
+  border-color: rgba(255, 143, 199, 0.42);
+  box-shadow: 0 0 34px rgba(255, 47, 159, 0.32), 0 12px 24px rgba(0, 0, 0, 0.24);
+}
+
+.input_control,
+select.input_control,
+.select_control {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.custom_dropdown {
+  position: relative;
+  display: grid;
+  gap: var(--spacing-sm);
+  min-width: 180px;
+  color: var(--text-secondary);
+  font-weight: 800;
+  z-index: 5;
+}
+
+.custom_dropdown:has(.custom_dropdown_menu) {
+  z-index: 40;
+}
+
+.custom_dropdown_label {
+  color: var(--text-secondary);
+}
+
+.custom_dropdown_button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  min-height: 46px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.018)),
+    radial-gradient(circle at 92% 18%, rgba(255, 47, 159, 0.16), transparent 34%),
+    var(--surface-secondary);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  color: var(--text-primary);
+  padding: 12px 14px;
+  text-align: left;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+}
+
+.custom_dropdown_button:hover,
+.custom_dropdown_button.open {
+  border-color: rgba(255, 47, 159, 0.42);
+  box-shadow: 0 0 24px rgba(255, 47, 159, 0.18), 0 10px 22px rgba(0, 0, 0, 0.26);
+}
+
+.custom_dropdown_button:focus-visible {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 4px var(--glow-pink-soft);
+}
+
+.custom_dropdown_chevron {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-right: 2px solid var(--accent-soft);
+  border-bottom: 2px solid var(--accent-soft);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform var(--transition-fast);
+}
+
+.custom_dropdown_button.open .custom_dropdown_chevron {
+  transform: translateY(2px) rotate(225deg);
+}
+
+.custom_dropdown_menu {
+  position: absolute;
+  top: calc(100% + var(--spacing-sm));
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: grid;
+  gap: 4px;
+  max-height: min(320px, 52vh);
+  overflow-y: auto;
+  border: 1px solid rgba(255, 47, 159, 0.3);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 47, 159, 0.2), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.018)),
+    rgba(13, 9, 17, 0.98);
+  box-shadow: var(--shadow-modal), 0 0 34px rgba(255, 47, 159, 0.2);
+  padding: 6px;
+  animation: dropdown_reveal 150ms ease-out;
+}
+
+.custom_dropdown_item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 10px 12px;
+  text-align: left;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.custom_dropdown_item small {
+  color: var(--text-muted);
+  font-size: var(--font-size-caption);
+}
+
+.custom_dropdown_item:hover,
+.custom_dropdown_item.active {
+  border-color: rgba(255, 47, 159, 0.24);
+  background: rgba(255, 47, 159, 0.14);
+  color: var(--text-primary);
+}
+
+.custom_dropdown_item.selected {
+  border-color: rgba(255, 47, 159, 0.42);
+  background:
+    linear-gradient(135deg, rgba(255, 47, 159, 0.3), rgba(143, 85, 255, 0.11)),
+    rgba(255, 255, 255, 0.035);
+  color: var(--text-primary);
+  box-shadow: 0 0 22px rgba(255, 47, 159, 0.14);
+}
+
 @media (max-width: 1023px) {
   .app_shell {
     grid-template-columns: 76px minmax(0, 1fr);
@@ -1864,6 +2205,97 @@ img {
   to {
     transform: translateX(7%);
     opacity: 0.72;
+  }
+}
+
+@keyframes mote_drift {
+  from {
+    transform: translate3d(-4%, 2%, 0) scale(0.98);
+    opacity: 0.62;
+  }
+  to {
+    transform: translate3d(5%, -3%, 0) scale(1.08);
+    opacity: 0.98;
+  }
+}
+
+@keyframes orb_float {
+  from {
+    transform: translate3d(-3%, 5%, 0) scale(0.95);
+    opacity: 0.62;
+  }
+  to {
+    transform: translate3d(5%, -4%, 0) scale(1.08);
+    opacity: 0.9;
+  }
+}
+
+@keyframes particle_rise {
+  0% {
+    transform: translate3d(0, 40px, 0);
+    opacity: 0.32;
+  }
+  50% {
+    opacity: 0.92;
+  }
+  100% {
+    transform: translate3d(0, -70px, 0);
+    opacity: 0.42;
+  }
+}
+
+@keyframes battle_pulse {
+  from {
+    transform: translate3d(-3%, 2%, 0) scale(0.94);
+    opacity: 0.48;
+  }
+  to {
+    transform: translate3d(3%, -2%, 0) scale(1.12);
+    opacity: 0.86;
+  }
+}
+
+@keyframes spark_cross {
+  from {
+    transform: translate3d(-36px, 20px, 0) rotate(-8deg);
+    opacity: 0.46;
+  }
+  to {
+    transform: translate3d(44px, -18px, 0) rotate(12deg);
+    opacity: 0.95;
+  }
+}
+
+@keyframes upload_stream {
+  from {
+    transform: translateY(12%) scaleY(0.9);
+    opacity: 0.38;
+  }
+  to {
+    transform: translateY(-10%) scaleY(1.08);
+    opacity: 0.82;
+  }
+}
+
+@keyframes vault_ring {
+  from {
+    transform: rotate(-6deg) scale(0.94);
+    opacity: 0.5;
+  }
+  to {
+    transform: rotate(8deg) scale(1.08);
+    opacity: 0.92;
+  }
+}
+
+@keyframes dropdown_reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 

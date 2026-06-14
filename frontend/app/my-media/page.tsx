@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ActionButton } from "@/components/action_button";
+import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
 import { MediaCard } from "@/components/media_card";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
@@ -10,6 +11,7 @@ import type { MediaCategory, MediaStatus } from "@/types/palate";
 
 const statuses = ["All", "Idle", "Waiting", "Active", "Settled"] as const;
 const categories = ["All Categories", "Meme", "Image", "Audio", "Video"] as const;
+type CategoryFilter = (typeof categories)[number];
 const status_values = {
   Idle: "idle",
   Waiting: "waiting",
@@ -26,7 +28,8 @@ const category_values = {
 export default function MyMediaPage() {
   const { mediaRecords } = usePalate();
   const [status, setStatus] = useState<(typeof statuses)[number]>("All");
-  const [category, setCategory] = useState<(typeof categories)[number]>("All Categories");
+  const [category, setCategory] = useState<CategoryFilter>("All Categories");
+  const categoryOptions: DropdownOption<CategoryFilter>[] = categories.map((item) => ({ label: item, value: item }));
 
   const filteredMedia = useMemo(() => {
     return mediaRecords.filter((media) => {
@@ -54,11 +57,7 @@ export default function MyMediaPage() {
               </button>
             ))}
           </div>
-          <select className="input_control select_control" value={category} onChange={(event) => setCategory(event.target.value as (typeof categories)[number])}>
-            {categories.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
+          <CustomDropdown label="Category" onChange={setCategory} options={categoryOptions} value={category} />
         </div>
       </SectionPanel>
 

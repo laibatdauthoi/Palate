@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ActionButton } from "@/components/action_button";
+import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { app_config, upload_step_labels } from "@/config/app_config";
@@ -45,6 +46,10 @@ export default function UploadPage() {
   const [format, setFormat] = useState<MediaFormat>("PNG");
   const uploadBusy = processingAction === "upload";
   const selectedStep = uploadStep ?? "preparing_file";
+  const formatOptions: DropdownOption<MediaFormat>[] = app_config.acceptedUploadFormats.map((candidate) => ({
+    label: candidate,
+    value: candidate
+  }));
 
   return (
     <div className="page_stack page_upload">
@@ -82,14 +87,7 @@ export default function UploadPage() {
                 }}
               />
             </label>
-            <label className="amount_input">
-              <span>Format metadata</span>
-              <select className="input_control" onChange={(event) => setFormat(event.target.value as MediaFormat)} value={format}>
-                {app_config.acceptedUploadFormats.map((candidate) => (
-                  <option key={candidate} value={candidate}>{candidate}</option>
-                ))}
-              </select>
-            </label>
+            <CustomDropdown label="Format metadata" onChange={setFormat} options={formatOptions} value={format} />
             <p className="secondary_text">Accepted formats: {app_config.acceptedUploadFormats.join(", ")}. GIF remains a format, not a category.</p>
             <ActionButton
               disabled={uploadBusy}
