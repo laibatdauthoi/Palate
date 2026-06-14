@@ -53,6 +53,8 @@ module palate::palate {
     /// Category values.
     const CATEGORY_MEME: u8 = 1;
     const CATEGORY_IMAGE: u8 = 2;
+    const CATEGORY_AUDIO: u8 = 3;
+    const CATEGORY_VIDEO: u8 = 4;
 
     /// Media status values.
     const STATUS_IDLE: u8 = 1;
@@ -1612,6 +1614,16 @@ module palate::palate {
     }
 
     #[view]
+    public fun categoryAudio(): u8 {
+        CATEGORY_AUDIO
+    }
+
+    #[view]
+    public fun categoryVideo(): u8 {
+        CATEGORY_VIDEO
+    }
+
+    #[view]
     public fun statusIdle(): u8 {
         STATUS_IDLE
     }
@@ -1798,7 +1810,10 @@ module palate::palate {
 
     fun assertValidCategory(category: u8) {
         assert!(
-            category == CATEGORY_MEME || category == CATEGORY_IMAGE,
+            category == CATEGORY_MEME
+                || category == CATEGORY_IMAGE
+                || category == CATEGORY_AUDIO
+                || category == CATEGORY_VIDEO,
             E_INVALID_CATEGORY,
         );
     }

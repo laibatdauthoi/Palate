@@ -12,7 +12,7 @@ The current MVP uses Shelby for user uploaded media storage and uses Aptos smart
 
 Shelby is only used for uploading, storing, retrieving, and displaying user media. The app must not store user media in its own database.
 
-Shelby stores the actual media files. The MVP supports image media files first across the meme and image content categories.
+Shelby stores the actual media files. The MVP supports media files across the meme, image, audio, and video content categories.
 
 Shelby must not store match state, buff state, reward state, payout state, leaderboard state, chart state, or user game history. Those belong to the smart contract and on chain events.
 
@@ -58,10 +58,12 @@ When a user connects a wallet, the app reads registered media from Aptos and ren
 
 ## 5. MVP Category
 
-The MVP supports two user-facing content categories:
+The MVP supports four user-facing content categories:
 
 meme
 image
+audio
+video
 
 Users must select a category before uploading media to Shelby.
 
@@ -73,9 +75,13 @@ File format means the technical file type.
 
 For the MVP:
 
-category = meme or image
+category = meme, image, audio, or video
 
 accepted image formats = PNG, JPG, JPEG, WEBP, GIF
+
+accepted audio formats = MP3, WAV, OGG, M4A
+
+accepted video formats = MP4, WEBM, MOV
 
 Meme is not a file type. Meme is a user-selected content category.
 
@@ -85,11 +91,15 @@ A user may upload a GIF into the meme category if the content is meme or reactio
 
 A user may upload a GIF into the image category if the content is visual art, animation, poster-style content, edited image, AI image, or non-meme image content.
 
+A user may upload supported audio files into the audio category.
+
+A user may upload supported video files into the video category.
+
 The smart contract cannot prove whether an image is truly a meme. The contract only stores and enforces the category selected by the user during registration.
 
 Shelby stores the media file.
 
-Palate smart contract stores the media category.
+Palate smart contract stores the media category and game state.
 
 The required upload flow is:
 
@@ -107,6 +117,10 @@ A meme can only challenge another meme.
 
 An image can only challenge another image.
 
+An audio item can only challenge another audio item.
+
+A video item can only challenge another video item.
+
 The challenge flow must not allow media from different categories to enter the same match.
 
 Matches are separated by content category, not by file format.
@@ -114,6 +128,10 @@ Matches are separated by content category, not by file format.
 A GIF meme can compete against a PNG meme.
 
 A GIF image can compete against a WEBP image if both are registered under the image category.
+
+Audio files can only compete against audio files registered under the audio category.
+
+Video files can only compete against video files registered under the video category.
 
 If a user intentionally selects the wrong category, the MVP handles it through reporting, admin disable, or future moderation. The contract should not attempt to classify meme content automatically.
 
@@ -363,7 +381,7 @@ The main functions are `registerMedia`, `getUserMedia`, `createPush`, `cancelPus
 
 ## 30. Initial MVP Parameters
 
-Initial MVP categories are meme and image.
+Initial MVP categories are meme, image, audio, and video.
 
 Initial min push amount is 1 APT.
 
@@ -387,7 +405,7 @@ Initial score formula is `log2(1 + buff_amount / min_buff_amount)`.
 
 ## 31. Final MVP Summary
 
-The MVP of Palate lets users deposit APT into Palate Balance, upload image media to Shelby, register that media on Aptos, create waiting pushes, challenge waiting pushes, receive random matches, Buff one side with APT, settle matches after end time, claim rewards into Palate Balance, and withdraw available Palate Balance.
+The MVP of Palate lets users deposit APT into Palate Balance, upload supported media to Shelby, register that media on Aptos, create waiting pushes, challenge waiting pushes, receive random matches, Buff one side with APT, settle matches after end time, claim rewards into Palate Balance, and withdraw available Palate Balance.
 
 Active matches always settle to a winner after end time. There is no cancellation because of low Buff. If scores are tied, media A wins because media A is the original waiting push side.
 

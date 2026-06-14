@@ -66,7 +66,7 @@ Use Buff terminology in the main contract spec: `placeBuff`, `claimBuff`, `buff_
 
 The UI must feel premium, dark, dynamic, and GameFi-like, with mature pink accents. Do not make it cute, candy-like, generic, or overly flashy.
 
-MVP media categories are meme and image.
+MVP media categories are meme, image, audio, and video.
 
 GIF is an accepted image format, not a separate category.
 

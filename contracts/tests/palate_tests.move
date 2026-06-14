@@ -294,6 +294,40 @@ module palate::palate_tests {
         assert!(palate::getMediaCategory(0) == palate::categoryImage(), 0);
     }
 
+    #[test(admin = @palate, framework = @0x1, user = @0x55A)]
+    fun registerMediaAcceptsAudioCategory(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+
+        palate::registerMedia(
+            &user,
+            palate::categoryAudio(),
+            b"audio.mp3",
+            b"hash-audio",
+            b"audio/mpeg",
+            b"Audio One",
+            1002,
+        );
+
+        assert!(palate::getMediaCategory(0) == palate::categoryAudio(), 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x55B)]
+    fun registerMediaAcceptsVideoCategory(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+
+        palate::registerMedia(
+            &user,
+            palate::categoryVideo(),
+            b"video.mp4",
+            b"hash-video",
+            b"video/mp4",
+            b"Video One",
+            1003,
+        );
+
+        assert!(palate::getMediaCategory(0) == palate::categoryVideo(), 0);
+    }
+
     #[test(admin = @palate, framework = @0x1, user = @0x102)]
     #[expected_failure(abort_code = 3, location = palate::palate)]
     fun registerMediaRejectsInvalidCategory(admin: signer, framework: signer, user: signer) {
@@ -301,7 +335,7 @@ module palate::palate_tests {
 
         palate::registerMedia(
             &user,
-            3,
+            99,
             b"not-category.gif",
             b"hash-invalid",
             b"image/gif",
@@ -559,6 +593,65 @@ module palate::palate_tests {
         init(&admin, &framework);
         registerMeme(&framework, &pusher, b"original-meme.gif", 1);
         registerImage(&framework, &challenger, b"challenger-image.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x55C, challenger = @0x55D)]
+    fun challengePushAllowsAudioVsAudio(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerAudio(&framework, &pusher, b"original.mp3", 1);
+        registerAudio(&framework, &challenger, b"challenger.wav", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+
+        assert!(palate::getMatchStatus(0) == palate::matchStatusActive(), 0);
+        assert!(palate::getMatchCategory(0) == palate::categoryAudio(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x55E, challenger = @0x55F)]
+    fun challengePushAllowsVideoVsVideo(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerVideo(&framework, &pusher, b"original.mp4", 1);
+        registerVideo(&framework, &challenger, b"challenger.webm", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+
+        assert!(palate::getMatchStatus(0) == palate::matchStatusActive(), 0);
+        assert!(palate::getMatchCategory(0) == palate::categoryVideo(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x560, challenger = @0x561)]
+    #[expected_failure(abort_code = 12, location = palate::palate)]
+    fun challengePushRejectsAudioVsVideo(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerAudio(&framework, &pusher, b"original.mp3", 1);
+        registerVideo(&framework, &challenger, b"challenger.mp4", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x562, challenger = @0x563)]
+    #[expected_failure(abort_code = 12, location = palate::palate)]
+    fun challengePushRejectsAudioVsImage(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerAudio(&framework, &pusher, b"original.mp3", 1);
+        registerImage(&framework, &challenger, b"challenger.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x564, challenger = @0x565)]
+    #[expected_failure(abort_code = 12, location = palate::palate)]
+    fun challengePushRejectsVideoVsMeme(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerVideo(&framework, &pusher, b"original.mp4", 1);
+        registerMeme(&framework, &challenger, b"challenger.gif", 2);
         palate::createPush(&pusher, 0, palate::getMinPushAmount());
 
         palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
@@ -2186,6 +2279,32 @@ module palate::palate_tests {
             b"hash",
             b"image/gif",
             b"Meme",
+            created_time,
+        );
+    }
+
+    fun registerAudio(framework: &signer, user: &signer, blob_ref: vector<u8>, created_time: u64) {
+        fundPalateBalance(framework, user);
+        palate::registerMedia(
+            user,
+            palate::categoryAudio(),
+            blob_ref,
+            b"hash",
+            b"audio/mpeg",
+            b"Audio",
+            created_time,
+        );
+    }
+
+    fun registerVideo(framework: &signer, user: &signer, blob_ref: vector<u8>, created_time: u64) {
+        fundPalateBalance(framework, user);
+        palate::registerMedia(
+            user,
+            palate::categoryVideo(),
+            blob_ref,
+            b"hash",
+            b"video/mp4",
+            b"Video",
             created_time,
         );
     }

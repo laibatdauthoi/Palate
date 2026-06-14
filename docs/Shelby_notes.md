@@ -112,7 +112,7 @@ For audio media, render the Shelby direct URL or retrieved blob in an audio play
 
 For video media, render the Shelby direct URL or retrieved blob in a video player.
 
-The MVP supports image first.
+The MVP supports meme, image, audio, and video categories. Shelby stores the media files, while Palate stores category and game state.
 
 ## Direct URL Display Rule
 
