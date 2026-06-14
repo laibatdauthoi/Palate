@@ -6,7 +6,9 @@ import { app_config } from "@/config/app_config";
 import {
   buildChallengePushPayload,
   buildCreatePushPayload,
+  buildDeleteFailedMediaPayload,
   buildRegisterMediaPayload,
+  buildRegisterShelbyUploadFailedMediaPayload,
   buildDepositBalancePayload,
   buildWithdrawBalancePayload,
   formatOctasToApt,
@@ -21,6 +23,7 @@ import {
   waitForPalateTransaction
 } from "@/services/aptos_service";
 import {
+  buildShelbyDeleteBlobPayload,
   prepareShelbyUpload,
   registerShelbyBlob,
   uploadPreparedBlobToShelby,
@@ -113,8 +116,8 @@ type PalateContextValue = {
   placeMockBuff: (side: BuffSide, amount: string) => Promise<void>;
   skipMatch: () => Promise<void>;
   uploadMedia: (input: UploadMediaInput) => Promise<void>;
-  retryShelbyUpload: () => Promise<void>;
   retryPalateRegistration: (mediaId: number) => Promise<void>;
+  deleteFailedMedia: (mediaId: number) => Promise<void>;
   clearPendingRegistration: (mediaId: number) => void;
   resetUploadFlow: () => void;
   uploadMockMedia: (input: UploadMediaInput) => Promise<void>;
@@ -127,7 +130,6 @@ type PalateContextValue = {
 
 const PalateContext = createContext<PalateContextValue | null>(null);
 const mockWalletAddress = mock_summary.walletAddress;
-const MAX_AUTO_SHELBY_UPLOAD_RETRIES = 1;
 const pending_registration_storage_key = "palate_pending_registrations_v1";
 
 const initial_upload_recovery_state: UploadRecoveryState = {
@@ -231,6 +233,7 @@ function normalizePendingRegistrations(value: unknown): MediaRecord[] {
       category: (item.category === "meme" || item.category === "image" || item.category === "audio" || item.category === "video") ? item.category : "image",
       format: item.format ?? getFormatFromMimeType(String(item.mimeType ?? "")),
       status: item.status === "pending_registration" ? "pending_registration" : "registration_failed",
+      storageStatus: "uploaded",
       createdTime: String(item.createdTime ?? "Pending registration"),
       shelbyBlobRef: String(item.shelbyBlobRef ?? ""),
       displayUrl: item.displayUrl ? String(item.displayUrl) : undefined,
@@ -264,7 +267,6 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [assignmentCursor, setAssignmentCursor] = useState(0);
   const [uploadStep, setUploadStep] = useState<UploadStep | null>(null);
   const [uploadRecovery, setUploadRecovery] = useState<UploadRecoveryState>(initial_upload_recovery_state);
-  const [uploadRetryDraft, setUploadRetryDraft] = useState<UploadRetryDraft | null>(null);
   const [mediaReadStatus, setMediaReadStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -461,9 +463,9 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   function getShelbyUploadErrorMessage(error: unknown) {
     const message = error instanceof Error ? error.message : String(error ?? "Shelby upload failed.");
     if (message.includes("500") || message.toLowerCase().includes("internal server error")) {
-      return "Shelby upload failed. Your media was not registered in Palate yet. You can retry the Shelby upload.";
+      return "Shelby upload failed. Your media was saved as a failed upload in Palate and can be deleted from My Media.";
     }
-    return "Shelby upload failed. Your media was not registered in Palate yet. You can retry the Shelby upload.";
+    return "Shelby upload failed. Your media was saved as a failed upload in Palate and can be deleted from My Media.";
   }
 
   function getPalateRegistrationErrorMessage(error: unknown) {
@@ -482,6 +484,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       category: draft.category,
       format: draft.format,
       status: "registration_failed",
+      storageStatus: "uploaded",
       createdTime: "Registration failed",
       createdTimeSeconds: draft.createdTimeSeconds,
       shelbyBlobRef: shelbyResult.shelbyBlobRef,
@@ -505,7 +508,6 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   function resetUploadFlow() {
     setUploadStep("idle");
     setUploadRecovery(initial_upload_recovery_state);
-    setUploadRetryDraft(null);
     setProcessingAction(null);
     setFeedback(null);
   }
@@ -536,14 +538,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       await refreshUserMediaForWallet(walletAddress);
       setUploadStep("completed");
       setUploadRecovery(initial_upload_recovery_state);
-      setUploadRetryDraft(null);
       setFeedback({ type: "success", message: `Media registered in Palate ${shortenTransactionHash(transactionHash)}.` });
     } catch (error) {
       console.error("Palate registerMedia failed after Shelby upload", error);
       addPendingRegistrationMedia(draft, shelbyResult, error);
       setUploadStep("failed");
       setUploadRecovery(initial_upload_recovery_state);
-      setUploadRetryDraft(null);
       setFeedback({
         type: "error",
         message: "Palate registration failed after Shelby upload. The item is saved in My Media for retry."
@@ -551,7 +551,36 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function uploadShelbyRpcThenRegisterPalate(draft: UploadRetryDraft, retryCount: number, allowAutoRetry: boolean) {
+  async function registerFailedMediaAfterShelbyUploadFailure(draft: UploadRetryDraft, error: unknown) {
+    if (!walletAddress) {
+      throw new Error("Connect wallet to register failed media on chain.");
+    }
+
+    const message = getShelbyUploadErrorMessage(error);
+    setUploadStep("shelby_upload_failed");
+    setFeedback({ type: "info", message: "Shelby upload failed. Registering the failed media record in Palate." });
+
+    const data = buildRegisterShelbyUploadFailedMediaPayload({
+      category: draft.category,
+      shelbyBlobRef: draft.registeredUpload.blobName,
+      contentHash: draft.registeredUpload.contentHash,
+      mimeType: draft.registeredUpload.mimeType,
+      title: draft.title,
+      createdTime: draft.createdTimeSeconds,
+      categoryConstants: chainRead.categories
+    });
+    const transactionHash = await signAndSubmitTransaction({ data });
+    setFeedback({ type: "info", message: `Failed media registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+    await waitForPalateTransaction(transactionHash);
+    await refreshUserMediaForWallet(walletAddress);
+    setUploadRecovery(initial_upload_recovery_state);
+    setFeedback({
+      type: "error",
+      message: `${message} A failed media item was saved in My Media and can be deleted.`
+    });
+  }
+
+  async function uploadShelbyRpcThenRegisterPalate(draft: UploadRetryDraft) {
     setUploadStep("uploading_to_shelby");
     let shelbyResult: Awaited<ReturnType<typeof uploadPreparedBlobToShelby>>;
 
@@ -559,53 +588,11 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       shelbyResult = await uploadPreparedBlobToShelby(draft.registeredUpload);
     } catch (error) {
       console.error("Shelby RPC upload failed", error);
-
-      if (allowAutoRetry && retryCount < MAX_AUTO_SHELBY_UPLOAD_RETRIES) {
-        const nextRetryCount = retryCount + 1;
-        setUploadRecovery((current) => ({ ...current, retryCount: nextRetryCount, error: "Retrying Shelby upload." }));
-        setFeedback({ type: "info", message: `Shelby upload failed. Retrying upload ${nextRetryCount}/${MAX_AUTO_SHELBY_UPLOAD_RETRIES}.` });
-        await delay(900);
-        await uploadShelbyRpcThenRegisterPalate(draft, nextRetryCount, false);
-        return;
-      }
-
-      const message = getShelbyUploadErrorMessage(error);
-      setUploadStep("shelby_upload_failed");
-      setUploadRecovery((current) => ({
-        ...current,
-        canRetry: true,
-        retryCount,
-        error: message
-      }));
-      setFeedback({ type: "error", message });
+      await registerFailedMediaAfterShelbyUploadFailure(draft, error);
       return;
     }
 
     await registerPalateMediaAfterShelbyUpload(draft, shelbyResult);
-  }
-
-  async function retryShelbyUpload() {
-    if (!uploadRetryDraft) {
-      setFeedback({ type: "error", message: "Choose a file before retrying Shelby upload." });
-      return;
-    }
-
-    setProcessingAction("upload");
-    setFeedback(null);
-
-    const nextRetryCount = uploadRecovery.retryCount + 1;
-    setUploadRecovery((current) => ({
-      ...current,
-      canRetry: false,
-      retryCount: nextRetryCount,
-      error: null
-    }));
-
-    try {
-      await uploadShelbyRpcThenRegisterPalate(uploadRetryDraft, nextRetryCount, false);
-    } finally {
-      setProcessingAction(null);
-    }
   }
 
   async function registerMediaOnChain(input: UploadMediaInput) {
@@ -637,7 +624,6 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setProcessingAction("upload");
     setFeedback(null);
     setUploadRecovery(initial_upload_recovery_state);
-    setUploadRetryDraft(null);
 
     try {
       setUploadStep("preparing_file");
@@ -670,7 +656,6 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         mimeType: registeredUpload.mimeType,
         createdTimeSeconds: Math.floor(Date.now() / 1000).toString()
       };
-      setUploadRetryDraft(draft);
       setUploadRecovery({
         canRetry: false,
         retryCount: 0,
@@ -682,7 +667,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         fileName: registeredUpload.originalFileName
       });
 
-      await uploadShelbyRpcThenRegisterPalate(draft, 0, true);
+      await uploadShelbyRpcThenRegisterPalate(draft);
     } catch (error) {
       setUploadStep("failed");
       setFeedback({ type: "error", message: error instanceof Error ? error.message : "Media registration failed." });
@@ -765,9 +750,52 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         && media.source === "palate"
         && media.palateMediaId !== null
         && media.palateMediaId !== undefined
+        && (media.storageStatus ?? "uploaded") === "uploaded"
         && media.status === "idle"
         && isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName)
     );
+  }
+
+  async function deleteFailedMedia(mediaId: number) {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      setFeedback({ type: "error", message: "Connect wallet to delete failed media." });
+      return;
+    }
+
+    const media = mediaRecords.find((record) =>
+      record.id === mediaId
+        && record.source === "palate"
+        && record.storageStatus === "shelby_upload_failed"
+        && record.palateMediaId !== null
+        && record.palateMediaId !== undefined
+    );
+
+    if (!media) {
+      setFeedback({ type: "error", message: "Choose a Shelby upload failed media item to delete." });
+      return;
+    }
+
+    setProcessingAction(`deleteFailedMedia:${mediaId}`);
+    setFeedback(null);
+
+    try {
+      const shelbyDeleteData = buildShelbyDeleteBlobPayload(media.ownerAddress, media.shelbyBlobRef);
+      const shelbyDeleteHash = await signAndSubmitTransaction({ data: shelbyDeleteData });
+      setFeedback({ type: "info", message: `Shelby delete submitted ${shortenTransactionHash(shelbyDeleteHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(shelbyDeleteHash);
+
+      const palateDeleteData = buildDeleteFailedMediaPayload(media.palateMediaId ?? media.id);
+      const palateDeleteHash = await signAndSubmitTransaction({ data: palateDeleteData });
+      setFeedback({ type: "info", message: `Palate delete submitted ${shortenTransactionHash(palateDeleteHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(palateDeleteHash);
+      await refreshUserMediaForWallet(walletAddress);
+      setFeedback({ type: "success", message: `Failed media deleted ${shortenTransactionHash(palateDeleteHash)}.` });
+    } catch (error) {
+      console.error("deleteFailedMedia failed", error);
+      setFeedback({ type: "error", message: getReadablePalateError(error, "Delete failed. Retry Delete from My Media.") });
+    } finally {
+      setProcessingAction(null);
+    }
   }
 
   async function createPushOnChain(mediaId: number, amount: string) {
@@ -981,8 +1009,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         });
       },
       uploadMedia: registerMediaOnChain,
-      retryShelbyUpload,
       retryPalateRegistration,
+      deleteFailedMedia,
       clearPendingRegistration,
       resetUploadFlow,
       uploadMockMedia: async (input) => {
@@ -999,6 +1027,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           category: input.category,
           format: input.format,
           status: "idle",
+          storageStatus: "uploaded",
           createdTime: "Just now",
           shelbyBlobRef: `mock://shelby/${Date.now()}.${input.format.toLowerCase()}`,
           contentHash: `mock_hash_${Date.now()}`,

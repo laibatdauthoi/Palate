@@ -10,6 +10,7 @@ import type {
   MediaCategory,
   MediaFormat,
   MediaRecord,
+  MediaStorageStatus,
   MediaStatus,
   PalateBalance,
   UserSummary,
@@ -93,6 +94,12 @@ function chainStatusToFrontend(status: number): MediaStatus {
   if (status === 5) return "disabled";
   if (status === 6) return "banned";
   return "idle";
+}
+
+function chainStorageStatusToFrontend(status: number): MediaStorageStatus {
+  if (status === 2) return "shelby_upload_failed";
+  if (status === 3) return "deleted";
+  return "uploaded";
 }
 
 function chainWaitingPushStatusToFrontend(status: number): WaitingPush["status"] {
@@ -338,6 +345,21 @@ export function buildRegisterMediaPayload(input: RegisterMediaInput): InputGener
   ]);
 }
 
+export function buildRegisterShelbyUploadFailedMediaPayload(input: RegisterMediaInput): InputGenerateTransactionPayloadData {
+  return entryPayload("register_shelby_upload_failed_media", [
+    categoryToChainValue(input.category, input.categoryConstants),
+    encodeUtf8(input.shelbyBlobRef),
+    encodeUtf8(input.contentHash),
+    encodeUtf8(input.mimeType),
+    encodeUtf8(input.title),
+    input.createdTime
+  ]);
+}
+
+export function buildDeleteFailedMediaPayload(mediaId: number | string): InputGenerateTransactionPayloadData {
+  return entryPayload("delete_failed_media", [String(mediaId)]);
+}
+
 export async function waitForPalateTransaction(transactionHash: string) {
   return aptos.waitForTransaction({
     transactionHash,
@@ -369,7 +391,8 @@ async function getMediaRecordById(mediaId: string): Promise<MediaRecord> {
     mimeType,
     title,
     createdTime,
-    status
+    status,
+    storageStatus
   ] = await Promise.all([
     viewOne("getMediaOwner", [mediaId]),
     viewOne("getMediaCategory", [mediaId]),
@@ -378,7 +401,8 @@ async function getMediaRecordById(mediaId: string): Promise<MediaRecord> {
     viewOne("getMediaMimeType", [mediaId]),
     viewOne("getMediaTitle", [mediaId]),
     viewOne("getMediaCreatedTime", [mediaId]),
-    viewOne("getMediaStatus", [mediaId])
+    viewOne("getMediaStatus", [mediaId]),
+    viewOne("getMediaStorageStatus", [mediaId])
   ]);
 
   const mediaCategory = chainCategoryToFrontend(asNumber(category));
@@ -393,6 +417,7 @@ async function getMediaRecordById(mediaId: string): Promise<MediaRecord> {
     category: mediaCategory,
     format: mimeTypeToFormat(mediaMimeType),
     status: chainStatusToFrontend(asNumber(status)),
+    storageStatus: chainStorageStatusToFrontend(asNumber(storageStatus)),
     createdTime: formatChainTime(asString(createdTime)),
     shelbyBlobRef: decodeUtf8(shelbyBlobRef),
     contentHash: decodeUtf8(contentHash),

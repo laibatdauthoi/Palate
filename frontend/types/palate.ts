@@ -1,6 +1,7 @@
 export type MediaCategory = "meme" | "image" | "audio" | "video";
 export type MediaFormat = "PNG" | "JPG" | "JPEG" | "WEBP" | "GIF" | "MP3" | "WAV" | "OGG" | "M4A" | "MP4" | "WEBM" | "MOV";
 export type MediaStatus = "idle" | "waiting" | "active" | "settled" | "disabled" | "banned" | "pending_registration" | "registration_failed";
+export type MediaStorageStatus = "uploaded" | "shelby_upload_failed" | "deleted";
 export type MatchStatus = "active" | "settled";
 export type ClaimType = "push" | "buff";
 export type MediaSource = "palate" | "palate_upload_recovery";
@@ -62,6 +63,7 @@ export type MediaRecord = {
   category: MediaCategory;
   format: MediaFormat;
   status: MediaStatus;
+  storageStatus?: MediaStorageStatus;
   createdTime: string;
   shelbyBlobRef: string;
   displayUrl?: string;

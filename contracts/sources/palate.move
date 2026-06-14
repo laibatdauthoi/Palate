@@ -49,6 +49,8 @@ module palate::palate {
     const E_INVALID_BUFF_CONFIG: u64 = 38;
     const E_INVALID_MATCH_CONFIG: u64 = 39;
     const E_INVALID_SCORE_CONFIG: u64 = 40;
+    const E_MEDIA_NOT_UPLOADED: u64 = 41;
+    const E_MEDIA_NOT_FAILED_UPLOAD: u64 = 42;
 
     /// Category values.
     const CATEGORY_MEME: u8 = 1;
@@ -63,6 +65,11 @@ module palate::palate {
     const STATUS_SETTLED: u8 = 4;
     const STATUS_DISABLED: u8 = 5;
     const STATUS_BANNED: u8 = 6;
+
+    /// Media storage status values. Kept separate from gameplay status.
+    const STORAGE_STATUS_UPLOADED: u8 = 1;
+    const STORAGE_STATUS_SHELBY_UPLOAD_FAILED: u8 = 2;
+    const STORAGE_STATUS_DELETED: u8 = 3;
 
     /// Match status values.
     const MATCH_STATUS_ACTIVE: u8 = 1;
@@ -132,6 +139,17 @@ module palate::palate {
         title: vector<u8>,
         created_time: u64,
         status: u8,
+    }
+
+    /// Upgrade-compatible storage status registry keyed by media owner.
+    /// Existing media without a registry entry is treated as STORAGE_STATUS_UPLOADED.
+    struct MediaStorageStatusRegistry has key {
+        records: vector<MediaStorageStatusRecord>,
+    }
+
+    struct MediaStorageStatusRecord has copy, drop, store {
+        media_id: u64,
+        storage_status: u8,
     }
 
     struct UserMediaIndex has copy, drop, store {
@@ -340,6 +358,19 @@ module palate::palate {
         config_group: u8,
     }
 
+    #[event]
+    struct ShelbyUploadFailedMediaRegisteredEvent has drop, store {
+        media_id: u64,
+        owner: address,
+        category: u8,
+    }
+
+    #[event]
+    struct FailedMediaDeletedEvent has drop, store {
+        media_id: u64,
+        owner: address,
+    }
+
     public entry fun initialize(account: &signer, treasury_address: address) {
         initializeInternal(account, treasury_address)
     }
@@ -420,6 +451,65 @@ module palate::palate {
         ensureUserSummary(state, owner);
     }
 
+    public entry fun register_shelby_upload_failed_media(
+        account: &signer,
+        category: u8,
+        shelby_blob_ref: vector<u8>,
+        content_hash: vector<u8>,
+        mime_type: vector<u8>,
+        title: vector<u8>,
+        created_time: u64,
+    ) acquires PalateState, MediaStorageStatusRegistry {
+        assertInitialized();
+        assertValidCategory(category);
+
+        let owner = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        let media_id = state.next_media_id;
+        state.next_media_id = media_id + 1;
+
+        vector::push_back(&mut state.media_records, MediaRecord {
+            media_id,
+            owner,
+            category,
+            shelby_blob_ref,
+            content_hash,
+            mime_type,
+            title,
+            created_time,
+            status: STATUS_DISABLED,
+        });
+
+        addUserMediaId(state, owner, media_id);
+        ensureUserSummary(state, owner);
+        setMediaStorageStatus(account, media_id, STORAGE_STATUS_SHELBY_UPLOAD_FAILED);
+        event::emit(ShelbyUploadFailedMediaRegisteredEvent {
+            media_id,
+            owner,
+            category,
+        });
+    }
+
+    public entry fun delete_failed_media(account: &signer, media_id: u64) acquires PalateState, MediaStorageStatusRegistry {
+        assertInitialized();
+
+        let owner = signer::address_of(account);
+        let state = borrow_global_mut<PalateState>(@palate);
+        let media_index = findMediaIndex(state, media_id);
+        let media = vector::borrow(&state.media_records, media_index);
+        assert!(media.owner == owner, E_NOT_MEDIA_OWNER);
+        assert!(effectiveMediaStorageStatus(media) == STORAGE_STATUS_SHELBY_UPLOAD_FAILED, E_MEDIA_NOT_FAILED_UPLOAD);
+
+        let media_mut = vector::borrow_mut(&mut state.media_records, media_index);
+        media_mut.status = STATUS_DISABLED;
+        setMediaStorageStatus(account, media_id, STORAGE_STATUS_DELETED);
+
+        event::emit(FailedMediaDeletedEvent {
+            media_id,
+            owner,
+        });
+    }
+
     public entry fun depositBalance(account: &signer, amount: u64) acquires PalateState {
         assertInitialized();
 
@@ -483,7 +573,7 @@ module palate::palate {
     }
 
     #[view]
-    public fun getUserMedia(owner: address): vector<u64> acquires PalateState {
+    public fun getUserMedia(owner: address): vector<u64> acquires PalateState, MediaStorageStatusRegistry {
         assertInitialized();
 
         let state = borrow_global<PalateState>(@palate);
@@ -492,7 +582,7 @@ module palate::palate {
         while (index < length) {
             let user_media = vector::borrow(&state.user_media_indices, index);
             if (user_media.owner == owner) {
-                return user_media.media_ids
+                return filterVisibleUserMedia(state, &user_media.media_ids)
             };
             index = index + 1;
         };
@@ -500,7 +590,7 @@ module palate::palate {
         vector::empty<u64>()
     }
 
-    public entry fun createPush(account: &signer, media_id: u64, push_amount: u64) acquires PalateState {
+    public entry fun createPush(account: &signer, media_id: u64, push_amount: u64) acquires PalateState, MediaStorageStatusRegistry {
         assertInitialized();
 
         let pusher = signer::address_of(account);
@@ -510,6 +600,7 @@ module palate::palate {
         let media_index = findMediaIndex(state, media_id);
         let media = vector::borrow(&state.media_records, media_index);
         assert!(media.owner == pusher, E_NOT_MEDIA_OWNER);
+        assert!(effectiveMediaStorageStatus(media) == STORAGE_STATUS_UPLOADED, E_MEDIA_NOT_UPLOADED);
         assert!(media.status == STATUS_IDLE, E_MEDIA_NOT_IDLE);
         let category = media.category;
 
@@ -567,7 +658,7 @@ module palate::palate {
         push_id: u64,
         challenger_media_id: u64,
         push_amount: u64,
-    ) acquires PalateState {
+    ) acquires PalateState, MediaStorageStatusRegistry {
         assertInitialized();
 
         let challenger = signer::address_of(account);
@@ -590,9 +681,11 @@ module palate::palate {
         let challenger_media_index = findMediaIndex(state, challenger_media_id);
         let challenger_media = vector::borrow(&state.media_records, challenger_media_index);
         assert!(challenger_media.owner == challenger, E_NOT_MEDIA_OWNER);
+        assert!(effectiveMediaStorageStatus(challenger_media) == STORAGE_STATUS_UPLOADED, E_MEDIA_NOT_UPLOADED);
         assert!(challenger_media.status == STATUS_IDLE, E_MEDIA_NOT_IDLE);
         assert!(challenger_media.category == category, E_CATEGORY_MISMATCH);
         let media_a_index = findMediaIndex(state, media_a_id);
+        assert!(effectiveMediaStorageStatus(vector::borrow(&state.media_records, media_a_index)) == STORAGE_STATUS_UPLOADED, E_MEDIA_NOT_UPLOADED);
 
         debitAvailableToPushEscrow(state, challenger, push_amount);
         vector::borrow_mut(&mut state.media_records, media_a_index).status = STATUS_ACTIVE;
@@ -1114,6 +1207,12 @@ module palate::palate {
     #[view]
     public fun getMediaStatus(media_id: u64): u8 acquires PalateState {
         getMediaRecord(media_id).status
+    }
+
+    #[view]
+    public fun getMediaStorageStatus(media_id: u64): u8 acquires PalateState, MediaStorageStatusRegistry {
+        let media = getMediaRecord(media_id);
+        effectiveMediaStorageStatus(&media)
     }
 
     #[view]
@@ -1644,6 +1743,26 @@ module palate::palate {
     }
 
     #[view]
+    public fun statusDisabled(): u8 {
+        STATUS_DISABLED
+    }
+
+    #[view]
+    public fun storageStatusUploaded(): u8 {
+        STORAGE_STATUS_UPLOADED
+    }
+
+    #[view]
+    public fun storageStatusShelbyUploadFailed(): u8 {
+        STORAGE_STATUS_SHELBY_UPLOAD_FAILED
+    }
+
+    #[view]
+    public fun storageStatusDeleted(): u8 {
+        STORAGE_STATUS_DELETED
+    }
+
+    #[view]
     public fun waitingPushStatusOpen(): u8 {
         WAITING_PUSH_STATUS_OPEN
     }
@@ -2132,6 +2251,66 @@ module palate::palate {
         };
 
         abort E_MEDIA_NOT_FOUND
+    }
+
+    fun effectiveMediaStorageStatus(media: &MediaRecord): u8 acquires MediaStorageStatusRegistry {
+        if (!exists<MediaStorageStatusRegistry>(media.owner)) {
+            return STORAGE_STATUS_UPLOADED
+        };
+
+        let registry = borrow_global<MediaStorageStatusRegistry>(media.owner);
+        let length = vector::length(&registry.records);
+        let index = 0;
+        while (index < length) {
+            let record = vector::borrow(&registry.records, index);
+            if (record.media_id == media.media_id) {
+                return record.storage_status
+            };
+            index = index + 1;
+        };
+
+        STORAGE_STATUS_UPLOADED
+    }
+
+    fun setMediaStorageStatus(owner: &signer, media_id: u64, storage_status: u8) acquires MediaStorageStatusRegistry {
+        let owner_address = signer::address_of(owner);
+        if (!exists<MediaStorageStatusRegistry>(owner_address)) {
+            move_to(owner, MediaStorageStatusRegistry {
+                records: vector::empty<MediaStorageStatusRecord>(),
+            });
+        };
+
+        let registry = borrow_global_mut<MediaStorageStatusRegistry>(owner_address);
+        let length = vector::length(&registry.records);
+        let index = 0;
+        while (index < length) {
+            let record = vector::borrow_mut(&mut registry.records, index);
+            if (record.media_id == media_id) {
+                record.storage_status = storage_status;
+                return
+            };
+            index = index + 1;
+        };
+
+        vector::push_back(&mut registry.records, MediaStorageStatusRecord {
+            media_id,
+            storage_status,
+        });
+    }
+
+    fun filterVisibleUserMedia(state: &PalateState, media_ids: &vector<u64>): vector<u64> acquires MediaStorageStatusRegistry {
+        let visible_ids = vector::empty<u64>();
+        let length = vector::length(media_ids);
+        let index = 0;
+        while (index < length) {
+            let media_id = *vector::borrow(media_ids, index);
+            let media = vector::borrow(&state.media_records, findMediaIndex(state, media_id));
+            if (effectiveMediaStorageStatus(media) != STORAGE_STATUS_DELETED) {
+                vector::push_back(&mut visible_ids, media_id);
+            };
+            index = index + 1;
+        };
+        visible_ids
     }
 
     fun findWaitingPushIndex(state: &PalateState, push_id: u64): u64 {

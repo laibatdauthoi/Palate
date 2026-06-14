@@ -395,6 +395,124 @@ module palate::palate_tests {
         assert!(vector::length(&ids) == 2, 0);
         assert!(*vector::borrow(&ids, 0) == 0, 1);
         assert!(*vector::borrow(&ids, 1) == 1, 2);
+        assert!(palate::getMediaStorageStatus(0) == palate::storageStatusUploaded(), 3);
+        assert!(palate::getMediaStorageStatus(1) == palate::storageStatusUploaded(), 4);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x566)]
+    fun failedUploadRecordCanBeCreatedAndAppearsInOwnerMedia(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+
+        palate::register_shelby_upload_failed_media(
+            &user,
+            palate::categoryImage(),
+            b"failed.png",
+            b"hash-failed",
+            b"image/png",
+            b"Failed Upload",
+            9001,
+        );
+
+        let ids = palate::getUserMedia(signer::address_of(&user));
+        assert!(vector::length(&ids) == 1, 0);
+        assert!(*vector::borrow(&ids, 0) == 0, 1);
+        assert!(palate::getMediaStorageStatus(0) == palate::storageStatusShelbyUploadFailed(), 2);
+        assert!(palate::getMediaStatus(0) == palate::statusDisabled(), 3);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x567)]
+    #[expected_failure(abort_code = 41, location = palate::palate)]
+    fun failedUploadRecordCannotBePushed(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        fundPalateBalance(&framework, &user);
+
+        palate::register_shelby_upload_failed_media(
+            &user,
+            palate::categoryImage(),
+            b"failed-push.png",
+            b"hash-failed-push",
+            b"image/png",
+            b"Failed Push",
+            9002,
+        );
+
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x568, challenger = @0x569)]
+    #[expected_failure(abort_code = 41, location = palate::palate)]
+    fun failedUploadRecordCannotChallenge(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &pusher, b"valid-push.png", 1);
+        fundPalateBalance(&framework, &challenger);
+        palate::register_shelby_upload_failed_media(
+            &challenger,
+            palate::categoryImage(),
+            b"failed-challenge.png",
+            b"hash-failed-challenge",
+            b"image/png",
+            b"Failed Challenge",
+            9003,
+        );
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+    }
+
+    #[test(admin = @palate, framework = @0x1, owner = @0x56A, other = @0x56B)]
+    #[expected_failure(abort_code = 6, location = palate::palate)]
+    fun onlyOwnerCanDeleteFailedMedia(admin: signer, framework: signer, owner: signer, other: signer) {
+        init(&admin, &framework);
+        palate::register_shelby_upload_failed_media(
+            &owner,
+            palate::categoryImage(),
+            b"failed-owner.png",
+            b"hash-owner",
+            b"image/png",
+            b"Owner Failed",
+            9004,
+        );
+
+        palate::delete_failed_media(&other, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x56C)]
+    fun deletedFailedMediaDisappearsFromNormalMyMedia(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        palate::register_shelby_upload_failed_media(
+            &user,
+            palate::categoryImage(),
+            b"failed-delete.png",
+            b"hash-delete",
+            b"image/png",
+            b"Delete Failed",
+            9005,
+        );
+
+        palate::delete_failed_media(&user, 0);
+
+        let ids = palate::getUserMedia(signer::address_of(&user));
+        assert!(vector::length(&ids) == 0, 0);
+        assert!(palate::getMediaStorageStatus(0) == palate::storageStatusDeleted(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x56D)]
+    #[expected_failure(abort_code = 41, location = palate::palate)]
+    fun deletedFailedMediaCannotBeUsedInGameplay(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        fundPalateBalance(&framework, &user);
+        palate::register_shelby_upload_failed_media(
+            &user,
+            palate::categoryImage(),
+            b"failed-deleted-gameplay.png",
+            b"hash-deleted-gameplay",
+            b"image/png",
+            b"Deleted Failed",
+            9006,
+        );
+        palate::delete_failed_media(&user, 0);
+
+        palate::createPush(&user, 0, palate::getMinPushAmount());
     }
 
     #[test(admin = @palate, framework = @0x1, user = @0x105)]

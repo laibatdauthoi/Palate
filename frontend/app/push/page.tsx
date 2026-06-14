@@ -33,12 +33,15 @@ export default function PushPage() {
   const [challengeMediaId, setChallengeMediaId] = useState("");
   const [challengeAmount, setChallengeAmount] = useState("6.510");
   const openWaitingPushes = waitingPushes.filter((push) =>
-    push.status === "open" && isMediaCategoryCompatible(push.media.category, push.media.mimeType, push.media.originalFileName)
+    push.status === "open"
+      && (push.media.storageStatus ?? "uploaded") === "uploaded"
+      && isMediaCategoryCompatible(push.media.category, push.media.mimeType, push.media.originalFileName)
   );
   const selectedPush = openWaitingPushes.find((push) => push.id === challengePushId) ?? openWaitingPushes[0];
   const idleMedia = mediaRecords.filter((media) =>
     media.status === "idle"
       && media.source === "palate"
+      && (media.storageStatus ?? "uploaded") === "uploaded"
       && media.palateMediaId !== null
       && media.palateMediaId !== undefined
       && isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName)

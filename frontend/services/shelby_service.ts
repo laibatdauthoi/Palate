@@ -192,6 +192,46 @@ export function getShelbyDisplaySource(media: MediaRecord): string {
   return media.displayUrl || media.shelbyBlobRef;
 }
 
+export function getShelbyBlobNameFromRef(ownerAddress: string, shelbyBlobRef: string): string {
+  const trimmed = shelbyBlobRef.trim();
+  if (!trimmed) {
+    throw new Error("Shelby blob reference is missing.");
+  }
+
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  const url = new URL(trimmed);
+  const marker = "/shelby/v1/blobs/";
+  const markerIndex = url.pathname.indexOf(marker);
+  if (markerIndex < 0) {
+    throw new Error("Shelby blob reference is not a recognized Shelby URL.");
+  }
+
+  const pathAfterMarker = url.pathname.slice(markerIndex + marker.length);
+  const slashIndex = pathAfterMarker.indexOf("/");
+  if (slashIndex < 0) {
+    throw new Error("Shelby blob reference is missing a blob name.");
+  }
+
+  const refOwner = pathAfterMarker.slice(0, slashIndex).replace(/^0x/i, "").toLowerCase();
+  const expectedOwner = ownerAddress.replace(/^0x/i, "").toLowerCase();
+  if (refOwner !== expectedOwner) {
+    throw new Error("Shelby blob reference owner does not match this media owner.");
+  }
+
+  return decodeURIComponent(pathAfterMarker.slice(slashIndex + 1));
+}
+
+export function buildShelbyDeleteBlobPayload(ownerAddress: string, shelbyBlobRef: string): InputGenerateTransactionPayloadData {
+  requireShelbyConfigured();
+
+  return ShelbyBlobClient.createDeleteBlobPayload({
+    blobName: getShelbyBlobNameFromRef(ownerAddress, shelbyBlobRef)
+  });
+}
+
 export const shelby_service_config = {
   network: app_config.shelby.network,
   enabled: app_config.shelby.enabled

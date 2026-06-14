@@ -56,7 +56,7 @@ const category_copy: Record<MediaCategory, string> = {
 };
 
 export default function UploadPage() {
-  const { feedback, processingAction, resetUploadFlow, retryShelbyUpload, uploadMedia, uploadRecovery, uploadStep } = usePalate();
+  const { feedback, processingAction, uploadMedia, uploadStep } = usePalate();
   const { walletStatus } = usePalateWallet();
   const [category, setCategory] = useState<MediaCategory>("meme");
   const [title, setTitle] = useState("");
@@ -82,15 +82,6 @@ export default function UploadPage() {
       ? `${(fileMeta.size / 1024 / 1024).toFixed(2)} MB`
       : `${Math.max(1, Math.round(fileMeta.size / 1024))} KB`
     : null;
-  const resetSelectedFile = () => {
-    setSelectedFile(null);
-    setFileName("");
-    setFileMeta(null);
-    const input = document.getElementById("palate_upload_file") as HTMLInputElement | null;
-    if (input) input.value = "";
-    resetUploadFlow();
-  };
-
   useEffect(() => {
     if (!selectedFile) return;
     if (!allowedCategories.includes(category)) {
@@ -195,25 +186,6 @@ export default function UploadPage() {
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to register media on chain.</p> : null}
             {!shelbyReady ? <p className="feedback_text feedback_error">Shelby API key is not configured.</p> : null}
             {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
-            {uploadRecovery.canRetry ? (
-              <div className="upload_recovery_panel">
-                <strong>Shelby upload can be retried</strong>
-                <p>Your media was not registered in Palate yet. Retry the Shelby upload while this file is still selected.</p>
-                <div className="details_grid">
-                  {uploadRecovery.shelbyRegistrationHash ? <span>Shelby tx {uploadRecovery.shelbyRegistrationHash.slice(0, 10)}...{uploadRecovery.shelbyRegistrationHash.slice(-6)}</span> : null}
-                  {uploadRecovery.blobName ? <span>Blob {uploadRecovery.blobName}</span> : null}
-                  {uploadRecovery.retryCount ? <span>Retries {uploadRecovery.retryCount}</span> : null}
-                </div>
-                <div className="cluster">
-                  <ActionButton disabled={uploadBusy} onClick={retryShelbyUpload} variant="secondary">
-                    Retry Shelby Upload
-                  </ActionButton>
-                  <ActionButton disabled={uploadBusy} onClick={resetSelectedFile} variant="ghost">
-                    Reset
-                  </ActionButton>
-                </div>
-              </div>
-            ) : null}
           </div>
         </SectionPanel>
 
