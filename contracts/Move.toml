@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = []
 
 [addresses]
-palate = "0x42"
+palate = "0xe5e752771b9e1b5ac445d3d28f1bf636e6e6c3207e61917c036c1517c2b4373f"
 std = "0x1"
 aptos_std = "0x1"
 aptos_framework = "0x1"
