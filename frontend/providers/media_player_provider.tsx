@@ -62,6 +62,10 @@ function formatSeconds(value: number) {
   return `${minutes}:${seconds}`;
 }
 
+function getFiniteMediaTime(value: number | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+}
+
 function PlayerIcon({ name }: { name: "play" | "pause" | "previous" | "next" | "shuffle" | "repeatOff" | "repeatOne" | "repeatAll" | "close" }) {
   if (name === "play") {
     return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>;
@@ -79,7 +83,7 @@ function PlayerIcon({ name }: { name: "play" | "pause" | "previous" | "next" | "
     return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5h-2V6.4l-4.7 4.7-1.4-1.4L17.6 5H16zM4 7h3.3l10 10H21v2h-4.5l-10-10H4zm0 10h3.3l3.1-3.1 1.4 1.4L8.1 19H4zm15-3h2v5h-5v-2h1.6l-3.2-3.2 1.4-1.4z" /></svg>;
   }
   if (name === "repeatOne") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h9.2l-2-2L15.6 3.6 20 8l-4.4 4.4-1.4-1.4 2-2H7v3H5V7zm12 5v5H7.8l2 2-1.4 1.4L4 16l4.4-4.4L9.8 13l-2 2H17v-3zm-7-1h1.5v6H12v-4.3l-1.2.7-.7-1.2z" /></svg>;
+    return <svg className="repeat_one_icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h9.2l-2-2L15.6 3.6 20 8l-4.4 4.4-1.4-1.4 2-2H7v3H5V7zm12 5v5H7.8l2 2-1.4 1.4L4 16l4.4-4.4L9.8 13l-2 2H17v-3z" /><circle className="repeat_one_badge" cx="17" cy="7" r="5.2" /><path className="repeat_one_digit" d="M16.4 10V5.2l-1.2.7-.6-1.1 2.1-1.2h1.3V10z" /></svg>;
   }
   if (name === "repeatAll") {
     return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h9.2l-2-2L15.6 3.6 20 8l-4.4 4.4-1.4-1.4 2-2H7v3H5V7zm12 5v5H7.8l2 2-1.4 1.4L4 16l4.4-4.4L9.8 13l-2 2H17v-3z" /></svg>;
@@ -99,6 +103,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [volume, setVolume] = useState(default_volume);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
   const [shuffle, setShuffle] = useState(false);
@@ -127,6 +132,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     setIsPlaying(true);
     setProgress(0);
     setDuration(0);
+    setLoading(true);
   }, [pauseInactiveElement]);
 
   const playMedia = useCallback((media: MediaRecord) => {
@@ -154,6 +160,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     setIsPlaying(false);
     setProgress(0);
     setDuration(0);
+    setLoading(false);
   }, []);
 
   const playNext = useCallback((wrap = repeatMode === "all") => {
@@ -196,6 +203,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   }, [getActiveElement, playNext, repeatMode]);
 
   const handleError = useCallback(() => {
+    setLoading(false);
     if (currentTrack) {
       markMediaContentUnavailable(currentTrack.mediaId);
     }
@@ -207,17 +215,33 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   }, [currentIndex, currentTrack, markMediaContentUnavailable, playNext, queue.length, repeatMode, stop]);
 
   const handleLoadedMetadata = useCallback(() => {
-    setDuration(getActiveElement()?.duration ?? 0);
+    const activeElement = getActiveElement();
+    setDuration(getFiniteMediaTime(activeElement?.duration));
+    setProgress(getFiniteMediaTime(activeElement?.currentTime));
+    setLoading(false);
   }, [getActiveElement]);
 
   const handleTimeUpdate = useCallback(() => {
-    setProgress(getActiveElement()?.currentTime ?? 0);
+    setProgress(getFiniteMediaTime(getActiveElement()?.currentTime));
+  }, [getActiveElement]);
+
+  const handleWaiting = useCallback(() => {
+    setLoading(true);
+  }, []);
+
+  const handlePlaying = useCallback(() => {
+    const activeElement = getActiveElement();
+    setLoading(false);
+    setIsPlaying(true);
+    setDuration(getFiniteMediaTime(activeElement?.duration));
+    setProgress(getFiniteMediaTime(activeElement?.currentTime));
   }, [getActiveElement]);
 
   const seek = useCallback((seconds: number) => {
     const activeElement = getActiveElement();
     if (!activeElement || !Number.isFinite(seconds)) return;
-    activeElement.currentTime = Math.max(0, Math.min(seconds, duration || seconds));
+    const safeDuration = getFiniteMediaTime(activeElement.duration) || duration;
+    activeElement.currentTime = Math.max(0, Math.min(seconds, safeDuration || seconds));
     setProgress(activeElement.currentTime);
   }, [duration, getActiveElement]);
 
@@ -234,12 +258,19 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     if (activeElement.src !== currentTrack.source) {
       activeElement.src = currentTrack.source;
       activeElement.currentTime = 0;
+      activeElement.load();
+      setLoading(true);
     }
     activeElement.volume = volume;
+    setDuration(getFiniteMediaTime(activeElement.duration));
+    setProgress(getFiniteMediaTime(activeElement.currentTime));
     if (isPlaying) {
       void activeElement.play().catch(() => setIsPlaying(false));
     }
   }, [currentTrack, getActiveElement, isPlaying, volume]);
+
+  const progressMax = duration > 0 ? duration : 1;
+  const progressValue = duration > 0 ? Math.min(progress, duration) : 0;
 
   const contextValue = useMemo<MediaPlayerContextValue>(() => ({
     currentTrack,
@@ -254,21 +285,27 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   return (
     <MediaPlayerContext.Provider value={contextValue}>
       {children}
-      <div className={`global_media_player ${currentTrack ? "visible" : ""}`} aria-live="polite">
+      <div className={`global_media_player ${currentTrack ? "visible" : ""} ${currentTrack?.kind === "video" ? "video_mode" : "audio_mode"}`} aria-live="polite">
         <audio
+          onDurationChange={handleLoadedMetadata}
           onEnded={handleEnded}
           onError={handleError}
           onLoadedMetadata={handleLoadedMetadata}
+          onPlaying={handlePlaying}
           onTimeUpdate={handleTimeUpdate}
+          onWaiting={handleWaiting}
           ref={audioRef}
         />
         {currentTrack?.kind === "video" ? (
           <video
             className="global_media_video"
+            onDurationChange={handleLoadedMetadata}
             onEnded={handleEnded}
             onError={handleError}
             onLoadedMetadata={handleLoadedMetadata}
+            onPlaying={handlePlaying}
             onTimeUpdate={handleTimeUpdate}
+            onWaiting={handleWaiting}
             playsInline
             ref={videoRef}
           />
@@ -276,6 +313,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
         <div className="global_media_meta">
           <span>{currentTrack?.kind ?? "media"}</span>
           <strong>{currentTrack?.title ?? "No track selected"}</strong>
+          {loading ? <small>Loading media</small> : null}
         </div>
         <div className="global_media_controls">
           <button aria-label="Previous track" className="media_icon_button" onClick={playPrevious} type="button"><PlayerIcon name="previous" /></button>
@@ -294,7 +332,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
         </div>
         <div className="global_media_progress">
           <span>{formatSeconds(progress)}</span>
-          <input aria-label="Media progress" max={Math.max(duration, 0)} min={0} onChange={(event) => seek(Number(event.target.value))} step={1} type="range" value={Math.min(progress, duration || progress)} />
+          <input aria-label="Media progress" max={progressMax} min={0} onChange={(event) => seek(Number(event.target.value))} step={0.1} type="range" value={progressValue} />
           <span>{formatSeconds(duration)}</span>
         </div>
         <label className="global_media_volume">

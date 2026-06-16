@@ -886,6 +886,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   }
 
   async function submitShelbyDelete(media: MediaRecord) {
+    if (media.storageStatus === "shelby_upload_failed") {
+      setFeedback({ type: "info", message: "Shelby upload did not complete. Deleting Palate record directly." });
+      clearShelbyCleanupRequired(media);
+      return "confirmed_missing" as const;
+    }
+
+    if (!media.shelbyBlobRef?.trim() && !media.displayUrl?.trim()) {
+      setFeedback({ type: "info", message: "No Shelby blob reference was found. Continuing with Palate delete." });
+      clearShelbyCleanupRequired(media);
+      return "confirmed_missing" as const;
+    }
+
     if (isDeletePendingMedia(media) || isContentUnavailableMedia(media) || media.deletePending || media.contentUnavailable) {
       setFeedback({ type: "info", message: "Shelby content is already unavailable. Continuing with Palate delete." });
       clearShelbyCleanupRequired(media);

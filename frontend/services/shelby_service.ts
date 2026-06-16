@@ -202,6 +202,10 @@ function isMissingResponseText(value: string) {
   const normalized = value.toLowerCase();
   return normalized.includes("the specified blob was not found")
     || normalized.includes("blob was not found")
+    || normalized.includes("blob not found")
+    || normalized.includes("already deleted")
+    || normalized.includes("already removed")
+    || normalized.includes("expired")
     || normalized.includes("not found");
 }
 
@@ -219,6 +223,8 @@ export async function preflightShelbyBlob(media: MediaRecord): Promise<ShelbyBlo
 
     if (headResponse.status === 404 || headResponse.status === 410) return "missing";
     if (headResponse.ok) return "exists";
+    const responseText = await headResponse.text().catch(() => "");
+    if (isMissingResponseText(responseText)) return "missing";
   } catch {
     // Some Shelby/read gateways do not support HEAD consistently. Fall through
     // to a ranged GET before treating the blob state as unknown.
@@ -290,7 +296,12 @@ export function isShelbyBlobNotFoundError(error: unknown) {
   const normalized = message.toLowerCase();
 
   return normalized.includes("404")
+    || normalized.includes("410")
     || normalized.includes("the specified blob was not found")
+    || normalized.includes("blob not found")
+    || normalized.includes("already deleted")
+    || normalized.includes("already removed")
+    || normalized.includes("expired")
     || (normalized.includes("blob") && normalized.includes("not found"));
 }
 
