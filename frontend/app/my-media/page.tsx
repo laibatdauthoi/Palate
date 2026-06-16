@@ -35,7 +35,7 @@ const category_values = {
 } as const satisfies Record<Exclude<(typeof categories)[number], "All Categories">, MediaCategory>;
 
 export default function MyMediaPage() {
-  const { clearPendingRegistration, deleteMedia, markMediaContentUnavailable, mediaReadStatus, mediaRecords, processingAction, retryOnChainDelete, retryPalateRegistration } = usePalate();
+  const { clearPendingRegistration, deleteMedia, mediaReadStatus, mediaRecords, processingAction, retryOnChainDelete, retryPalateRegistration } = usePalate();
   const { canPlayMedia, currentTrackId, isPlaying, playMedia, setQueueFromMedia, togglePlayback } = useMediaPlayer();
   const { walletStatus } = usePalateWallet();
   const [status, setStatus] = useState<(typeof statuses)[number]>("All");
@@ -125,7 +125,6 @@ export default function MyMediaPage() {
             }
             : undefined
         }
-        onMediaUnavailable={() => markMediaContentUnavailable(media.palateMediaId ?? media.id)}
       />
     );
   }

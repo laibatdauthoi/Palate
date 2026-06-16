@@ -189,7 +189,7 @@ function getShelbyUploadResult(registeredUpload: RegisteredShelbyUpload): Shelby
 }
 
 export function getShelbyDisplaySource(media: MediaRecord): string {
-  return media.displayUrl || media.shelbyBlobRef;
+  return resolveShelbyReadUrl(media);
 }
 
 export type ShelbyBlobPreflightResult = "exists" | "missing" | "inconclusive";
@@ -209,29 +209,54 @@ function isMissingResponseText(value: string) {
     || normalized.includes("not found");
 }
 
-export async function preflightShelbyBlob(media: MediaRecord): Promise<ShelbyBlobPreflightResult> {
-  const source = getShelbyDisplaySource(media).trim();
-  if (!source || !isHttpUrl(source)) {
+function debugMediaResolution(media: MediaRecord, resolvedReadUrl: string) {
+  if (process.env.NODE_ENV === "production") return;
+  console.debug("[Palate media]", {
+    mediaId: media.palateMediaId ?? media.id,
+    category: media.category,
+    mimeType: media.mimeType,
+    displayUrl: media.displayUrl,
+    shelbyBlobRef: media.shelbyBlobRef,
+    resolvedReadUrl
+  });
+}
+
+export function resolveShelbyReadUrl(media: MediaRecord): string {
+  const displayUrl = media.displayUrl?.trim();
+  if (displayUrl) {
+    debugMediaResolution(media, displayUrl);
+    return displayUrl;
+  }
+
+  const shelbyBlobRef = media.shelbyBlobRef?.trim();
+  if (!shelbyBlobRef) {
+    debugMediaResolution(media, "");
+    return "";
+  }
+
+  if (isHttpUrl(shelbyBlobRef)) {
+    debugMediaResolution(media, shelbyBlobRef);
+    return shelbyBlobRef;
+  }
+
+  if (shelbyBlobRef.includes("://")) {
+    debugMediaResolution(media, shelbyBlobRef);
+    return shelbyBlobRef;
+  }
+
+  const resolvedReadUrl = getShelbyDirectUrl(media.ownerAddress, shelbyBlobRef);
+  debugMediaResolution(media, resolvedReadUrl);
+  return resolvedReadUrl;
+}
+
+export async function preflightShelbyReadUrl(source: string): Promise<ShelbyBlobPreflightResult> {
+  const trimmedSource = source.trim();
+  if (!trimmedSource || !isHttpUrl(trimmedSource)) {
     return "inconclusive";
   }
 
   try {
-    const headResponse = await fetch(source, {
-      method: "HEAD",
-      cache: "no-store"
-    });
-
-    if (headResponse.status === 404 || headResponse.status === 410) return "missing";
-    if (headResponse.ok) return "exists";
-    const responseText = await headResponse.text().catch(() => "");
-    if (isMissingResponseText(responseText)) return "missing";
-  } catch {
-    // Some Shelby/read gateways do not support HEAD consistently. Fall through
-    // to a ranged GET before treating the blob state as unknown.
-  }
-
-  try {
-    const readResponse = await fetch(source, {
+    const readResponse = await fetch(trimmedSource, {
       method: "GET",
       cache: "no-store",
       headers: {
@@ -239,16 +264,39 @@ export async function preflightShelbyBlob(media: MediaRecord): Promise<ShelbyBlo
       }
     });
 
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[Palate media preflight]", {
+        resolvedReadUrl: trimmedSource,
+        status: readResponse.status
+      });
+    }
+
     if (readResponse.status === 404 || readResponse.status === 410) return "missing";
-    if (readResponse.ok || readResponse.status === 206) return "exists";
+    if (readResponse.status === 200 || readResponse.status === 206) return "exists";
 
     const responseText = await readResponse.text().catch(() => "");
     if (isMissingResponseText(responseText)) return "missing";
-  } catch {
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[Palate media preflight]", {
+        resolvedReadUrl: trimmedSource,
+        status: "inconclusive",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
     return "inconclusive";
   }
 
   return "inconclusive";
+}
+
+export async function preflightShelbyBlob(media: MediaRecord): Promise<ShelbyBlobPreflightResult> {
+  const source = resolveShelbyReadUrl(media);
+  if (!source || !isHttpUrl(source)) {
+    return "inconclusive";
+  }
+
+  return preflightShelbyReadUrl(source);
 }
 
 export function getShelbyBlobNameFromRef(ownerAddress: string, shelbyBlobRef: string): string {

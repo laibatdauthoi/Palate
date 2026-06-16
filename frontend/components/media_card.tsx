@@ -13,13 +13,12 @@ type MediaCardProps = {
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
   actionDisabled?: boolean;
-  onMediaUnavailable?: () => void;
   mediaActive?: boolean;
   mediaPlaying?: boolean;
   onMediaToggle?: () => void;
 };
 
-export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, actionDisabled, onMediaUnavailable, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaCardProps) {
+export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, actionDisabled, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaCardProps) {
   const isInvalidMediaType = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
   const isShelbyUploadFailed = media.storageStatus === "shelby_upload_failed";
   const isDeletePending = media.deletePending === true;
@@ -36,7 +35,6 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
             mediaActive={mediaActive}
             mediaPlaying={mediaPlaying}
             onMediaToggle={onMediaToggle}
-            onUnavailable={onMediaUnavailable}
           />
         </div>
       </div>

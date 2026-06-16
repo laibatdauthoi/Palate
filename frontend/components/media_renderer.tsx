@@ -2,8 +2,8 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useMemo, useState } from "react";
-import { getShelbyDisplaySource } from "@/services/shelby_service";
+import { type SyntheticEvent, useMemo, useState } from "react";
+import { resolveShelbyReadUrl } from "@/services/shelby_service";
 import type { MediaRecord } from "@/types/palate";
 import { detectMediaKindFromMetadata } from "@/utils/media_file_validation";
 import { ModalShell } from "./modal_shell";
@@ -11,7 +11,6 @@ import { ModalShell } from "./modal_shell";
 type MediaRendererProps = {
   media: MediaRecord;
   compact?: boolean;
-  onUnavailable?: () => void;
   mediaActive?: boolean;
   mediaPlaying?: boolean;
   onMediaToggle?: () => void;
@@ -21,16 +20,28 @@ function isHttpUrl(value: string) {
   return value.startsWith("http://") || value.startsWith("https://") || value.startsWith("blob:");
 }
 
-export function MediaRenderer({ media, compact = false, onUnavailable, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaRendererProps) {
+export function MediaRenderer({ media, compact = false, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaRendererProps) {
   const [failed, setFailed] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const source = useMemo(() => getShelbyDisplaySource(media), [media]);
+  const source = useMemo(() => resolveShelbyReadUrl(media), [media]);
   const mediaKind = useMemo(() => detectMediaKindFromMetadata(media.mimeType, media.originalFileName), [media.mimeType, media.originalFileName]);
   const hasPlayableSource = source && isHttpUrl(source) && !failed;
 
-  function handleUnavailable() {
+  function handleUnavailable(event: SyntheticEvent<HTMLImageElement | HTMLVideoElement>) {
+    const target = event.currentTarget;
+    const errorCode = "error" in target && target.error ? target.error.code : null;
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[Palate media element error]", {
+        mediaId: media.palateMediaId ?? media.id,
+        category: media.category,
+        mimeType: media.mimeType,
+        displayUrl: media.displayUrl,
+        shelbyBlobRef: media.shelbyBlobRef,
+        resolvedReadUrl: source,
+        errorCode
+      });
+    }
     setFailed(true);
-    onUnavailable?.();
   }
 
   if (!hasPlayableSource) {
