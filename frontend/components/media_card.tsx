@@ -13,24 +13,27 @@ type MediaCardProps = {
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
   actionDisabled?: boolean;
+  onMediaUnavailable?: () => void;
 };
 
-export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, actionDisabled }: MediaCardProps) {
+export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, actionDisabled, onMediaUnavailable }: MediaCardProps) {
   const isInvalidMediaType = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
   const isShelbyUploadFailed = media.storageStatus === "shelby_upload_failed";
+  const isDeletePending = media.deletePending === true;
+  const isContentUnavailable = media.contentUnavailable === true;
   const isDeleteAction = actionLabel === "Delete";
 
   return (
     <article className="media_card">
       <div className={`media_preview media_preview_${media.accent}`} aria-label={media.title}>
         <div className="media_preview_inner">
-          <MediaRenderer media={media} />
+          <MediaRenderer media={media} onUnavailable={onMediaUnavailable} />
         </div>
       </div>
       <div className="media_card_body">
         <div className="spread">
           <h3>{media.title}</h3>
-          <StatusBadge status={isShelbyUploadFailed ? "shelby_upload_failed" : isInvalidMediaType ? "invalid_media_type" : media.status} />
+          <StatusBadge status={isDeletePending ? "delete_pending" : isContentUnavailable ? "content_unavailable" : isShelbyUploadFailed ? "shelby_upload_failed" : isInvalidMediaType ? "invalid_media_type" : media.status} />
         </div>
         <div className="cluster">
           <CategoryBadge category={media.category} />
@@ -39,7 +42,7 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
         <div className="spread media_meta">
           <span>{media.createdTime}</span>
           <div className="media_card_actions">
-            {actionLabel ? <ActionButton disabled={actionDisabled || (isInvalidMediaType && !isDeleteAction && !isShelbyUploadFailed)} onClick={onAction} variant={isDeleteAction || isShelbyUploadFailed ? "danger" : "secondary"}>{actionLabel}</ActionButton> : null}
+            {actionLabel ? <ActionButton disabled={actionDisabled || (isInvalidMediaType && !isDeleteAction && !isShelbyUploadFailed) || (isContentUnavailable && !isDeleteAction && !isDeletePending)} onClick={onAction} variant={isDeleteAction || isShelbyUploadFailed ? "danger" : "secondary"}>{actionLabel}</ActionButton> : null}
             {secondaryActionLabel ? <ActionButton onClick={onSecondaryAction} variant="ghost">{secondaryActionLabel}</ActionButton> : null}
           </div>
         </div>
@@ -52,6 +55,18 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
           <div className="recovery_note">
             <span>Shelby registration succeeded, but file upload failed.</span>
             <span>This media cannot be pushed or challenged. Delete it and upload again.</span>
+          </div>
+        ) : null}
+        {isDeletePending ? (
+          <div className="recovery_note">
+            <span>Content was removed from Shelby, but on-chain delete did not complete.</span>
+            <span>This media cannot be pushed or challenged.</span>
+          </div>
+        ) : null}
+        {isContentUnavailable ? (
+          <div className="recovery_note">
+            <span>This media file is unavailable on Shelby.</span>
+            <span>This media cannot be pushed or challenged.</span>
           </div>
         ) : null}
         {media.source === "palate_upload_recovery" ? (

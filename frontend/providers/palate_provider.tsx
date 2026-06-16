@@ -24,6 +24,8 @@ import {
 } from "@/services/aptos_service";
 import {
   buildShelbyDeleteBlobPayload,
+  isShelbyBlobNotFoundError,
+  preflightShelbyBlob,
   prepareShelbyUpload,
   registerShelbyBlob,
   uploadPreparedBlobToShelby,
@@ -86,6 +88,14 @@ type UploadRetryDraft = {
   createdTimeSeconds: string;
 };
 
+type DeletePendingRecord = {
+  ownerAddress: string;
+  mediaId: number;
+  shelbyBlobRef: string;
+  title: string;
+  status: "delete_pending";
+};
+
 type PalateContextValue = {
   walletStatus: WalletStatus;
   setWalletStatus: (status: WalletStatus) => void;
@@ -118,6 +128,8 @@ type PalateContextValue = {
   uploadMedia: (input: UploadMediaInput) => Promise<void>;
   retryPalateRegistration: (mediaId: number) => Promise<void>;
   deleteMedia: (mediaId: number) => Promise<void>;
+  retryOnChainDelete: (mediaId: number) => Promise<void>;
+  markMediaContentUnavailable: (mediaId: number) => void;
   clearPendingRegistration: (mediaId: number) => void;
   resetUploadFlow: () => void;
   uploadMockMedia: (input: UploadMediaInput) => Promise<void>;
@@ -131,6 +143,7 @@ type PalateContextValue = {
 const PalateContext = createContext<PalateContextValue | null>(null);
 const mockWalletAddress = mock_summary.walletAddress;
 const pending_registration_storage_key = "palate_pending_registrations_v1";
+const delete_pending_storage_key = "palate_delete_pending_v1";
 
 const initial_upload_recovery_state: UploadRecoveryState = {
   canRetry: false,
@@ -249,6 +262,26 @@ function normalizePendingRegistrations(value: unknown): MediaRecord[] {
     }));
 }
 
+function normalizeDeletePending(value: unknown): DeletePendingRecord[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((item): item is Partial<DeletePendingRecord> => typeof item === "object" && item !== null)
+    .filter((item) =>
+      typeof item.ownerAddress === "string"
+        && typeof item.mediaId === "number"
+        && typeof item.shelbyBlobRef === "string"
+        && typeof item.title === "string"
+    )
+    .map((item) => ({
+      ownerAddress: String(item.ownerAddress),
+      mediaId: Number(item.mediaId),
+      shelbyBlobRef: String(item.shelbyBlobRef),
+      title: String(item.title),
+      status: "delete_pending"
+    }));
+}
+
 export function PalateProvider({ children }: { children: ReactNode }) {
   const { signAndSubmitTransaction, walletAddress, walletStatus: walletConnectionStatus } = usePalateWallet();
   const [walletStatus, setWalletStatus] = useState<WalletStatus>("connected");
@@ -256,6 +289,9 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [mediaRecords, setMediaRecords] = useState<MediaRecord[]>(mock_media);
   const [pendingRegistrationMedia, setPendingRegistrationMedia] = useState<MediaRecord[]>([]);
   const [pendingRegistrationStorageLoaded, setPendingRegistrationStorageLoaded] = useState(false);
+  const [deletePendingRecords, setDeletePendingRecords] = useState<DeletePendingRecord[]>([]);
+  const [deletePendingStorageLoaded, setDeletePendingStorageLoaded] = useState(false);
+  const [contentUnavailableIds, setContentUnavailableIds] = useState<number[]>([]);
   const [waitingPushes, setWaitingPushes] = useState<WaitingPush[]>(mock_waiting_pushes);
   const [activeMatches, setActiveMatches] = useState<ActiveMatch[]>(mock_matches);
   const [claimRecords, setClaimRecords] = useState<ClaimRecord[]>(mock_claims);
@@ -287,6 +323,22 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (!pendingRegistrationStorageLoaded) return;
     window.localStorage.setItem(pending_registration_storage_key, JSON.stringify(pendingRegistrationMedia));
   }, [pendingRegistrationMedia, pendingRegistrationStorageLoaded]);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(delete_pending_storage_key);
+      setDeletePendingRecords(stored ? normalizeDeletePending(JSON.parse(stored)) : []);
+    } catch {
+      setDeletePendingRecords([]);
+    } finally {
+      setDeletePendingStorageLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!deletePendingStorageLoaded) return;
+    window.localStorage.setItem(delete_pending_storage_key, JSON.stringify(deletePendingRecords));
+  }, [deletePendingRecords, deletePendingStorageLoaded]);
 
   useEffect(() => {
     let cancelled = false;
@@ -744,16 +796,107 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setFeedback({ type: "info", message: "Registration recovery item cleared from this browser." });
   }
 
-  function getEligiblePalateMedia(mediaId: number) {
-    return mediaRecords.find((media) =>
-      media.id === mediaId
-        && media.source === "palate"
-        && media.palateMediaId !== null
-        && media.palateMediaId !== undefined
-        && (media.storageStatus ?? "uploaded") === "uploaded"
-        && media.status === "idle"
-        && isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName)
+  function isDeletePendingMedia(media: MediaRecord) {
+    const mediaId = media.palateMediaId ?? media.id;
+    return deletePendingRecords.some((record) =>
+      record.mediaId === mediaId
+        && (!walletAddress || record.ownerAddress.toLowerCase() === media.ownerAddress.toLowerCase())
     );
+  }
+
+  function isContentUnavailableMedia(media: MediaRecord) {
+    const mediaId = media.palateMediaId ?? media.id;
+    return contentUnavailableIds.includes(mediaId);
+  }
+
+  function applyLocalMediaState(media: MediaRecord): MediaRecord {
+    return {
+      ...media,
+      deletePending: isDeletePendingMedia(media),
+      contentUnavailable: isContentUnavailableMedia(media)
+    };
+  }
+
+  function isGameplayEligibleMedia(media: MediaRecord) {
+    return media.source === "palate"
+      && media.palateMediaId !== null
+      && media.palateMediaId !== undefined
+      && (media.storageStatus ?? "uploaded") === "uploaded"
+      && media.status === "idle"
+      && !isDeletePendingMedia(media)
+      && !isContentUnavailableMedia(media)
+      && isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
+  }
+
+  function getEligiblePalateMedia(mediaId: number) {
+    return mediaRecords.find((media) => media.id === mediaId && isGameplayEligibleMedia(media));
+  }
+
+  function getPalateDeleteErrorMessage(error: unknown) {
+    const rawMessage = error instanceof Error ? error.message : String(error ?? "");
+    const normalized = rawMessage.toLowerCase();
+    if (
+      normalized.includes("delete_media")
+        && (normalized.includes("not found") || normalized.includes("function") || normalized.includes("unknown"))
+    ) {
+      return "Contract upgrade required for Palate delete.";
+    }
+
+    return getReadablePalateError(error, "Palate delete failed.");
+  }
+
+  function markDeletePending(media: MediaRecord) {
+    const mediaId = media.palateMediaId ?? media.id;
+    setDeletePendingRecords((records) => {
+      const nextRecord: DeletePendingRecord = {
+        ownerAddress: media.ownerAddress,
+        mediaId,
+        shelbyBlobRef: media.shelbyBlobRef,
+        title: media.title,
+        status: "delete_pending"
+      };
+      return [nextRecord, ...records.filter((record) => !(record.ownerAddress.toLowerCase() === media.ownerAddress.toLowerCase() && record.mediaId === mediaId))];
+    });
+  }
+
+  async function submitPalateDelete(media: MediaRecord) {
+    const data = buildDeleteMediaPayload(media.palateMediaId ?? media.id);
+    const transactionHash = await signAndSubmitTransaction({ data });
+    setFeedback({ type: "info", message: `Palate delete submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+    await waitForPalateTransaction(transactionHash);
+    return transactionHash;
+  }
+
+  async function submitShelbyDelete(media: MediaRecord) {
+    if (isDeletePendingMedia(media) || isContentUnavailableMedia(media) || media.deletePending || media.contentUnavailable) {
+      setFeedback({ type: "info", message: "Shelby content is already unavailable. Continuing with Palate delete." });
+      return "skipped" as const;
+    }
+
+    const preflight = await preflightShelbyBlob(media);
+    if (preflight === "missing") {
+      setFeedback({ type: "info", message: "Shelby content was already removed. Continuing with Palate delete." });
+      return "already_deleted" as const;
+    }
+    if (preflight === "inconclusive") {
+      setFeedback({ type: "info", message: "Shelby availability could not be confirmed. Continuing with Palate delete only." });
+      return "skipped" as const;
+    }
+
+    try {
+      const shelbyDeleteData = buildShelbyDeleteBlobPayload(media.ownerAddress, media.shelbyBlobRef);
+      const shelbyDeleteHash = await signAndSubmitTransaction({ data: shelbyDeleteData });
+      setFeedback({ type: "info", message: `Shelby delete submitted ${shortenTransactionHash(shelbyDeleteHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(shelbyDeleteHash);
+      return "deleted" as const;
+    } catch (error) {
+      if (isShelbyBlobNotFoundError(error)) {
+        setFeedback({ type: "info", message: "Shelby content was already removed. Continuing with Palate delete." });
+        return "already_deleted" as const;
+      }
+
+      throw error;
+    }
   }
 
   async function deleteMedia(mediaId: number) {
@@ -780,23 +923,66 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setFeedback(null);
 
     try {
-      const shelbyDeleteData = buildShelbyDeleteBlobPayload(media.ownerAddress, media.shelbyBlobRef);
-      const shelbyDeleteHash = await signAndSubmitTransaction({ data: shelbyDeleteData });
-      setFeedback({ type: "info", message: `Shelby delete submitted ${shortenTransactionHash(shelbyDeleteHash)}. Waiting for confirmation.` });
-      await waitForPalateTransaction(shelbyDeleteHash);
+      await submitShelbyDelete(media);
 
-      const palateDeleteData = buildDeleteMediaPayload(media.palateMediaId ?? media.id);
-      const palateDeleteHash = await signAndSubmitTransaction({ data: palateDeleteData });
-      setFeedback({ type: "info", message: `Palate delete submitted ${shortenTransactionHash(palateDeleteHash)}. Waiting for confirmation.` });
-      await waitForPalateTransaction(palateDeleteHash);
+      let palateDeleteHash: string;
+      try {
+        palateDeleteHash = await submitPalateDelete(media);
+      } catch (error) {
+        console.error("Palate delete failed after Shelby delete", error);
+        markDeletePending(media);
+        setFeedback({ type: "error", message: `${getPalateDeleteErrorMessage(error)} Content was removed from Shelby, but on-chain delete did not complete.` });
+        return;
+      }
+
       await refreshUserMediaForWallet(walletAddress);
+      setDeletePendingRecords((records) => records.filter((record) => record.mediaId !== (media.palateMediaId ?? media.id) || record.ownerAddress.toLowerCase() !== media.ownerAddress.toLowerCase()));
       setFeedback({ type: "success", message: `Media deleted ${shortenTransactionHash(palateDeleteHash)}.` });
     } catch (error) {
       console.error("deleteMedia failed", error);
-      setFeedback({ type: "error", message: getReadablePalateError(error, "Delete failed. Retry Delete from My Media.") });
+      setFeedback({ type: "error", message: getReadablePalateError(error, "Shelby delete failed. Retry Delete from My Media.") });
     } finally {
       setProcessingAction(null);
     }
+  }
+
+  async function retryOnChainDelete(mediaId: number) {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      setFeedback({ type: "error", message: "Connect wallet to retry on-chain delete." });
+      return;
+    }
+
+    const media = mediaRecords.find((record) =>
+      record.id === mediaId
+        && record.source === "palate"
+        && record.palateMediaId !== null
+        && record.palateMediaId !== undefined
+        && isDeletePendingMedia(record)
+    );
+
+    if (!media) {
+      setFeedback({ type: "error", message: "Choose a Delete pending media item." });
+      return;
+    }
+
+    setProcessingAction(`retryDelete:${mediaId}`);
+    setFeedback(null);
+
+    try {
+      const transactionHash = await submitPalateDelete(media);
+      await refreshUserMediaForWallet(walletAddress);
+      setDeletePendingRecords((records) => records.filter((record) => record.mediaId !== (media.palateMediaId ?? media.id) || record.ownerAddress.toLowerCase() !== media.ownerAddress.toLowerCase()));
+      setFeedback({ type: "success", message: `On-chain delete confirmed ${shortenTransactionHash(transactionHash)}.` });
+    } catch (error) {
+      console.error("retryOnChainDelete failed", error);
+      setFeedback({ type: "error", message: getPalateDeleteErrorMessage(error) });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
+  function markMediaContentUnavailable(mediaId: number) {
+    setContentUnavailableIds((ids) => (ids.includes(mediaId) ? ids : [...ids, mediaId]));
   }
 
   async function createPushOnChain(mediaId: number, amount: string) {
@@ -890,7 +1076,16 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const visibleMediaRecords = [
     ...pendingRegistrationMedia.filter((media) => !walletAddress || media.ownerAddress.toLowerCase() === walletAddress.toLowerCase()),
     ...mediaRecords
-  ];
+  ].map((media) => applyLocalMediaState(media));
+  const visibleWaitingPushes = waitingPushes.map((push) => ({
+    ...push,
+    media: applyLocalMediaState(push.media)
+  }));
+  const visibleActiveMatches = activeMatches.map((match) => ({
+    ...match,
+    mediaA: applyLocalMediaState(match.mediaA),
+    mediaB: applyLocalMediaState(match.mediaB)
+  }));
 
   const value: PalateContextValue = {
       walletStatus,
@@ -898,8 +1093,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       mockWalletAddress,
       balance,
       mediaRecords: visibleMediaRecords,
-      waitingPushes,
-      activeMatches,
+      waitingPushes: visibleWaitingPushes,
+      activeMatches: visibleActiveMatches,
       currentAssignment,
       completedBuffSide,
       noValidMatchAvailable,
@@ -1012,6 +1207,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       uploadMedia: registerMediaOnChain,
       retryPalateRegistration,
       deleteMedia,
+      retryOnChainDelete,
+      markMediaContentUnavailable,
       clearPendingRegistration,
       resetUploadFlow,
       uploadMockMedia: async (input) => {

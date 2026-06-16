@@ -192,6 +192,58 @@ export function getShelbyDisplaySource(media: MediaRecord): string {
   return media.displayUrl || media.shelbyBlobRef;
 }
 
+export type ShelbyBlobPreflightResult = "exists" | "missing" | "inconclusive";
+
+function isHttpUrl(value: string) {
+  return value.startsWith("http://") || value.startsWith("https://");
+}
+
+function isMissingResponseText(value: string) {
+  const normalized = value.toLowerCase();
+  return normalized.includes("the specified blob was not found")
+    || normalized.includes("blob was not found")
+    || normalized.includes("not found");
+}
+
+export async function preflightShelbyBlob(media: MediaRecord): Promise<ShelbyBlobPreflightResult> {
+  const source = getShelbyDisplaySource(media).trim();
+  if (!source || !isHttpUrl(source)) {
+    return "inconclusive";
+  }
+
+  try {
+    const headResponse = await fetch(source, {
+      method: "HEAD",
+      cache: "no-store"
+    });
+
+    if (headResponse.status === 404) return "missing";
+    if (headResponse.ok) return "exists";
+  } catch {
+    return "inconclusive";
+  }
+
+  try {
+    const readResponse = await fetch(source, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        Range: "bytes=0-0"
+      }
+    });
+
+    if (readResponse.status === 404) return "missing";
+    if (readResponse.ok || readResponse.status === 206) return "exists";
+
+    const responseText = await readResponse.text().catch(() => "");
+    if (isMissingResponseText(responseText)) return "missing";
+  } catch {
+    return "inconclusive";
+  }
+
+  return "inconclusive";
+}
+
 export function getShelbyBlobNameFromRef(ownerAddress: string, shelbyBlobRef: string): string {
   const trimmed = shelbyBlobRef.trim();
   if (!trimmed) {
@@ -230,6 +282,15 @@ export function buildShelbyDeleteBlobPayload(ownerAddress: string, shelbyBlobRef
   return ShelbyBlobClient.createDeleteBlobPayload({
     blobName: getShelbyBlobNameFromRef(ownerAddress, shelbyBlobRef)
   });
+}
+
+export function isShelbyBlobNotFoundError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  const normalized = message.toLowerCase();
+
+  return normalized.includes("404")
+    || normalized.includes("the specified blob was not found")
+    || (normalized.includes("blob") && normalized.includes("not found"));
 }
 
 export const shelby_service_config = {

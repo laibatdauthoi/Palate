@@ -64,6 +64,8 @@ export type MediaRecord = {
   format: MediaFormat;
   status: MediaStatus;
   storageStatus?: MediaStorageStatus;
+  deletePending?: boolean;
+  contentUnavailable?: boolean;
   createdTime: string;
   shelbyBlobRef: string;
   displayUrl?: string;

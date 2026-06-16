@@ -11,18 +11,24 @@ import { ModalShell } from "./modal_shell";
 type MediaRendererProps = {
   media: MediaRecord;
   compact?: boolean;
+  onUnavailable?: () => void;
 };
 
 function isHttpUrl(value: string) {
   return value.startsWith("http://") || value.startsWith("https://") || value.startsWith("blob:");
 }
 
-export function MediaRenderer({ media, compact = false }: MediaRendererProps) {
+export function MediaRenderer({ media, compact = false, onUnavailable }: MediaRendererProps) {
   const [failed, setFailed] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const source = useMemo(() => getShelbyDisplaySource(media), [media]);
   const mediaKind = useMemo(() => detectMediaKindFromMetadata(media.mimeType, media.originalFileName), [media.mimeType, media.originalFileName]);
   const hasPlayableSource = source && isHttpUrl(source) && !failed;
+
+  function handleUnavailable() {
+    setFailed(true);
+    onUnavailable?.();
+  }
 
   if (!hasPlayableSource) {
     return (
@@ -45,7 +51,7 @@ export function MediaRenderer({ media, compact = false }: MediaRendererProps) {
           <img
             alt={media.title}
             className="media_renderer_image"
-            onError={() => setFailed(true)}
+            onError={handleUnavailable}
             src={source}
           />
         </button>
@@ -62,7 +68,7 @@ export function MediaRenderer({ media, compact = false }: MediaRendererProps) {
     return (
       <div className={`media_renderer media_renderer_player ${compact ? "media_renderer_compact" : ""}`}>
         <span>{media.title}</span>
-        <audio controls onError={() => setFailed(true)} preload="metadata" src={source} />
+        <audio controls onError={handleUnavailable} preload="metadata" src={source} />
       </div>
     );
   }
@@ -74,7 +80,7 @@ export function MediaRenderer({ media, compact = false }: MediaRendererProps) {
           <video
             className="media_renderer_video"
             controls
-            onError={() => setFailed(true)}
+            onError={handleUnavailable}
             playsInline
             preload="metadata"
             src={source}

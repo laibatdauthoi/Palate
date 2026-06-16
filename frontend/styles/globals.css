@@ -1039,6 +1039,16 @@ select.input_control option:checked,
   color: #ffd7df;
 }
 
+.status_delete_pending {
+  background: rgba(242, 184, 75, 0.14);
+  color: var(--warning-color);
+}
+
+.status_content_unavailable {
+  background: rgba(255, 92, 122, 0.14);
+  color: #ffd7df;
+}
+
 .status_active,
 .status_claimable {
   background: rgba(255, 47, 159, 0.14);

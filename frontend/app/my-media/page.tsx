@@ -34,7 +34,7 @@ const category_values = {
 } as const satisfies Record<Exclude<(typeof categories)[number], "All Categories">, MediaCategory>;
 
 export default function MyMediaPage() {
-  const { clearPendingRegistration, deleteMedia, mediaReadStatus, mediaRecords, processingAction, retryPalateRegistration } = usePalate();
+  const { clearPendingRegistration, deleteMedia, markMediaContentUnavailable, mediaReadStatus, mediaRecords, processingAction, retryOnChainDelete, retryPalateRegistration } = usePalate();
   const { walletStatus } = usePalateWallet();
   const [status, setStatus] = useState<(typeof statuses)[number]>("All");
   const [category, setCategory] = useState<CategoryFilter>("All Categories");
@@ -62,14 +62,16 @@ export default function MyMediaPage() {
       && media.palateMediaId !== null
       && media.palateMediaId !== undefined
       && (media.storageStatus === "shelby_upload_failed" || media.status === "idle");
-    const primaryDelete = media.storageStatus === "shelby_upload_failed" || (isInvalid && isDeletable);
+    const primaryDelete = !media.deletePending && (media.storageStatus === "shelby_upload_failed" || media.contentUnavailable || (isInvalid && isDeletable));
 
     return (
       <MediaCard
         key={media.id}
         media={media}
         actionLabel={
-          primaryDelete
+          media.deletePending
+            ? "Retry on-chain delete"
+            : primaryDelete
             ? "Delete"
             : media.status === "registration_failed"
               ? "Retry registration"
@@ -87,16 +89,20 @@ export default function MyMediaPage() {
           media.status === "pending_registration"
             || processingAction === `retryRegistration:${media.id}`
             || processingAction === `deleteMedia:${media.id}`
+            || processingAction === `retryDelete:${media.id}`
         }
         onAction={
-          primaryDelete
+          media.deletePending
+            ? () => retryOnChainDelete(media.id)
+            : primaryDelete
             ? () => setDeleteMediaId(media.id)
             : media.status === "registration_failed"
               ? () => retryPalateRegistration(media.id)
               : undefined
         }
-        secondaryActionLabel={media.source === "palate_upload_recovery" ? "Clear" : isDeletable && !primaryDelete ? "Delete" : undefined}
-        onSecondaryAction={media.source === "palate_upload_recovery" ? () => clearPendingRegistration(media.id) : isDeletable && !primaryDelete ? () => setDeleteMediaId(media.id) : undefined}
+        secondaryActionLabel={media.source === "palate_upload_recovery" ? "Clear" : isDeletable && !primaryDelete && !media.deletePending ? "Delete" : undefined}
+        onSecondaryAction={media.source === "palate_upload_recovery" ? () => clearPendingRegistration(media.id) : isDeletable && !primaryDelete && !media.deletePending ? () => setDeleteMediaId(media.id) : undefined}
+        onMediaUnavailable={() => markMediaContentUnavailable(media.palateMediaId ?? media.id)}
       />
     );
   }
