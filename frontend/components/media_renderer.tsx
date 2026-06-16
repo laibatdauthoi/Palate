@@ -12,13 +12,16 @@ type MediaRendererProps = {
   media: MediaRecord;
   compact?: boolean;
   onUnavailable?: () => void;
+  mediaActive?: boolean;
+  mediaPlaying?: boolean;
+  onMediaToggle?: () => void;
 };
 
 function isHttpUrl(value: string) {
   return value.startsWith("http://") || value.startsWith("https://") || value.startsWith("blob:");
 }
 
-export function MediaRenderer({ media, compact = false, onUnavailable }: MediaRendererProps) {
+export function MediaRenderer({ media, compact = false, onUnavailable, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaRendererProps) {
   const [failed, setFailed] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const source = useMemo(() => getShelbyDisplaySource(media), [media]);
@@ -66,9 +69,18 @@ export function MediaRenderer({ media, compact = false, onUnavailable }: MediaRe
 
   if (mediaKind === "audio") {
     return (
-      <div className={`media_renderer media_renderer_player ${compact ? "media_renderer_compact" : ""}`}>
+      <div className={`media_renderer media_renderer_player media_renderer_audio_controlled ${mediaActive ? "active" : ""} ${compact ? "media_renderer_compact" : ""}`}>
+        <button
+          aria-label={`${mediaPlaying && mediaActive ? "Pause" : "Play"} ${media.title}`}
+          className="audio_card_play_button"
+          disabled={!onMediaToggle}
+          onClick={onMediaToggle}
+          type="button"
+        >
+          {mediaPlaying && mediaActive ? "Pause" : "Play"}
+        </button>
         <span>{media.title}</span>
-        <audio controls onError={handleUnavailable} preload="metadata" src={source} />
+        <small>{mediaActive ? (mediaPlaying ? "Now playing" : "Selected track") : "Audio track"}</small>
       </div>
     );
   }
@@ -76,22 +88,31 @@ export function MediaRenderer({ media, compact = false, onUnavailable }: MediaRe
   if (mediaKind === "video") {
     return (
       <>
-        <div className={`media_renderer media_renderer_video_frame ${compact ? "media_renderer_compact" : ""}`}>
+        <div className={`media_renderer media_renderer_video_frame ${mediaActive ? "active" : ""} ${compact ? "media_renderer_compact" : ""}`}>
           <video
             className="media_renderer_video"
-            controls
+            muted
             onError={handleUnavailable}
             playsInline
             preload="metadata"
             src={source}
           />
-          <button className="media_expand_button" onClick={() => setDetailOpen(true)} type="button">
+          <button
+            aria-label={`${mediaPlaying && mediaActive ? "Pause" : "Play"} ${media.title}`}
+            className="media_expand_button media_play_overlay"
+            disabled={!onMediaToggle}
+            onClick={onMediaToggle}
+            type="button"
+          >
+            {mediaPlaying && mediaActive ? "Pause" : "Play"}
+          </button>
+          <button className="media_expand_button media_view_button" onClick={() => setDetailOpen(true)} type="button">
             View full
           </button>
         </div>
         <ModalShell open={detailOpen} onClose={() => setDetailOpen(false)} title={media.title}>
           <div className="media_detail_view">
-            <video className="media_detail_asset" controls playsInline src={source} />
+            <video className="media_detail_asset" muted playsInline preload="metadata" src={source} />
           </div>
         </ModalShell>
       </>

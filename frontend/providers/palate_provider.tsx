@@ -872,6 +872,11 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setShelbyCleanupRequiredIds((ids) => (ids.includes(mediaId) ? ids : [...ids, mediaId]));
   }
 
+  function clearShelbyCleanupRequired(media: MediaRecord) {
+    const mediaId = media.palateMediaId ?? media.id;
+    setShelbyCleanupRequiredIds((ids) => ids.filter((id) => id !== mediaId));
+  }
+
   async function submitPalateDelete(media: MediaRecord) {
     const data = buildDeleteMediaPayload(media.palateMediaId ?? media.id);
     const transactionHash = await signAndSubmitTransaction({ data });
@@ -883,12 +888,14 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   async function submitShelbyDelete(media: MediaRecord) {
     if (isDeletePendingMedia(media) || isContentUnavailableMedia(media) || media.deletePending || media.contentUnavailable) {
       setFeedback({ type: "info", message: "Shelby content is already unavailable. Continuing with Palate delete." });
+      clearShelbyCleanupRequired(media);
       return "confirmed_missing" as const;
     }
 
     const preflight = await preflightShelbyBlob(media);
     if (preflight === "missing") {
       setFeedback({ type: "info", message: "Shelby content was already removed. Continuing with Palate delete." });
+      clearShelbyCleanupRequired(media);
       return "confirmed_missing" as const;
     }
     if (preflight === "inconclusive") {
@@ -902,12 +909,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       const shelbyDeleteHash = await signAndSubmitTransaction({ data: shelbyDeleteData });
       setFeedback({ type: "info", message: `Shelby delete submitted ${shortenTransactionHash(shelbyDeleteHash)}. Waiting for confirmation.` });
       await waitForPalateTransaction(shelbyDeleteHash);
-      setShelbyCleanupRequiredIds((ids) => ids.filter((id) => id !== (media.palateMediaId ?? media.id)));
+      clearShelbyCleanupRequired(media);
       return "deleted" as const;
     } catch (error) {
       if (isShelbyBlobNotFoundError(error)) {
         setFeedback({ type: "info", message: "Shelby content was already removed. Continuing with Palate delete." });
-        setShelbyCleanupRequiredIds((ids) => ids.filter((id) => id !== (media.palateMediaId ?? media.id)));
+        clearShelbyCleanupRequired(media);
         return "confirmed_missing" as const;
       }
 

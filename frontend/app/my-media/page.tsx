@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
 import { EmptyState } from "@/components/empty_state";
@@ -10,6 +10,7 @@ import { MediaCard } from "@/components/media_card";
 import { ModalShell } from "@/components/modal_shell";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
+import { useMediaPlayer } from "@/providers/media_player_provider";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import type { MediaCategory, MediaRecord, MediaStatus } from "@/types/palate";
@@ -35,6 +36,7 @@ const category_values = {
 
 export default function MyMediaPage() {
   const { clearPendingRegistration, deleteMedia, markMediaContentUnavailable, mediaReadStatus, mediaRecords, processingAction, retryOnChainDelete, retryPalateRegistration } = usePalate();
+  const { canPlayMedia, currentTrackId, isPlaying, playMedia, setQueueFromMedia, togglePlayback } = useMediaPlayer();
   const { walletStatus } = usePalateWallet();
   const [status, setStatus] = useState<(typeof statuses)[number]>("All");
   const [category, setCategory] = useState<CategoryFilter>("All Categories");
@@ -56,6 +58,10 @@ export default function MyMediaPage() {
   }, [category, mediaRecords, status]);
   const mediaToDelete = deleteMediaId === null ? null : mediaRecords.find((media) => media.id === deleteMediaId) ?? null;
 
+  useEffect(() => {
+    setQueueFromMedia(filteredMedia);
+  }, [filteredMedia, setQueueFromMedia]);
+
   function renderMediaCard(media: MediaRecord) {
     const isInvalid = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
     const isDeletable = media.source === "palate"
@@ -68,6 +74,8 @@ export default function MyMediaPage() {
       <MediaCard
         key={media.id}
         media={media}
+        mediaActive={currentTrackId === media.id}
+        mediaPlaying={currentTrackId === media.id && isPlaying}
         actionLabel={
           media.shelbyCleanupRequired
             ? "Retry Shelby delete"
@@ -94,7 +102,9 @@ export default function MyMediaPage() {
             || processingAction === `retryDelete:${media.id}`
         }
         onAction={
-          media.deletePending
+          media.shelbyCleanupRequired
+            ? () => deleteMedia(media.id)
+            : media.deletePending
             ? () => retryOnChainDelete(media.id)
             : primaryDelete
             ? () => setDeleteMediaId(media.id)
@@ -104,6 +114,17 @@ export default function MyMediaPage() {
         }
         secondaryActionLabel={media.source === "palate_upload_recovery" ? "Clear" : isDeletable && !primaryDelete && !media.deletePending ? "Delete" : undefined}
         onSecondaryAction={media.source === "palate_upload_recovery" ? () => clearPendingRegistration(media.id) : isDeletable && !primaryDelete && !media.deletePending ? () => setDeleteMediaId(media.id) : undefined}
+        onMediaToggle={
+          canPlayMedia(media)
+            ? () => {
+              if (currentTrackId === media.id) {
+                togglePlayback();
+              } else {
+                playMedia(media);
+              }
+            }
+            : undefined
+        }
         onMediaUnavailable={() => markMediaContentUnavailable(media.palateMediaId ?? media.id)}
       />
     );

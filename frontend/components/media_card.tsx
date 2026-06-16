@@ -14,9 +14,12 @@ type MediaCardProps = {
   onSecondaryAction?: () => void;
   actionDisabled?: boolean;
   onMediaUnavailable?: () => void;
+  mediaActive?: boolean;
+  mediaPlaying?: boolean;
+  onMediaToggle?: () => void;
 };
 
-export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, actionDisabled, onMediaUnavailable }: MediaCardProps) {
+export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, actionDisabled, onMediaUnavailable, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaCardProps) {
   const isInvalidMediaType = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
   const isShelbyUploadFailed = media.storageStatus === "shelby_upload_failed";
   const isDeletePending = media.deletePending === true;
@@ -25,10 +28,16 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
   const isDeleteAction = actionLabel === "Delete";
 
   return (
-    <article className="media_card">
+    <article className={`media_card ${mediaActive ? "media_card_audio_active" : ""}`}>
       <div className={`media_preview media_preview_${media.accent}`} aria-label={media.title}>
         <div className="media_preview_inner">
-          <MediaRenderer media={media} onUnavailable={onMediaUnavailable} />
+          <MediaRenderer
+            media={media}
+            mediaActive={mediaActive}
+            mediaPlaying={mediaPlaying}
+            onMediaToggle={onMediaToggle}
+            onUnavailable={onMediaUnavailable}
+          />
         </div>
       </div>
       <div className="media_card_body">

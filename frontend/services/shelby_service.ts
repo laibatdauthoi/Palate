@@ -217,10 +217,11 @@ export async function preflightShelbyBlob(media: MediaRecord): Promise<ShelbyBlo
       cache: "no-store"
     });
 
-    if (headResponse.status === 404) return "missing";
+    if (headResponse.status === 404 || headResponse.status === 410) return "missing";
     if (headResponse.ok) return "exists";
   } catch {
-    return "inconclusive";
+    // Some Shelby/read gateways do not support HEAD consistently. Fall through
+    // to a ranged GET before treating the blob state as unknown.
   }
 
   try {
@@ -232,7 +233,7 @@ export async function preflightShelbyBlob(media: MediaRecord): Promise<ShelbyBlo
       }
     });
 
-    if (readResponse.status === 404) return "missing";
+    if (readResponse.status === 404 || readResponse.status === 410) return "missing";
     if (readResponse.ok || readResponse.status === 206) return "exists";
 
     const responseText = await readResponse.text().catch(() => "");

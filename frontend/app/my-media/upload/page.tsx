@@ -101,6 +101,7 @@ export default function UploadPage() {
         eyebrow="Upload"
         title="Select category before uploading to Shelby."
         copy="Category is stored on chain by Palate. Shelby stores the media file only. GIF is accepted as an image format, not a category."
+        actions={<ActionButton href="/my-media" variant="secondary">Back to My Media</ActionButton>}
       />
 
       <div className="two_column">
@@ -183,6 +184,7 @@ export default function UploadPage() {
             >
               {uploadBusy ? "Registering" : "Start Upload"}
             </ActionButton>
+            {uploadStep === "completed" ? <ActionButton href="/my-media" variant="secondary">View My Media</ActionButton> : null}
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to register media on chain.</p> : null}
             {!shelbyReady ? <p className="feedback_text feedback_error">Shelby API key is not configured.</p> : null}
             {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
