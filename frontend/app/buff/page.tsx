@@ -9,26 +9,41 @@ import { LoadingState } from "@/components/loading_state";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
+import { usePalateWallet } from "@/providers/wallet_provider";
 import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
 
 export default function BuffPage() {
   const {
     completedBuffSide,
+    balance,
     chainRead,
     currentAssignment,
     feedback,
     findMatch,
     noValidMatchAvailable,
-    placeMockBuff,
+    placeBuff,
     processingAction,
     skipMatch
   } = usePalate();
+  const { walletStatus } = usePalateWallet();
   const [buffAmount, setBuffAmount] = useState("0.250");
   const assignedMatch = currentAssignment?.match;
   const buffBusy = processingAction === "findMatch" || processingAction === "placeBuff" || processingAction === "skipMatch";
+  const walletReady = walletStatus === "connected";
   const minBuffOctas = chainRead.protocolConfig?.minBuffAmount ? BigInt(chainRead.protocolConfig.minBuffAmount) : null;
   const minBuffAmountLabel = minBuffOctas !== null ? formatOctasToApt(minBuffOctas) : "loading";
   const buffAmountValidation = validateBuffAmount(buffAmount, minBuffOctas);
+  const availableBalanceOctas = parseAmountOctas(balance.availableBalance);
+  const buffAmountOctas = parseAmountOctas(buffAmount);
+  const buffBalanceValid = buffAmountValidation.valid && buffAmountOctas !== null && availableBalanceOctas !== null
+    ? buffAmountOctas <= availableBalanceOctas
+    : false;
+  const buffHelperText = !buffAmountValidation.valid
+    ? buffAmountValidation.message
+    : !buffBalanceValid
+      ? "Palate Balance is too low for this Buff."
+      : buffAmountValidation.message;
+  const canBuff = walletReady && !buffBusy && buffAmountValidation.valid && buffBalanceValid;
 
   return (
     <div className="page_stack page_buff">
@@ -36,7 +51,7 @@ export default function BuffPage() {
         eyebrow="Buff"
         title="Receive one random match. Choose with conviction."
         copy="Users cannot manually choose a match to Buff. Existing assignments must be completed or skipped before finding another match."
-        actions={<ActionButton disabled={buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Match"}</ActionButton>}
+        actions={<ActionButton disabled={!walletReady || buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Match"}</ActionButton>}
       />
 
       {feedback ? <div className={`state_card feedback_panel feedback_${feedback.type}`}><p>{feedback.message}</p></div> : null}
@@ -44,14 +59,15 @@ export default function BuffPage() {
       {assignedMatch ? (
         <BuffPanel
           buffAmount={buffAmount}
-          buffHelperText={buffAmountValidation.message}
-          disableBuffActions={!buffAmountValidation.valid}
+          buffHelperText={buffHelperText}
+          disableBuffActions={!canBuff}
           loading={buffBusy}
           match={assignedMatch}
           minBuffAmountLabel={minBuffAmountLabel}
-          onBuffA={() => placeMockBuff("A", buffAmount)}
+          disableSkip={!walletReady}
+          onBuffA={() => placeBuff("A", buffAmount)}
           onBuffAmountChange={setBuffAmount}
-          onBuffB={() => placeMockBuff("B", buffAmount)}
+          onBuffB={() => placeBuff("B", buffAmount)}
           onSkip={skipMatch}
           skipPenalty={currentAssignment.skipPenaltyAmount}
         />
@@ -61,7 +77,7 @@ export default function BuffPage() {
         <SectionPanel title="No assigned match">
           <div className="stack">
             <p className="secondary_text">Find Match assigns one active valid match. Manual match selection is not available.</p>
-            <ActionButton disabled={buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Match"}</ActionButton>
+            <ActionButton disabled={!walletReady || buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Match"}</ActionButton>
           </div>
         </SectionPanel>
         <SectionPanel title="Buff completed">
@@ -69,7 +85,7 @@ export default function BuffPage() {
             <p className="secondary_text">
               {completedBuffSide ? `Buff ${completedBuffSide} is recorded. The result remains pending until the match settles.` : "After a Buff, the completed state appears here."}
             </p>
-            <ActionButton disabled={buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Next Match"}</ActionButton>
+            <ActionButton disabled={!walletReady || buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Next Match"}</ActionButton>
           </div>
         </SectionPanel>
         {noValidMatchAvailable ? (
@@ -110,5 +126,13 @@ function validateBuffAmount(value: string, minimumOctas: bigint | null) {
     return { valid: true, message: `Minimum Buff: ${minimumText}` };
   } catch {
     return { valid: false, message: `Minimum Buff is ${minimumText}` };
+  }
+}
+
+function parseAmountOctas(value: string) {
+  try {
+    return BigInt(parseAptToOctas(value));
+  } catch {
+    return null;
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
@@ -8,14 +8,13 @@ import { MatchCard } from "@/components/match_card";
 import { ModalShell } from "@/components/modal_shell";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
-import { VIDEO_ENABLED } from "@/config/app_config";
 import { WaitingPushCard } from "@/components/waiting_push_card";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
 import type { MediaCategory } from "@/types/palate";
 import { getMediaDisplayTitle } from "@/utils/media_display";
-import { isMediaCategoryCompatible } from "@/utils/media_file_validation";
+import { getPushEligibility } from "@/utils/push_eligibility";
 
 const category_labels: Record<MediaCategory, string> = {
   meme: "Meme",
@@ -25,7 +24,7 @@ const category_labels: Record<MediaCategory, string> = {
 };
 
 export default function PushPage() {
-  const { activeMatches, challengePush, chainRead, createPush, feedback, mediaRecords, processingAction, waitingPushes } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, createPush, feedback, mediaRecords, processingAction, waitingPushes } = usePalate();
   const { walletStatus } = usePalateWallet();
   const [tab, setTab] = useState<"Waiting" | "Live Matches">("Waiting");
   const [modalOpen, setModalOpen] = useState(false);
@@ -36,25 +35,12 @@ export default function PushPage() {
   const [challengeAmount, setChallengeAmount] = useState("6.510");
   const openWaitingPushes = waitingPushes.filter((push) =>
     push.status === "open"
-      && (push.media.storageStatus ?? "uploaded") === "uploaded"
-      && !push.media.deletePending
-      && !push.media.contentUnavailable
-      && !push.media.shelbyCleanupRequired
-      && (VIDEO_ENABLED || push.media.category !== "video")
-      && isMediaCategoryCompatible(push.media.category, push.media.mimeType, push.media.originalFileName)
+      && getPushEligibility(push.media, { requireIdle: false }).eligible
   );
   const selectedPush = openWaitingPushes.find((push) => push.id === challengePushId) ?? openWaitingPushes[0];
   const idleMedia = mediaRecords.filter((media) =>
     media.status === "idle"
-      && media.source === "palate"
-      && (media.storageStatus ?? "uploaded") === "uploaded"
-      && !media.deletePending
-      && !media.contentUnavailable
-      && !media.shelbyCleanupRequired
-      && media.palateMediaId !== null
-      && media.palateMediaId !== undefined
-      && (VIDEO_ENABLED || media.category !== "video")
-      && isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName)
+      && getPushEligibility(media).eligible
   );
   const challengeOptions = selectedPush ? idleMedia.filter((media) => media.category === selectedPush.media.category) : idleMedia;
   const pushBusy = processingAction === "createPush" || processingAction === "challengePush";
@@ -70,6 +56,22 @@ export default function PushPage() {
   const requiredChallengeLabel = effectiveChallengeOctas !== null ? formatOctasToApt(effectiveChallengeOctas) : minPushLabel;
   const createAmountValidation = validateAmount(createAmount, minPushOctas, "Minimum Push");
   const challengeAmountValidation = validateAmount(challengeAmount, effectiveChallengeOctas, "Minimum challenge");
+  const availableBalanceOctas = parseAmountOctas(balance.availableBalance);
+  const createAmountOctas = parseAmountOctas(createAmount);
+  const challengeAmountOctas = parseAmountOctas(challengeAmount);
+  const createBalanceValid = createAmountOctas !== null && availableBalanceOctas !== null && createAmountOctas <= availableBalanceOctas;
+  const challengeBalanceValid = challengeAmountOctas !== null && availableBalanceOctas !== null && challengeAmountOctas <= availableBalanceOctas;
+  const createAmountHelperText = !createAmountValidation.valid
+    ? createAmountValidation.message
+    : !createBalanceValid
+      ? "Not enough Palate Balance."
+      : createAmountValidation.message;
+  const challengeAmountHelperText = !challengeAmountValidation.valid
+    ? challengeAmountValidation.message
+    : !challengeBalanceValid
+      ? "Not enough Palate Balance."
+      : challengeAmountValidation.message;
+  const canCreatePush = walletReady && !pushBusy && Boolean(createMediaId) && createAmountValidation.valid && createBalanceValid;
   const idleMediaOptions: DropdownOption<string>[] = [
     { label: "Select idle media", value: "" },
     ...idleMedia.map((media) => ({
@@ -99,6 +101,21 @@ export default function PushPage() {
     setModalOpen(true);
   }
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    mediaRecords.forEach((media) => {
+      const eligibility = getPushEligibility(media);
+      console.debug("[Palate Push eligibility]", {
+        mediaId: media.id,
+        title: getMediaDisplayTitle(media),
+        status: media.status,
+        storageStatus: media.storageStatus ?? "uploaded",
+        category: media.category,
+        reason: eligibility.reason
+      });
+    });
+  }, [mediaRecords]);
+
   return (
     <div className="page_stack page_push">
       <PageHeader
@@ -123,11 +140,11 @@ export default function PushPage() {
           <CustomDropdown label="Idle media" onChange={setCreateMediaId} options={idleMediaOptions} value={createMediaId} />
           <div className="amount_field_stack">
             <AmountInput label="Push amount" onChange={setCreateAmount} placeholder={`Minimum ${minPushLabel}`} value={createAmount} />
-            <p className={`amount_helper ${createAmountValidation.valid ? "" : "amount_helper_error"}`}>
-              {createAmountValidation.message}
+            <p className={`amount_helper ${createAmountValidation.valid && createBalanceValid ? "" : "amount_helper_error"}`}>
+              {createAmountHelperText}
             </p>
           </div>
-          <ActionButton disabled={pushBusy || !walletReady || !createMediaId || !createAmountValidation.valid} onClick={() => createPush(Number(createMediaId), createAmount)}>
+          <ActionButton disabled={pushBusy || !canCreatePush} onClick={() => createPush(Number(createMediaId), createAmount)}>
             {processingAction === "createPush" ? "Creating" : "Create Push"}
           </ActionButton>
         </div>
@@ -161,8 +178,8 @@ export default function PushPage() {
           <CustomDropdown label="Idle media" onChange={setChallengeMediaId} options={challengeMediaOptions} value={challengeMediaId} />
           <div className="amount_field_stack">
             <AmountInput label="Challenge amount" onChange={setChallengeAmount} placeholder={`Minimum ${requiredChallengeLabel}`} value={challengeAmount} />
-            <p className={`amount_helper ${challengeAmountValidation.valid ? "" : "amount_helper_error"}`}>
-              {challengeAmountValidation.message}
+            <p className={`amount_helper ${challengeAmountValidation.valid && challengeBalanceValid ? "" : "amount_helper_error"}`}>
+              {challengeAmountHelperText}
             </p>
           </div>
           <div className="state_card">
@@ -172,7 +189,7 @@ export default function PushPage() {
           </div>
           {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
           <ActionButton
-            disabled={pushBusy || !walletReady || !selectedPush || !challengeMediaId || !challengeAmountValidation.valid}
+            disabled={pushBusy || !walletReady || !selectedPush || !challengeMediaId || !challengeAmountValidation.valid || !challengeBalanceValid}
             onClick={() => {
               if (!selectedPush) return;
               challengePush(selectedPush.id, Number(challengeMediaId), challengeAmount);
@@ -202,5 +219,13 @@ function validateAmount(value: string, minimumOctas: bigint | null, label: strin
     return { valid: true, message: `${label}: ${minimumText}` };
   } catch {
     return { valid: false, message: `${label} is ${minimumText}` };
+  }
+}
+
+function parseAmountOctas(value: string) {
+  try {
+    return BigInt(parseAptToOctas(value, { allowZero: true }));
+  } catch {
+    return null;
   }
 }

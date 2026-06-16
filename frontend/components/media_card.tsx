@@ -8,6 +8,7 @@ import { StatusBadge } from "./status_badge";
 import { VIDEO_ENABLED } from "@/config/app_config";
 import { isMediaCategoryCompatible } from "@/utils/media_file_validation";
 import { getMediaDisplayTitle } from "@/utils/media_display";
+import { getPushEligibility } from "@/utils/push_eligibility";
 
 type MediaCardProps = {
   media: MediaRecord;
@@ -25,6 +26,7 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
   const displayTitle = getMediaDisplayTitle(media);
   const isInvalidMediaType = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
   const isVideoDisabled = media.category === "video" && !VIDEO_ENABLED;
+  const pushEligibility = media.status === "idle" ? getPushEligibility(media) : null;
   const isShelbyUploadFailed = media.storageStatus === "shelby_upload_failed";
   const isDeletePending = media.deletePending === true;
   const isContentUnavailable = media.contentUnavailable === true;
@@ -99,6 +101,12 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
           <div className="recovery_note">
             <span>Video uploads and playback are temporarily disabled for MVP.</span>
             <span>This media cannot be pushed or challenged.</span>
+          </div>
+        ) : null}
+        {actionLabel === "Push" && actionDisabled && pushEligibility ? (
+          <div className="recovery_note">
+            <span>{pushEligibility.reason}</span>
+            <span>This media cannot be pushed until it becomes eligible.</span>
           </div>
         ) : null}
         {media.source === "palate_upload_recovery" ? (

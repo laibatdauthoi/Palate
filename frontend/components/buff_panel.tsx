@@ -17,6 +17,7 @@ type BuffPanelProps = {
   onBuffB: () => void;
   onSkip: () => void;
   loading?: boolean;
+  disableSkip?: boolean;
 };
 
 export function BuffPanel({
@@ -30,7 +31,8 @@ export function BuffPanel({
   onBuffA,
   onBuffB,
   onSkip,
-  loading = false
+  loading = false,
+  disableSkip = false
 }: BuffPanelProps) {
   return (
     <section className="buff_panel">
@@ -60,7 +62,7 @@ export function BuffPanel({
         <div className="buff_action_buttons">
           <ActionButton className="buff_choice_button" disabled={loading || disableBuffActions} onClick={onBuffA}>{loading ? "Submitting" : "Buff A"}</ActionButton>
           <ActionButton className="buff_choice_button" disabled={loading || disableBuffActions} onClick={onBuffB}>{loading ? "Submitting" : "Buff B"}</ActionButton>
-          <ActionButton className="skip_match_button" disabled={loading} onClick={onSkip} variant="danger">{loading ? "Skipping" : "Skip Match"}</ActionButton>
+          <ActionButton className="skip_match_button" disabled={loading || disableSkip} onClick={onSkip} variant="danger">{loading ? "Skipping" : "Skip Match"}</ActionButton>
         </div>
         <p className="danger_note">Skip Match penalty: {skipPenalty}. Skipping clears this assignment.</p>
       </div>

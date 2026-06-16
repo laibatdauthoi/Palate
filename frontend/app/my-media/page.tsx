@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ActionButton } from "@/components/action_button";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
 import { EmptyState } from "@/components/empty_state";
@@ -15,6 +16,7 @@ import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import type { MediaCategory, MediaRecord, MediaStatus } from "@/types/palate";
 import { getMediaDisplayTitle } from "@/utils/media_display";
+import { getPushEligibility } from "@/utils/push_eligibility";
 import { isMediaCategoryCompatible } from "@/utils/media_file_validation";
 
 const statuses = ["All", "Idle", "Waiting", "Active", "Settled", "Shelby Upload Failed", "Registration Failed", "Pending Registration"] as const;
@@ -39,6 +41,7 @@ export default function MyMediaPage() {
   const { clearPendingRegistration, deleteMedia, mediaReadStatus, mediaRecords, processingAction, retryOnChainDelete, retryPalateRegistration } = usePalate();
   const { canPlayMedia, currentTrackId, isPlaying, playMedia, setQueueFromMedia, togglePlayback } = useMediaPlayer();
   const { walletStatus } = usePalateWallet();
+  const router = useRouter();
   const [status, setStatus] = useState<(typeof statuses)[number]>("All");
   const [category, setCategory] = useState<CategoryFilter>("All Categories");
   const [deleteMediaId, setDeleteMediaId] = useState<number | null>(null);
@@ -64,8 +67,25 @@ export default function MyMediaPage() {
     setQueueFromMedia(filteredMedia);
   }, [filteredMedia, setQueueFromMedia]);
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    filteredMedia.forEach((media) => {
+      const eligibility = getPushEligibility(media);
+      console.debug("[Palate Push eligibility]", {
+        mediaId: media.id,
+        title: getMediaDisplayTitle(media),
+        status: media.status,
+        storageStatus: media.storageStatus ?? "uploaded",
+        category: media.category,
+        reason: eligibility.reason
+      });
+    });
+  }, [filteredMedia]);
+
   function renderMediaCard(media: MediaRecord) {
     const isInvalid = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
+    const pushEligibility = media.status === "idle" ? getPushEligibility(media) : null;
+    const canPush = pushEligibility ? pushEligibility.eligible : false;
     const isDeletable = media.source === "palate"
       && media.palateMediaId !== null
       && media.palateMediaId !== undefined
@@ -76,18 +96,18 @@ export default function MyMediaPage() {
       <MediaCard
         key={media.id}
         media={media}
-        mediaActive={currentTrackId === media.id}
-        mediaPlaying={currentTrackId === media.id && isPlaying}
-        actionLabel={
-          media.shelbyCleanupRequired
-            ? "Retry Shelby delete"
-            : media.deletePending
-            ? "Retry on-chain delete"
-            : primaryDelete
-            ? "Delete"
-            : media.status === "registration_failed"
-              ? "Retry registration"
-              : media.status === "pending_registration"
+          mediaActive={currentTrackId === media.id}
+          mediaPlaying={currentTrackId === media.id && isPlaying}
+          actionLabel={
+            media.shelbyCleanupRequired
+              ? "Retry Shelby delete"
+              : media.deletePending
+              ? "Retry on-chain delete"
+              : primaryDelete
+              ? "Delete"
+              : media.status === "registration_failed"
+                ? "Retry registration"
+                : media.status === "pending_registration"
                 ? "Registering"
                 : media.status === "idle"
                   ? "Push"
@@ -96,24 +116,27 @@ export default function MyMediaPage() {
                     : media.status === "active"
                       ? "View Match"
                       : "View Result"
-        }
-        actionDisabled={
-          media.status === "pending_registration"
+          }
+          actionDisabled={
+            media.status === "pending_registration"
             || processingAction === `retryRegistration:${media.id}`
             || processingAction === `deleteMedia:${media.id}`
             || processingAction === `retryDelete:${media.id}`
-        }
-        onAction={
-          media.shelbyCleanupRequired
-            ? () => deleteMedia(media.id)
-            : media.deletePending
-            ? () => retryOnChainDelete(media.id)
-            : primaryDelete
-            ? () => setDeleteMediaId(media.id)
-            : media.status === "registration_failed"
+            || (media.status === "idle" && !canPush)
+          }
+          onAction={
+            media.shelbyCleanupRequired
+              ? () => deleteMedia(media.id)
+              : media.deletePending
+              ? () => retryOnChainDelete(media.id)
+              : primaryDelete
+              ? () => setDeleteMediaId(media.id)
+              : media.status === "registration_failed"
               ? () => retryPalateRegistration(media.id)
+              : media.status === "idle" && canPush
+                ? () => router.push("/push")
               : undefined
-        }
+          }
         secondaryActionLabel={media.source === "palate_upload_recovery" ? "Clear" : isDeletable && !primaryDelete && !media.deletePending ? "Delete" : undefined}
         onSecondaryAction={media.source === "palate_upload_recovery" ? () => clearPendingRegistration(media.id) : isDeletable && !primaryDelete && !media.deletePending ? () => setDeleteMediaId(media.id) : undefined}
         onMediaToggle={

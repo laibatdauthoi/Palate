@@ -7,6 +7,9 @@ import {
   buildChallengePushPayload,
   buildCreatePushPayload,
   buildDeleteMediaPayload,
+  buildFindMatchPayload,
+  buildPlaceBuffPayload,
+  buildSkipMatchPayload,
   buildRegisterMediaPayload,
   buildRegisterShelbyUploadFailedMediaPayload,
   buildDepositBalancePayload,
@@ -14,6 +17,7 @@ import {
   formatOctasToApt,
   getActiveMatches as readActiveMatches,
   getChainReadSnapshot,
+  getCurrentAssignment as readCurrentAssignment,
   getPalateBalance,
   getReadablePalateError,
   getUserMedia,
@@ -35,9 +39,9 @@ import { usePalateWallet } from "@/providers/wallet_provider";
 import {
   detectMediaKindFromFile,
   getFileCategoryMessage,
-  isCategoryCompatibleWithKind,
-  isMediaCategoryCompatible
+  isCategoryCompatibleWithKind
 } from "@/utils/media_file_validation";
+import { getPushEligibility } from "@/utils/push_eligibility";
 import { getMediaDisplayTitle } from "@/utils/media_display";
 import type {
   ActiveMatch,
@@ -124,6 +128,7 @@ type PalateContextValue = {
   depositBalance: (amount: string) => Promise<void>;
   withdrawBalance: (amount: string) => Promise<void>;
   findMatch: () => Promise<void>;
+  placeBuff: (side: BuffSide, amount: string) => Promise<void>;
   placeMockBuff: (side: BuffSide, amount: string) => Promise<void>;
   skipMatch: () => Promise<void>;
   uploadMedia: (input: UploadMediaInput) => Promise<void>;
@@ -430,17 +435,19 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshWalletGameState(ownerAddress: string) {
-    const [nextBalance, nextMedia, nextWaitingPushes, nextActiveMatches] = await Promise.all([
+    const [nextBalance, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.all([
       getPalateBalance(ownerAddress),
       getUserMedia(ownerAddress),
       readWaitingPushes(),
-      readActiveMatches()
+      readActiveMatches(),
+      readCurrentAssignment(ownerAddress)
     ]);
 
     setBalance(nextBalance);
     setMediaRecords(nextMedia);
     setWaitingPushes(nextWaitingPushes);
     setActiveMatches(nextActiveMatches);
+    setCurrentAssignment(nextAssignment);
     setMediaReadStatus("ready");
   }
 
@@ -642,6 +649,193 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     await registerPalateMediaAfterShelbyUpload(draft, shelbyResult);
   }
 
+  async function findMatchOnChain() {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      await runMockAction("findMatch", () => {
+        if (currentAssignment) {
+          setFeedback({ type: "error", message: "Complete or skip the current assignment before finding another match." });
+          return;
+        }
+        const validMatches = activeMatches.filter((match) => match.status === "active" && !usedMatchIds.includes(match.id));
+        if (validMatches.length === 0) {
+          setNoValidMatchAvailable(true);
+          setCompletedBuffSide(null);
+          setFeedback({ type: "error", message: "No valid match is available." });
+          return;
+        }
+        const nextMatch = validMatches[assignmentCursor % validMatches.length];
+        setAssignmentCursor((cursor) => cursor + 1);
+        setCurrentAssignment({
+          match: nextMatch,
+          assignedAt: "Just now",
+          commitmentAmount: "0.500 APT",
+          skipPenaltyAmount: userSummary.skipPenalty
+        });
+        setCompletedBuffSide(null);
+        setNoValidMatchAvailable(false);
+        setFeedback({ type: "success", message: "Match assigned. Choose Buff A or Buff B." });
+      });
+      return;
+    }
+
+    if (currentAssignment) {
+      setFeedback({ type: "error", message: "Complete or skip the current assignment before finding another match." });
+      return;
+    }
+
+    setProcessingAction("findMatch");
+    setFeedback(null);
+
+    try {
+      const data = buildFindMatchPayload();
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Find Match submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshWalletGameState(walletAddress);
+      setCompletedBuffSide(null);
+      setNoValidMatchAvailable(false);
+      setFeedback({ type: "success", message: `Match assigned ${shortenTransactionHash(transactionHash)}.` });
+    } catch (error) {
+      console.error("findMatch failed", error);
+      setFeedback({ type: "error", message: getReadablePalateError(error, "Find Match failed.") });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
+  async function placeBuffOnChain(side: BuffSide, amount: string) {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      await runMockAction("placeBuff", () => {
+        let buffAmountOctas: string;
+        try {
+          buffAmountOctas = parseAptToOctas(amount);
+        } catch (error) {
+          setFeedback({ type: "error", message: error instanceof Error ? error.message : "Enter a valid Buff amount." });
+          return;
+        }
+        const buffAmount = parseApt(amount);
+        if (!currentAssignment) {
+          setFeedback({ type: "error", message: "Find Match before placing a Buff." });
+          return;
+        }
+        let minBuffAmount: bigint;
+        try {
+          minBuffAmount = getRequiredConfigAmount("minBuffAmount");
+        } catch (error) {
+          setFeedback({ type: "error", message: error instanceof Error ? error.message : "Protocol config is still loading." });
+          return;
+        }
+        if (BigInt(buffAmountOctas) < minBuffAmount) {
+          setFeedback({ type: "error", message: `Minimum Buff is ${formatOctasToApt(minBuffAmount)}.` });
+          return;
+        }
+        if (buffAmount > getAvailableBalanceNumber()) {
+          setFeedback({ type: "error", message: "Buff rejected: insufficient Palate Balance." });
+          return;
+        }
+        subtractAvailableBalance(buffAmount);
+        setUsedMatchIds((ids) => [...ids, currentAssignment.match.id]);
+        setCompletedBuffSide(side);
+        setCurrentAssignment(null);
+        setNoValidMatchAvailable(false);
+        setFeedback({ type: "success", message: `Buff ${side} recorded. Result remains hidden until settlement.` });
+      });
+      return;
+    }
+
+    if (!currentAssignment) {
+      setFeedback({ type: "error", message: "Find Match before placing a Buff." });
+      return;
+    }
+
+    let buffAmountOctas: string;
+    try {
+      buffAmountOctas = parseAptToOctas(amount);
+    } catch (error) {
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Enter a valid Buff amount." });
+      return;
+    }
+
+    const buffAmount = parseApt(amount);
+    let minBuffAmount: bigint;
+    try {
+      minBuffAmount = getRequiredConfigAmount("minBuffAmount");
+    } catch (error) {
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Protocol config is still loading." });
+      return;
+    }
+
+    if (BigInt(buffAmountOctas) < minBuffAmount) {
+      setFeedback({ type: "error", message: `Minimum Buff is ${formatOctasToApt(minBuffAmount)}.` });
+      return;
+    }
+
+    if (buffAmount > getAvailableBalanceNumber()) {
+      setFeedback({ type: "error", message: "Buff rejected: insufficient Palate Balance." });
+      return;
+    }
+
+    setProcessingAction("placeBuff");
+    setFeedback(null);
+
+    try {
+      const data = buildPlaceBuffPayload(side, buffAmountOctas);
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Buff submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshWalletGameState(walletAddress);
+      setCompletedBuffSide(side);
+      setNoValidMatchAvailable(false);
+      setFeedback({ type: "success", message: `Buff ${side} confirmed ${shortenTransactionHash(transactionHash)}.` });
+    } catch (error) {
+      console.error("placeBuff failed", error);
+      setFeedback({ type: "error", message: getReadablePalateError(error, "Buff failed.") });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
+  async function skipMatchOnChain() {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      await runMockAction("skipMatch", () => {
+        if (!currentAssignment) {
+          setFeedback({ type: "error", message: "There is no assignment to skip." });
+          return;
+        }
+        const penalty = parseApt(currentAssignment.skipPenaltyAmount);
+        subtractAvailableBalance(Math.min(penalty, getAvailableBalanceNumber()));
+        setCurrentAssignment(null);
+        setCompletedBuffSide(null);
+        setFeedback({ type: "info", message: `Skip Match applied a ${formatApt(penalty)} penalty and cleared the assignment.` });
+      });
+      return;
+    }
+
+    if (!currentAssignment) {
+      setFeedback({ type: "error", message: "There is no assignment to skip." });
+      return;
+    }
+
+    setProcessingAction("skipMatch");
+    setFeedback(null);
+
+    try {
+      const data = buildSkipMatchPayload();
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Skip Match submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshWalletGameState(walletAddress);
+      setCompletedBuffSide(null);
+      setNoValidMatchAvailable(false);
+      setFeedback({ type: "success", message: `Skip Match confirmed ${shortenTransactionHash(transactionHash)}.` });
+    } catch (error) {
+      console.error("skipMatch failed", error);
+      setFeedback({ type: "error", message: getReadablePalateError(error, "Skip Match failed.") });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
   async function registerMediaOnChain(input: UploadMediaInput) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
       setUploadStep("failed");
@@ -827,23 +1021,6 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       contentUnavailable: isContentUnavailableMedia(media),
       shelbyCleanupRequired: isShelbyCleanupRequiredMedia(media)
     };
-  }
-
-  function isGameplayEligibleMedia(media: MediaRecord) {
-    return media.source === "palate"
-      && media.palateMediaId !== null
-      && media.palateMediaId !== undefined
-      && (media.storageStatus ?? "uploaded") === "uploaded"
-      && media.status === "idle"
-      && (VIDEO_ENABLED || media.category !== "video")
-      && !isDeletePendingMedia(media)
-      && !isContentUnavailableMedia(media)
-      && !isShelbyCleanupRequiredMedia(media)
-      && isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
-  }
-
-  function getEligiblePalateMedia(mediaId: number) {
-    return mediaRecords.find((media) => media.id === mediaId && isGameplayEligibleMedia(media));
   }
 
   function getPalateDeleteErrorMessage(error: unknown) {
@@ -1037,13 +1214,25 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const media = getEligiblePalateMedia(mediaId);
+    const media = mediaRecords.find((record) => record.id === mediaId);
     if (!media) {
       setFeedback({ type: "error", message: "Choose registered idle Palate media to create a Push." });
       return;
     }
-    if (!VIDEO_ENABLED && media.category === "video") {
-      setFeedback({ type: "error", message: "Video media is disabled for MVP." });
+
+    const eligibility = getPushEligibility(media);
+    if (!eligibility.eligible) {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[Palate Push eligibility]", {
+          mediaId: media.id,
+          title: media.title,
+          status: media.status,
+          storageStatus: media.storageStatus ?? "uploaded",
+          category: media.category,
+          reason: eligibility.reason
+        });
+      }
+      setFeedback({ type: "error", message: eligibility.reason });
       return;
     }
 
@@ -1079,19 +1268,42 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
 
     const selectedPush = waitingPushes.find((push) => push.id === pushId && push.status === "open");
-    const challengerMedia = getEligiblePalateMedia(challengerMediaId);
+    const challengerMedia = mediaRecords.find((record) => record.id === challengerMediaId);
 
     if (!selectedPush || !challengerMedia) {
       setFeedback({ type: "error", message: "Select an open waiting push and registered idle challenger media." });
       return;
     }
-    if (!VIDEO_ENABLED && (selectedPush.media.category === "video" || challengerMedia.category === "video")) {
-      setFeedback({ type: "error", message: "Video media is disabled for MVP." });
+
+    const pushEligibility = getPushEligibility(selectedPush.media, { requireIdle: false });
+    if (!pushEligibility.eligible) {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[Palate Push eligibility]", {
+          mediaId: selectedPush.media.id,
+          title: selectedPush.media.title,
+          status: selectedPush.media.status,
+          storageStatus: selectedPush.media.storageStatus ?? "uploaded",
+          category: selectedPush.media.category,
+          reason: pushEligibility.reason
+        });
+      }
+      setFeedback({ type: "error", message: pushEligibility.reason });
       return;
     }
 
-    if (!isMediaCategoryCompatible(selectedPush.media.category, selectedPush.media.mimeType, selectedPush.media.originalFileName)) {
-      setFeedback({ type: "error", message: "This waiting Push uses media with an invalid category/file type pair." });
+    const challengerEligibility = getPushEligibility(challengerMedia);
+    if (!challengerEligibility.eligible) {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[Palate Push eligibility]", {
+          mediaId: challengerMedia.id,
+          title: challengerMedia.title,
+          status: challengerMedia.status,
+          storageStatus: challengerMedia.storageStatus ?? "uploaded",
+          category: challengerMedia.category,
+          reason: challengerEligibility.reason
+        });
+      }
+      setFeedback({ type: "error", message: challengerEligibility.reason });
       return;
     }
 
@@ -1182,82 +1394,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       },
       depositBalance: async (amount) => runBalanceTransaction("deposit", amount),
       withdrawBalance: async (amount) => runBalanceTransaction("withdraw", amount),
-      findMatch: async () => {
-        await runMockAction("findMatch", () => {
-          if (currentAssignment) {
-            setFeedback({ type: "error", message: "Complete or skip the current assignment before finding another match." });
-            return;
-          }
-          const validMatches = activeMatches.filter((match) => match.status === "active" && !usedMatchIds.includes(match.id));
-          if (validMatches.length === 0) {
-            setNoValidMatchAvailable(true);
-            setCompletedBuffSide(null);
-            setFeedback({ type: "error", message: "No valid match is available." });
-            return;
-          }
-          const nextMatch = validMatches[assignmentCursor % validMatches.length];
-          setAssignmentCursor((cursor) => cursor + 1);
-          setCurrentAssignment({
-            match: nextMatch,
-            assignedAt: "Just now",
-            commitmentAmount: "0.500 APT",
-            skipPenaltyAmount: userSummary.skipPenalty
-          });
-          setCompletedBuffSide(null);
-          setNoValidMatchAvailable(false);
-          setFeedback({ type: "success", message: "Match assigned. Choose Buff A or Buff B." });
-        });
-      },
-      placeMockBuff: async (side, amount) => {
-        await runMockAction("placeBuff", () => {
-          let buffAmountOctas: string;
-          try {
-            buffAmountOctas = parseAptToOctas(amount);
-          } catch (error) {
-            setFeedback({ type: "error", message: error instanceof Error ? error.message : "Enter a valid Buff amount." });
-            return;
-          }
-          const buffAmount = parseApt(amount);
-          if (!currentAssignment) {
-            setFeedback({ type: "error", message: "Find Match before placing a Buff." });
-            return;
-          }
-          let minBuffAmount: bigint;
-          try {
-            minBuffAmount = getRequiredConfigAmount("minBuffAmount");
-          } catch (error) {
-            setFeedback({ type: "error", message: error instanceof Error ? error.message : "Protocol config is still loading." });
-            return;
-          }
-          if (BigInt(buffAmountOctas) < minBuffAmount) {
-            setFeedback({ type: "error", message: `Minimum Buff is ${formatOctasToApt(minBuffAmount)}.` });
-            return;
-          }
-          if (buffAmount > getAvailableBalanceNumber()) {
-            setFeedback({ type: "error", message: "Buff rejected: insufficient Palate Balance." });
-            return;
-          }
-          subtractAvailableBalance(buffAmount);
-          setUsedMatchIds((ids) => [...ids, currentAssignment.match.id]);
-          setCompletedBuffSide(side);
-          setCurrentAssignment(null);
-          setNoValidMatchAvailable(false);
-          setFeedback({ type: "success", message: `Buff ${side} recorded. Result remains hidden until settlement.` });
-        });
-      },
-      skipMatch: async () => {
-        await runMockAction("skipMatch", () => {
-          if (!currentAssignment) {
-            setFeedback({ type: "error", message: "There is no assignment to skip." });
-            return;
-          }
-          const penalty = parseApt(currentAssignment.skipPenaltyAmount);
-          subtractAvailableBalance(Math.min(penalty, getAvailableBalanceNumber()));
-          setCurrentAssignment(null);
-          setCompletedBuffSide(null);
-          setFeedback({ type: "info", message: `Skip Match applied a ${formatApt(penalty)} penalty and cleared the assignment.` });
-        });
-      },
+      findMatch: findMatchOnChain,
+      placeBuff: placeBuffOnChain,
+      placeMockBuff: placeBuffOnChain,
+      skipMatch: skipMatchOnChain,
       uploadMedia: registerMediaOnChain,
       retryPalateRegistration,
       deleteMedia,

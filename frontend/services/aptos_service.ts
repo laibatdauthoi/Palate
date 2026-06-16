@@ -4,6 +4,7 @@ import { app_config } from "@/config/app_config";
 import type {
   ActiveMatch,
   BuffAssignment,
+  BuffSide,
   ChainCategoryConstants,
   ChainProtocolConfig,
   ClaimRecord,
@@ -324,6 +325,18 @@ export function buildChallengePushPayload(pushId: number | string, challengerMed
   return entryPayload("challengePush", [String(pushId), String(challengerMediaId), pushAmountOctas]);
 }
 
+export function buildFindMatchPayload(): InputGenerateTransactionPayloadData {
+  return entryPayload("findMatch", []);
+}
+
+export function buildSkipMatchPayload(): InputGenerateTransactionPayloadData {
+  return entryPayload("skipMatch", []);
+}
+
+export function buildPlaceBuffPayload(side: BuffSide, buffAmountOctas: string): InputGenerateTransactionPayloadData {
+  return entryPayload("placeBuff", [side === "A" ? 1 : 2, buffAmountOctas]);
+}
+
 export type RegisterMediaInput = {
   category: MediaCategory;
   shelbyBlobRef: string;
@@ -524,9 +537,26 @@ export async function getActiveMatches(): Promise<ActiveMatch[]> {
 }
 
 // Future Aptos view call boundary: read current assignment for a wallet.
-export async function getCurrentAssignment(_walletAddress: string): Promise<BuffAssignment | null> {
-  void _walletAddress;
-  notImplemented("getCurrentAssignment");
+export async function getCurrentAssignment(walletAddress: string): Promise<BuffAssignment | null> {
+  const hasCurrentAssignment = await viewOne<boolean>("hasCurrentAssignment", [walletAddress]);
+  if (!hasCurrentAssignment) {
+    return null;
+  }
+
+  const [matchId, commitmentAmount, skipPenaltyAmountSnapshot, assignedTime] = await Promise.all([
+    viewOne("getCurrentAssignmentMatchId", [walletAddress]),
+    viewOne("getCurrentAssignmentCommitmentAmount", [walletAddress]),
+    viewOne("getCurrentAssignmentSkipPenaltyAmount", [walletAddress]),
+    viewOne("getCurrentAssignmentAssignedTime", [walletAddress])
+  ]);
+  const match = await getActiveMatchById(asString(matchId));
+
+  return {
+    match,
+    assignedAt: formatChainTime(asString(assignedTime)),
+    commitmentAmount: formatOctasToApt(asString(commitmentAmount)),
+    skipPenaltyAmount: formatOctasToApt(asString(skipPenaltyAmountSnapshot))
+  };
 }
 
 export async function getPalateBalance(walletAddress: string): Promise<PalateBalance> {
