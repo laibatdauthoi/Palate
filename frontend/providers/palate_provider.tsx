@@ -292,6 +292,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [deletePendingRecords, setDeletePendingRecords] = useState<DeletePendingRecord[]>([]);
   const [deletePendingStorageLoaded, setDeletePendingStorageLoaded] = useState(false);
   const [contentUnavailableIds, setContentUnavailableIds] = useState<number[]>([]);
+  const [shelbyCleanupRequiredIds, setShelbyCleanupRequiredIds] = useState<number[]>([]);
   const [waitingPushes, setWaitingPushes] = useState<WaitingPush[]>(mock_waiting_pushes);
   const [activeMatches, setActiveMatches] = useState<ActiveMatch[]>(mock_matches);
   const [claimRecords, setClaimRecords] = useState<ClaimRecord[]>(mock_claims);
@@ -809,11 +810,17 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     return contentUnavailableIds.includes(mediaId);
   }
 
+  function isShelbyCleanupRequiredMedia(media: MediaRecord) {
+    const mediaId = media.palateMediaId ?? media.id;
+    return shelbyCleanupRequiredIds.includes(mediaId);
+  }
+
   function applyLocalMediaState(media: MediaRecord): MediaRecord {
     return {
       ...media,
       deletePending: isDeletePendingMedia(media),
-      contentUnavailable: isContentUnavailableMedia(media)
+      contentUnavailable: isContentUnavailableMedia(media),
+      shelbyCleanupRequired: isShelbyCleanupRequiredMedia(media)
     };
   }
 
@@ -825,6 +832,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       && media.status === "idle"
       && !isDeletePendingMedia(media)
       && !isContentUnavailableMedia(media)
+      && !isShelbyCleanupRequiredMedia(media)
       && isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
   }
 
@@ -859,6 +867,11 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  function markShelbyCleanupRequired(media: MediaRecord) {
+    const mediaId = media.palateMediaId ?? media.id;
+    setShelbyCleanupRequiredIds((ids) => (ids.includes(mediaId) ? ids : [...ids, mediaId]));
+  }
+
   async function submitPalateDelete(media: MediaRecord) {
     const data = buildDeleteMediaPayload(media.palateMediaId ?? media.id);
     const transactionHash = await signAndSubmitTransaction({ data });
@@ -870,17 +883,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   async function submitShelbyDelete(media: MediaRecord) {
     if (isDeletePendingMedia(media) || isContentUnavailableMedia(media) || media.deletePending || media.contentUnavailable) {
       setFeedback({ type: "info", message: "Shelby content is already unavailable. Continuing with Palate delete." });
-      return "skipped" as const;
+      return "confirmed_missing" as const;
     }
 
     const preflight = await preflightShelbyBlob(media);
     if (preflight === "missing") {
       setFeedback({ type: "info", message: "Shelby content was already removed. Continuing with Palate delete." });
-      return "already_deleted" as const;
+      return "confirmed_missing" as const;
     }
     if (preflight === "inconclusive") {
-      setFeedback({ type: "info", message: "Shelby availability could not be confirmed. Continuing with Palate delete only." });
-      return "skipped" as const;
+      markShelbyCleanupRequired(media);
+      setFeedback({ type: "error", message: "Shelby cleanup could not be confirmed. Retry Shelby delete before Palate delete." });
+      return "cleanup_required" as const;
     }
 
     try {
@@ -888,13 +902,16 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       const shelbyDeleteHash = await signAndSubmitTransaction({ data: shelbyDeleteData });
       setFeedback({ type: "info", message: `Shelby delete submitted ${shortenTransactionHash(shelbyDeleteHash)}. Waiting for confirmation.` });
       await waitForPalateTransaction(shelbyDeleteHash);
+      setShelbyCleanupRequiredIds((ids) => ids.filter((id) => id !== (media.palateMediaId ?? media.id)));
       return "deleted" as const;
     } catch (error) {
       if (isShelbyBlobNotFoundError(error)) {
         setFeedback({ type: "info", message: "Shelby content was already removed. Continuing with Palate delete." });
-        return "already_deleted" as const;
+        setShelbyCleanupRequiredIds((ids) => ids.filter((id) => id !== (media.palateMediaId ?? media.id)));
+        return "confirmed_missing" as const;
       }
 
+      markShelbyCleanupRequired(media);
       throw error;
     }
   }
@@ -923,7 +940,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setFeedback(null);
 
     try {
-      await submitShelbyDelete(media);
+      const shelbyDeleteResult = await submitShelbyDelete(media);
+      if (shelbyDeleteResult === "cleanup_required") {
+        return;
+      }
 
       let palateDeleteHash: string;
       try {
@@ -937,6 +957,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
       await refreshUserMediaForWallet(walletAddress);
       setDeletePendingRecords((records) => records.filter((record) => record.mediaId !== (media.palateMediaId ?? media.id) || record.ownerAddress.toLowerCase() !== media.ownerAddress.toLowerCase()));
+      setShelbyCleanupRequiredIds((ids) => ids.filter((id) => id !== (media.palateMediaId ?? media.id)));
       setFeedback({ type: "success", message: `Media deleted ${shortenTransactionHash(palateDeleteHash)}.` });
     } catch (error) {
       console.error("deleteMedia failed", error);

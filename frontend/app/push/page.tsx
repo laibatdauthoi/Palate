@@ -37,6 +37,7 @@ export default function PushPage() {
       && (push.media.storageStatus ?? "uploaded") === "uploaded"
       && !push.media.deletePending
       && !push.media.contentUnavailable
+      && !push.media.shelbyCleanupRequired
       && isMediaCategoryCompatible(push.media.category, push.media.mimeType, push.media.originalFileName)
   );
   const selectedPush = openWaitingPushes.find((push) => push.id === challengePushId) ?? openWaitingPushes[0];
@@ -46,6 +47,7 @@ export default function PushPage() {
       && (media.storageStatus ?? "uploaded") === "uploaded"
       && !media.deletePending
       && !media.contentUnavailable
+      && !media.shelbyCleanupRequired
       && media.palateMediaId !== null
       && media.palateMediaId !== undefined
       && isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName)

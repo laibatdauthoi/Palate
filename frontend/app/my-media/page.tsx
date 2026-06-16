@@ -62,14 +62,16 @@ export default function MyMediaPage() {
       && media.palateMediaId !== null
       && media.palateMediaId !== undefined
       && (media.storageStatus === "shelby_upload_failed" || media.status === "idle");
-    const primaryDelete = !media.deletePending && (media.storageStatus === "shelby_upload_failed" || media.contentUnavailable || (isInvalid && isDeletable));
+    const primaryDelete = !media.deletePending && (media.storageStatus === "shelby_upload_failed" || media.contentUnavailable || media.shelbyCleanupRequired || (isInvalid && isDeletable));
 
     return (
       <MediaCard
         key={media.id}
         media={media}
         actionLabel={
-          media.deletePending
+          media.shelbyCleanupRequired
+            ? "Retry Shelby delete"
+            : media.deletePending
             ? "Retry on-chain delete"
             : primaryDelete
             ? "Delete"

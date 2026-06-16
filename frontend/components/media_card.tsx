@@ -21,6 +21,7 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
   const isShelbyUploadFailed = media.storageStatus === "shelby_upload_failed";
   const isDeletePending = media.deletePending === true;
   const isContentUnavailable = media.contentUnavailable === true;
+  const isShelbyCleanupRequired = media.shelbyCleanupRequired === true;
   const isDeleteAction = actionLabel === "Delete";
 
   return (
@@ -33,7 +34,7 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
       <div className="media_card_body">
         <div className="spread">
           <h3>{media.title}</h3>
-          <StatusBadge status={isDeletePending ? "delete_pending" : isContentUnavailable ? "content_unavailable" : isShelbyUploadFailed ? "shelby_upload_failed" : isInvalidMediaType ? "invalid_media_type" : media.status} />
+          <StatusBadge status={isShelbyCleanupRequired ? "shelby_cleanup_required" : isDeletePending ? "delete_pending" : isContentUnavailable ? "content_unavailable" : isShelbyUploadFailed ? "shelby_upload_failed" : isInvalidMediaType ? "invalid_media_type" : media.status} />
         </div>
         <div className="cluster">
           <CategoryBadge category={media.category} />
@@ -42,7 +43,7 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
         <div className="spread media_meta">
           <span>{media.createdTime}</span>
           <div className="media_card_actions">
-            {actionLabel ? <ActionButton disabled={actionDisabled || (isInvalidMediaType && !isDeleteAction && !isShelbyUploadFailed) || (isContentUnavailable && !isDeleteAction && !isDeletePending)} onClick={onAction} variant={isDeleteAction || isShelbyUploadFailed ? "danger" : "secondary"}>{actionLabel}</ActionButton> : null}
+            {actionLabel ? <ActionButton disabled={actionDisabled || (isInvalidMediaType && !isDeleteAction && !isShelbyUploadFailed) || (isContentUnavailable && !isDeleteAction && !isDeletePending)} onClick={onAction} variant={isDeleteAction || isShelbyUploadFailed || isShelbyCleanupRequired ? "danger" : "secondary"}>{actionLabel}</ActionButton> : null}
             {secondaryActionLabel ? <ActionButton onClick={onSecondaryAction} variant="ghost">{secondaryActionLabel}</ActionButton> : null}
           </div>
         </div>
@@ -60,6 +61,12 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
         {isDeletePending ? (
           <div className="recovery_note">
             <span>Content was removed from Shelby, but on-chain delete did not complete.</span>
+            <span>This media cannot be pushed or challenged.</span>
+          </div>
+        ) : null}
+        {isShelbyCleanupRequired ? (
+          <div className="recovery_note">
+            <span>Shelby cleanup must finish before Palate can hide this media.</span>
             <span>This media cannot be pushed or challenged.</span>
           </div>
         ) : null}
