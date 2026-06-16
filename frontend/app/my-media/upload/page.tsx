@@ -5,7 +5,7 @@ import { ActionButton } from "@/components/action_button";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
-import { app_config, upload_step_labels } from "@/config/app_config";
+import { VIDEO_ENABLED, app_config, upload_step_labels } from "@/config/app_config";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import type { MediaCategory, MediaFormat, UploadStep } from "@/types/palate";
@@ -69,10 +69,12 @@ export default function UploadPage() {
   const shelbyReady = app_config.shelby.enabled;
   const selectedStep = uploadStep ?? "preparing_file";
   const detectedKind = useMemo(() => detectMediaKindFromFile(selectedFile), [selectedFile]);
-  const allowedCategories = useMemo(() => getAllowedCategoriesForKind(detectedKind), [detectedKind]);
+  const videoUploadBlocked = detectedKind === "video" && !VIDEO_ENABLED;
+  const allowedCategories = useMemo(() => (videoUploadBlocked ? [] : getAllowedCategoriesForKind(detectedKind)), [detectedKind, videoUploadBlocked]);
   const allowedFormats = useMemo(() => getAllowedFormatsForKind(detectedKind), [detectedKind]);
-  const categoryError = getFileCategoryMessage(selectedFile, category);
-  const categoryValid = !selectedFile || isCategoryCompatibleWithKind(category, detectedKind);
+  const categoryError = videoUploadBlocked ? "Video uploads are temporarily disabled for MVP." : getFileCategoryMessage(selectedFile, category);
+  const categoryValid = !selectedFile || (!videoUploadBlocked && isCategoryCompatibleWithKind(category, detectedKind));
+  const visibleCategories = app_config.supportedCategories.filter((item) => VIDEO_ENABLED || item !== "video");
   const formatOptions: DropdownOption<MediaFormat>[] = allowedFormats.map((candidate) => ({
     label: candidate,
     value: candidate
@@ -84,10 +86,11 @@ export default function UploadPage() {
     : null;
   useEffect(() => {
     if (!selectedFile) return;
+    if (videoUploadBlocked) return;
     if (!allowedCategories.includes(category)) {
       setCategory(allowedCategories[0] ?? "image");
     }
-  }, [allowedCategories, category, selectedFile]);
+  }, [allowedCategories, category, selectedFile, videoUploadBlocked]);
 
   useEffect(() => {
     if (!allowedFormats.includes(format)) {
@@ -108,10 +111,10 @@ export default function UploadPage() {
         <SectionPanel title="Category-first flow" accent>
           <div className="stack">
             <div className="category_choice_grid">
-              {app_config.supportedCategories.map((item) => (
+              {visibleCategories.map((item) => (
                 <button
                   className={`category_choice ${category === item ? "active" : ""} ${selectedFile && !allowedCategories.includes(item) ? "disabled" : ""}`}
-                  disabled={Boolean(selectedFile) && !allowedCategories.includes(item)}
+                  disabled={videoUploadBlocked || (Boolean(selectedFile) && !allowedCategories.includes(item))}
                   key={item}
                   onClick={() => setCategory(item)}
                 >
@@ -171,7 +174,8 @@ export default function UploadPage() {
             ) : null}
             <ActionButton
               disabled={uploadBusy || !walletReady || !shelbyReady || !selectedFile || !categoryValid}
-              onClick={() =>
+              onClick={() => {
+                if (videoUploadBlocked || !selectedFile) return;
                 uploadMedia({
                   category,
                   title,
@@ -179,14 +183,15 @@ export default function UploadPage() {
                   mimeType: mime_by_format[format],
                   fileName,
                   file: selectedFile
-                })
-              }
+                });
+              }}
             >
               {uploadBusy ? "Registering" : "Start Upload"}
             </ActionButton>
             {uploadStep === "completed" ? <ActionButton href="/my-media" variant="secondary">View My Media</ActionButton> : null}
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to register media on chain.</p> : null}
             {!shelbyReady ? <p className="feedback_text feedback_error">Shelby API key is not configured.</p> : null}
+            {videoUploadBlocked ? <p className="feedback_text feedback_error">Video uploads are temporarily disabled for MVP.</p> : null}
             {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
           </div>
         </SectionPanel>

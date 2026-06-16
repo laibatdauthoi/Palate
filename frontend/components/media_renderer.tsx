@@ -3,10 +3,12 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { type SyntheticEvent, useMemo, useState } from "react";
+import { useMediaViewer } from "@/providers/media_viewer_provider";
+import { VIDEO_ENABLED } from "@/config/app_config";
 import { resolveShelbyReadUrl } from "@/services/shelby_service";
 import type { MediaRecord } from "@/types/palate";
+import { getMediaDisplayTitle } from "@/utils/media_display";
 import { detectMediaKindFromMetadata } from "@/utils/media_file_validation";
-import { ModalShell } from "./modal_shell";
 
 type MediaRendererProps = {
   media: MediaRecord;
@@ -22,9 +24,10 @@ function isHttpUrl(value: string) {
 
 export function MediaRenderer({ media, compact = false, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaRendererProps) {
   const [failed, setFailed] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
+  const { openMediaViewer } = useMediaViewer();
   const source = useMemo(() => resolveShelbyReadUrl(media), [media]);
   const mediaKind = useMemo(() => detectMediaKindFromMetadata(media.mimeType, media.originalFileName), [media.mimeType, media.originalFileName]);
+  const displayTitle = useMemo(() => getMediaDisplayTitle(media), [media]);
   const hasPlayableSource = source && isHttpUrl(source) && !failed;
 
   function handleUnavailable(event: SyntheticEvent<HTMLImageElement | HTMLVideoElement>) {
@@ -44,10 +47,24 @@ export function MediaRenderer({ media, compact = false, mediaActive = false, med
     setFailed(true);
   }
 
+  if (mediaKind === "video" && !VIDEO_ENABLED) {
+    return (
+      <button
+        aria-label={`View details for ${displayTitle}`}
+        className={`media_renderer media_renderer_fallback media_renderer_video_disabled ${compact ? "media_renderer_compact" : ""}`}
+        onClick={() => openMediaViewer(media, "media_renderer:video_disabled")}
+        type="button"
+      >
+        <span>{displayTitle}</span>
+        <small>Video disabled in MVP</small>
+      </button>
+    );
+  }
+
   if (!hasPlayableSource) {
     return (
       <div className={`media_renderer media_renderer_fallback ${compact ? "media_renderer_compact" : ""}`}>
-        <span>{media.title}</span>
+        <span>{displayTitle}</span>
         <small>{failed ? "Media unavailable" : "Media source unavailable"}</small>
       </div>
     );
@@ -55,84 +72,105 @@ export function MediaRenderer({ media, compact = false, mediaActive = false, med
 
   if (mediaKind === "image") {
     return (
-      <>
-        <button
-          aria-label={`View ${media.title}`}
-          className={`media_renderer media_renderer_button ${compact ? "media_renderer_compact" : ""}`}
-          onClick={() => setDetailOpen(true)}
-          type="button"
-        >
-          <img
-            alt={media.title}
-            className="media_renderer_image"
-            onError={handleUnavailable}
-            src={source}
-          />
-        </button>
-        <ModalShell open={detailOpen} onClose={() => setDetailOpen(false)} title={media.title}>
-          <div className="media_detail_view">
-            <img alt={media.title} className="media_detail_asset" src={source} />
-          </div>
-        </ModalShell>
-      </>
+      <button
+        aria-label={`View ${displayTitle}`}
+        className={`media_renderer media_renderer_button ${compact ? "media_renderer_compact" : ""}`}
+        onClick={() => openMediaViewer(media, "media_renderer:image")}
+        type="button"
+      >
+        <img
+          alt={displayTitle}
+          className="media_renderer_image"
+          onError={handleUnavailable}
+          src={source}
+        />
+      </button>
     );
   }
 
   if (mediaKind === "audio") {
     return (
-      <div className={`media_renderer media_renderer_player media_renderer_audio_controlled ${mediaActive ? "active" : ""} ${compact ? "media_renderer_compact" : ""}`}>
+      <div
+        className={`media_renderer media_renderer_player media_renderer_audio_controlled ${mediaActive ? "active" : ""} ${compact ? "media_renderer_compact" : ""}`}
+        onClick={onMediaToggle}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onMediaToggle?.();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="audio_preview_visual" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+        <div className="audio_preview_meta">
+          <small>{mediaActive ? (mediaPlaying ? "Now playing" : "Selected track") : "Audio track"}</small>
+          <span>Tap to play</span>
+        </div>
         <button
-          aria-label={`${mediaPlaying && mediaActive ? "Pause" : "Play"} ${media.title}`}
+          aria-label={`${mediaPlaying && mediaActive ? "Pause" : "Play"} ${displayTitle}`}
           className="audio_card_play_button"
           disabled={!onMediaToggle}
-          onClick={onMediaToggle}
+          onClick={(event) => {
+            event.stopPropagation();
+            onMediaToggle?.();
+          }}
           type="button"
         >
           {mediaPlaying && mediaActive ? "Pause" : "Play"}
         </button>
-        <span>{media.title}</span>
-        <small>{mediaActive ? (mediaPlaying ? "Now playing" : "Selected track") : "Audio track"}</small>
       </div>
     );
   }
 
   if (mediaKind === "video") {
     return (
-      <>
-        <div className={`media_renderer media_renderer_video_frame ${mediaActive ? "active" : ""} ${compact ? "media_renderer_compact" : ""}`}>
-          <video
-            className="media_renderer_video"
-            muted
-            onError={handleUnavailable}
-            playsInline
-            preload="metadata"
-            src={source}
-          />
-          <button
-            aria-label={`${mediaPlaying && mediaActive ? "Pause" : "Play"} ${media.title}`}
-            className="media_expand_button media_play_overlay"
-            disabled={!onMediaToggle}
-            onClick={onMediaToggle}
-            type="button"
-          >
-            {mediaPlaying && mediaActive ? "Pause" : "Play"}
-          </button>
-          <button className="media_expand_button media_view_button" onClick={() => setDetailOpen(true)} type="button">
-            View full
-          </button>
-        </div>
-        <ModalShell open={detailOpen} onClose={() => setDetailOpen(false)} title={media.title}>
-          <div className="media_detail_view">
-            <video className="media_detail_asset" muted playsInline preload="metadata" src={source} />
-          </div>
-        </ModalShell>
-      </>
+      <div
+        aria-label={`View ${displayTitle}`}
+        className={`media_renderer media_renderer_video_frame ${mediaActive ? "active" : ""} ${compact ? "media_renderer_compact" : ""}`}
+        onClick={() => openMediaViewer(media, "media_renderer:video")}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openMediaViewer(media, "media_renderer:video");
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <video
+          className="media_renderer_video"
+          muted
+          onError={handleUnavailable}
+          playsInline
+          preload="metadata"
+          src={source}
+        />
+        <button
+          aria-label={`${mediaPlaying && mediaActive ? "Pause" : "Play"} ${displayTitle}`}
+          className="media_expand_button media_play_overlay"
+          disabled={!onMediaToggle}
+          onClick={(event) => {
+            event.stopPropagation();
+            onMediaToggle?.();
+          }}
+          type="button"
+        >
+          {mediaPlaying && mediaActive ? "Pause" : "Play"}
+        </button>
+      </div>
     );
   }
 
   return (
     <div className={`media_renderer media_renderer_fallback ${compact ? "media_renderer_compact" : ""}`}>
-      <span>{media.title}</span>
+      <span>{displayTitle}</span>
       <small>Unsupported media format</small>
     </div>
   );

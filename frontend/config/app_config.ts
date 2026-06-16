@@ -1,5 +1,7 @@
 import type { MediaCategory, MediaFormat } from "@/types/palate";
 
+export const VIDEO_ENABLED = false;
+
 export const app_config = {
   appName: "Palate",
   networkLabel: "Aptos Testnet",

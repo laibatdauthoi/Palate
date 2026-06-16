@@ -1,8 +1,10 @@
 "use client";
 
 import { createContext, type PointerEvent as ReactPointerEvent, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { VIDEO_ENABLED } from "@/config/app_config";
 import { preflightShelbyReadUrl, resolveShelbyReadUrl } from "@/services/shelby_service";
 import type { MediaRecord } from "@/types/palate";
+import { getMediaDisplayTitle } from "@/utils/media_display";
 import { detectMediaKindFromMetadata, isMediaCategoryCompatible } from "@/utils/media_file_validation";
 import { usePalate } from "./palate_provider";
 
@@ -37,6 +39,14 @@ type MediaPlayerContextValue = {
 
 const MediaPlayerContext = createContext<MediaPlayerContextValue | null>(null);
 const default_volume = 0.85;
+const minStartBufferSeconds = {
+  audio: 3,
+  video: 5
+} as const;
+const minResumeBufferSeconds = {
+  audio: 2,
+  video: 4
+} as const;
 const player_position_storage_key = "palate_global_media_player_position_v1";
 const player_edge_margin = 16;
 const mobile_bottom_nav_clearance = 104;
@@ -55,6 +65,7 @@ function getPlayableTrack(media: MediaRecord): MediaPlayerTrack | null {
   const kind = detectMediaKindFromMetadata(media.mimeType, media.originalFileName);
 
   if (kind !== "audio" && kind !== "video") return null;
+  if (kind === "video" && !VIDEO_ENABLED) return null;
   if (!source || !isHttpSource(source)) return null;
   if (media.source !== "palate") return null;
   if (!isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName)) return null;
@@ -65,7 +76,7 @@ function getPlayableTrack(media: MediaRecord): MediaPlayerTrack | null {
   return {
     id: media.id,
     mediaId: media.palateMediaId ?? media.id,
-    title: getMediaPlayerTitle(media),
+    title: getMediaDisplayTitle(media),
     source,
     kind,
     originalFileName: media.originalFileName,
@@ -84,24 +95,17 @@ function getFiniteMediaTime(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
 }
 
-function getShortMediaLabel(value?: string | null) {
-  if (!value) return "";
-  const normalized = value.trim();
-  if (!normalized) return "";
-  const segments = normalized.split(/[\\/]/).filter(Boolean);
-  const lastSegment = segments[segments.length - 1] ?? normalized;
-  if (lastSegment.length <= 28) return lastSegment;
-  return `${lastSegment.slice(0, 16)}…${lastSegment.slice(-8)}`;
-}
-
-function getMediaPlayerTitle(media: MediaRecord) {
-  const title = media.title.trim();
-  if (title) return title;
-  const original = media.originalFileName?.trim();
-  if (original) return original;
-  const blobLabel = getShortMediaLabel(media.displayUrl ?? media.shelbyBlobRef);
-  if (blobLabel) return blobLabel;
-  return "Untitled media";
+function getBufferedAhead(element: HTMLMediaElement | null) {
+  if (!element) return 0;
+  const currentTime = element.currentTime;
+  for (let index = 0; index < element.buffered.length; index += 1) {
+    const start = element.buffered.start(index);
+    const end = element.buffered.end(index);
+    if (currentTime >= start && currentTime <= end) {
+      return Math.max(0, end - currentTime);
+    }
+  }
+  return 0;
 }
 
 function getPlayerViewportMargins() {
@@ -208,6 +212,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [buffering, setBuffering] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [playerPosition, setPlayerPosition] = useState<PlayerPosition | null>(null);
   const [volume, setVolume] = useState(default_volume);
@@ -217,6 +222,8 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const [shuffle, setShuffle] = useState(false);
   const [dragging, setDragging] = useState(false);
   const playIntentRef = useRef<"play" | "pause" | null>(null);
+  const userPausedRef = useRef(false);
+  const playAttemptInFlightRef = useRef(false);
   const dragStateRef = useRef<{
     pointerId: number;
     offsetX: number;
@@ -265,6 +272,8 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     });
     pauseInactiveElement(track.kind, true);
     playIntentRef.current = "play";
+    userPausedRef.current = false;
+    playAttemptInFlightRef.current = false;
     setFullscreenFallback(false);
     setActiveMode(track.kind);
     setCurrentTrack(track);
@@ -272,6 +281,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     setProgress(0);
     setDuration(0);
     setLoading(true);
+    setBuffering(false);
     setPlaybackError(null);
     debugPlayerTransition({
       reason: `${reason}:applied`,
@@ -302,6 +312,8 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
 
   const stop = useCallback(() => {
     playIntentRef.current = null;
+    userPausedRef.current = false;
+    playAttemptInFlightRef.current = false;
     setFullscreenFallback(false);
     setDragging(false);
     dragStateRef.current = null;
@@ -315,6 +327,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     setProgress(0);
     setDuration(0);
     setLoading(false);
+    setBuffering(false);
     setPlaybackError(null);
   }, []);
 
@@ -332,55 +345,133 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     if (previousTrack) playTrack(previousTrack, "previous within active mode");
   }, [getAdjacentTrack, playTrack, repeatMode]);
 
+  const evaluatePlaybackBuffer = useCallback((reason: string) => {
+    const activeElement = getActiveElement();
+    if (!activeElement || !currentTrack) return;
+    if (playAttemptInFlightRef.current) return;
+
+    const startThreshold = minStartBufferSeconds[currentTrack.kind];
+    const resumeThreshold = minResumeBufferSeconds[currentTrack.kind];
+    const bufferAhead = getBufferedAhead(activeElement);
+    const readyEnough = activeElement.readyState >= HTMLMediaElement.HAVE_METADATA && bufferAhead >= (isPlaying && !loading ? resumeThreshold : startThreshold);
+
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[Palate media buffer]", {
+        reason,
+        mediaId: currentTrack.mediaId,
+        kind: currentTrack.kind,
+        currentTime: activeElement.currentTime,
+        duration: activeElement.duration,
+        bufferAhead,
+        readyEnough,
+        loading,
+        buffering,
+        userPaused: userPausedRef.current,
+        playIntent: playIntentRef.current
+      });
+    }
+
+    if (playIntentRef.current !== "play") return;
+    if (userPausedRef.current) return;
+
+    setDuration(getFiniteMediaTime(activeElement.duration));
+    setProgress(getFiniteMediaTime(activeElement.currentTime));
+
+    if (bufferAhead < startThreshold) {
+      setLoading(true);
+      setBuffering(true);
+      return;
+    }
+
+    if (buffering && bufferAhead < resumeThreshold) {
+      setLoading(false);
+      setBuffering(true);
+      if (!activeElement.paused) {
+        activeElement.pause();
+      }
+      return;
+    }
+
+    if (activeElement.paused && readyEnough) {
+      setLoading(false);
+      setBuffering(false);
+      playAttemptInFlightRef.current = true;
+      void activeElement.play()
+        .then(() => {
+          playAttemptInFlightRef.current = false;
+          setIsPlaying(true);
+          setLoading(false);
+          setBuffering(false);
+        })
+        .catch(() => {
+          playAttemptInFlightRef.current = false;
+          const retryBufferAhead = getBufferedAhead(activeElement);
+          const retryThreshold = minResumeBufferSeconds[currentTrack.kind];
+          if (!userPausedRef.current && retryBufferAhead < retryThreshold) {
+            setIsPlaying(true);
+            setLoading(false);
+            setBuffering(true);
+            return;
+          }
+          setIsPlaying(false);
+          setLoading(false);
+          setBuffering(false);
+          setPlaybackError("Cannot play this media.");
+        });
+      return;
+    }
+
+    setLoading(false);
+    setBuffering(false);
+  }, [buffering, currentTrack, getActiveElement, isPlaying, loading]);
+
   const togglePlayback = useCallback(() => {
     if (!currentTrack) return;
     if (isPlaying) {
       playIntentRef.current = "pause";
+      userPausedRef.current = true;
+      playAttemptInFlightRef.current = false;
       getActiveElement()?.pause();
       setIsPlaying(false);
       setLoading(false);
+      setBuffering(false);
       return;
     }
     const activeElement = getActiveElement();
     if (!activeElement) return;
     playIntentRef.current = "play";
+    userPausedRef.current = false;
+    playAttemptInFlightRef.current = false;
     setPlaybackError(null);
-    if (activeElement.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-      void activeElement.play()
-        .then(() => {
-          playIntentRef.current = null;
-          setIsPlaying(true);
-          setLoading(false);
-        })
-        .catch(() => {
-          setIsPlaying(false);
-          setLoading(false);
-          setPlaybackError("Cannot play this media.");
-        });
-      return;
-    }
     setLoading(true);
     setIsPlaying(true);
+    setBuffering(false);
     activeElement.load();
-  }, [currentTrack, getActiveElement, isPlaying]);
+    evaluatePlaybackBuffer("togglePlayback");
+  }, [currentTrack, evaluatePlaybackBuffer, getActiveElement, isPlaying]);
 
   const handleEnded = useCallback(() => {
     const activeElement = getActiveElement();
     if (!activeElement) return;
     if (repeatMode === "one") {
       playIntentRef.current = "play";
+      userPausedRef.current = false;
+      playAttemptInFlightRef.current = false;
       activeElement.currentTime = 0;
       void activeElement.play();
       return;
     }
     playIntentRef.current = null;
+    playAttemptInFlightRef.current = false;
     playNext(repeatMode === "all");
   }, [getActiveElement, playNext, repeatMode]);
 
   const handleError = useCallback(() => {
     playIntentRef.current = null;
+    playAttemptInFlightRef.current = false;
     setLoading(false);
     setIsPlaying(false);
+    setBuffering(false);
     setPlaybackError("Cannot play this media.");
     if (currentTrack && process.env.NODE_ENV !== "production") {
       const activeElement = getActiveElement();
@@ -412,45 +503,73 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     const activeElement = getActiveElement();
     setDuration(getFiniteMediaTime(activeElement?.duration));
     setProgress(getFiniteMediaTime(activeElement?.currentTime));
-  }, [getActiveElement]);
-
-  const handleCanPlay = useCallback(() => {
-    const activeElement = getActiveElement();
-    if (!activeElement || !currentTrack || playIntentRef.current !== "play") return;
-    setLoading(false);
-    setPlaybackError(null);
-    setDuration(getFiniteMediaTime(activeElement.duration));
-    setProgress(getFiniteMediaTime(activeElement.currentTime));
-    void activeElement.play()
-      .then(() => {
-        playIntentRef.current = null;
-        setIsPlaying(true);
-        setLoading(false);
-      })
-      .catch(() => {
-        setIsPlaying(false);
-        setLoading(false);
-        setPlaybackError("Cannot play this media.");
-      });
-  }, [currentTrack, getActiveElement]);
+    evaluatePlaybackBuffer("loadedmetadata");
+  }, [evaluatePlaybackBuffer, getActiveElement]);
 
   const handleTimeUpdate = useCallback(() => {
-    setProgress(getFiniteMediaTime(getActiveElement()?.currentTime));
-  }, [getActiveElement]);
+    const activeElement = getActiveElement();
+    setProgress(getFiniteMediaTime(activeElement?.currentTime));
+    if (activeElement && currentTrack) {
+      const bufferAhead = getBufferedAhead(activeElement);
+      const resumeThreshold = minResumeBufferSeconds[currentTrack.kind];
+      if (!userPausedRef.current && playIntentRef.current === "play" && (bufferAhead < resumeThreshold || activeElement.readyState < HTMLMediaElement.HAVE_CURRENT_DATA)) {
+        setLoading(false);
+        setBuffering(true);
+        if (!activeElement.paused) {
+          activeElement.pause();
+        }
+      }
+    }
+  }, [currentTrack, getActiveElement]);
 
   const handleWaiting = useCallback(() => {
-    setLoading(true);
-  }, []);
+    if (!currentTrack) return;
+    setLoading(false);
+    setBuffering(true);
+  }, [currentTrack]);
+
+  const handleStalled = useCallback(() => {
+    if (!currentTrack) return;
+    setLoading(false);
+    setBuffering(true);
+  }, [currentTrack]);
 
   const handlePlaying = useCallback(() => {
     const activeElement = getActiveElement();
     setLoading(false);
+    setBuffering(false);
     setIsPlaying(true);
-    playIntentRef.current = null;
+    playAttemptInFlightRef.current = false;
     setPlaybackError(null);
     setDuration(getFiniteMediaTime(activeElement?.duration));
     setProgress(getFiniteMediaTime(activeElement?.currentTime));
   }, [getActiveElement]);
+
+  const handleCanPlay = useCallback(() => {
+    if (!currentTrack) return;
+    evaluatePlaybackBuffer("canplay");
+  }, [currentTrack, evaluatePlaybackBuffer]);
+
+  const handleProgress = useCallback(() => {
+    if (!currentTrack) return;
+    const activeElement = getActiveElement();
+    if (!activeElement) return;
+    const bufferAhead = getBufferedAhead(activeElement);
+    const threshold = playIntentRef.current === "play" && !userPausedRef.current && (!activeElement.paused || buffering)
+      ? minResumeBufferSeconds[currentTrack.kind]
+      : minStartBufferSeconds[currentTrack.kind];
+    if (playIntentRef.current === "play" && !userPausedRef.current && bufferAhead >= threshold) {
+      evaluatePlaybackBuffer("progress");
+      return;
+    }
+    if (playIntentRef.current === "play" && !userPausedRef.current && bufferAhead < threshold) {
+      setLoading(playIntentRef.current === "play");
+      setBuffering(true);
+      if (!activeElement.paused) {
+        activeElement.pause();
+      }
+    }
+  }, [buffering, currentTrack, evaluatePlaybackBuffer, getActiveElement]);
 
   const seek = useCallback((seconds: number) => {
     const activeElement = getActiveElement();
@@ -614,6 +733,16 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   }, [muted]);
 
   useEffect(() => {
+    if (!currentTrack || playIntentRef.current !== "play" || userPausedRef.current) return undefined;
+
+    const interval = window.setInterval(() => {
+      evaluatePlaybackBuffer("poll");
+    }, 280);
+
+    return () => window.clearInterval(interval);
+  }, [currentTrack, evaluatePlaybackBuffer]);
+
+  useEffect(() => {
     function handleFullscreenChange() {
       if (document.fullscreenElement !== videoRef.current) {
         setFullscreenFallback(false);
@@ -675,8 +804,10 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
             onError={handleError}
             onLoadedMetadata={handleLoadedMetadata}
             onPlaying={handlePlaying}
+            onProgress={handleProgress}
             onTimeUpdate={handleTimeUpdate}
             onWaiting={handleWaiting}
+            onStalled={handleStalled}
             ref={audioRef}
           />
         ) : null}
@@ -690,8 +821,10 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
               onError={handleError}
               onLoadedMetadata={handleLoadedMetadata}
               onPlaying={handlePlaying}
+              onProgress={handleProgress}
               onTimeUpdate={handleTimeUpdate}
               onWaiting={handleWaiting}
+              onStalled={handleStalled}
               playsInline
               ref={videoRef}
             />
@@ -699,7 +832,8 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
         ) : null}
         <div className="global_media_meta">
           <span>{activeMode === "video" ? "Video" : activeMode === "audio" ? "Audio" : "Media"}</span>
-          {loading ? <small>Loading media</small> : null}
+          {loading ? <small>Loading media…</small> : null}
+          {buffering ? <small>Buffering…</small> : null}
           {playbackError ? <small className="global_media_error">{playbackError}</small> : null}
         </div>
         <div className="global_media_controls">

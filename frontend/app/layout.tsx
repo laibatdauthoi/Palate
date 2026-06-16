@@ -4,6 +4,7 @@ import { MobileBottomNav } from "@/components/mobile_bottom_nav";
 import { NavigationBar } from "@/components/navigation_bar";
 import { RouteBackground } from "@/components/route_background";
 import { WelcomeIntro } from "@/components/welcome_intro";
+import { MediaViewerProvider } from "@/providers/media_viewer_provider";
 import { MediaPlayerProvider } from "@/providers/media_player_provider";
 import { PalateProvider } from "@/providers/palate_provider";
 import { WalletProvider } from "@/providers/wallet_provider";
@@ -25,13 +26,15 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <WalletProvider>
           <PalateProvider>
             <MediaPlayerProvider>
-              <WelcomeIntro />
-              <div className="app_shell">
-                <RouteBackground />
-                <NavigationBar />
-                <main className="main_content">{children}</main>
-                <MobileBottomNav />
-              </div>
+              <MediaViewerProvider>
+                <WelcomeIntro />
+                <div className="app_shell">
+                  <RouteBackground />
+                  <NavigationBar />
+                  <main className="main_content">{children}</main>
+                  <MobileBottomNav />
+                </div>
+              </MediaViewerProvider>
             </MediaPlayerProvider>
           </PalateProvider>
         </WalletProvider>

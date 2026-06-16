@@ -1,4 +1,5 @@
-import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useState, type ReactNode } from "react";
 import { ActionButton } from "./action_button";
 
 type ModalShellProps = {
@@ -9,6 +10,12 @@ type ModalShellProps = {
 };
 
 export function ModalShell({ title, children, open, onClose }: ModalShellProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
 
@@ -26,7 +33,7 @@ export function ModalShell({ title, children, open, onClose }: ModalShellProps) 
     return null;
   }
 
-  return (
+  const modal = (
     <div className="modal_backdrop" onMouseDown={onClose} role="presentation">
       <section className="modal_shell" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="modal_title">
         <div className="spread">
@@ -37,4 +44,10 @@ export function ModalShell({ title, children, open, onClose }: ModalShellProps) 
       </section>
     </div>
   );
+
+  if (!mounted) {
+    return null;
+  }
+
+  return createPortal(modal, document.body);
 }

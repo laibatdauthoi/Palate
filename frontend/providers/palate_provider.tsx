@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { mock_balance, mock_claims, mock_matches, mock_media, mock_summary, mock_waiting_pushes } from "@/data/mock_data";
-import { app_config } from "@/config/app_config";
+import { VIDEO_ENABLED, app_config } from "@/config/app_config";
 import {
   buildChallengePushPayload,
   buildCreatePushPayload,
@@ -38,6 +38,7 @@ import {
   isCategoryCompatibleWithKind,
   isMediaCategoryCompatible
 } from "@/utils/media_file_validation";
+import { getMediaDisplayTitle } from "@/utils/media_display";
 import type {
   ActiveMatch,
   BuffAssignment,
@@ -196,13 +197,6 @@ function getMimeType(format: MediaFormat) {
   if (format === "WEBM") return "video/webm";
   if (format === "MOV") return "video/quicktime";
   return "image/jpeg";
-}
-
-function getCategoryLabel(category: MediaCategory) {
-  if (category === "meme") return "Meme";
-  if (category === "image") return "Image";
-  if (category === "audio") return "Audio";
-  return "Video";
 }
 
 function getAccentForCategory(category: MediaCategory): MediaRecord["accent"] {
@@ -667,6 +661,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (!VIDEO_ENABLED && input.category === "video") {
+      setUploadStep("failed");
+      setFeedback({ type: "error", message: "Video uploads are temporarily disabled for MVP." });
+      return;
+    }
+
     const detectedKind = detectMediaKindFromFile(input.file);
     if (!isCategoryCompatibleWithKind(input.category, detectedKind)) {
       setUploadStep("failed");
@@ -683,7 +683,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       await delay(330);
       setUploadStep("generating_commitments");
 
-      const safeTitle = input.title.trim() || `Palate ${getCategoryLabel(input.category)}`;
+      const safeTitle = getMediaDisplayTitle({
+        title: input.title,
+        originalFileName: input.fileName || input.file?.name || "",
+        shelbyBlobRef: "",
+        displayUrl: ""
+      });
       const preparedUpload = await prepareShelbyUpload(
         input.file,
         walletAddress,
@@ -830,6 +835,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       && media.palateMediaId !== undefined
       && (media.storageStatus ?? "uploaded") === "uploaded"
       && media.status === "idle"
+      && (VIDEO_ENABLED || media.category !== "video")
       && !isDeletePendingMedia(media)
       && !isContentUnavailableMedia(media)
       && !isShelbyCleanupRequiredMedia(media)
@@ -860,7 +866,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         ownerAddress: media.ownerAddress,
         mediaId,
         shelbyBlobRef: media.shelbyBlobRef,
-        title: media.title,
+        title: getMediaDisplayTitle(media),
         status: "delete_pending"
       };
       return [nextRecord, ...records.filter((record) => !(record.ownerAddress.toLowerCase() === media.ownerAddress.toLowerCase() && record.mediaId === mediaId))];
@@ -1036,6 +1042,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setFeedback({ type: "error", message: "Choose registered idle Palate media to create a Push." });
       return;
     }
+    if (!VIDEO_ENABLED && media.category === "video") {
+      setFeedback({ type: "error", message: "Video media is disabled for MVP." });
+      return;
+    }
 
     try {
       const amountOctas = parseAptToOctas(amount);
@@ -1073,6 +1083,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     if (!selectedPush || !challengerMedia) {
       setFeedback({ type: "error", message: "Select an open waiting push and registered idle challenger media." });
+      return;
+    }
+    if (!VIDEO_ENABLED && (selectedPush.media.category === "video" || challengerMedia.category === "video")) {
+      setFeedback({ type: "error", message: "Video media is disabled for MVP." });
       return;
     }
 
@@ -1252,6 +1266,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       clearPendingRegistration,
       resetUploadFlow,
       uploadMockMedia: async (input) => {
+        if (!VIDEO_ENABLED && input.category === "video") {
+          setFeedback({ type: "error", message: "Video uploads are temporarily disabled for MVP." });
+          return;
+        }
         setProcessingAction("upload");
         setFeedback(null);
         for (const step of ["preparing_file", "uploading_to_shelby", "registering_on_chain", "completed"] as UploadStep[]) {
@@ -1261,7 +1279,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         const nextMedia: MediaRecord = {
           id: Math.max(...mediaRecords.map((media) => media.id)) + 1,
           ownerAddress: mockWalletAddress,
-          title: input.title.trim() || `Palate ${getCategoryLabel(input.category)}`,
+          title: getMediaDisplayTitle({
+            title: input.title,
+            originalFileName: input.fileName || input.file?.name || "",
+            shelbyBlobRef: "",
+            displayUrl: ""
+          }),
           category: input.category,
           format: input.format,
           status: "idle",
@@ -1284,6 +1307,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           const pushAmount = parseApt(amount);
           if (!media || media.status !== "idle") {
             setFeedback({ type: "error", message: "Choose an idle media item to create a push." });
+            return;
+          }
+          if (!VIDEO_ENABLED && media.category === "video") {
+            setFeedback({ type: "error", message: "Video media is disabled for MVP." });
             return;
           }
           if (pushAmount < 1) {
@@ -1322,6 +1349,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           }
           if (challenger.status !== "idle") {
             setFeedback({ type: "error", message: "Challenge rejected: challenger media must be idle." });
+            return;
+          }
+          if (!VIDEO_ENABLED && (challenger.category === "video" || push.media.category === "video")) {
+            setFeedback({ type: "error", message: "Video media is disabled for MVP." });
             return;
           }
           if (challenger.category !== push.media.category) {

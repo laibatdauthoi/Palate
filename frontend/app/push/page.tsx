@@ -8,11 +8,13 @@ import { MatchCard } from "@/components/match_card";
 import { ModalShell } from "@/components/modal_shell";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
+import { VIDEO_ENABLED } from "@/config/app_config";
 import { WaitingPushCard } from "@/components/waiting_push_card";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
 import type { MediaCategory } from "@/types/palate";
+import { getMediaDisplayTitle } from "@/utils/media_display";
 import { isMediaCategoryCompatible } from "@/utils/media_file_validation";
 
 const category_labels: Record<MediaCategory, string> = {
@@ -38,6 +40,7 @@ export default function PushPage() {
       && !push.media.deletePending
       && !push.media.contentUnavailable
       && !push.media.shelbyCleanupRequired
+      && (VIDEO_ENABLED || push.media.category !== "video")
       && isMediaCategoryCompatible(push.media.category, push.media.mimeType, push.media.originalFileName)
   );
   const selectedPush = openWaitingPushes.find((push) => push.id === challengePushId) ?? openWaitingPushes[0];
@@ -50,6 +53,7 @@ export default function PushPage() {
       && !media.shelbyCleanupRequired
       && media.palateMediaId !== null
       && media.palateMediaId !== undefined
+      && (VIDEO_ENABLED || media.category !== "video")
       && isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName)
   );
   const challengeOptions = selectedPush ? idleMedia.filter((media) => media.category === selectedPush.media.category) : idleMedia;
@@ -69,20 +73,20 @@ export default function PushPage() {
   const idleMediaOptions: DropdownOption<string>[] = [
     { label: "Select idle media", value: "" },
     ...idleMedia.map((media) => ({
-      label: `${media.title} - ${category_labels[media.category]}`,
+      label: `${getMediaDisplayTitle(media)} - ${category_labels[media.category]}`,
       value: String(media.id)
     }))
   ];
   const waitingPushOptions: DropdownOption<string>[] = openWaitingPushes.length > 0
     ? openWaitingPushes.map((push) => ({
-        label: `${push.media.title} - minimum ${push.minChallengeAmount}`,
+        label: `${getMediaDisplayTitle(push.media)} - minimum ${push.minChallengeAmount}`,
         value: String(push.id)
       }))
     : [{ label: "No waiting pushes", value: "" }];
   const challengeMediaOptions: DropdownOption<string>[] = [
     { label: "Select idle media", value: "" },
     ...challengeOptions.map((media) => ({
-      label: `${media.title} - ${category_labels[media.category]}`,
+      label: `${getMediaDisplayTitle(media)} - ${category_labels[media.category]}`,
       value: String(media.id)
     }))
   ];

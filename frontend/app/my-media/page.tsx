@@ -14,6 +14,7 @@ import { useMediaPlayer } from "@/providers/media_player_provider";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import type { MediaCategory, MediaRecord, MediaStatus } from "@/types/palate";
+import { getMediaDisplayTitle } from "@/utils/media_display";
 import { isMediaCategoryCompatible } from "@/utils/media_file_validation";
 
 const statuses = ["All", "Idle", "Waiting", "Active", "Settled", "Shelby Upload Failed", "Registration Failed", "Pending Registration"] as const;
@@ -57,6 +58,7 @@ export default function MyMediaPage() {
     });
   }, [category, mediaRecords, status]);
   const mediaToDelete = deleteMediaId === null ? null : mediaRecords.find((media) => media.id === deleteMediaId) ?? null;
+  const deleteDisplayTitle = mediaToDelete ? getMediaDisplayTitle(mediaToDelete) : "";
 
   useEffect(() => {
     setQueueFromMedia(filteredMedia);
@@ -170,7 +172,7 @@ export default function MyMediaPage() {
           {mediaToDelete ? (
             <div className="state_card">
               <span className="state_mark">{mediaToDelete.storageStatus === "shelby_upload_failed" ? "Failed media" : "Media"}</span>
-              <strong>{mediaToDelete.title}</strong>
+              <strong>{deleteDisplayTitle}</strong>
               <p>{mediaToDelete.storageStatus === "shelby_upload_failed" ? "Shelby registration succeeded, but file upload failed." : "This idle media will be hidden from My Media and cannot be used in gameplay."}</p>
             </div>
           ) : null}

@@ -4,6 +4,7 @@ import { CategoryBadge } from "./category_badge";
 import { FormatBadge } from "./format_badge";
 import { MediaRenderer } from "./media_renderer";
 import { StatusBadge } from "./status_badge";
+import { getMediaDisplayTitle } from "@/utils/media_display";
 
 type WaitingPushCardProps = {
   push: WaitingPush;
@@ -11,6 +12,7 @@ type WaitingPushCardProps = {
 };
 
 export function WaitingPushCard({ push, onChallenge }: WaitingPushCardProps) {
+  const displayTitle = getMediaDisplayTitle(push.media);
   return (
     <article className="waiting_push_card">
       <div className={`waiting_media media_preview_${push.media.accent}`}>
@@ -18,7 +20,7 @@ export function WaitingPushCard({ push, onChallenge }: WaitingPushCardProps) {
       </div>
       <div className="waiting_push_body">
         <div className="spread">
-          <h3>{push.media.title}</h3>
+          <h3>{displayTitle}</h3>
           <StatusBadge status={push.status === "open" ? "open" : push.status === "challenged" ? "active" : "disabled"} />
         </div>
         <div className="cluster">

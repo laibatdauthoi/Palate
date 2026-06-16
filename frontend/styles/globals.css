@@ -1348,10 +1348,53 @@ select.input_control option:checked,
 }
 
 .media_renderer_audio_controlled {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
   background:
     radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.16), transparent 28%),
     radial-gradient(circle at 50% 74%, rgba(255, 47, 159, 0.2), transparent 42%),
     rgba(8, 5, 12, 0.14);
+}
+
+.audio_preview_visual {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  min-height: 62px;
+  padding: 8px 0;
+}
+
+.audio_preview_visual span {
+  width: 7px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 47, 159, 0.72));
+  box-shadow: 0 0 16px rgba(255, 47, 159, 0.22);
+}
+
+.audio_preview_visual span:nth-child(1) { height: 22px; }
+.audio_preview_visual span:nth-child(2) { height: 44px; }
+.audio_preview_visual span:nth-child(3) { height: 30px; }
+.audio_preview_visual span:nth-child(4) { height: 52px; }
+.audio_preview_visual span:nth-child(5) { height: 18px; }
+
+.audio_preview_meta {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.audio_preview_meta span,
+.audio_preview_meta small {
+  min-width: 0;
+}
+
+.audio_preview_meta span {
+  color: var(--text-muted);
+  font-size: var(--font-size-caption);
+  font-weight: 800;
 }
 
 .media_renderer_audio_controlled small {
@@ -1439,7 +1482,8 @@ select.input_control option:checked,
 
 .media_detail_view {
   display: grid;
-  max-height: min(76vh, 760px);
+  max-width: min(90vw, 1100px);
+  max-height: min(85vh, 860px);
   min-height: 260px;
   place-items: center;
   overflow: hidden;
@@ -1453,8 +1497,113 @@ select.input_control option:checked,
 .media_detail_asset {
   display: block;
   width: 100%;
-  max-height: min(72vh, 720px);
+  max-width: 100%;
+  max-height: min(80vh, 840px);
   object-fit: contain;
+}
+
+.media_viewer_overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 92px var(--spacing-lg) var(--spacing-lg);
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(18px);
+}
+
+.media_viewer_overlay_inner {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: var(--spacing-md);
+  max-width: 90vw;
+  max-height: 85vh;
+}
+
+.media_viewer_overlay_header {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  color: var(--text-primary);
+  z-index: 1;
+}
+
+.media_viewer_header_text {
+  min-width: 0;
+}
+
+.media_viewer_header_text strong {
+  display: block;
+  max-width: 72vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media_viewer_close {
+  border: 1px solid rgba(255, 143, 199, 0.34);
+  border-radius: var(--radius-pill);
+  background: rgba(11, 7, 15, 0.9);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-caption);
+  font-weight: 900;
+  padding: 8px 14px;
+}
+
+.media_viewer_image_shell {
+  display: grid;
+  place-items: center;
+  max-width: 90vw;
+  max-height: 85vh;
+}
+
+.media_viewer_image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+}
+
+.media_viewer_shell img.media_detail_asset {
+  width: auto;
+  height: auto;
+  max-width: min(90vw, 1100px);
+  max-height: min(80vh, 840px);
+}
+
+.media_viewer_audio_detail {
+  display: grid;
+  gap: var(--spacing-md);
+  width: min(90vw, 720px);
+  padding: var(--spacing-lg);
+}
+
+.media_viewer_caption {
+  display: grid;
+  gap: 4px;
+}
+
+.media_viewer_caption p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.media_viewer_disabled {
+  display: grid;
+  gap: 8px;
+  width: min(90vw, 720px);
+  padding: var(--spacing-lg);
 }
 
 .media_card_body,
@@ -1474,6 +1623,15 @@ select.input_control option:checked,
 .waiting_push_card h3,
 .claim_card h3 {
   margin: 0;
+}
+
+.media_card h3 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .media_card_actions {
@@ -4316,4 +4474,3 @@ select.input_control,
     opacity: 1;
   }
 }
-

@@ -3,6 +3,7 @@ import { ActionButton } from "./action_button";
 import { CategoryBadge } from "./category_badge";
 import { FormatBadge } from "./format_badge";
 import { MediaRenderer } from "./media_renderer";
+import { getMediaDisplayTitle } from "@/utils/media_display";
 
 type BuffDecisionCardProps = {
   side: "A" | "B";
@@ -10,6 +11,7 @@ type BuffDecisionCardProps = {
 };
 
 export function BuffDecisionCard({ side, media }: BuffDecisionCardProps) {
+  const displayTitle = getMediaDisplayTitle(media);
   return (
     <article className={`buff_decision_card buff_side_${side.toLowerCase()}`}>
       <div className="buff_side_label">Media {side}</div>
@@ -17,7 +19,7 @@ export function BuffDecisionCard({ side, media }: BuffDecisionCardProps) {
         <MediaRenderer media={media} />
       </div>
       <div className="buff_decision_meta">
-        <h3>{media.title}</h3>
+        <h3>{displayTitle}</h3>
         <div className="cluster">
           <CategoryBadge category={media.category} />
           <FormatBadge format={media.format} />
