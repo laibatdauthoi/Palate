@@ -57,6 +57,7 @@ function PushPageContent() {
       && getPushEligibility(media).eligible
   );
   const challengeOptions = selectedPush ? idleMedia.filter((media) => media.category === selectedPush.media.category) : idleMedia;
+  const challengeMediaEmptyMessage = selectedPush && challengeOptions.length === 0 ? "No eligible same-category media available." : null;
   const pushBusy = processingAction === "createPush" || processingAction === "challengePush";
   const walletReady = walletStatus === "connected";
   const minPushOctas = chainRead.protocolConfig?.minPushAmount ? BigInt(chainRead.protocolConfig.minPushAmount) : null;
@@ -100,7 +101,9 @@ function PushPageContent() {
       }))
     : [{ label: "No waiting pushes", value: "" }];
   const challengeMediaOptions: DropdownOption<string>[] = [
-    { label: "Select idle media", value: "" },
+    challengeMediaEmptyMessage
+      ? { label: challengeMediaEmptyMessage, value: "" }
+      : { label: "Select idle media", value: "" },
     ...challengeOptions.map((media) => ({
       label: `${getMediaDisplayTitle(media)} - ${category_labels[media.category]}`,
       value: String(media.id)
@@ -245,6 +248,7 @@ function PushPageContent() {
             value={selectedPush ? String(selectedPush.id) : ""}
           />
           <CustomDropdown label="Idle media" onChange={setChallengeMediaId} options={challengeMediaOptions} value={challengeMediaId} />
+          {challengeMediaEmptyMessage ? <p className="feedback_text feedback_error">{challengeMediaEmptyMessage}</p> : null}
           <div className="amount_field_stack">
             <AmountInput label="Challenge amount" onChange={setChallengeAmount} placeholder={`Minimum ${requiredChallengeLabel}`} value={challengeAmount} />
             <p className={`amount_helper ${challengeAmountValidation.valid && challengeBalanceValid ? "" : "amount_helper_error"}`}>
