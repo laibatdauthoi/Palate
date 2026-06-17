@@ -33,7 +33,7 @@ export default function PushPage() {
 }
 
 function PushPageContent() {
-  const { activeMatches, balance, challengePush, chainRead, createPush, feedback, mediaRecords, processingAction, waitingPushes } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, createPush, feedback, mediaRecords, processingAction, settleMatch, waitingPushes } = usePalate();
   const { walletStatus } = usePalateWallet();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -233,7 +233,12 @@ function PushPageContent() {
       ) : (
         <div className="compact_card_grid compact_card_grid_matches">
           {activeMatches.map((match) => (
-            <MatchCard actionHref="/buff" key={match.id} match={match} />
+            <MatchCard
+              actionHref="/buff"
+              key={match.id}
+              match={match}
+              onSettle={match.status === "active" && match.timeRemaining === "00:00:00" ? () => settleMatch(match.id) : undefined}
+            />
           ))}
         </div>
       )}

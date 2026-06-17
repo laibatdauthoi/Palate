@@ -4,11 +4,13 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { mock_balance, mock_claims, mock_matches, mock_media, mock_summary, mock_waiting_pushes } from "@/data/mock_data";
 import { VIDEO_ENABLED, app_config } from "@/config/app_config";
 import {
+  buildClaimRewardPayload,
   buildChallengePushPayload,
   buildCreatePushPayload,
   buildDeleteMediaPayload,
   buildFindMatchPayload,
   buildPlaceBuffPayload,
+  buildSettleMatchPayload,
   buildSkipMatchPayload,
   buildRegisterMediaPayload,
   buildRegisterShelbyUploadFailedMediaPayload,
@@ -17,6 +19,7 @@ import {
   formatOctasToApt,
   getActiveMatches as readActiveMatches,
   getChainReadSnapshot,
+  getClaimRecords as readClaimRecords,
   getCurrentAssignment as readCurrentAssignment,
   getPalateBalance,
   getReadablePalateError,
@@ -131,6 +134,7 @@ type PalateContextValue = {
   placeBuff: (side: BuffSide, amount: string) => Promise<void>;
   placeMockBuff: (side: BuffSide, amount: string) => Promise<void>;
   skipMatch: () => Promise<void>;
+  settleMatch: (matchId: number) => Promise<void>;
   uploadMedia: (input: UploadMediaInput) => Promise<void>;
   retryPalateRegistration: (mediaId: number) => Promise<void>;
   deleteMedia: (mediaId: number) => Promise<void>;
@@ -143,6 +147,7 @@ type PalateContextValue = {
   challengePush: (pushId: number, challengerMediaId: number, amount: string) => Promise<void>;
   createMockPush: (mediaId: number, amount: string) => Promise<void>;
   challengeMockPush: (pushId: number, challengerMediaId: number, amount: string) => Promise<void>;
+  claimReward: (claimId: number) => Promise<void>;
   claimMockReward: (claimId: number) => Promise<void>;
 };
 
@@ -188,6 +193,17 @@ function delay(ms = 420) {
 
 function getMinChallengeAmount(pushAmount: string) {
   return formatApt(parseApt(pushAmount) * 1.05);
+}
+
+function getClaimableAmountFromRecords(records: ClaimRecord[]) {
+  return records.reduce((total, record) => {
+    if (!record.claimable) return total;
+    try {
+      return total + parseApt(record.amount);
+    } catch {
+      return total;
+    }
+  }, 0);
 }
 
 function getMimeType(format: MediaFormat) {
@@ -295,7 +311,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [waitingPushes, setWaitingPushes] = useState<WaitingPush[]>(mock_waiting_pushes);
   const [activeMatches, setActiveMatches] = useState<ActiveMatch[]>(mock_matches);
   const [claimRecords, setClaimRecords] = useState<ClaimRecord[]>(mock_claims);
-  const [userSummary] = useState<UserSummary>(mock_summary);
+  const [userSummary, setUserSummary] = useState<UserSummary>(mock_summary);
   const [currentAssignment, setCurrentAssignment] = useState<BuffAssignment | null>(null);
   const [completedBuffSide, setCompletedBuffSide] = useState<BuffSide | null>(null);
   const [noValidMatchAvailable, setNoValidMatchAvailable] = useState(false);
@@ -401,10 +417,6 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     return BigInt(parseAptToOctas(push.minChallengeAmount));
   }
 
-  function addAvailableBalance(amount: number) {
-    updateAvailableBalance(getAvailableBalanceNumber() + amount);
-  }
-
   function subtractAvailableBalance(amount: number) {
     updateAvailableBalance(getAvailableBalanceNumber() - amount);
   }
@@ -435,12 +447,19 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshWalletGameState(ownerAddress: string) {
-    const [nextBalance, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.all([
+    setClaimRecords([]);
+    setUserSummary((current) => ({
+      ...current,
+      walletAddress: ownerAddress,
+      claimableAmount: "0.000 APT"
+    }));
+    const [nextBalance, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment, nextClaimRecords] = await Promise.all([
       getPalateBalance(ownerAddress),
       getUserMedia(ownerAddress),
       readWaitingPushes(),
       readActiveMatches(),
-      readCurrentAssignment(ownerAddress)
+      readCurrentAssignment(ownerAddress),
+      readClaimRecords(ownerAddress)
     ]);
 
     setBalance(nextBalance);
@@ -448,6 +467,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setWaitingPushes(nextWaitingPushes);
     setActiveMatches(nextActiveMatches);
     setCurrentAssignment(nextAssignment);
+    setClaimRecords(nextClaimRecords);
+    setUserSummary((current) => ({
+      ...current,
+      walletAddress: ownerAddress,
+      claimableAmount: formatApt(getClaimableAmountFromRecords(nextClaimRecords))
+    }));
     setMediaReadStatus("ready");
   }
 
@@ -831,6 +856,60 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("skipMatch failed", error);
       setFeedback({ type: "error", message: getReadablePalateError(error, "Skip Match failed.") });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
+  async function settleMatchOnChain(matchId: number) {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      setFeedback({ type: "error", message: "Connect wallet to settle the match." });
+      return;
+    }
+
+    setProcessingAction("settleMatch");
+    setFeedback(null);
+
+    try {
+      const data = buildSettleMatchPayload(matchId);
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Settle Match submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshWalletGameState(walletAddress);
+      setFeedback({ type: "success", message: `Match settled ${shortenTransactionHash(transactionHash)}.` });
+    } catch (error) {
+      console.error("settleMatch failed", error);
+      setFeedback({ type: "error", message: getReadablePalateError(error, "Settle Match failed.") });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
+  async function claimRewardOnChain(claimId: number) {
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      setFeedback({ type: "error", message: "Connect wallet to claim rewards." });
+      return;
+    }
+
+    const claim = claimRecords.find((candidate) => candidate.id === claimId);
+    if (!claim || !claim.matchId) {
+      setFeedback({ type: "error", message: "Claim is not available." });
+      return;
+    }
+
+    setProcessingAction("claimReward");
+    setFeedback(null);
+
+    try {
+      const data = buildClaimRewardPayload({ type: claim.type, matchId: claim.matchId });
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Claim submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshWalletGameState(walletAddress);
+      setFeedback({ type: "success", message: `${claim.type === "buff" ? "Buff" : "Push"} reward credited to Palate Balance.` });
+    } catch (error) {
+      console.error("claimReward failed", error);
+      setFeedback({ type: "error", message: getReadablePalateError(error, "Claim failed.") });
     } finally {
       setProcessingAction(null);
     }
@@ -1398,6 +1477,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       placeBuff: placeBuffOnChain,
       placeMockBuff: placeBuffOnChain,
       skipMatch: skipMatchOnChain,
+      settleMatch: settleMatchOnChain,
       uploadMedia: registerMediaOnChain,
       retryPalateRegistration,
       deleteMedia,
@@ -1536,18 +1616,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           setFeedback({ type: "success", message: "Challenge accepted. A live match was created." });
         });
       },
-      claimMockReward: async (claimId) => {
-        await runMockAction("claimReward", () => {
-          const claim = claimRecords.find((candidate) => candidate.id === claimId);
-          if (!claim || !claim.claimable || claim.claimed) {
-            setFeedback({ type: "error", message: "Claim is not available." });
-            return;
-          }
-          addAvailableBalance(parseApt(claim.amount));
-          setClaimRecords((records) => records.map((record) => (record.id === claimId ? { ...record, claimable: false, claimed: true } : record)));
-          setFeedback({ type: "success", message: `${claim.type === "buff" ? "Buff" : "Push"} reward credited to Palate Balance.` });
-        });
-      }
+      claimReward: claimRewardOnChain,
+      claimMockReward: claimRewardOnChain
     };
 
   return <PalateContext.Provider value={value}>{children}</PalateContext.Provider>;

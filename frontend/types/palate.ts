@@ -125,6 +125,7 @@ export type PalateBalance = {
 
 export type ClaimRecord = {
   id: number;
+  matchId?: number;
   type: ClaimType;
   matchRef: string;
   amount: string;

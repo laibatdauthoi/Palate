@@ -9,7 +9,7 @@ import { app_config } from "@/config/app_config";
 import { usePalate } from "@/providers/palate_provider";
 
 export default function HomePage() {
-  const { activeMatches, balance, userSummary, waitingPushes } = usePalate();
+  const { activeMatches, balance, settleMatch, userSummary, waitingPushes } = usePalate();
   const stat_cards = [
     { label: "Active matches", value: String(activeMatches.length) },
     { label: "Pending Buffs", value: userSummary.pendingBuffs },
@@ -68,7 +68,12 @@ export default function HomePage() {
         {activeMatches.length > 0 ? (
           <div className="compact_card_grid compact_card_grid_matches">
             {activeMatches.map((match) => (
-              <MatchCard actionHref="/buff" key={match.id} match={match} />
+              <MatchCard
+                actionHref="/buff"
+                key={match.id}
+                match={match}
+                onSettle={match.status === "active" && match.timeRemaining === "00:00:00" ? () => settleMatch(match.id) : undefined}
+              />
             ))}
           </div>
         ) : (

@@ -134,8 +134,8 @@ export default function MyMediaPage() {
               : media.status === "registration_failed"
               ? () => retryPalateRegistration(media.id)
               : media.status === "idle" && canPush
-                ? () => router.push("/push")
-              : undefined
+                ? () => router.push(`/push?mediaId=${media.id}`)
+                : undefined
           }
         secondaryActionLabel={media.source === "palate_upload_recovery" ? "Clear" : isDeletable && !primaryDelete && !media.deletePending ? "Delete" : undefined}
         onSecondaryAction={media.source === "palate_upload_recovery" ? () => clearPendingRegistration(media.id) : isDeletable && !primaryDelete && !media.deletePending ? () => setDeleteMediaId(media.id) : undefined}

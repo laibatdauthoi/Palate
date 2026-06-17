@@ -196,6 +196,27 @@ export function getReadablePalateError(error: unknown, fallback = "Transaction f
   const rawMessage = error instanceof Error ? error.message : String(error ?? "");
   const normalized = rawMessage.toLowerCase();
 
+  if (rawMessage.includes("E_MATCH_NOT_EXPIRED") || normalized.includes("abort_code: 23") || normalized.includes("abort code: 23") || normalized.includes("code: 23")) {
+    return "Match is not ready to settle yet.";
+  }
+  if (rawMessage.includes("E_MATCH_NOT_ACTIVE") || normalized.includes("abort_code: 24") || normalized.includes("abort code: 24") || normalized.includes("code: 24")) {
+    return "Match is not active.";
+  }
+  if (rawMessage.includes("E_MATCH_NOT_SETTLED") || normalized.includes("abort_code: 25") || normalized.includes("abort code: 25") || normalized.includes("code: 25")) {
+    return "Match is already settled.";
+  }
+  if (rawMessage.includes("E_NOT_WINNING_PUSHER") || normalized.includes("abort_code: 26") || normalized.includes("abort code: 26") || normalized.includes("code: 26")) {
+    return "Not authorized to claim this Push reward.";
+  }
+  if (rawMessage.includes("E_PUSH_ALREADY_CLAIMED") || normalized.includes("abort_code: 27") || normalized.includes("abort code: 27") || normalized.includes("code: 27")) {
+    return "Push reward is already claimed.";
+  }
+  if (rawMessage.includes("E_NOT_WINNING_BUFF") || normalized.includes("abort_code: 29") || normalized.includes("abort code: 29") || normalized.includes("code: 29")) {
+    return "Not authorized to claim this Buff reward.";
+  }
+  if (rawMessage.includes("E_BUFF_ALREADY_CLAIMED") || normalized.includes("abort_code: 30") || normalized.includes("abort code: 30") || normalized.includes("code: 30")) {
+    return "Buff reward is already claimed.";
+  }
   if (rawMessage.includes("E_PUSH_AMOUNT_TOO_LOW") || normalized.includes("abort_code: 8") || normalized.includes("abort code: 8") || normalized.includes("code: 8")) {
     return "Push amount is below the minimum.";
   }
@@ -335,6 +356,29 @@ export function buildSkipMatchPayload(): InputGenerateTransactionPayloadData {
 
 export function buildPlaceBuffPayload(side: BuffSide, buffAmountOctas: string): InputGenerateTransactionPayloadData {
   return entryPayload("placeBuff", [side === "A" ? 1 : 2, buffAmountOctas]);
+}
+
+export function buildSettleMatchPayload(matchId: number | string): InputGenerateTransactionPayloadData {
+  return entryPayload("settleMatch", [String(matchId)]);
+}
+
+export type ClaimRewardInput = {
+  type: ClaimRecord["type"];
+  matchId: number | string;
+};
+
+export function buildClaimPushPayload(matchId: number | string): InputGenerateTransactionPayloadData {
+  return entryPayload("claimPush", [String(matchId)]);
+}
+
+export function buildClaimBuffPayload(matchId: number | string): InputGenerateTransactionPayloadData {
+  return entryPayload("claimBuff", [String(matchId)]);
+}
+
+export function buildClaimRewardPayload(input: ClaimRewardInput): InputGenerateTransactionPayloadData {
+  return input.type === "buff"
+    ? buildClaimBuffPayload(input.matchId)
+    : buildClaimPushPayload(input.matchId);
 }
 
 export type RegisterMediaInput = {
@@ -589,10 +633,71 @@ export async function getPalateBalance(walletAddress: string): Promise<PalateBal
   };
 }
 
-// Future Aptos view call boundary: read claim helpers and claim state.
-export async function getClaimRecords(_walletAddress: string): Promise<ClaimRecord[]> {
-  void _walletAddress;
-  notImplemented("getClaimRecords");
+export async function getClaimRecords(walletAddress: string): Promise<ClaimRecord[]> {
+  const buffRecordCount = Number(asString(await viewOne("getBuffRecordCount")));
+  const candidateMatchIds = new Set<string>();
+
+  for (let index = 0; index < buffRecordCount; index += 1) {
+    try {
+      candidateMatchIds.add(asString(await viewOne("getBuffRecordMatchId", [String(index)])));
+    } catch {
+      // Ignore a single unreadable record and continue collecting rewards.
+    }
+  }
+
+  const recordsByKey = new Map<string, ClaimRecord>();
+
+  await Promise.all(Array.from(candidateMatchIds).map(async (matchId) => {
+    try {
+      const [matchStatus, pushClaimable, pushClaimed, pushClaimAmount, buffClaimable, buffClaimed, buffClaimAmount, settledTime] = await Promise.all([
+        viewOne("getMatchStatus", [matchId]),
+        viewOne("isPushRewardClaimable", [walletAddress, matchId]),
+        viewOne("isPushClaimed", [matchId]),
+        viewOne("estimatePushClaimAmount", [walletAddress, matchId]),
+        viewOne("isBuffRewardClaimable", [walletAddress, matchId]),
+        viewOne("isBuffClaimed", [walletAddress, matchId]),
+        viewOne("estimateBuffClaimAmount", [walletAddress, matchId]),
+        viewOne("getMatchSettledTime", [matchId])
+      ]);
+
+      const settledLabel = formatChainTime(asString(settledTime));
+      const numericMatchId = Number(matchId);
+      const pushKey = `${numericMatchId}:push`;
+      const buffKey = `${numericMatchId}:buff`;
+
+      if (pushClaimable || pushClaimed) {
+        recordsByKey.set(pushKey, {
+          id: numericMatchId * 10 + 1,
+          matchId: numericMatchId,
+          type: "push",
+          matchRef: `Match ${matchId}`,
+          amount: pushClaimable ? formatOctasToApt(asString(pushClaimAmount)) : "Claimed",
+          settledTime: settledLabel,
+          claimable: Boolean(pushClaimable),
+          claimed: Boolean(pushClaimed),
+        });
+      }
+
+      if (buffClaimable || buffClaimed) {
+        recordsByKey.set(buffKey, {
+          id: numericMatchId * 10 + 2,
+          matchId: numericMatchId,
+          type: "buff",
+          matchRef: `Match ${matchId}`,
+          amount: buffClaimable ? formatOctasToApt(asString(buffClaimAmount)) : "Claimed",
+          settledTime: settledLabel,
+          claimable: Boolean(buffClaimable),
+          claimed: Boolean(buffClaimed),
+        });
+      }
+
+      void matchStatus;
+    } catch {
+      // Ignore reward candidates that can no longer be resolved.
+    }
+  }));
+
+  return Array.from(recordsByKey.values()).sort((a, b) => b.id - a.id);
 }
 
 // Future Aptos view call boundary: read user_summary.

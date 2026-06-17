@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
+import { EmptyState } from "@/components/empty_state";
 import { ClaimCard } from "@/components/claim_card";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
@@ -10,12 +11,13 @@ import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 
 export default function ProfilePage() {
-  const { balance, claimMockReward, claimRecords, depositBalance, feedback, processingAction, userSummary, withdrawBalance } = usePalate();
+  const { balance, claimRecords, claimReward, depositBalance, feedback, processingAction, userSummary, withdrawBalance } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const [tab, setTab] = useState<"Stats" | "Claims">("Stats");
   const [balanceAmount, setBalanceAmount] = useState("1.000");
   const balanceBusy = processingAction === "deposit" || processingAction === "withdraw";
   const walletReady = walletStatus === "connected" && Boolean(walletAddress);
+  const claimBusy = processingAction === "claimReward";
   const profile_stats = [
     { label: "Push count", value: userSummary.pushCount },
     { label: "Push wins", value: userSummary.pushWins },
@@ -100,16 +102,34 @@ export default function ProfilePage() {
           <SectionPanel title="Push claims">
             <div className="stack">
               {claimRecords.filter((claim) => claim.type === "push").map((claim) => (
-                <ClaimCard claim={claim} key={claim.id} loading={processingAction === "claimReward"} onClaim={() => claimMockReward(claim.id)} />
+                <ClaimCard
+                  actionDisabled={!walletReady}
+                  claim={claim}
+                  key={claim.id}
+                  loading={claimBusy}
+                  onClaim={() => claimReward(claim.id)}
+                />
               ))}
+              {claimRecords.filter((claim) => claim.type === "push").length === 0 ? (
+                <EmptyState title="No push rewards" copy="Settled push rewards will appear here when they become claimable." />
+              ) : null}
             </div>
             {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
           </SectionPanel>
           <SectionPanel title="Buff Rewards">
             <div className="stack">
               {claimRecords.filter((claim) => claim.type === "buff").map((claim) => (
-                <ClaimCard claim={claim} key={claim.id} loading={processingAction === "claimReward"} onClaim={() => claimMockReward(claim.id)} />
+                <ClaimCard
+                  actionDisabled={!walletReady}
+                  claim={claim}
+                  key={claim.id}
+                  loading={claimBusy}
+                  onClaim={() => claimReward(claim.id)}
+                />
               ))}
+              {claimRecords.filter((claim) => claim.type === "buff").length === 0 ? (
+                <EmptyState title="No Buff rewards" copy="Settled Buff rewards will appear here when they become claimable." />
+              ) : null}
             </div>
             <p className="mock_note">Claims credit Palate Balance before wallet withdrawal.</p>
           </SectionPanel>

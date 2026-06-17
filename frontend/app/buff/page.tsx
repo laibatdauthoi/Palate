@@ -6,6 +6,7 @@ import { BuffPanel } from "@/components/buff_panel";
 import { EmptyState } from "@/components/empty_state";
 import { ErrorState } from "@/components/error_state";
 import { LoadingState } from "@/components/loading_state";
+import { MatchCard } from "@/components/match_card";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
@@ -16,6 +17,7 @@ export default function BuffPage() {
   const {
     completedBuffSide,
     balance,
+    activeMatches,
     chainRead,
     currentAssignment,
     feedback,
@@ -23,6 +25,7 @@ export default function BuffPage() {
     noValidMatchAvailable,
     placeBuff,
     processingAction,
+    settleMatch,
     skipMatch
   } = usePalate();
   const { walletStatus } = usePalateWallet();
@@ -30,6 +33,7 @@ export default function BuffPage() {
   const assignedMatch = currentAssignment?.match;
   const buffBusy = processingAction === "findMatch" || processingAction === "placeBuff" || processingAction === "skipMatch";
   const walletReady = walletStatus === "connected";
+  const settleableMatches = activeMatches.filter((match) => match.status === "active" && match.timeRemaining === "00:00:00");
   const minBuffOctas = chainRead.protocolConfig?.minBuffAmount ? BigInt(chainRead.protocolConfig.minBuffAmount) : null;
   const minBuffAmountLabel = minBuffOctas !== null ? formatOctasToApt(minBuffOctas) : "loading";
   const buffAmountValidation = validateBuffAmount(buffAmount, minBuffOctas);
@@ -72,6 +76,23 @@ export default function BuffPage() {
           skipPenalty={currentAssignment.skipPenaltyAmount}
         />
       ) : null}
+
+      <SectionPanel title="Settle eligible matches" copy="Only expired active matches can be settled. Hidden live score, pools, and odds remain hidden until settlement completes.">
+        {settleableMatches.length > 0 ? (
+          <div className="compact_card_grid compact_card_grid_matches">
+            {settleableMatches.map((match) => (
+              <MatchCard
+                key={match.id}
+                match={match}
+                settleDisabled={!walletReady || processingAction === "settleMatch"}
+                onSettle={() => settleMatch(match.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No match ready to settle" copy="Settling becomes available after the match end time passes." />
+        )}
+      </SectionPanel>
 
       <div className="panel_grid">
         <SectionPanel title="No assigned match">

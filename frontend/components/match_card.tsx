@@ -8,9 +8,12 @@ import { StatusBadge } from "./status_badge";
 type MatchCardProps = {
   match: ActiveMatch;
   actionHref?: string;
+  onSettle?: () => void;
+  settleDisabled?: boolean;
 };
 
-export function MatchCard({ match, actionHref }: MatchCardProps) {
+export function MatchCard({ match, actionHref, onSettle, settleDisabled }: MatchCardProps) {
+  const isSettleEligible = match.status === "active" && match.timeRemaining === "00:00:00";
   return (
     <article className="match_card">
       <div className="match_media_pair">
@@ -31,7 +34,14 @@ export function MatchCard({ match, actionHref }: MatchCardProps) {
         </div>
         <div className="spread">
           <CountdownTimer value={match.timeRemaining} />
-          <ActionButton href={actionHref ?? "/buff"} variant="secondary">View</ActionButton>
+          <div className="match_card_actions">
+            {onSettle && isSettleEligible ? (
+              <ActionButton disabled={settleDisabled} onClick={onSettle} variant="secondary">
+                Settle
+              </ActionButton>
+            ) : null}
+            <ActionButton href={actionHref ?? "/buff"} variant="secondary">View</ActionButton>
+          </div>
         </div>
         <p className="mock_note">Live score, Buff pool, leading side, odds, and win probability are intentionally hidden.</p>
       </div>

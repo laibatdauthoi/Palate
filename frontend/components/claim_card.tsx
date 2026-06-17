@@ -2,8 +2,8 @@ import type { ClaimRecord } from "@/types/palate";
 import { ActionButton } from "./action_button";
 import { StatusBadge } from "./status_badge";
 
-export function ClaimCard({ claim, onClaim, loading }: { claim: ClaimRecord; onClaim?: () => void; loading?: boolean }) {
-  const disabled = !claim.claimable || claim.claimed || loading;
+export function ClaimCard({ claim, onClaim, loading, actionDisabled }: { claim: ClaimRecord; onClaim?: () => void; loading?: boolean; actionDisabled?: boolean }) {
+  const disabled = actionDisabled || !claim.claimable || claim.claimed || loading;
 
   return (
     <article className="claim_card">

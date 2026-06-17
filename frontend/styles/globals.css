@@ -1196,6 +1196,12 @@ select.input_control option:checked,
   justify-self: center;
 }
 
+.media_card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 100%;
+}
+
 .media_card:hover,
 .match_card:hover,
 .waiting_push_card:hover {
@@ -1227,6 +1233,7 @@ select.input_control option:checked,
 }
 
 .media_preview_variant_card {
+  min-height: 220px;
   max-height: 220px;
 }
 
@@ -1409,6 +1416,10 @@ select.input_control option:checked,
 .media_renderer_audio_controlled.media_renderer_variant_compact,
 .media_renderer_audio_controlled.media_renderer_variant_selector {
   padding: var(--spacing-sm);
+}
+
+.media_renderer_audio_controlled.media_renderer_variant_card {
+  min-height: 220px;
 }
 
 .audio_preview_visual {
@@ -1875,6 +1886,14 @@ select.input_control option:checked,
 
 .waiting_push_actions .action_button {
   min-width: 132px;
+}
+
+.match_card_actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .match_card {
