@@ -132,3 +132,22 @@ Notes:
 - Existing active matches may keep their old end time.
 - New matches created after this config update should use the updated 10-minute duration.
 - The helper script may require Aptos CLI compatibility fixes if the local CLI does not support `--output` for `aptos move view`.
+
+## Aptos Testnet Contract Upgrade
+
+- Network: Aptos testnet
+- Module address: `0xe5e752771b9e1b5ac445d3d28f1bf636e6e6c3207e61917c036c1517c2b4373f`
+- Module name: `palate`
+- Purpose: F12B claim discovery views
+- Upgrade command: `aptos move publish --profile default --assume-yes`
+- Upgraded at: `<PASTE_TIME>`
+- Transaction hash: `<PASTE_PUBLISH_UPGRADE_TX_HASH>`
+- Explorer: `https://explorer.aptoslabs.com/txn/<PASTE_PUBLISH_UPGRADE_TX_HASH>?network=testnet`
+
+Changes:
+
+- Added claim discovery views:
+  - `getClaimDiscoveryRecords(user)`
+  - indexed claim discovery helper views
+
+- Frontend Profile Claims now reads claimable rewards from on-chain discovery views.
