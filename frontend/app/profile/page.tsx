@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
 import { EmptyState } from "@/components/empty_state";
@@ -11,7 +11,7 @@ import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 
 export default function ProfilePage() {
-  const { balance, claimRecords, claimReward, depositBalance, feedback, processingAction, userSummary, withdrawBalance } = usePalate();
+  const { balance, claimReadStatus, claimRecords, claimReward, depositBalance, feedback, processingAction, refreshClaims, userSummary, withdrawBalance } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const [tab, setTab] = useState<"Stats" | "Claims">("Stats");
   const [balanceAmount, setBalanceAmount] = useState("1.000");
@@ -32,6 +32,11 @@ export default function ProfilePage() {
     { label: "Total pushed", value: userSummary.totalPushed },
     { label: "Total buffed", value: userSummary.totalBuffed }
   ];
+
+  useEffect(() => {
+    if (tab !== "Claims" || !walletReady || claimReadStatus !== "idle") return;
+    void refreshClaims();
+  }, [claimReadStatus, refreshClaims, tab, walletReady]);
 
   return (
     <div className="page_stack page_profile">
@@ -99,8 +104,10 @@ export default function ProfilePage() {
         </div>
       ) : (
         <div className="stack">
-          <SectionPanel title="Push claims">
+          <SectionPanel title="Settled Push Rewards" copy="Claimable and claimed settled push rewards stay visible here after matches leave Active Matches.">
             <div className="stack">
+              {claimReadStatus === "loading" ? <p className="feedback_text feedback_info">Loading claims.</p> : null}
+              {claimReadStatus === "error" ? <p className="feedback_text feedback_error">Claims temporarily unavailable.</p> : null}
               {claimRecords.filter((claim) => claim.type === "push").map((claim) => (
                 <ClaimCard
                   actionDisabled={!walletReady}
@@ -110,14 +117,14 @@ export default function ProfilePage() {
                   onClaim={() => claimReward(claim.id)}
                 />
               ))}
-              {claimRecords.filter((claim) => claim.type === "push").length === 0 ? (
-                <EmptyState title="No push rewards" copy="Settled push rewards will appear here when they become claimable." />
-              ) : null}
+              {claimRecords.filter((claim) => claim.type === "push").length === 0 ? <EmptyState title="No settled rewards yet." copy="Settled push rewards will appear here after settlement." /> : null}
             </div>
             {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
           </SectionPanel>
-          <SectionPanel title="Buff Rewards">
+          <SectionPanel title="Settled Buff Rewards" copy="Claimable and claimed settled Buff rewards stay visible here after matches leave Active Matches.">
             <div className="stack">
+              {claimReadStatus === "loading" ? <p className="feedback_text feedback_info">Loading claims.</p> : null}
+              {claimReadStatus === "error" ? <p className="feedback_text feedback_error">Claims temporarily unavailable.</p> : null}
               {claimRecords.filter((claim) => claim.type === "buff").map((claim) => (
                 <ClaimCard
                   actionDisabled={!walletReady}
@@ -127,9 +134,7 @@ export default function ProfilePage() {
                   onClaim={() => claimReward(claim.id)}
                 />
               ))}
-              {claimRecords.filter((claim) => claim.type === "buff").length === 0 ? (
-                <EmptyState title="No Buff rewards" copy="Settled Buff rewards will appear here when they become claimable." />
-              ) : null}
+              {claimRecords.filter((claim) => claim.type === "buff").length === 0 ? <EmptyState title="No settled rewards yet." copy="Settled Buff rewards will appear here after settlement." /> : null}
             </div>
             <p className="mock_note">Claims credit Palate Balance before wallet withdrawal.</p>
           </SectionPanel>

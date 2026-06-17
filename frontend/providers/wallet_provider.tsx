@@ -8,7 +8,8 @@ import {
 } from "@aptos-labs/wallet-adapter-react";
 import type { InputTransactionData } from "@aptos-labs/wallet-adapter-core";
 import { Network } from "@aptos-labs/ts-sdk";
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { getWalletAptBalance } from "@/services/aptos_service";
 import type { WalletStatus } from "@/types/palate";
 
 type WalletContextValue = {
@@ -16,6 +17,9 @@ type WalletContextValue = {
   walletAddress: string | null;
   walletName: string | null;
   networkName: string | null;
+  walletBalance: string | null;
+  walletBalanceStatus: "idle" | "loading" | "ready" | "error";
+  walletBalanceError: string | null;
   availableWallets: ReadonlyArray<AdapterWallet>;
   notDetectedWallets: ReadonlyArray<AdapterNotDetectedWallet>;
   connectingWalletName: string | null;
@@ -51,6 +55,9 @@ function WalletBridge({ children }: { children: ReactNode }) {
   } = useWallet();
   const [connectingWalletName, setConnectingWalletName] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<string | null>(null);
+  const [walletBalanceStatus, setWalletBalanceStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [walletBalanceError, setWalletBalanceError] = useState<string | null>(null);
 
   const walletAddress = normalizeAddress(account?.address);
   const networkName = network?.name ? String(network.name) : null;
@@ -66,12 +73,50 @@ function WalletBridge({ children }: { children: ReactNode }) {
           ? "connected"
           : "disconnected";
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWalletBalance() {
+      if (!connected || !walletAddress || wrongNetwork) {
+        setWalletBalance(null);
+        setWalletBalanceStatus("idle");
+        setWalletBalanceError(null);
+        return;
+      }
+
+      setWalletBalanceStatus("loading");
+      setWalletBalanceError(null);
+
+      try {
+        const nextBalance = await getWalletAptBalance(walletAddress);
+        if (cancelled) return;
+        setWalletBalance(nextBalance);
+        setWalletBalanceStatus("ready");
+      } catch (error) {
+        if (cancelled) return;
+        console.error("[Wallet balance read failed]", error);
+        setWalletBalance(null);
+        setWalletBalanceStatus("error");
+        setWalletBalanceError(error instanceof Error ? error.message : "Wallet balance unavailable.");
+      }
+    }
+
+    loadWalletBalance();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [connected, walletAddress, wrongNetwork]);
+
   const value = useMemo<WalletContextValue>(
     () => ({
       walletStatus,
       walletAddress,
       walletName: wallet?.name ?? null,
       networkName,
+      walletBalance,
+      walletBalanceStatus,
+      walletBalanceError,
       availableWallets: wallets,
       notDetectedWallets,
       connectingWalletName,
@@ -104,6 +149,9 @@ function WalletBridge({ children }: { children: ReactNode }) {
       networkName,
       notDetectedWallets,
       signAndSubmitTransaction,
+      walletBalance,
+      walletBalanceError,
+      walletBalanceStatus,
       wallet?.name,
       walletAddress,
       walletError,

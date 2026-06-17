@@ -123,7 +123,9 @@ type PalateContextValue = {
   processingAction: string | null;
   feedback: Feedback;
   chainRead: ChainReadState;
+  claimReadStatus: "idle" | "loading" | "ready" | "error";
   clearFeedback: () => void;
+  refreshClaims: () => Promise<void>;
   connectMockWallet: () => void;
   disconnectMockWallet: () => void;
   simulateWrongNetwork: () => void;
@@ -155,6 +157,7 @@ const PalateContext = createContext<PalateContextValue | null>(null);
 const mockWalletAddress = mock_summary.walletAddress;
 const pending_registration_storage_key = "palate_pending_registrations_v1";
 const delete_pending_storage_key = "palate_delete_pending_v1";
+const chain_read_cache_key = "palate_chain_read_snapshot_v1";
 
 const initial_upload_recovery_state: UploadRecoveryState = {
   canRetry: false,
@@ -175,7 +178,47 @@ const initial_chain_read_state: ChainReadState = {
   categories: null,
   treasuryAddress: null,
   protocolConfig: null,
+  warning: null,
   error: null
+};
+
+const loading_balance: PalateBalance = {
+  availableBalance: "Loading",
+  totalDeposited: "Loading",
+  totalWithdrawn: "Loading",
+  lockedPushAmount: "Loading",
+  lockedBuffAmount: "Loading",
+  lockedCommitmentAmount: "Loading",
+  totalClaimed: "Loading"
+};
+
+const unavailable_balance: PalateBalance = {
+  availableBalance: "Unavailable",
+  totalDeposited: "Unavailable",
+  totalWithdrawn: "Unavailable",
+  lockedPushAmount: "Unavailable",
+  lockedBuffAmount: "Unavailable",
+  lockedCommitmentAmount: "Unavailable",
+  totalClaimed: "Unavailable"
+};
+
+const loading_summary: UserSummary = {
+  walletAddress: "",
+  claimableAmount: "Loading",
+  pushProfit: "Loading",
+  buffProfit: "Loading",
+  totalPushed: "Loading",
+  totalBuffed: "Loading",
+  pushWinRate: "Loading",
+  buffWinRate: "Loading",
+  pushCount: "Loading",
+  pushWins: "Loading",
+  pushLosses: "Loading",
+  buffCount: "Loading",
+  buffWins: "Loading",
+  buffLosses: "Loading",
+  pendingBuffs: "Loading",
+  skipPenalty: "Loading"
 };
 
 function parseApt(value: string) {
@@ -299,19 +342,20 @@ function normalizeDeletePending(value: unknown): DeletePendingRecord[] {
 
 export function PalateProvider({ children }: { children: ReactNode }) {
   const { signAndSubmitTransaction, walletAddress, walletStatus: walletConnectionStatus } = usePalateWallet();
+  const connectedWalletReady = walletConnectionStatus === "connected" && Boolean(walletAddress);
   const [walletStatus, setWalletStatus] = useState<WalletStatus>("connected");
-  const [balance, setBalance] = useState<PalateBalance>(mock_balance);
-  const [mediaRecords, setMediaRecords] = useState<MediaRecord[]>(mock_media);
+  const [balance, setBalance] = useState<PalateBalance>(connectedWalletReady ? loading_balance : mock_balance);
+  const [mediaRecords, setMediaRecords] = useState<MediaRecord[]>(connectedWalletReady ? [] : mock_media);
   const [pendingRegistrationMedia, setPendingRegistrationMedia] = useState<MediaRecord[]>([]);
   const [pendingRegistrationStorageLoaded, setPendingRegistrationStorageLoaded] = useState(false);
   const [deletePendingRecords, setDeletePendingRecords] = useState<DeletePendingRecord[]>([]);
   const [deletePendingStorageLoaded, setDeletePendingStorageLoaded] = useState(false);
   const [contentUnavailableIds, setContentUnavailableIds] = useState<number[]>([]);
   const [shelbyCleanupRequiredIds, setShelbyCleanupRequiredIds] = useState<number[]>([]);
-  const [waitingPushes, setWaitingPushes] = useState<WaitingPush[]>(mock_waiting_pushes);
-  const [activeMatches, setActiveMatches] = useState<ActiveMatch[]>(mock_matches);
-  const [claimRecords, setClaimRecords] = useState<ClaimRecord[]>(mock_claims);
-  const [userSummary, setUserSummary] = useState<UserSummary>(mock_summary);
+  const [waitingPushes, setWaitingPushes] = useState<WaitingPush[]>(connectedWalletReady ? [] : mock_waiting_pushes);
+  const [activeMatches, setActiveMatches] = useState<ActiveMatch[]>(connectedWalletReady ? [] : mock_matches);
+  const [claimRecords, setClaimRecords] = useState<ClaimRecord[]>(connectedWalletReady ? [] : mock_claims);
+  const [userSummary, setUserSummary] = useState<UserSummary>(connectedWalletReady ? { ...loading_summary, walletAddress: walletAddress ?? "" } : mock_summary);
   const [currentAssignment, setCurrentAssignment] = useState<BuffAssignment | null>(null);
   const [completedBuffSide, setCompletedBuffSide] = useState<BuffSide | null>(null);
   const [noValidMatchAvailable, setNoValidMatchAvailable] = useState(false);
@@ -320,6 +364,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [uploadStep, setUploadStep] = useState<UploadStep | null>(null);
   const [uploadRecovery, setUploadRecovery] = useState<UploadRecoveryState>(initial_upload_recovery_state);
   const [mediaReadStatus, setMediaReadStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [claimReadStatus, setClaimReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "idle" : "ready");
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [chainRead, setChainRead] = useState<ChainReadState>(initial_chain_read_state);
@@ -359,8 +404,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
+    const cachedSnapshot = (() => {
+      try {
+        const stored = window.localStorage.getItem(chain_read_cache_key);
+        if (!stored) return null;
+        return JSON.parse(stored) as Pick<ChainReadState, "categories" | "treasuryAddress" | "protocolConfig">;
+      } catch {
+        return null;
+      }
+    })();
+
     async function loadChainReadState() {
-      setChainRead((current) => ({ ...current, status: "loading", error: null }));
+      setChainRead((current) => ({ ...current, status: "loading", warning: null, error: null }));
 
       try {
         const snapshot = await getChainReadSnapshot();
@@ -373,15 +428,35 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           categories: snapshot.categories,
           treasuryAddress: snapshot.treasuryAddress,
           protocolConfig: snapshot.protocolConfig,
+          warning: snapshot.warning,
           error: null
         }));
-      } catch (error) {
+        window.localStorage.setItem(chain_read_cache_key, JSON.stringify({
+          categories: snapshot.categories,
+          treasuryAddress: snapshot.treasuryAddress,
+          protocolConfig: snapshot.protocolConfig
+        }));
+      } catch {
         if (cancelled) return;
+
+        if (cachedSnapshot?.protocolConfig) {
+          setChainRead((current) => ({
+            ...current,
+            status: "ready",
+            categories: cachedSnapshot.categories ?? null,
+            treasuryAddress: cachedSnapshot.treasuryAddress ?? null,
+            protocolConfig: cachedSnapshot.protocolConfig,
+            warning: "Using last read",
+            error: null
+          }));
+          return;
+        }
 
         setChainRead((current) => ({
           ...current,
           status: "error",
-          error: error instanceof Error ? error.message : "Aptos read failed."
+          warning: null,
+          error: "Contract read temporarily unavailable"
         }));
       }
     }
@@ -430,8 +505,14 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshPalateBalanceForWallet(ownerAddress: string) {
-    const nextBalance = await getPalateBalance(ownerAddress);
-    setBalance(nextBalance);
+    try {
+      const nextBalance = await getPalateBalance(ownerAddress);
+      setBalance(nextBalance);
+    } catch (error) {
+      console.error("[Palate balance read failed]", error);
+      setBalance(unavailable_balance);
+      throw error;
+    }
   }
 
   async function refreshUserMediaForWallet(ownerAddress: string) {
@@ -446,34 +527,69 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function refreshWalletGameState(ownerAddress: string) {
+  async function refreshClaimsForWallet(ownerAddress: string) {
+    setClaimReadStatus("loading");
     setClaimRecords([]);
+    try {
+      const nextClaimRecords = await readClaimRecords(ownerAddress);
+      setClaimRecords(nextClaimRecords);
+      setClaimReadStatus("ready");
+      setUserSummary((current) => ({
+        ...current,
+        claimableAmount: formatApt(getClaimableAmountFromRecords(nextClaimRecords))
+      }));
+    } catch (error) {
+      console.error("[Claim discovery read failed]", error);
+      setClaimReadStatus("error");
+    }
+  }
+
+  async function refreshWalletGameState(ownerAddress: string) {
     setUserSummary((current) => ({
       ...current,
-      walletAddress: ownerAddress,
-      claimableAmount: "0.000 APT"
+      walletAddress: ownerAddress
     }));
-    const [nextBalance, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment, nextClaimRecords] = await Promise.all([
+
+    const [nextBalance, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.allSettled([
       getPalateBalance(ownerAddress),
       getUserMedia(ownerAddress),
       readWaitingPushes(),
       readActiveMatches(),
-      readCurrentAssignment(ownerAddress),
-      readClaimRecords(ownerAddress)
+      readCurrentAssignment(ownerAddress)
     ]);
 
-    setBalance(nextBalance);
-    setMediaRecords(nextMedia);
-    setWaitingPushes(nextWaitingPushes);
-    setActiveMatches(nextActiveMatches);
-    setCurrentAssignment(nextAssignment);
-    setClaimRecords(nextClaimRecords);
-    setUserSummary((current) => ({
-      ...current,
-      walletAddress: ownerAddress,
-      claimableAmount: formatApt(getClaimableAmountFromRecords(nextClaimRecords))
-    }));
-    setMediaReadStatus("ready");
+    if (nextBalance.status === "fulfilled") {
+      setBalance(nextBalance.value);
+    } else {
+      console.error("[Palate balance read failed]", nextBalance.reason);
+      setBalance(unavailable_balance);
+    }
+
+    if (nextMedia.status === "fulfilled") {
+      setMediaRecords(nextMedia.value);
+      setMediaReadStatus("ready");
+    } else {
+      console.error("[User media read failed]", nextMedia.reason);
+      setMediaReadStatus("error");
+    }
+
+    if (nextWaitingPushes.status === "fulfilled") {
+      setWaitingPushes(nextWaitingPushes.value);
+    } else {
+      console.error("[Waiting pushes read failed]", nextWaitingPushes.reason);
+    }
+
+    if (nextActiveMatches.status === "fulfilled") {
+      setActiveMatches(nextActiveMatches.value);
+    } else {
+      console.error("[Active matches read failed]", nextActiveMatches.reason);
+    }
+
+    if (nextAssignment.status === "fulfilled") {
+      setCurrentAssignment(nextAssignment.value);
+    } else {
+      console.error("[Assignment read failed]", nextAssignment.reason);
+    }
   }
 
   useEffect(() => {
@@ -485,12 +601,20 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     async function refreshOnWalletConnect() {
       try {
         if (!cancelled) {
+          setBalance(loading_balance);
+          setMediaRecords([]);
+          setWaitingPushes([]);
+          setActiveMatches([]);
+          setCurrentAssignment(null);
+          setClaimRecords([]);
+          setMediaReadStatus("loading");
+          setClaimReadStatus("idle");
+          setUserSummary({ ...loading_summary, walletAddress: ownerAddress });
           await refreshWalletGameState(ownerAddress);
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
-          setFeedback({ type: "error", message: error instanceof Error ? error.message : "Unable to load Palate Balance." });
-          setMediaReadStatus("error");
+          setFeedback({ type: "error", message: "Some on-chain data is temporarily unavailable." });
         }
       }
     }
@@ -876,6 +1000,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setFeedback({ type: "info", message: `Settle Match submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
+      await refreshClaimsForWallet(walletAddress);
       setFeedback({ type: "success", message: `Match settled ${shortenTransactionHash(transactionHash)}.` });
     } catch (error) {
       console.error("settleMatch failed", error);
@@ -906,6 +1031,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setFeedback({ type: "info", message: `Claim submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
+      await refreshClaimsForWallet(walletAddress);
       setFeedback({ type: "success", message: `${claim.type === "buff" ? "Buff" : "Push"} reward credited to Palate Balance.` });
     } catch (error) {
       console.error("claimReward failed", error);
@@ -1448,10 +1574,15 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       uploadStep,
       uploadRecovery,
       mediaReadStatus,
+      claimReadStatus,
       processingAction,
       feedback,
       chainRead,
       clearFeedback: () => setFeedback(null),
+      refreshClaims: async () => {
+        if (!walletAddress) return;
+        await refreshClaimsForWallet(walletAddress);
+      },
       connectMockWallet: () => {
         setWalletStatus("connecting");
         window.setTimeout(() => {

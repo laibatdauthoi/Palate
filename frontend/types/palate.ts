@@ -51,6 +51,7 @@ export type ChainReadState = {
   categories: ChainCategoryConstants | null;
   treasuryAddress: string | null;
   protocolConfig: ChainProtocolConfig | null;
+  warning: string | null;
   error: string | null;
 };
 

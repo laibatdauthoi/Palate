@@ -28,6 +28,9 @@ export function WalletPanel() {
     networkName,
     notDetectedWallets,
     walletAddress,
+    walletBalance,
+    walletBalanceError,
+    walletBalanceStatus,
     walletError,
     walletName,
     walletStatus
@@ -37,6 +40,14 @@ export function WalletPanel() {
   const statusCopy = connected ? "Connected" : wallet_status_copy[walletStatus];
   const addressCopy = walletAddress ? shortenAddress(walletAddress) : statusCopy;
   const chainStatusCopy = chainRead.status === "ready" ? "Ready" : chainRead.status === "loading" ? "Loading" : chainRead.status === "error" ? "Error" : "Idle";
+  const walletBalanceCopy = walletBalanceStatus === "ready"
+    ? walletBalance ?? "Unavailable"
+    : walletBalanceStatus === "loading"
+      ? "Loading"
+      : walletBalanceStatus === "error"
+        ? "Unavailable"
+        : "Disconnected";
+  const palateBalanceCopy = connected ? balance.availableBalance : "Disconnected";
 
   async function handleConnect(nextWalletName: string) {
     await connectWallet(nextWalletName);
@@ -54,7 +65,8 @@ export function WalletPanel() {
         </div>
         <div className="wallet_compact_body">
           <strong>{connected ? addressCopy : statusCopy}</strong>
-          <span>Balance {balance.availableBalance}</span>
+          <span>Wallet Balance {walletBalanceCopy}</span>
+          <span>Palate Balance {palateBalanceCopy}</span>
         </div>
         {connected ? (
           <div className="wallet_meta">
@@ -66,6 +78,7 @@ export function WalletPanel() {
           <p className="wallet_message">Switch to Aptos Testnet before future on-chain actions.</p>
         ) : null}
         {walletError ? <p className="wallet_message wallet_message_error">{walletError}</p> : null}
+        {walletBalanceError && connected ? <p className="wallet_message wallet_message_error">Wallet balance unavailable.</p> : null}
         <div className="chain_status_panel">
           <div className="wallet_panel_header">
             <span className="chain_status_network">{chainRead.networkLabel}</span>
@@ -74,7 +87,8 @@ export function WalletPanel() {
           <div className="chain_status_rows">
             <span>Module {shortenAddress(chainRead.moduleAddress)}</span>
             {chainRead.treasuryAddress ? <span>Treasury {shortenAddress(chainRead.treasuryAddress)}</span> : null}
-            {chainRead.error ? <span className="chain_status_error">Read unavailable</span> : null}
+            {chainRead.warning ? <span className="chain_status_error">{chainRead.warning}</span> : null}
+            {chainRead.error ? <span className="chain_status_error">{chainRead.error}</span> : null}
           </div>
         </div>
         <div className="wallet_actions">

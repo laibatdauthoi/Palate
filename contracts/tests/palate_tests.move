@@ -1695,15 +1695,28 @@ module palate::palate_tests {
     }
 
     #[test(admin = @palate, framework = @0x1, pusher = @0x380, challenger = @0x381)]
-    fun bothMediaStatusesBecomeSettled(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+    fun bothMediaStatusesReturnToIdleAfterSettlement(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
         createImageMatch(&framework, &pusher, &challenger);
         timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
 
         palate::settleMatch(&pusher, 0);
 
-        assert!(palate::getMediaStatus(0) == palate::statusSettled(), 0);
-        assert!(palate::getMediaStatus(1) == palate::statusSettled(), 1);
+        assert!(palate::getMediaStatus(0) == palate::statusIdle(), 0);
+        assert!(palate::getMediaStatus(1) == palate::statusIdle(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x381, challenger = @0x382)]
+    fun settledMediaCanCreateANewPushAgain(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+
+        palate::settleMatch(&pusher, 0);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        assert!(palate::getMediaStatus(0) == palate::statusWaiting(), 0);
+        assert!(palate::getWaitingPushMediaId(1) == 0, 1);
     }
 
     #[test(admin = @palate, framework = @0x1, pusher = @0x382, challenger = @0x383)]

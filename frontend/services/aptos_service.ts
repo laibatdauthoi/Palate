@@ -21,6 +21,8 @@ import type {
 const aptos_config = new AptosConfig({ network: Network.TESTNET });
 const aptos = new Aptos(aptos_config);
 const OCTAS_PER_APT = BigInt(100000000);
+const view_retry_count = 2;
+const view_retry_delay_ms = 250;
 
 const module_id = `${app_config.moduleAddress}::${app_config.moduleName}`;
 
@@ -33,15 +35,20 @@ function viewFunction(functionName: string) {
 }
 
 async function viewOne<T>(functionName: string, functionArguments: SimpleEntryFunctionArgumentTypes[] = []): Promise<T> {
-  const result = await aptos.view<[T]>({
-    payload: {
-      function: viewFunction(functionName),
-      typeArguments: [],
-      functionArguments
-    }
-  });
+  return retryRead(
+    `view:${functionName}`,
+    async () => {
+      const result = await aptos.view<[T]>({
+        payload: {
+          function: viewFunction(functionName),
+          typeArguments: [],
+          functionArguments
+        }
+      });
 
-  return result[0];
+      return result[0];
+    }
+  );
 }
 
 function asString(value: unknown) {
@@ -72,6 +79,29 @@ function decodeUtf8(value: unknown) {
   }
 
   return String(value ?? "");
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function retryRead<T>(label: string, read: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= view_retry_count; attempt += 1) {
+    try {
+      return await read();
+    } catch (error) {
+      lastError = error;
+      console.error(`[Palate read failed] ${label}`, { attempt: attempt + 1, error });
+      if (attempt === view_retry_count) {
+        break;
+      }
+      await delay(view_retry_delay_ms * (attempt + 1));
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`${label} failed.`);
 }
 
 function categoryToChainValue(category: MediaCategory, constants?: ChainCategoryConstants | null) {
@@ -322,6 +352,15 @@ export async function getProtocolConfig(): Promise<ChainProtocolConfig> {
   };
 }
 
+export async function getWalletAptBalance(walletAddress: string): Promise<string> {
+  const amount = await retryRead(
+    "wallet:getAccountAPTAmount",
+    () => aptos.getAccountAPTAmount({ accountAddress: walletAddress })
+  );
+
+  return formatOctasToApt(amount);
+}
+
 function entryPayload(functionName: string, functionArguments: SimpleEntryFunctionArgumentTypes[]): InputGenerateTransactionPayloadData {
   return {
     function: viewFunction(functionName),
@@ -431,15 +470,28 @@ export async function waitForPalateTransaction(transactionHash: string) {
 }
 
 export async function getChainReadSnapshot() {
-  const [categories, protocolConfig] = await Promise.all([
-    getCategoryConstants(),
-    getProtocolConfig()
+  const [protocolResult, categoriesResult] = await Promise.allSettled([
+    getProtocolConfig(),
+    getCategoryConstants()
   ]);
+
+  if (protocolResult.status !== "fulfilled") {
+    throw protocolResult.reason instanceof Error
+      ? protocolResult.reason
+      : new Error("Contract read temporarily unavailable");
+  }
+
+  const protocolConfig = protocolResult.value;
+  const categories = categoriesResult.status === "fulfilled" ? categoriesResult.value : null;
+  const warning = categoriesResult.status === "rejected"
+    ? "Using protocol config without refreshed category constants."
+    : null;
 
   return {
     categories,
     treasuryAddress: protocolConfig.treasuryAddress,
-    protocolConfig
+    protocolConfig,
+    warning
   };
 }
 

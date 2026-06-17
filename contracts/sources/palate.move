@@ -922,8 +922,8 @@ module palate::palate {
 
         let media_a_index = findMediaIndex(state, media_a_id);
         let media_b_index = findMediaIndex(state, media_b_id);
-        vector::borrow_mut(&mut state.media_records, media_a_index).status = STATUS_SETTLED;
-        vector::borrow_mut(&mut state.media_records, media_b_index).status = STATUS_SETTLED;
+        vector::borrow_mut(&mut state.media_records, media_a_index).status = STATUS_IDLE;
+        vector::borrow_mut(&mut state.media_records, media_b_index).status = STATUS_IDLE;
 
         updateUserSummaryForPushSettlement(state, pusher_a, pusher_b, winner_side);
         updateUserSummaryForBuffSettlement(state, match_id, winner_side);
