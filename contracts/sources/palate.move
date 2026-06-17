@@ -84,6 +84,10 @@ module palate::palate {
     const SIDE_A: u8 = 1;
     const SIDE_B: u8 = 2;
 
+    /// Claim reward type values.
+    const CLAIM_REWARD_TYPE_PUSH: u8 = 1;
+    const CLAIM_REWARD_TYPE_BUFF: u8 = 2;
+
     /// Score algorithm values.
     const SCORE_ALGORITHM_LOG: u8 = 1;
 
@@ -228,6 +232,16 @@ module palate::palate {
         total_pushed: u64,
         total_buffed: u64,
         claimable_amount: u64,
+    }
+
+    struct ClaimDiscoveryRecord has copy, drop, store {
+        claim_key: u64,
+        match_id: u64,
+        reward_type: u8,
+        claimable_amount: u64,
+        claimable: bool,
+        claimed: bool,
+        settled: bool,
     }
 
     struct UserSummaryRecord has copy, drop, store {
@@ -1306,6 +1320,106 @@ module palate::palate {
     #[view]
     public fun getMatchSettledTime(match_id: u64): u64 acquires PalateState {
         getMatch(match_id).settled_time
+    }
+
+    #[view]
+    public fun getClaimDiscoveryRecords(user: address): vector<ClaimDiscoveryRecord> acquires PalateState {
+        assertInitialized();
+
+        let state = borrow_global<PalateState>(@palate);
+        let records = vector::empty<ClaimDiscoveryRecord>();
+
+        let match_index = 0;
+        let match_length = vector::length(&state.active_matches);
+        while (match_index < match_length) {
+            let active_match = vector::borrow(&state.active_matches, match_index);
+            if (active_match.status == MATCH_STATUS_SETTLED) {
+                if (isWinningPusher(active_match, user)) {
+                    vector::push_back(&mut records, ClaimDiscoveryRecord {
+                        claim_key: active_match.match_id * 10 + (CLAIM_REWARD_TYPE_PUSH as u64),
+                        match_id: active_match.match_id,
+                        reward_type: CLAIM_REWARD_TYPE_PUSH,
+                        claimable_amount: calculatePushPayoutAmount(active_match, user),
+                        claimable: !active_match.push_claimed,
+                        claimed: active_match.push_claimed,
+                        settled: true,
+                    });
+                };
+            };
+            match_index = match_index + 1;
+        };
+
+        let buff_index = 0;
+        let buff_length = vector::length(&state.buff_records);
+        while (buff_index < buff_length) {
+            let buff_record = vector::borrow(&state.buff_records, buff_index);
+            if (buff_record.user == user) {
+                let active_match_index = findActiveMatchIndex(state, buff_record.match_id);
+                let active_match = vector::borrow(&state.active_matches, active_match_index);
+                if (active_match.status == MATCH_STATUS_SETTLED && buff_record.side == active_match.winner_side) {
+                    vector::push_back(&mut records, ClaimDiscoveryRecord {
+                        claim_key: buff_record.match_id * 10 + (CLAIM_REWARD_TYPE_BUFF as u64),
+                        match_id: buff_record.match_id,
+                        reward_type: CLAIM_REWARD_TYPE_BUFF,
+                        claimable_amount: calculateBuffPayoutAmount(active_match, buff_record),
+                        claimable: !buff_record.claimed,
+                        claimed: buff_record.claimed,
+                        settled: true,
+                    });
+                };
+            };
+            buff_index = buff_index + 1;
+        };
+
+        records
+    }
+
+    #[view]
+    public fun getClaimDiscoveryRecordCount(user: address): u64 acquires PalateState {
+        let records = getClaimDiscoveryRecords(user);
+        vector::length(&records)
+    }
+
+    #[view]
+    public fun getClaimDiscoveryRecordMatchId(user: address, index: u64): u64 acquires PalateState {
+        let records = getClaimDiscoveryRecords(user);
+        vector::borrow(&records, index).match_id
+    }
+
+    #[view]
+    public fun getClaimDiscoveryRecordRewardType(user: address, index: u64): u8 acquires PalateState {
+        let records = getClaimDiscoveryRecords(user);
+        vector::borrow(&records, index).reward_type
+    }
+
+    #[view]
+    public fun getClaimDiscoveryRecordClaimKey(user: address, index: u64): u64 acquires PalateState {
+        let records = getClaimDiscoveryRecords(user);
+        vector::borrow(&records, index).claim_key
+    }
+
+    #[view]
+    public fun getClaimDiscoveryRecordClaimableAmount(user: address, index: u64): u64 acquires PalateState {
+        let records = getClaimDiscoveryRecords(user);
+        vector::borrow(&records, index).claimable_amount
+    }
+
+    #[view]
+    public fun getClaimDiscoveryRecordClaimable(user: address, index: u64): bool acquires PalateState {
+        let records = getClaimDiscoveryRecords(user);
+        vector::borrow(&records, index).claimable
+    }
+
+    #[view]
+    public fun getClaimDiscoveryRecordClaimed(user: address, index: u64): bool acquires PalateState {
+        let records = getClaimDiscoveryRecords(user);
+        vector::borrow(&records, index).claimed
+    }
+
+    #[view]
+    public fun getClaimDiscoveryRecordSettled(user: address, index: u64): bool acquires PalateState {
+        let records = getClaimDiscoveryRecords(user);
+        vector::borrow(&records, index).settled
     }
 
     #[view]

@@ -2114,6 +2114,127 @@ module palate::palate_tests {
         assert!(!palate::isBuffRewardClaimable(signer::address_of(&user), 0), 8);
     }
 
+    #[test(admin = @palate, framework = @0x1, pusher = @0x436, challenger = @0x437)]
+    fun claimDiscoveryIncludesWinningPusherReward(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        let user = signer::address_of(&pusher);
+        assert!(palate::getClaimDiscoveryRecordCount(user) == 1, 0);
+        assert!(palate::getClaimDiscoveryRecordMatchId(user, 0) == 0, 1);
+        assert!(palate::getClaimDiscoveryRecordRewardType(user, 0) == 1, 2);
+        assert!(palate::getClaimDiscoveryRecordClaimKey(user, 0) == 1, 3);
+        assert!(palate::getClaimDiscoveryRecordClaimableAmount(user, 0) == palate::estimatePushClaimAmount(user, 0), 4);
+        assert!(palate::getClaimDiscoveryRecordClaimable(user, 0), 5);
+        assert!(!palate::getClaimDiscoveryRecordClaimed(user, 0), 6);
+        assert!(palate::getClaimDiscoveryRecordSettled(user, 0), 7);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x438, challenger = @0x439, user = @0x43A)]
+    fun claimDiscoveryIncludesWinningBuffReward(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        let user_address = signer::address_of(&user);
+        assert!(palate::getClaimDiscoveryRecordCount(user_address) == 1, 0);
+        assert!(palate::getClaimDiscoveryRecordMatchId(user_address, 0) == 0, 1);
+        assert!(palate::getClaimDiscoveryRecordRewardType(user_address, 0) == 2, 2);
+        assert!(palate::getClaimDiscoveryRecordClaimKey(user_address, 0) == 2, 3);
+        assert!(palate::getClaimDiscoveryRecordClaimableAmount(user_address, 0) == palate::estimateBuffClaimAmount(user_address, 0), 4);
+        assert!(palate::getClaimDiscoveryRecordClaimable(user_address, 0), 5);
+        assert!(!palate::getClaimDiscoveryRecordClaimed(user_address, 0), 6);
+        assert!(palate::getClaimDiscoveryRecordSettled(user_address, 0), 7);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x43B, challenger = @0x43C, user = @0x43D)]
+    fun claimDiscoveryReturnsEmptyForUserWithNoReward(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getClaimDiscoveryRecordCount(signer::address_of(&user)) == 0, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x43E, challenger = @0x43F, user = @0x440)]
+    fun claimDiscoveryExcludesPreSettlementMatches(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
+        palate::findMatch(&user);
+        palate::placeBuff(&user, palate::sideA(), palate::getMinBuffAmount());
+
+        assert!(palate::getClaimDiscoveryRecordCount(signer::address_of(&pusher)) == 0, 0);
+        assert!(palate::getClaimDiscoveryRecordCount(signer::address_of(&user)) == 0, 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x441, challenger = @0x442)]
+    fun claimDiscoveryMarksClaimedPushReward(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+        palate::claimPush(&pusher, 0);
+
+        let user = signer::address_of(&pusher);
+        assert!(palate::getClaimDiscoveryRecordCount(user) == 1, 0);
+        assert!(!palate::getClaimDiscoveryRecordClaimable(user, 0), 1);
+        assert!(palate::getClaimDiscoveryRecordClaimed(user, 0), 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x443, challenger = @0x444, winner = @0x445, loser = @0x446)]
+    fun claimDiscoveryExcludesLosingSideUser(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        winner: signer,
+        loser: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &winner);
+        palate::findMatch(&winner);
+        palate::placeBuff(&winner, palate::sideA(), palate::getMinBuffAmount() * 3);
+        fundPalateBalance(&framework, &loser);
+        palate::findMatch(&loser);
+        palate::placeBuff(&loser, palate::sideB(), palate::getMinBuffAmount());
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        assert!(palate::getClaimDiscoveryRecordCount(signer::address_of(&loser)) == 0, 0);
+    }
+
     #[test(
         admin = @palate,
         framework = @0x1,

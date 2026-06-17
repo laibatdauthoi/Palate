@@ -633,71 +633,45 @@ export async function getPalateBalance(walletAddress: string): Promise<PalateBal
   };
 }
 
-export async function getClaimRecords(walletAddress: string): Promise<ClaimRecord[]> {
-  const buffRecordCount = Number(asString(await viewOne("getBuffRecordCount")));
-  const candidateMatchIds = new Set<string>();
+function claimRewardTypeToFrontend(value: number): ClaimRecord["type"] {
+  return value === 2 ? "buff" : "push";
+}
 
-  for (let index = 0; index < buffRecordCount; index += 1) {
-    try {
-      candidateMatchIds.add(asString(await viewOne("getBuffRecordMatchId", [String(index)])));
-    } catch {
-      // Ignore a single unreadable record and continue collecting rewards.
-    }
+export async function getClaimRecords(walletAddress: string): Promise<ClaimRecord[]> {
+  const count = Number(asString(await viewOne("getClaimDiscoveryRecordCount", [walletAddress])));
+  if (!Number.isFinite(count) || count <= 0) {
+    return [];
   }
 
-  const recordsByKey = new Map<string, ClaimRecord>();
-
-  await Promise.all(Array.from(candidateMatchIds).map(async (matchId) => {
-    try {
-      const [matchStatus, pushClaimable, pushClaimed, pushClaimAmount, buffClaimable, buffClaimed, buffClaimAmount, settledTime] = await Promise.all([
-        viewOne("getMatchStatus", [matchId]),
-        viewOne("isPushRewardClaimable", [walletAddress, matchId]),
-        viewOne("isPushClaimed", [matchId]),
-        viewOne("estimatePushClaimAmount", [walletAddress, matchId]),
-        viewOne("isBuffRewardClaimable", [walletAddress, matchId]),
-        viewOne("isBuffClaimed", [walletAddress, matchId]),
-        viewOne("estimateBuffClaimAmount", [walletAddress, matchId]),
-        viewOne("getMatchSettledTime", [matchId])
+  const records = await Promise.all(
+    Array.from({ length: count }, async (_, index) => {
+      const [claimKey, matchId, rewardType, claimableAmount, claimable, claimed, settled] = await Promise.all([
+        viewOne("getClaimDiscoveryRecordClaimKey", [walletAddress, String(index)]),
+        viewOne("getClaimDiscoveryRecordMatchId", [walletAddress, String(index)]),
+        viewOne("getClaimDiscoveryRecordRewardType", [walletAddress, String(index)]),
+        viewOne("getClaimDiscoveryRecordClaimableAmount", [walletAddress, String(index)]),
+        viewOne("getClaimDiscoveryRecordClaimable", [walletAddress, String(index)]),
+        viewOne("getClaimDiscoveryRecordClaimed", [walletAddress, String(index)]),
+        viewOne("getClaimDiscoveryRecordSettled", [walletAddress, String(index)])
       ]);
 
-      const settledLabel = formatChainTime(asString(settledTime));
-      const numericMatchId = Number(matchId);
-      const pushKey = `${numericMatchId}:push`;
-      const buffKey = `${numericMatchId}:buff`;
+      const normalizedMatchId = Number(asString(matchId));
+      const normalizedRewardType = claimRewardTypeToFrontend(asNumber(rewardType));
 
-      if (pushClaimable || pushClaimed) {
-        recordsByKey.set(pushKey, {
-          id: numericMatchId * 10 + 1,
-          matchId: numericMatchId,
-          type: "push",
-          matchRef: `Match ${matchId}`,
-          amount: pushClaimable ? formatOctasToApt(asString(pushClaimAmount)) : "Claimed",
-          settledTime: settledLabel,
-          claimable: Boolean(pushClaimable),
-          claimed: Boolean(pushClaimed),
-        });
-      }
+      return {
+        id: Number(asString(claimKey)),
+        matchId: normalizedMatchId,
+        type: normalizedRewardType,
+        matchRef: `Match ${normalizedMatchId}`,
+        amount: formatOctasToApt(asString(claimableAmount)),
+        settledTime: Boolean(settled) ? "Settled on chain" : "Pending settlement",
+        claimable: Boolean(claimable),
+        claimed: Boolean(claimed)
+      } satisfies ClaimRecord;
+    })
+  );
 
-      if (buffClaimable || buffClaimed) {
-        recordsByKey.set(buffKey, {
-          id: numericMatchId * 10 + 2,
-          matchId: numericMatchId,
-          type: "buff",
-          matchRef: `Match ${matchId}`,
-          amount: buffClaimable ? formatOctasToApt(asString(buffClaimAmount)) : "Claimed",
-          settledTime: settledLabel,
-          claimable: Boolean(buffClaimable),
-          claimed: Boolean(buffClaimed),
-        });
-      }
-
-      void matchStatus;
-    } catch {
-      // Ignore reward candidates that can no longer be resolved.
-    }
-  }));
-
-  return Array.from(recordsByKey.values()).sort((a, b) => b.id - a.id);
+  return records.sort((a, b) => b.id - a.id);
 }
 
 // Future Aptos view call boundary: read user_summary.
