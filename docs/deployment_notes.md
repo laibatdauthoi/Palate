@@ -7,7 +7,7 @@
 - Module name: `palate`
 - Publish command: `aptos move publish --package-dir contracts --profile default --assume-yes`
 - Published at: `2026-06-14 12:22:53 +07:00`
-- Transaction hash: `0xf8776e099ba3146be6c0b6aac9885d2ac8429450896dbbc08bd7d96f5f0be034`
+- Transaction hash: `0xc495a82b65d029853f782c65f59519b2b20201d5af7e40d6cc5d8ee7c3287ea8`
 - Explorer: `https://explorer.aptoslabs.com/txn/0xff869020893ab91d0b810b2aa53f0ecc0edaf45dd153b815159089cd99dde3db?network=testnet`
 
 ## Aptos Testnet Protocol Initialization

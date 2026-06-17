@@ -569,6 +569,7 @@ async function getActiveMatchById(matchId: string): Promise<ActiveMatch> {
     pushAmountB: formatOctasToApt(asString(pushAmountB)),
     category: chainCategoryToFrontend(asNumber(category)),
     timeRemaining: formatTimeRemaining(asString(endTime)),
+    endTimeSeconds: asString(endTime),
     status: chainMatchStatusToFrontend(asNumber(status))
   };
 }

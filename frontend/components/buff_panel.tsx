@@ -43,7 +43,7 @@ export function BuffPanel({
         </div>
         <div className="cluster">
           <CategoryBadge category={match.category} />
-          <CountdownTimer value={match.timeRemaining} />
+          <CountdownTimer endedLabel="Ready to settle" targetTimestamp={match.endTimeSeconds} />
         </div>
       </div>
       <div className="buff_vs_layout">

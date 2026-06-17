@@ -237,7 +237,7 @@ function PushPageContent() {
               actionHref="/buff"
               key={match.id}
               match={match}
-              onSettle={match.status === "active" && match.timeRemaining === "00:00:00" ? () => settleMatch(match.id) : undefined}
+              onSettle={match.status === "active" ? () => settleMatch(match.id) : undefined}
             />
           ))}
         </div>

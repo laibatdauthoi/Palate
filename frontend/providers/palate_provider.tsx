@@ -1609,6 +1609,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
               pushAmountB: formatApt(challengeAmount),
               category: push.media.category,
               timeRemaining: "23:59:59",
+              endTimeSeconds: String(Math.floor(Date.now() / 1000) + 86399),
               status: "active"
             },
             ...matches

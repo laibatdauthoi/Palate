@@ -103,6 +103,7 @@ export type ActiveMatch = {
   pushAmountB: string;
   category: MediaCategory;
   timeRemaining: string;
+  endTimeSeconds: string;
   status: MatchStatus;
 };
 

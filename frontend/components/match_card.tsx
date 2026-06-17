@@ -2,6 +2,7 @@ import type { ActiveMatch } from "@/types/palate";
 import { ActionButton } from "./action_button";
 import { CategoryBadge } from "./category_badge";
 import { CountdownTimer } from "./countdown_timer";
+import { useLiveCountdown } from "@/hooks/use_live_countdown";
 import { MediaRenderer } from "./media_renderer";
 import { StatusBadge } from "./status_badge";
 
@@ -13,7 +14,8 @@ type MatchCardProps = {
 };
 
 export function MatchCard({ match, actionHref, onSettle, settleDisabled }: MatchCardProps) {
-  const isSettleEligible = match.status === "active" && match.timeRemaining === "00:00:00";
+  const countdown = useLiveCountdown(Number(match.endTimeSeconds), { endedLabel: "Ready to settle" });
+  const isSettleEligible = match.status === "active" && countdown.isEnded;
   return (
     <article className="match_card">
       <div className="match_media_pair">
@@ -33,7 +35,7 @@ export function MatchCard({ match, actionHref, onSettle, settleDisabled }: Match
           <StatusBadge status={match.status} />
         </div>
         <div className="spread">
-          <CountdownTimer value={match.timeRemaining} />
+          <CountdownTimer endedLabel="Ready to settle" targetTimestamp={match.endTimeSeconds} />
           <div className="match_card_actions">
             {onSettle && isSettleEligible ? (
               <ActionButton disabled={settleDisabled} onClick={onSettle} variant="secondary">

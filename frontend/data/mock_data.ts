@@ -165,6 +165,7 @@ export const mock_matches: ActiveMatch[] = [
     pushAmountB: "8.40 APT",
     category: "meme",
     timeRemaining: "07:42:18",
+    endTimeSeconds: String(Math.floor(Date.now() / 1000) + (7 * 3600) + (42 * 60) + 18),
     status: "active"
   },
   {
@@ -177,6 +178,7 @@ export const mock_matches: ActiveMatch[] = [
     pushAmountB: "12.60 APT",
     category: "image",
     timeRemaining: "12:08:44",
+    endTimeSeconds: String(Math.floor(Date.now() / 1000) + (12 * 3600) + (8 * 60) + 44),
     status: "active"
   }
 ];

@@ -9,6 +9,7 @@ import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
+import { useCountdownNow, getLiveCountdownState } from "@/hooks/use_live_countdown";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
@@ -30,10 +31,13 @@ export default function BuffPage() {
   } = usePalate();
   const { walletStatus } = usePalateWallet();
   const [buffAmount, setBuffAmount] = useState("0.250");
+  const nowMs = useCountdownNow();
   const assignedMatch = currentAssignment?.match;
   const buffBusy = processingAction === "findMatch" || processingAction === "placeBuff" || processingAction === "skipMatch";
   const walletReady = walletStatus === "connected";
-  const settleableMatches = activeMatches.filter((match) => match.status === "active" && match.timeRemaining === "00:00:00");
+  const settleableMatches = activeMatches.filter((match) =>
+    match.status === "active" && getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ready to settle" }).isEnded
+  );
   const minBuffOctas = chainRead.protocolConfig?.minBuffAmount ? BigInt(chainRead.protocolConfig.minBuffAmount) : null;
   const minBuffAmountLabel = minBuffOctas !== null ? formatOctasToApt(minBuffOctas) : "loading";
   const buffAmountValidation = validateBuffAmount(buffAmount, minBuffOctas);
