@@ -14,6 +14,7 @@ type MediaCardProps = {
   media: MediaRecord;
   actionLabel?: string;
   onAction?: () => void;
+  onPushAction?: () => void;
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
   actionDisabled?: boolean;
@@ -22,7 +23,7 @@ type MediaCardProps = {
   onMediaToggle?: () => void;
 };
 
-export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, actionDisabled, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaCardProps) {
+export function MediaCard({ media, actionLabel, onAction, onPushAction, secondaryActionLabel, onSecondaryAction, actionDisabled, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaCardProps) {
   const displayTitle = getMediaDisplayTitle(media);
   const isInvalidMediaType = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
   const isVideoDisabled = media.category === "video" && !VIDEO_ENABLED;
@@ -40,12 +41,22 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
     onMediaToggle();
   }
 
+  function handleActionClick() {
+    if (actionLabel === "Push" && onPushAction) {
+      onPushAction();
+      return;
+    }
+
+    onAction?.();
+  }
+
   return (
     <article className={`media_card ${mediaActive ? "media_card_audio_active" : ""}`} onClick={handleCardClick}>
       <div className={`media_preview media_preview_${media.accent}`} aria-label={displayTitle}>
         <div className="media_preview_inner">
           <MediaRenderer
             media={media}
+            variant="card"
             mediaActive={mediaActive}
             mediaPlaying={mediaPlaying}
             onMediaToggle={onMediaToggle}
@@ -64,7 +75,7 @@ export function MediaCard({ media, actionLabel, onAction, secondaryActionLabel, 
         <div className="spread media_meta">
           <span>{media.createdTime}</span>
           <div className="media_card_actions">
-            {actionLabel ? <ActionButton disabled={actionDisabled || (isVideoDisabled && !isDeleteAction) || (isInvalidMediaType && !isDeleteAction && !isShelbyUploadFailed) || (isContentUnavailable && !isDeleteAction && !isDeletePending)} onClick={onAction} variant={isDeleteAction || isShelbyUploadFailed || isShelbyCleanupRequired ? "danger" : "secondary"}>{actionLabel}</ActionButton> : null}
+            {actionLabel ? <ActionButton disabled={actionDisabled || (isVideoDisabled && !isDeleteAction) || (isInvalidMediaType && !isDeleteAction && !isShelbyUploadFailed) || (isContentUnavailable && !isDeleteAction && !isDeletePending)} onClick={handleActionClick} variant={isDeleteAction || isShelbyUploadFailed || isShelbyCleanupRequired ? "danger" : "secondary"}>{actionLabel}</ActionButton> : null}
             {secondaryActionLabel ? <ActionButton onClick={onSecondaryAction} variant="ghost">{secondaryActionLabel}</ActionButton> : null}
           </div>
         </div>

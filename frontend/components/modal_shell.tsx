@@ -36,11 +36,11 @@ export function ModalShell({ title, children, open, onClose }: ModalShellProps) 
   const modal = (
     <div className="modal_backdrop" onMouseDown={onClose} role="presentation">
       <section className="modal_shell" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="modal_title">
-        <div className="spread">
+        <div className="modal_shell_header spread">
           <h2 id="modal_title">{title}</h2>
           <ActionButton variant="ghost" onClick={onClose}>Close</ActionButton>
         </div>
-        <div>{children}</div>
+        <div className="modal_shell_body">{children}</div>
       </section>
     </div>
   );

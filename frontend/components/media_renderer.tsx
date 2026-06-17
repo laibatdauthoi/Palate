@@ -13,6 +13,7 @@ import { detectMediaKindFromMetadata } from "@/utils/media_file_validation";
 type MediaRendererProps = {
   media: MediaRecord;
   compact?: boolean;
+  variant?: "card" | "compact" | "match" | "selector";
   mediaActive?: boolean;
   mediaPlaying?: boolean;
   onMediaToggle?: () => void;
@@ -22,13 +23,14 @@ function isHttpUrl(value: string) {
   return value.startsWith("http://") || value.startsWith("https://") || value.startsWith("blob:");
 }
 
-export function MediaRenderer({ media, compact = false, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaRendererProps) {
+export function MediaRenderer({ media, compact = false, variant, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaRendererProps) {
   const [failed, setFailed] = useState(false);
   const { openMediaViewer } = useMediaViewer();
   const source = useMemo(() => resolveShelbyReadUrl(media), [media]);
   const mediaKind = useMemo(() => detectMediaKindFromMetadata(media.mimeType, media.originalFileName), [media.mimeType, media.originalFileName]);
   const displayTitle = useMemo(() => getMediaDisplayTitle(media), [media]);
   const hasPlayableSource = source && isHttpUrl(source) && !failed;
+  const resolvedVariant = variant ?? (compact ? "compact" : "card");
 
   function handleUnavailable(event: SyntheticEvent<HTMLImageElement | HTMLVideoElement>) {
     const target = event.currentTarget;
@@ -51,7 +53,7 @@ export function MediaRenderer({ media, compact = false, mediaActive = false, med
     return (
       <button
         aria-label={`View details for ${displayTitle}`}
-        className={`media_renderer media_renderer_fallback media_renderer_video_disabled ${compact ? "media_renderer_compact" : ""}`}
+        className={`media_renderer media_renderer_fallback media_renderer_video_disabled media_renderer_variant_${resolvedVariant}`}
         onClick={() => openMediaViewer(media, "media_renderer:video_disabled")}
         type="button"
       >
@@ -63,7 +65,7 @@ export function MediaRenderer({ media, compact = false, mediaActive = false, med
 
   if (!hasPlayableSource) {
     return (
-      <div className={`media_renderer media_renderer_fallback ${compact ? "media_renderer_compact" : ""}`}>
+      <div className={`media_renderer media_renderer_fallback media_renderer_variant_${resolvedVariant}`}>
         <span>{displayTitle}</span>
         <small>{failed ? "Media unavailable" : "Media source unavailable"}</small>
       </div>
@@ -74,7 +76,7 @@ export function MediaRenderer({ media, compact = false, mediaActive = false, med
     return (
       <button
         aria-label={`View ${displayTitle}`}
-        className={`media_renderer media_renderer_button ${compact ? "media_renderer_compact" : ""}`}
+        className={`media_renderer media_renderer_button media_renderer_variant_${resolvedVariant}`}
         onClick={() => openMediaViewer(media, "media_renderer:image")}
         type="button"
       >
@@ -91,7 +93,7 @@ export function MediaRenderer({ media, compact = false, mediaActive = false, med
   if (mediaKind === "audio") {
     return (
       <div
-        className={`media_renderer media_renderer_player media_renderer_audio_controlled ${mediaActive ? "active" : ""} ${compact ? "media_renderer_compact" : ""}`}
+        className={`media_renderer media_renderer_player media_renderer_audio_controlled media_renderer_variant_${resolvedVariant} ${mediaActive ? "active" : ""}`}
         onClick={onMediaToggle}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -133,7 +135,7 @@ export function MediaRenderer({ media, compact = false, mediaActive = false, med
     return (
       <div
         aria-label={`View ${displayTitle}`}
-        className={`media_renderer media_renderer_video_frame ${mediaActive ? "active" : ""} ${compact ? "media_renderer_compact" : ""}`}
+        className={`media_renderer media_renderer_video_frame media_renderer_variant_${resolvedVariant} ${mediaActive ? "active" : ""}`}
         onClick={() => openMediaViewer(media, "media_renderer:video")}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -169,7 +171,7 @@ export function MediaRenderer({ media, compact = false, mediaActive = false, med
   }
 
   return (
-    <div className={`media_renderer media_renderer_fallback ${compact ? "media_renderer_compact" : ""}`}>
+    <div className={`media_renderer media_renderer_fallback media_renderer_variant_${resolvedVariant}`}>
       <span>{displayTitle}</span>
       <small>Unsupported media format</small>
     </div>

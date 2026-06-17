@@ -5,18 +5,23 @@ import { CountdownTimer } from "./countdown_timer";
 import { MediaRenderer } from "./media_renderer";
 import { StatusBadge } from "./status_badge";
 
-export function MatchCard({ match }: { match: ActiveMatch }) {
+type MatchCardProps = {
+  match: ActiveMatch;
+  actionHref?: string;
+};
+
+export function MatchCard({ match, actionHref }: MatchCardProps) {
   return (
     <article className="match_card">
       <div className="match_media_pair">
         <div className={`mini_media media_preview_${match.mediaA.accent}`}>
           <span className="mini_side_label">Media A</span>
-          <MediaRenderer compact media={match.mediaA} />
+          <MediaRenderer compact media={match.mediaA} variant="match" />
         </div>
         <div className="vs_marker">VS</div>
         <div className={`mini_media media_preview_${match.mediaB.accent}`}>
           <span className="mini_side_label">Media B</span>
-          <MediaRenderer compact media={match.mediaB} />
+          <MediaRenderer compact media={match.mediaB} variant="match" />
         </div>
       </div>
       <div className="match_card_body">
@@ -26,7 +31,7 @@ export function MatchCard({ match }: { match: ActiveMatch }) {
         </div>
         <div className="spread">
           <CountdownTimer value={match.timeRemaining} />
-          <ActionButton variant="secondary">View</ActionButton>
+          <ActionButton href={actionHref ?? "/buff"} variant="secondary">View</ActionButton>
         </div>
         <p className="mock_note">Live score, Buff pool, leading side, odds, and win probability are intentionally hidden.</p>
       </div>

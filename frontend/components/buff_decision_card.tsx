@@ -16,7 +16,7 @@ export function BuffDecisionCard({ side, media }: BuffDecisionCardProps) {
     <article className={`buff_decision_card buff_side_${side.toLowerCase()}`}>
       <div className="buff_side_label">Media {side}</div>
       <div className={`buff_media_stage media_preview_${media.accent}`}>
-        <MediaRenderer media={media} />
+        <MediaRenderer media={media} variant="selector" />
       </div>
       <div className="buff_decision_meta">
         <h3>{displayTitle}</h3>

@@ -1,13 +1,15 @@
 "use client";
 
 import { ActionButton } from "@/components/action_button";
+import { EmptyState } from "@/components/empty_state";
 import { MatchCard } from "@/components/match_card";
+import { WaitingPushCard } from "@/components/waiting_push_card";
 import { SectionPanel } from "@/components/section_panel";
 import { app_config } from "@/config/app_config";
 import { usePalate } from "@/providers/palate_provider";
 
 export default function HomePage() {
-  const { activeMatches, balance, userSummary } = usePalate();
+  const { activeMatches, balance, userSummary, waitingPushes } = usePalate();
   const stat_cards = [
     { label: "Active matches", value: String(activeMatches.length) },
     { label: "Pending Buffs", value: userSummary.pendingBuffs },
@@ -50,12 +52,28 @@ export default function HomePage() {
         ))}
       </div>
 
-      <SectionPanel title="Featured matches" copy="Active matches can be shown without exposing live score, Buff pool, leading side, odds, win probability, or supporter direction.">
-        <div className="wide_two_column">
-          {activeMatches.map((match) => (
-            <MatchCard key={match.id} match={match} />
-          ))}
-        </div>
+      <SectionPanel title="Waiting Pushes" copy="Waiting pushes can be challenged by same-category idle media. Hidden match direction, score, and odds are not shown here.">
+        {waitingPushes.length > 0 ? (
+          <div className="compact_card_grid compact_card_grid_waiting">
+            {waitingPushes.map((push) => (
+              <WaitingPushCard challengeHref={`/push?challengeId=${push.id}`} key={push.id} push={push} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No waiting pushes" copy="Push a registered idle media item to make it available for challenge." actionLabel="Go to Push" actionHref="/push" />
+        )}
+      </SectionPanel>
+
+      <SectionPanel title="Active Matches" copy="Active match cards stay compact and only show the information needed to continue to Buff.">
+        {activeMatches.length > 0 ? (
+          <div className="compact_card_grid compact_card_grid_matches">
+            {activeMatches.map((match) => (
+              <MatchCard actionHref="/buff" key={match.id} match={match} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No active matches" copy="Find Match or challenge a waiting push to start a live match." actionLabel="Go to Buff" actionHref="/buff" />
+        )}
       </SectionPanel>
     </div>
   );

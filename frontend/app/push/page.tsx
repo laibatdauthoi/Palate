@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
@@ -24,8 +25,18 @@ const category_labels: Record<MediaCategory, string> = {
 };
 
 export default function PushPage() {
+  return (
+    <Suspense fallback={<div className="page_stack page_push" />}>
+      <PushPageContent />
+    </Suspense>
+  );
+}
+
+function PushPageContent() {
   const { activeMatches, balance, challengePush, chainRead, createPush, feedback, mediaRecords, processingAction, waitingPushes } = usePalate();
   const { walletStatus } = usePalateWallet();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<"Waiting" | "Live Matches">("Waiting");
   const [modalOpen, setModalOpen] = useState(false);
   const [createMediaId, setCreateMediaId] = useState("");
@@ -33,11 +44,14 @@ export default function PushPage() {
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
   const [challengeMediaId, setChallengeMediaId] = useState("");
   const [challengeAmount, setChallengeAmount] = useState("6.510");
+  const [prefillReason, setPrefillReason] = useState<string | null>(null);
+  const createMediaQuery = searchParams.get("mediaId");
+  const challengePushQuery = searchParams.get("challengeId") ?? searchParams.get("pushId");
   const openWaitingPushes = waitingPushes.filter((push) =>
     push.status === "open"
       && getPushEligibility(push.media, { requireIdle: false }).eligible
   );
-  const selectedPush = openWaitingPushes.find((push) => push.id === challengePushId) ?? openWaitingPushes[0];
+  const selectedPush = openWaitingPushes.find((push) => push.id === challengePushId) ?? null;
   const idleMedia = mediaRecords.filter((media) =>
     media.status === "idle"
       && getPushEligibility(media).eligible
@@ -93,12 +107,66 @@ export default function PushPage() {
     }))
   ];
 
+  useEffect(() => {
+    if (!createMediaQuery) {
+      return;
+    }
+
+    const nextId = Number(createMediaQuery);
+    if (Number.isNaN(nextId)) {
+      return;
+    }
+
+    const candidate = mediaRecords.find((item) => item.id === nextId);
+    if (!candidate) {
+      setCreateMediaId("");
+      setPrefillReason("Selected media is no longer available.");
+      return;
+    }
+
+    const eligibility = getPushEligibility(candidate);
+    if (eligibility.eligible) {
+      setCreateMediaId(String(candidate.id));
+      setPrefillReason(null);
+      setTab("Waiting");
+      return;
+    }
+
+    setCreateMediaId("");
+    setPrefillReason(eligibility.reason);
+    setTab("Waiting");
+  }, [createMediaQuery, mediaRecords]);
+
+  useEffect(() => {
+    if (!challengePushQuery) {
+      return;
+    }
+
+    const nextId = Number(challengePushQuery);
+    if (Number.isNaN(nextId)) {
+      return;
+    }
+
+    const push = openWaitingPushes.find((candidate) => candidate.id === nextId);
+    if (!push) {
+      setPrefillReason("Selected waiting push is no longer available.");
+      return;
+    }
+
+    setChallengePushId(nextId);
+    setChallengeAmount(push.minChallengeAmount.replace(" APT", ""));
+    setChallengeMediaId("");
+    setModalOpen(true);
+    setTab("Waiting");
+  }, [challengePushQuery, openWaitingPushes]);
+
   function openChallenge(pushId: number) {
     const push = openWaitingPushes.find((candidate) => candidate.id === pushId);
     setChallengePushId(pushId);
     setChallengeAmount(push?.minChallengeAmount.replace(" APT", "") ?? "1.000");
     setChallengeMediaId("");
     setModalOpen(true);
+    router.replace(`/push?challengeId=${pushId}`, { scroll: false });
   }
 
   useEffect(() => {
@@ -148,20 +216,21 @@ export default function PushPage() {
             {processingAction === "createPush" ? "Creating" : "Create Push"}
           </ActionButton>
         </div>
+        {prefillReason ? <p className="feedback_text feedback_error">{prefillReason}</p> : null}
         {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to create or challenge Pushes on Aptos Testnet.</p> : null}
         {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
       </SectionPanel>
 
       {tab === "Waiting" ? (
-        <div className="stack">
+        <div className="compact_card_grid compact_card_grid_waiting">
           {openWaitingPushes.map((push) => (
-            <WaitingPushCard key={push.id} push={push} onChallenge={() => openChallenge(push.id)} />
+            <WaitingPushCard key={push.id} challengeHref={`/push?challengeId=${push.id}`} push={push} onChallenge={() => openChallenge(push.id)} />
           ))}
         </div>
       ) : (
-        <div className="wide_two_column">
+        <div className="compact_card_grid compact_card_grid_matches">
           {activeMatches.map((match) => (
-            <MatchCard key={match.id} match={match} />
+            <MatchCard actionHref="/buff" key={match.id} match={match} />
           ))}
         </div>
       )}

@@ -93,7 +93,7 @@ export default function MyMediaPage() {
     const primaryDelete = !media.deletePending && (media.storageStatus === "shelby_upload_failed" || media.contentUnavailable || media.shelbyCleanupRequired || (isInvalid && isDeletable));
 
     return (
-      <MediaCard
+        <MediaCard
         key={media.id}
         media={media}
           mediaActive={currentTrackId === media.id}
@@ -150,6 +150,7 @@ export default function MyMediaPage() {
             }
             : undefined
         }
+        onPushAction={media.status === "idle" && canPush ? () => router.push(`/push?mediaId=${media.id}`) : undefined}
       />
     );
   }
