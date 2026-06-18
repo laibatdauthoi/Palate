@@ -18,6 +18,8 @@ import type { MediaCategory, MediaRecord, MediaStatus } from "@/types/palate";
 import { getMediaDisplayTitle } from "@/utils/media_display";
 import { getPushEligibility } from "@/utils/push_eligibility";
 import { isMediaCategoryCompatible } from "@/utils/media_file_validation";
+import { app_config } from "@/config/app_config";
+import { logPageMount, startRouteTransition } from "@/utils/ui_perf";
 
 const statuses = ["All", "Idle", "Waiting", "Active", "Settled", "Shelby Upload Failed", "Registration Failed", "Pending Registration"] as const;
 const categories = ["All Categories", "Meme", "Image", "Audio", "Video"] as const;
@@ -64,14 +66,30 @@ export default function MyMediaPage() {
   const deleteDisplayTitle = mediaToDelete ? getMediaDisplayTitle(mediaToDelete) : "";
 
   useEffect(() => {
-    setQueueFromMedia(filteredMedia);
+    logPageMount("My Media");
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const callbackId = window.requestIdleCallback(() => {
+        setQueueFromMedia(filteredMedia);
+      });
+
+      return () => window.cancelIdleCallback(callbackId);
+    }
+
+    const timer = setTimeout(() => {
+      setQueueFromMedia(filteredMedia);
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [filteredMedia, setQueueFromMedia]);
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "production") return;
+    if (!app_config.debugUiPerf) return;
     filteredMedia.forEach((media) => {
       const eligibility = getPushEligibility(media);
-      console.debug("[Palate Push eligibility]", {
+      console.debug("[Palate Push eligibility debug]", {
         mediaId: media.id,
         title: getMediaDisplayTitle(media),
         status: media.status,
@@ -134,9 +152,15 @@ export default function MyMediaPage() {
               : media.status === "registration_failed"
               ? () => retryPalateRegistration(media.id)
               : (media.status === "idle" || media.status === "settled") && canPush
-                ? () => router.push(`/push?mediaId=${media.id}`)
+                ? () => {
+                  startRouteTransition("my-media-card", "/push", "router.push");
+                  router.push(`/push?mediaId=${media.id}`);
+                }
                 : media.status === "settled"
-                  ? () => router.push("/profile?tab=Claims")
+                  ? () => {
+                    startRouteTransition("my-media-card", "/profile", "router.push");
+                    router.push("/profile?tab=Claims");
+                  }
                 : undefined
           }
         secondaryActionLabel={media.source === "palate_upload_recovery" ? "Clear" : isDeletable && !primaryDelete && !media.deletePending ? "Delete" : undefined}
@@ -152,7 +176,10 @@ export default function MyMediaPage() {
             }
             : undefined
         }
-        onPushAction={(media.status === "idle" || media.status === "settled") && canPush ? () => router.push(`/push?mediaId=${media.id}`) : undefined}
+        onPushAction={(media.status === "idle" || media.status === "settled") && canPush ? () => {
+          startRouteTransition("my-media-card", "/push", "router.push");
+          router.push(`/push?mediaId=${media.id}`);
+        } : undefined}
       />
     );
   }

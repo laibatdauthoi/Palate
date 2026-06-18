@@ -1,6 +1,7 @@
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import type { InputGenerateTransactionPayloadData, SimpleEntryFunctionArgumentTypes } from "@aptos-labs/ts-sdk";
 import { app_config } from "@/config/app_config";
+import { logUiPerf, startUiPerf } from "@/utils/ui_perf";
 import type {
   ActiveMatch,
   BuffAssignment,
@@ -252,6 +253,12 @@ async function readWithDiagnostics<T>(name: string, read: () => Promise<T>, opti
   const dedupeKey = options.dedupeKey ?? name;
   const cachedInFlight = inflight_reads.get(dedupeKey) as Promise<T> | undefined;
   if (cachedInFlight) {
+    logUiPerf("aptosRead:deduped", {
+      name,
+      dedupeKey,
+      functionId: options.functionId ?? null,
+      endpoint: options.endpoint ?? null
+    });
     return cachedInFlight;
   }
 
@@ -268,8 +275,20 @@ async function readWithDiagnostics<T>(name: string, read: () => Promise<T>, opti
 
     for (let attempt = 0; attempt <= retries; attempt += 1) {
       const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const finishPerf = startUiPerf("aptosRead", {
+        name,
+        attempt,
+        retries,
+        dedupeKey,
+        functionId: options.functionId ?? null,
+        endpoint: options.endpoint ?? null,
+        queuedReads: read_queue.length,
+        activeReads: active_read_count
+      });
       try {
-        return await read();
+        const result = await read();
+        finishPerf("success");
+        return result;
       } catch (error) {
         lastError = error;
         const duration = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt);
@@ -283,6 +302,11 @@ async function readWithDiagnostics<T>(name: string, read: () => Promise<T>, opti
           durationMs: duration,
           status: details.status ?? null
         };
+        finishPerf("error", {
+          message: payload.message,
+          status: payload.status,
+          retryCount: attempt
+        });
 
         if (isRateLimitError(error) || details.status === 429 || getErrorMessage(error).toLowerCase().includes("rate limit")) {
           read_cooldown_until = Date.now() + rate_limit_cooldown_ms;

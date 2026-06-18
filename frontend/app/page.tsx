@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { ActionButton } from "@/components/action_button";
 import { EmptyState } from "@/components/empty_state";
 import { MatchCard } from "@/components/match_card";
@@ -8,6 +9,7 @@ import { SectionPanel } from "@/components/section_panel";
 import { app_config } from "@/config/app_config";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
+import { logPageMount } from "@/utils/ui_perf";
 
 export default function HomePage() {
   const { activeMatches, balance, settleMatch, userSummary, waitingPushes } = usePalate();
@@ -20,6 +22,10 @@ export default function HomePage() {
     { label: "Palate Balance", value: balance.availableBalance }
   ];
   const featuredMatch = activeMatches[0];
+
+  useEffect(() => {
+    logPageMount("Home");
+  }, []);
 
   return (
     <div className="page_stack page_home">

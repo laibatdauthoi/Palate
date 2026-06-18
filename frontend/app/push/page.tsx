@@ -16,6 +16,8 @@ import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
 import type { MediaCategory } from "@/types/palate";
 import { getMediaDisplayTitle } from "@/utils/media_display";
 import { getPushEligibility } from "@/utils/push_eligibility";
+import { app_config } from "@/config/app_config";
+import { logPageMount, logUiPerf, uiPerfNow } from "@/utils/ui_perf";
 
 const category_labels: Record<MediaCategory, string> = {
   meme: "Meme",
@@ -120,6 +122,10 @@ function PushPageContent() {
     }))
   ];
 
+  useEffect(() => {
+    logPageMount("Push");
+  }, []);
+
   const replacePushQuery = useCallback((next: URLSearchParams) => {
     const query = next.toString();
     router.replace(query ? `/push?${query}` : "/push", { scroll: false });
@@ -133,6 +139,11 @@ function PushPageContent() {
   }, [replacePushQuery, searchParams]);
 
   function closeChallengeModal() {
+    logUiPerf("challengeModalClose", {
+      challengePushId,
+      localStateUpdatedImmediately: true,
+      routerAction: "replace"
+    });
     setModalOpen(false);
     setDismissedChallengeId(challengePushId);
     setChallengePushId(null);
@@ -251,16 +262,29 @@ function PushPageContent() {
   }, [challengePushId, clearChallengeQuery, modalOpen, selectedPush]);
 
   function openChallenge(pushId: number) {
+    const startedAt = uiPerfNow();
     const push = openWaitingPushes.find((candidate) => candidate.id === pushId);
     if (!push) {
       setPrefillReason("Selected waiting push is no longer available.");
       clearChallengeQuery();
+      logUiPerf("challengeModalOpen:end", {
+        pushId,
+        syncDurationMs: Math.round(uiPerfNow() - startedAt),
+        resolved: false,
+        reason: "waiting push not found"
+      });
       return;
     }
 
     if (normalizedWalletAddress && normalizeAddress(push.pusherAddress) === normalizedWalletAddress) {
       setPrefillReason("You cannot challenge your own push.");
       setDismissedChallengeId(null);
+      logUiPerf("challengeModalOpen:end", {
+        pushId,
+        syncDurationMs: Math.round(uiPerfNow() - startedAt),
+        resolved: false,
+        reason: "self challenge blocked"
+      });
       return;
     }
 
@@ -275,14 +299,25 @@ function PushPageContent() {
     setChallengeMediaId("");
     setModalOpen(true);
     setTab("Waiting");
+    logUiPerf("challengeModalOpen", {
+      pushId,
+      localStateUpdatedImmediately: true,
+      routerAction: "replace",
+      providerRefreshTriggered: false
+    });
     replacePushQuery(next);
+    logUiPerf("challengeModalOpen:end", {
+      pushId,
+      syncDurationMs: Math.round(uiPerfNow() - startedAt),
+      resolved: true
+    });
   }
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "production") return;
+    if (!app_config.debugUiPerf) return;
     mediaRecords.forEach((media) => {
       const eligibility = getPushEligibility(media);
-      console.debug("[Palate Push eligibility]", {
+      console.debug("[Palate Push eligibility debug]", {
         mediaId: media.id,
         title: getMediaDisplayTitle(media),
         status: media.status,
@@ -305,7 +340,21 @@ function PushPageContent() {
       <SectionPanel>
         <div className="tabs">
           {(["Waiting", "Live Matches"] as const).map((item) => (
-            <button className={`tab_button ${tab === item ? "active" : ""}`} key={item} onClick={() => setTab(item)}>
+            <button
+              className={`tab_button ${tab === item ? "active" : ""}`}
+              key={item}
+              onClick={() => {
+                const startedAt = uiPerfNow();
+                setTab(item);
+                logUiPerf("pushPageTabClick", {
+                  tab: item,
+                  localStateUpdatedImmediately: true,
+                  routerAction: "none",
+                  providerRefreshTriggered: false,
+                  syncDurationMs: Math.round(uiPerfNow() - startedAt)
+                });
+              }}
+            >
               {item}
             </button>
           ))}

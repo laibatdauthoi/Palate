@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { BuffPanel } from "@/components/buff_panel";
 import { EmptyState } from "@/components/empty_state";
@@ -13,6 +13,7 @@ import { useCountdownNow, getLiveCountdownState } from "@/hooks/use_live_countdo
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
+import { logPageMount } from "@/utils/ui_perf";
 
 export default function BuffPage() {
   const {
@@ -52,6 +53,10 @@ export default function BuffPage() {
       ? "Palate Balance is too low for this Buff."
       : buffAmountValidation.message;
   const canBuff = walletReady && !buffBusy && buffAmountValidation.valid && buffBalanceValid;
+
+  useEffect(() => {
+    logPageMount("Buff");
+  }, []);
 
   return (
     <div className="page_stack page_buff">

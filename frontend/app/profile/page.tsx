@@ -13,6 +13,7 @@ import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { formatOctasToApt } from "@/services/aptos_service";
 import type { PalateActivityFilter, PalateActivityTransaction } from "@/types/palate";
+import { logPageMount, logUiPerf, startUiPerf, uiPerfNow } from "@/utils/ui_perf";
 
 type ProfileTab = "Stats" | "Claims" | "Activity";
 
@@ -199,6 +200,10 @@ function ProfilePageContent() {
         : null;
 
   useEffect(() => {
+    logPageMount("Profile");
+  }, []);
+
+  useEffect(() => {
     setTab(parseProfileTab(searchParams.get("tab")));
   }, [searchParams]);
 
@@ -223,17 +228,29 @@ function ProfilePageContent() {
   }, [activityReadStatus, refreshProfileActivity, tab, walletReady]);
 
   async function handleRefreshActivity() {
-    if (!walletReady) return;
+    const finishPerf = startUiPerf("profileActivityRefreshClick", {
+      walletReady,
+      readStatus: activityReadStatus
+    });
+    if (!walletReady) {
+      finishPerf("end", { skipped: true });
+      return;
+    }
     setActivityRefreshing(true);
     try {
       await refreshProfileActivity();
       setActivityVisibleCount(20);
+      finishPerf("success", { transactionCount: activityTransactions.length });
+    } catch (error) {
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
+      throw error;
     } finally {
       setActivityRefreshing(false);
     }
   }
 
   function handleTabChange(nextTab: ProfileTab) {
+    const startedAt = uiPerfNow();
     if (nextTab === "Claims") {
       setHistoryTouched(false);
     }
@@ -245,7 +262,17 @@ function ProfilePageContent() {
       nextParams.set("tab", nextTab);
     }
     const query = nextParams.toString();
+    logUiPerf("profileTabClick", {
+      nextTab,
+      localStateUpdatedImmediately: true,
+      routerAction: "replace",
+      asyncRefreshTriggered: nextTab === "Activity" && walletReady && activityReadStatus === "idle"
+    });
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    logUiPerf("profileTabClick:end", {
+      nextTab,
+      syncDurationMs: Math.round(uiPerfNow() - startedAt)
+    });
   }
 
   return (
@@ -429,7 +456,17 @@ function ProfilePageContent() {
                       <button
                         className={`activity_filter_button ${activityFilter === filter ? "active" : ""}`}
                         key={filter}
-                        onClick={() => setActivityFilter(filter)}
+                        onClick={() => {
+                          const startedAt = uiPerfNow();
+                          setActivityFilter(filter);
+                          logUiPerf("activityFilterClick", {
+                            filter,
+                            localStateUpdatedImmediately: true,
+                            routerAction: "none",
+                            providerRefreshTriggered: false,
+                            syncDurationMs: Math.round(uiPerfNow() - startedAt)
+                          });
+                        }}
                         type="button"
                       >
                         {filter}

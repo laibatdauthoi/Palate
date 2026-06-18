@@ -9,6 +9,7 @@ import { VIDEO_ENABLED } from "@/config/app_config";
 import { isMediaCategoryCompatible } from "@/utils/media_file_validation";
 import { getMediaDisplayTitle } from "@/utils/media_display";
 import { getPushEligibility } from "@/utils/push_eligibility";
+import { logUiPerf, uiPerfNow } from "@/utils/ui_perf";
 
 type MediaCardProps = {
   media: MediaRecord;
@@ -42,12 +43,29 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
   }
 
   function handleActionClick() {
+    const startedAt = uiPerfNow();
     if (actionLabel === "Push" && onPushAction) {
+      logUiPerf("mediaPushClick", {
+        mediaId: media.id,
+        title: displayTitle,
+        eligible: pushEligibility?.eligible ?? null,
+        localStateUpdatedImmediately: false,
+        routerAction: "push-page-navigation"
+      });
       onPushAction();
+      logUiPerf("mediaPushClick:end", {
+        mediaId: media.id,
+        syncDurationMs: Math.round(uiPerfNow() - startedAt)
+      });
       return;
     }
 
     onAction?.();
+    logUiPerf("mediaActionClick:end", {
+      mediaId: media.id,
+      actionLabel: actionLabel ?? null,
+      syncDurationMs: Math.round(uiPerfNow() - startedAt)
+    });
   }
 
   return (

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ClaimRecord } from "@/types/palate";
+import { logUiPerf, uiPerfNow } from "@/utils/ui_perf";
 import { ActionButton } from "./action_button";
 import { StatusBadge } from "./status_badge";
 
@@ -39,7 +40,24 @@ export function ClaimCard({ claim, onClaim, loading, actionDisabled }: { claim: 
         >
           {detailsOpen ? "Hide details" : "Details"}
         </button>
-        <ActionButton onClick={onClaim} variant={claim.claimable && !claim.claimed && BigInt(claim.claimableAmountOctas) > BigInt(0) ? "primary" : "secondary"} disabled={disabled}>
+        <ActionButton
+          onClick={() => {
+            const startedAt = uiPerfNow();
+            logUiPerf("claimCardActionClick", {
+              claimKey: claim.claimKey,
+              matchId: claim.matchId ?? claim.matchRef,
+              disabled,
+              providerAction: onClaim ? "claimReward" : null
+            });
+            onClaim?.();
+            logUiPerf("claimCardActionClick:end", {
+              claimKey: claim.claimKey,
+              syncDurationMs: Math.round(uiPerfNow() - startedAt)
+            });
+          }}
+          variant={claim.claimable && !claim.claimed && BigInt(claim.claimableAmountOctas) > BigInt(0) ? "primary" : "secondary"}
+          disabled={disabled}
+        >
           {buttonLabel}
         </ActionButton>
       </div>

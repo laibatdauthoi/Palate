@@ -5,6 +5,7 @@ import { CountdownTimer } from "./countdown_timer";
 import { useLiveCountdown } from "@/hooks/use_live_countdown";
 import { MediaRenderer } from "./media_renderer";
 import { StatusBadge } from "./status_badge";
+import { logUiPerf, uiPerfNow } from "@/utils/ui_perf";
 
 type MatchCardProps = {
   match: ActiveMatch;
@@ -40,7 +41,25 @@ export function MatchCard({ match, actionHref, onSettle, settleDisabled }: Match
           <CountdownTimer endedLabel="Ready to settle" targetTimestamp={match.endTimeSeconds} />
           <div className="match_card_actions">
             {onSettle && isSettleEligible ? (
-              <ActionButton disabled={settleDisabled} onClick={onSettle} variant="secondary">
+              <ActionButton
+                disabled={settleDisabled}
+                onClick={() => {
+                  const startedAt = uiPerfNow();
+                  logUiPerf("settleButtonClick", {
+                    matchId: match.id,
+                    status: match.status,
+                    readyToSettle: isSettleEligible,
+                    localStateUpdatedImmediately: false,
+                    providerAction: "settleMatch"
+                  });
+                  onSettle();
+                  logUiPerf("settleButtonClick:end", {
+                    matchId: match.id,
+                    syncDurationMs: Math.round(uiPerfNow() - startedAt)
+                  });
+                }}
+                variant="secondary"
+              >
                 Settle
               </ActionButton>
             ) : null}

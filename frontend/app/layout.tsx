@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { MobileBottomNav } from "@/components/mobile_bottom_nav";
 import { NavigationBar } from "@/components/navigation_bar";
+import { RoutePerfTracker } from "@/components/route_perf_tracker";
 import { RouteBackground } from "@/components/route_background";
 import { WelcomeIntro } from "@/components/welcome_intro";
 import { MediaViewerProvider } from "@/providers/media_viewer_provider";
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
               <MediaViewerProvider>
                 <WelcomeIntro />
                 <div className="app_shell">
+                  <RoutePerfTracker />
                   <RouteBackground />
                   <NavigationBar />
                   <main className="main_content">{children}</main>

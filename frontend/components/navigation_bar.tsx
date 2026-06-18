@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { usePalate } from "@/providers/palate_provider";
+import { logUiPerf, startRouteTransition, uiPerfNow } from "@/utils/ui_perf";
 import { WalletPanel } from "./wallet_panel";
 
 const nav_items = [
@@ -41,6 +42,20 @@ export function NavigationBar() {
               data-short={item.label.slice(0, 1)}
               href={item.href}
               key={item.href}
+              onClick={() => {
+                const startedAt = uiPerfNow();
+                logUiPerf("mainNavClick", {
+                  label: item.label,
+                  href: item.href,
+                  routerAction: "link",
+                  localStateUpdatedImmediately: true
+                });
+                startRouteTransition("desktop-nav", item.href, "link");
+                logUiPerf("mainNavClick:end", {
+                  label: item.label,
+                  syncDurationMs: Math.round(uiPerfNow() - startedAt)
+                });
+              }}
             >
               {item.label}
               {showClaimReminder && claimReminderKnown ? <span className="nav_claim_badge">{claimableRewardsSummary.claimableCount}</span> : null}

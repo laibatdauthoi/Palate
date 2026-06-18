@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { mock_balance, mock_matches, mock_media, mock_summary, mock_waiting_pushes } from "@/data/mock_data";
 import { VIDEO_ENABLED, app_config } from "@/config/app_config";
 import {
@@ -48,6 +48,7 @@ import {
 } from "@/utils/media_file_validation";
 import { getPushEligibility } from "@/utils/push_eligibility";
 import { getMediaDisplayTitle } from "@/utils/media_display";
+import { startUiPerf } from "@/utils/ui_perf";
 import type {
   ActiveMatch,
   BuffAssignment,
@@ -590,19 +591,22 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setProcessingAction(null);
   }
 
-  async function refreshPalateBalanceForWallet(ownerAddress: string) {
+  const refreshPalateBalanceForWallet = useCallback(async (ownerAddress: string) => {
+    const finishPerf = startUiPerf("refreshPalateBalanceForWallet", { ownerAddress });
     setPalateBalanceReadStatus("loading");
     try {
       const nextBalance = await getPalateBalance(ownerAddress);
       setBalance(nextBalance);
       setPalateBalanceReadStatus("ready");
+      finishPerf("success", { availableBalance: nextBalance.availableBalance });
     } catch (error) {
       console.error("[Palate balance read failed]", error);
       setBalance(unavailable_balance);
       setPalateBalanceReadStatus("error");
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
       throw error;
     }
-  }
+  }, []);
 
   async function refreshUserMediaForWallet(ownerAddress: string) {
     setMediaReadStatus("loading");
@@ -616,7 +620,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function refreshClaimsForWallet(ownerAddress: string) {
+  const refreshClaimsForWallet = useCallback(async (ownerAddress: string) => {
+    const finishPerf = startUiPerf("refreshClaimsForWallet", { ownerAddress });
     setClaimReadStatus("loading");
     try {
       const nextClaimRecords = await readClaimRecords(ownerAddress);
@@ -637,18 +642,28 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         ...current,
         claimableAmount: formatOctasToApt(nextClaimableSummary.claimableTotalOctas)
       }));
+      finishPerf("success", {
+        count: nextClaimRecords.length,
+        claimableCount: nextClaimableSummary.claimableCount
+      });
     } catch (error) {
       console.error("[Claim discovery read failed]", error);
       setClaimReadStatus("error");
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     }
-  }
+  }, []);
 
-  async function refreshUserSummaryForWallet(ownerAddress: string) {
+  const refreshUserSummaryForWallet = useCallback(async (ownerAddress: string) => {
+    const finishPerf = startUiPerf("refreshUserSummaryForWallet", { ownerAddress });
     setUserSummaryReadStatus("loading");
     try {
       const nextSummary = await readUserSummary(ownerAddress);
       setUserSummary(nextSummary);
       setUserSummaryReadStatus("ready");
+      finishPerf("success", {
+        pushCount: nextSummary.pushCount,
+        buffCount: nextSummary.buffCount
+      });
     } catch (error) {
       console.error("[User summary read failed]", error);
       setUserSummaryReadStatus("error");
@@ -663,22 +678,27 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
         return current;
       });
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     }
-  }
+  }, []);
 
-  async function refreshActivityTransactionsForWallet(ownerAddress: string) {
+  const refreshActivityTransactionsForWallet = useCallback(async (ownerAddress: string) => {
+    const finishPerf = startUiPerf("refreshActivityTransactionsForWallet", { ownerAddress });
     setActivityReadStatus("loading");
     try {
       const nextTransactions = await getPalateTransactionLog(ownerAddress, { limit: 80 });
       setActivityTransactions(nextTransactions);
       setActivityReadStatus("ready");
+      finishPerf("success", { count: nextTransactions.length });
     } catch (error) {
       console.error("[Activity transaction read failed]", error);
       setActivityReadStatus("error");
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     }
-  }
+  }, []);
 
-  async function refreshDeferredWalletState(ownerAddress: string) {
+  const refreshDeferredWalletState = useCallback(async (ownerAddress: string) => {
+    const finishPerf = startUiPerf("refreshDeferredWalletState", { ownerAddress });
     setUserSummary((current) => ({
       ...current,
       walletAddress: ownerAddress
@@ -737,22 +757,49 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     } else {
       console.error("[Assignment read failed]", nextAssignment.reason);
     }
-  }
 
-  async function refreshWalletGameState(ownerAddress: string) {
-    await refreshPalateBalanceForWallet(ownerAddress);
-    await refreshDeferredWalletState(ownerAddress);
-  }
+    finishPerf("success", {
+      summary: nextSummary.status,
+      media: nextMedia.status,
+      mediaCount: nextMedia.status === "fulfilled" ? nextMedia.value.length : 0,
+      waitingPushes: nextWaitingPushes.status,
+      waitingPushCount: nextWaitingPushes.status === "fulfilled" ? nextWaitingPushes.value.length : 0,
+      activeMatches: nextActiveMatches.status,
+      activeMatchCount: nextActiveMatches.status === "fulfilled" ? nextActiveMatches.value.length : 0,
+      assignment: nextAssignment.status
+    });
+  }, []);
 
-  async function refreshProfileActivityForWallet(ownerAddress: string) {
-    const [transactionResult] = await Promise.allSettled([
-      refreshActivityTransactionsForWallet(ownerAddress)
-    ]);
-
-    if (transactionResult.status === "rejected") {
-      throw new Error("Profile activity refresh did not complete cleanly.");
+  const refreshWalletGameState = useCallback(async (ownerAddress: string) => {
+    const finishPerf = startUiPerf("refreshWalletGameState", { ownerAddress });
+    try {
+      await refreshPalateBalanceForWallet(ownerAddress);
+      await refreshDeferredWalletState(ownerAddress);
+      finishPerf("success");
+    } catch (error) {
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
+      throw error;
     }
-  }
+  }, [refreshDeferredWalletState, refreshPalateBalanceForWallet]);
+
+  const refreshProfileActivityForWallet = useCallback(async (ownerAddress: string) => {
+    const finishPerf = startUiPerf("refreshProfileActivityForWallet", { ownerAddress });
+    try {
+      const [transactionResult] = await Promise.allSettled([
+        refreshActivityTransactionsForWallet(ownerAddress)
+      ]);
+
+      if (transactionResult.status === "rejected") {
+        finishPerf("error", { reason: "Profile activity refresh did not complete cleanly." });
+        throw new Error("Profile activity refresh did not complete cleanly.");
+      }
+
+      finishPerf("success");
+    } catch (error) {
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }, [refreshActivityTransactionsForWallet]);
 
   useEffect(() => {
     if (walletConnectionStatus !== "connected" || !walletAddress) return;
@@ -762,6 +809,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     const ownerAddress = walletAddress;
 
     async function refreshOnWalletConnect() {
+      const finishPerf = startUiPerf("refreshOnWalletConnect", { ownerAddress });
       try {
         if (!cancelled) {
           setBalance(loading_balance);
@@ -781,6 +829,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           await refreshUserSummaryForWallet(ownerAddress);
           deferredRefreshTimer = window.setTimeout(() => {
             if (cancelled) return;
+            const finishDeferredPerf = startUiPerf("refreshOnWalletConnect:deferredReads", { ownerAddress });
             void Promise.allSettled([
               refreshDeferredWalletState(ownerAddress),
               refreshClaimsForWallet(ownerAddress)
@@ -789,13 +838,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
               if (results.some((result) => result.status === "rejected")) {
                 setFeedback({ type: "info", message: "Using last read." });
               }
+              finishDeferredPerf("success", {
+                results: results.map((result) => result.status).join(",")
+              });
             });
           }, 350);
+          finishPerf("success");
         }
-      } catch {
+      } catch (error) {
         if (!cancelled) {
           setFeedback({ type: "error", message: "Some on-chain data is temporarily unavailable." });
         }
+        finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -807,7 +861,14 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         window.clearTimeout(deferredRefreshTimer);
       }
     };
-  }, [walletAddress, walletConnectionStatus]);
+  }, [
+    refreshClaimsForWallet,
+    refreshDeferredWalletState,
+    refreshPalateBalanceForWallet,
+    refreshUserSummaryForWallet,
+    walletAddress,
+    walletConnectionStatus
+  ]);
 
   async function runBalanceTransaction(actionName: "deposit" | "withdraw", amount: string) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
@@ -1169,8 +1230,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   }
 
   async function settleMatchOnChain(matchId: number) {
+    const finishPerf = startUiPerf("settleMatchOnChain", { matchId });
     if (walletConnectionStatus !== "connected" || !walletAddress) {
       setFeedback({ type: "error", message: "Connect wallet to settle the match." });
+      finishPerf("end", { skipped: true, reason: "wallet not connected" });
       return;
     }
 
@@ -1185,26 +1248,32 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       await refreshWalletGameState(walletAddress);
       await refreshClaimsForWallet(walletAddress);
       setFeedback({ type: "success", message: `Match settled ${shortenTransactionHash(transactionHash)}. Check Profile Claims for rewards.` });
+      finishPerf("success", { transactionHash, refreshedClaims: true, refreshedGameState: true });
     } catch (error) {
       console.error("settleMatch failed", error);
       setFeedback({ type: "error", message: getReadablePalateError(error, "Settle Match failed.") });
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     } finally {
       setProcessingAction(null);
     }
   }
 
   async function claimRewardOnChain(claim: ClaimRecord) {
+    const finishPerf = startUiPerf("claimRewardOnChain", { claimKey: claim.claimKey, claimType: claim.type });
     if (walletConnectionStatus !== "connected" || !walletAddress) {
       setFeedback({ type: "error", message: "Connect wallet to claim rewards." });
+      finishPerf("end", { skipped: true, reason: "wallet not connected" });
       return;
     }
 
     if (!claim.matchId) {
       setFeedback({ type: "error", message: "Claim is not available." });
+      finishPerf("end", { skipped: true, reason: "missing match id" });
       return;
     }
     if (!claim.settled || claim.claimed || !claim.claimable || BigInt(claim.claimableAmountOctas) <= BigInt(0)) {
       setFeedback({ type: "error", message: "Claim is not available." });
+      finishPerf("end", { skipped: true, reason: "claim unavailable" });
       return;
     }
 
@@ -1219,9 +1288,11 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       await refreshWalletGameState(walletAddress);
       await refreshClaimsForWallet(walletAddress);
       setFeedback({ type: "success", message: `${claim.type === "buff" ? "Buff" : "Push"} reward credited to Palate Balance ${shortenTransactionHash(transactionHash)}.` });
+      finishPerf("success", { transactionHash, refreshedClaims: true, refreshedGameState: true });
     } catch (error) {
       console.error("claimReward failed", error);
       setFeedback({ type: "error", message: getReadablePalateError(error, "Claim failed.") });
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     } finally {
       setProcessingAction(null);
     }
@@ -1387,32 +1458,32 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setFeedback({ type: "info", message: "Registration recovery item cleared from this browser." });
   }
 
-  function isDeletePendingMedia(media: MediaRecord) {
+  const isDeletePendingMedia = useCallback((media: MediaRecord) => {
     const mediaId = media.palateMediaId ?? media.id;
     return deletePendingRecords.some((record) =>
       record.mediaId === mediaId
         && (!walletAddress || record.ownerAddress.toLowerCase() === media.ownerAddress.toLowerCase())
     );
-  }
+  }, [deletePendingRecords, walletAddress]);
 
-  function isContentUnavailableMedia(media: MediaRecord) {
+  const isContentUnavailableMedia = useCallback((media: MediaRecord) => {
     const mediaId = media.palateMediaId ?? media.id;
     return contentUnavailableIds.includes(mediaId);
-  }
+  }, [contentUnavailableIds]);
 
-  function isShelbyCleanupRequiredMedia(media: MediaRecord) {
+  const isShelbyCleanupRequiredMedia = useCallback((media: MediaRecord) => {
     const mediaId = media.palateMediaId ?? media.id;
     return shelbyCleanupRequiredIds.includes(mediaId);
-  }
+  }, [shelbyCleanupRequiredIds]);
 
-  function applyLocalMediaState(media: MediaRecord): MediaRecord {
+  const applyLocalMediaState = useCallback((media: MediaRecord): MediaRecord => {
     return {
       ...media,
       deletePending: isDeletePendingMedia(media),
       contentUnavailable: isContentUnavailableMedia(media),
       shelbyCleanupRequired: isShelbyCleanupRequiredMedia(media)
     };
-  }
+  }, [isContentUnavailableMedia, isDeletePendingMedia, isShelbyCleanupRequiredMedia]);
 
   function getPalateDeleteErrorMessage(error: unknown) {
     const rawMessage = error instanceof Error ? error.message : String(error ?? "");
@@ -1600,14 +1671,17 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   }
 
   async function createPushOnChain(mediaId: number, amount: string) {
+    const finishPerf = startUiPerf("createPushOnChain", { mediaId, amount });
     if (walletConnectionStatus !== "connected" || !walletAddress) {
       setFeedback({ type: "error", message: "Connect wallet to create a Push." });
+      finishPerf("end", { skipped: true, reason: "wallet not connected" });
       return;
     }
 
     const media = mediaRecords.find((record) => record.id === mediaId);
     if (!media) {
       setFeedback({ type: "error", message: "Choose registered idle Palate media to create a Push." });
+      finishPerf("end", { skipped: true, reason: "media not found" });
       return;
     }
 
@@ -1624,6 +1698,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         });
       }
       setFeedback({ type: "error", message: eligibility.reason });
+      finishPerf("end", { skipped: true, reason: eligibility.reason });
       return;
     }
 
@@ -1632,6 +1707,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       const minPushAmount = getRequiredConfigAmount("minPushAmount");
       if (BigInt(amountOctas) < minPushAmount) {
         setFeedback({ type: "error", message: `Minimum push is ${formatOctasToApt(minPushAmount)}.` });
+        finishPerf("end", { skipped: true, reason: "amount below minimum" });
         return;
       }
 
@@ -1644,17 +1720,21 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
       setFeedback({ type: "success", message: `Push created ${shortenTransactionHash(transactionHash)}.` });
+      finishPerf("success", { transactionHash, refreshedGameState: true });
     } catch (error) {
       console.error("createPush failed", error);
       setFeedback({ type: "error", message: getReadablePalateError(error, "Create Push failed.") });
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     } finally {
       setProcessingAction(null);
     }
   }
 
   async function challengePushOnChain(pushId: number, challengerMediaId: number, amount: string) {
+    const finishPerf = startUiPerf("challengePushOnChain", { pushId, challengerMediaId, amount });
     if (walletConnectionStatus !== "connected" || !walletAddress) {
       setFeedback({ type: "error", message: "Connect wallet to challenge a Push." });
+      finishPerf("end", { skipped: true, reason: "wallet not connected" });
       return;
     }
 
@@ -1663,11 +1743,13 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     if (!selectedPush || !challengerMedia) {
       setFeedback({ type: "error", message: "Select an open waiting push and registered idle challenger media." });
+      finishPerf("end", { skipped: true, reason: "push or challenger media missing" });
       return;
     }
 
     if (normalizeAddress(selectedPush.pusherAddress) === normalizeAddress(walletAddress)) {
       setFeedback({ type: "error", message: "You cannot challenge your own push." });
+      finishPerf("end", { skipped: true, reason: "self challenge blocked" });
       return;
     }
 
@@ -1684,6 +1766,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         });
       }
       setFeedback({ type: "error", message: pushEligibility.reason });
+      finishPerf("end", { skipped: true, reason: pushEligibility.reason });
       return;
     }
 
@@ -1700,11 +1783,13 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         });
       }
       setFeedback({ type: "error", message: challengerEligibility.reason });
+      finishPerf("end", { skipped: true, reason: challengerEligibility.reason });
       return;
     }
 
     if (challengerMedia.category !== selectedPush.media.category) {
       setFeedback({ type: "error", message: "Challenge rejected: media categories must match." });
+      finishPerf("end", { skipped: true, reason: "category mismatch" });
       return;
     }
 
@@ -1715,6 +1800,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       const requiredAmount = requiredChallengeAmount > minPushAmount ? requiredChallengeAmount : minPushAmount;
       if (BigInt(amountOctas) < requiredAmount) {
         setFeedback({ type: "error", message: `Minimum challenge is ${formatOctasToApt(requiredAmount)}.` });
+        finishPerf("end", { skipped: true, reason: "amount below minimum" });
         return;
       }
 
@@ -1727,44 +1813,54 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
       setFeedback({ type: "success", message: `Challenge accepted ${shortenTransactionHash(transactionHash)}.` });
+      finishPerf("success", { transactionHash, refreshedGameState: true });
     } catch (error) {
       console.error("challengePush failed", error);
       setFeedback({ type: "error", message: getReadablePalateError(error, "Challenge Push failed.") });
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     } finally {
       setProcessingAction(null);
     }
   }
 
-  const visibleMediaRecords = [
+  const visibleMediaRecords = useMemo(() => [
     ...pendingRegistrationMedia.filter((media) => !walletAddress || media.ownerAddress.toLowerCase() === walletAddress.toLowerCase()),
     ...mediaRecords
-  ].map((media) => applyLocalMediaState(media));
-  const visibleWaitingPushes = waitingPushes.map((push) => ({
+  ].map((media) => applyLocalMediaState(media)), [applyLocalMediaState, mediaRecords, pendingRegistrationMedia, walletAddress]);
+  const visibleWaitingPushes = useMemo(() => waitingPushes.map((push) => ({
     ...push,
     media: applyLocalMediaState(push.media)
-  }));
-  const visibleActiveMatches = activeMatches.map((match) => ({
+  })), [applyLocalMediaState, waitingPushes]);
+  const visibleActiveMatches = useMemo(() => activeMatches.map((match) => ({
     ...match,
     mediaA: applyLocalMediaState(match.mediaA),
     mediaB: applyLocalMediaState(match.mediaB)
-  }));
-  const previewMediaRecords = mock_media.map((media) => applyLocalMediaState(media));
-  const previewWaitingPushes = mock_waiting_pushes.map((push) => ({
+  })), [activeMatches, applyLocalMediaState]);
+  const previewMediaRecords = useMemo(() => mock_media.map((media) => applyLocalMediaState(media)), [applyLocalMediaState]);
+  const previewWaitingPushes = useMemo(() => mock_waiting_pushes.map((push) => ({
     ...push,
     media: applyLocalMediaState(push.media)
-  }));
-  const previewActiveMatches = mock_matches.map((match) => ({
+  })), [applyLocalMediaState]);
+  const previewActiveMatches = useMemo(() => mock_matches.map((match) => ({
     ...match,
     mediaA: applyLocalMediaState(match.mediaA),
     mediaB: applyLocalMediaState(match.mediaB)
-  }));
-  const resolvedBalance = disconnectedPreviewMode ? mock_balance : balance;
-  const resolvedMediaRecords = disconnectedPreviewMode ? previewMediaRecords : visibleMediaRecords;
-  const resolvedWaitingPushes = disconnectedPreviewMode ? previewWaitingPushes : visibleWaitingPushes;
-  const resolvedActiveMatches = disconnectedPreviewMode ? previewActiveMatches : visibleActiveMatches;
+  })), [applyLocalMediaState]);
+  const resolvedBalance = useMemo(() => (disconnectedPreviewMode ? mock_balance : balance), [balance, disconnectedPreviewMode]);
+  const resolvedMediaRecords = useMemo(() => (disconnectedPreviewMode ? previewMediaRecords : visibleMediaRecords), [disconnectedPreviewMode, previewMediaRecords, visibleMediaRecords]);
+  const resolvedWaitingPushes = useMemo(() => (disconnectedPreviewMode ? previewWaitingPushes : visibleWaitingPushes), [disconnectedPreviewMode, previewWaitingPushes, visibleWaitingPushes]);
+  const resolvedActiveMatches = useMemo(() => (disconnectedPreviewMode ? previewActiveMatches : visibleActiveMatches), [disconnectedPreviewMode, previewActiveMatches, visibleActiveMatches]);
   const resolvedClaimRecords = claimRecords;
-  const resolvedUserSummary = disconnectedPreviewMode ? mock_summary : userSummary;
-  const claimableRewardsSummary = getClaimableRewardsSummary(resolvedClaimRecords);
+  const resolvedUserSummary = useMemo(() => (disconnectedPreviewMode ? mock_summary : userSummary), [disconnectedPreviewMode, userSummary]);
+  const claimableRewardsSummary = useMemo(() => getClaimableRewardsSummary(resolvedClaimRecords), [resolvedClaimRecords]);
+  const refreshClaims = useCallback(async () => {
+    if (!walletAddress) return;
+    await refreshClaimsForWallet(walletAddress);
+  }, [refreshClaimsForWallet, walletAddress]);
+  const refreshProfileActivity = useCallback(async () => {
+    if (!walletAddress) return;
+    await refreshProfileActivityForWallet(walletAddress);
+  }, [refreshProfileActivityForWallet, walletAddress]);
 
   useEffect(() => {
     assertNoMockDataInConnectedMode({
@@ -1804,14 +1900,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       feedback,
       chainRead,
       clearFeedback: () => setFeedback(null),
-      refreshClaims: async () => {
-        if (!walletAddress) return;
-        await refreshClaimsForWallet(walletAddress);
-      },
-      refreshProfileActivity: async () => {
-        if (!walletAddress) return;
-        await refreshProfileActivityForWallet(walletAddress);
-      },
+      refreshClaims,
+      refreshProfileActivity,
       connectMockWallet: () => {
         setWalletStatus("connecting");
         window.setTimeout(() => {
