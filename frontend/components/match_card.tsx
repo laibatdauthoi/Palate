@@ -66,7 +66,6 @@ export function MatchCard({ match, actionHref, onSettle, settleDisabled }: Match
             <ActionButton href={resolvedActionHref} variant="secondary">{resolvedActionLabel}</ActionButton>
           </div>
         </div>
-        <p className="mock_note">Live score, Buff pool, leading side, odds, and win probability are intentionally hidden.</p>
       </div>
     </article>
   );
