@@ -64,11 +64,11 @@ function PushPageContent() {
       && normalizeAddress(selectedPush.pusherAddress) === normalizedWalletAddress
   );
   const selfChallengeReason = selectedPushIsOwned ? "You cannot challenge your own push." : null;
-  const idleMedia = mediaRecords.filter((media) =>
-    (media.status === "idle" || media.status === "settled")
-      && getPushEligibility(media).eligible
+  const pushableMedia = mediaRecords.filter((media) =>
+    (media.status === "idle" || media.status === "settled" || (media.status === "waiting" && media.waitingPushExpired === true && typeof media.waitingPushId === "number"))
+      && getPushEligibility(media, { allowExpiredWaitingPush: true }).eligible
   );
-  const challengeOptions = selectedPush ? idleMedia.filter((media) => media.category === selectedPush.media.category) : idleMedia;
+  const challengeOptions = selectedPush ? pushableMedia.filter((media) => media.category === selectedPush.media.category) : pushableMedia;
   const challengeMediaEmptyMessage = selectedPush && challengeOptions.length === 0 ? "No eligible same-category media available." : null;
   const pushBusy = processingAction === "createPush" || processingAction === "challengePush";
   const walletReady = walletStatus === "connected";
@@ -101,7 +101,7 @@ function PushPageContent() {
   const canCreatePush = walletReady && !pushBusy && Boolean(createMediaId) && createAmountValidation.valid && createBalanceValid;
   const idleMediaOptions: DropdownOption<string>[] = [
     { label: "Select idle media", value: "" },
-    ...idleMedia.map((media) => ({
+    ...pushableMedia.map((media) => ({
       label: `${getMediaDisplayTitle(media)} - ${category_labels[media.category]}`,
       value: String(media.id)
     }))
@@ -175,7 +175,7 @@ function PushPageContent() {
       return;
     }
 
-    const eligibility = getPushEligibility(candidate);
+    const eligibility = getPushEligibility(candidate, { allowExpiredWaitingPush: true });
     if (eligibility.eligible) {
       setCreateMediaId(String(candidate.id));
       setPrefillReason(null);
@@ -202,7 +202,7 @@ function PushPageContent() {
       return;
     }
 
-    const eligibility = getPushEligibility(candidate);
+    const eligibility = getPushEligibility(candidate, { allowExpiredWaitingPush: true });
     if (!eligibility.eligible) {
       setCreateMediaId("");
       setPrefillReason(eligibility.reason);
@@ -316,7 +316,7 @@ function PushPageContent() {
   useEffect(() => {
     if (!app_config.debugUiPerf) return;
     mediaRecords.forEach((media) => {
-      const eligibility = getPushEligibility(media);
+      const eligibility = getPushEligibility(media, { allowExpiredWaitingPush: true });
       console.debug("[Palate Push eligibility debug]", {
         mediaId: media.id,
         title: getMediaDisplayTitle(media),

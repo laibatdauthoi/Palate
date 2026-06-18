@@ -106,6 +106,10 @@ export default function MyMediaPage() {
       && media.status === "waiting"
       && media.waitingPushExpired === true
       && typeof media.waitingPushId === "number";
+    const waitingPushIdUnavailable = media.source === "palate"
+      && media.status === "waiting"
+      && media.waitingPushExpired === true
+      && typeof media.waitingPushId !== "number";
     const waitingExpiryUnavailable = media.source === "palate"
       && media.status === "waiting"
       && media.waitingPushExpired !== true
@@ -153,6 +157,7 @@ export default function MyMediaPage() {
             || processingAction === `deleteMedia:${media.id}`
             || processingAction === `retryDelete:${media.id}`
             || processingAction === "createPush"
+            || waitingPushIdUnavailable
             || (canCleanUpExpiredPush && processingAction === `expireWaitingPush:${media.waitingPushId}`)
             || (media.status === "waiting" && !canCleanUpExpiredPush && !canPush)
             || ((media.status === "idle" || media.status === "settled" || canCleanUpExpiredPush) && !canPush && !canCleanUpExpiredPush)
@@ -214,6 +219,7 @@ export default function MyMediaPage() {
           router.push(`/push?mediaId=${media.id}`);
         } : undefined}
         waitingExpiryUnavailable={waitingExpiryUnavailable}
+        waitingPushIdUnavailable={waitingPushIdUnavailable}
       />
     );
   }

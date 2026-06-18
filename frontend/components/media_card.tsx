@@ -23,9 +23,10 @@ type MediaCardProps = {
   mediaPlaying?: boolean;
   onMediaToggle?: () => void;
   waitingExpiryUnavailable?: boolean;
+  waitingPushIdUnavailable?: boolean;
 };
 
-export function MediaCard({ media, actionLabel, onAction, onPushAction, secondaryActionLabel, onSecondaryAction, actionDisabled, mediaActive = false, mediaPlaying = false, onMediaToggle, waitingExpiryUnavailable = false }: MediaCardProps) {
+export function MediaCard({ media, actionLabel, onAction, onPushAction, secondaryActionLabel, onSecondaryAction, actionDisabled, mediaActive = false, mediaPlaying = false, onMediaToggle, waitingExpiryUnavailable = false, waitingPushIdUnavailable = false }: MediaCardProps) {
   const displayTitle = getMediaDisplayTitle(media);
   const isInvalidMediaType = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
   const isVideoDisabled = media.category === "video" && !VIDEO_ENABLED;
@@ -122,6 +123,12 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
           <div className="recovery_note">
             <span>This media is still waiting on-chain.</span>
             <span>Waiting-push expiry status is temporarily unavailable.</span>
+          </div>
+        ) : null}
+        {waitingPushIdUnavailable ? (
+          <div className="recovery_note">
+            <span>This waiting push is expired.</span>
+            <span>Waiting push id unavailable.</span>
           </div>
         ) : null}
         {isDeletePending ? (
