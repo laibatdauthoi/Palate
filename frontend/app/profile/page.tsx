@@ -42,6 +42,8 @@ function ProfilePageContent() {
     { label: "Total pushed", value: userSummary.totalPushed },
     { label: "Total buffed", value: userSummary.totalBuffed }
   ];
+  const pushClaims = claimRecords.filter((claim) => claim.type === "push");
+  const buffClaims = claimRecords.filter((claim) => claim.type === "buff");
 
   useEffect(() => {
     if (tab !== "Claims" || !walletReady || claimReadStatus !== "idle") return;
@@ -123,34 +125,34 @@ function ProfilePageContent() {
           <SectionPanel title="Settled Push Rewards" copy="Claimable and claimed settled push rewards stay visible here after matches leave Active Matches.">
             <div className="stack">
               {claimReadStatus === "loading" ? <p className="feedback_text feedback_info">Loading claims.</p> : null}
-              {claimReadStatus === "error" ? <p className="feedback_text feedback_error">Claims temporarily unavailable.</p> : null}
-              {claimRecords.filter((claim) => claim.type === "push").map((claim) => (
+              {claimReadStatus === "error" ? <p className="feedback_text feedback_error">{pushClaims.length > 0 ? "Claims temporarily unavailable. Using last read." : "Claims temporarily unavailable."}</p> : null}
+              {pushClaims.map((claim) => (
                 <ClaimCard
                   actionDisabled={!walletReady}
                   claim={claim}
-                  key={claim.id}
+                  key={claim.claimKey}
                   loading={claimBusy}
-                  onClaim={() => claimReward(claim.id)}
+                  onClaim={() => claimReward(claim)}
                 />
               ))}
-              {claimRecords.filter((claim) => claim.type === "push").length === 0 ? <EmptyState title="No settled rewards yet." copy="Settled push rewards will appear here after settlement." /> : null}
+              {pushClaims.length === 0 ? <EmptyState title="No settled rewards yet." copy="Settled push rewards will appear here after settlement." /> : null}
             </div>
             {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
           </SectionPanel>
           <SectionPanel title="Settled Buff Rewards" copy="Claimable and claimed settled Buff rewards stay visible here after matches leave Active Matches.">
             <div className="stack">
               {claimReadStatus === "loading" ? <p className="feedback_text feedback_info">Loading claims.</p> : null}
-              {claimReadStatus === "error" ? <p className="feedback_text feedback_error">Claims temporarily unavailable.</p> : null}
-              {claimRecords.filter((claim) => claim.type === "buff").map((claim) => (
+              {claimReadStatus === "error" ? <p className="feedback_text feedback_error">{buffClaims.length > 0 ? "Claims temporarily unavailable. Using last read." : "Claims temporarily unavailable."}</p> : null}
+              {buffClaims.map((claim) => (
                 <ClaimCard
                   actionDisabled={!walletReady}
                   claim={claim}
-                  key={claim.id}
+                  key={claim.claimKey}
                   loading={claimBusy}
-                  onClaim={() => claimReward(claim.id)}
+                  onClaim={() => claimReward(claim)}
                 />
               ))}
-              {claimRecords.filter((claim) => claim.type === "buff").length === 0 ? <EmptyState title="No settled rewards yet." copy="Settled Buff rewards will appear here after settlement." /> : null}
+              {buffClaims.length === 0 ? <EmptyState title="No settled rewards yet." copy="Settled Buff rewards will appear here after settlement." /> : null}
             </div>
             <p className="mock_note">Claims credit Palate Balance before wallet withdrawal.</p>
           </SectionPanel>

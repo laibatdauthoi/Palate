@@ -972,13 +972,16 @@ export async function getClaimRecords(walletAddress: string): Promise<ClaimRecor
 
       return {
         id: Number(asString(record.claim_key)),
+        claimKey: Number(asString(record.claim_key)),
         matchId: normalizedMatchId,
         type: normalizedRewardType,
         matchRef: `Match ${normalizedMatchId}`,
         amount: formatOctasToApt(asString(record.claimable_amount)),
+        claimableAmountOctas: asString(record.claimable_amount),
         settledTime: Boolean(record.settled) ? "Settled on chain" : "Pending settlement",
         claimable: Boolean(record.claimable),
-        claimed: Boolean(record.claimed)
+        claimed: Boolean(record.claimed),
+        settled: Boolean(record.settled)
       } satisfies ClaimRecord;
     })
     .sort((a, b) => b.id - a.id);

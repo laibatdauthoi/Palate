@@ -187,30 +187,39 @@ export const mock_matches: ActiveMatch[] = [
 export const mock_claims: ClaimRecord[] = [
   {
     id: 9001,
+    claimKey: 9001,
     type: "push",
     matchRef: "Match 448",
     amount: "19.975 APT",
+    claimableAmountOctas: "1997500000",
     settledTime: "2h ago",
     claimable: true,
-    claimed: false
+    claimed: false,
+    settled: true
   },
   {
     id: 9002,
+    claimKey: 9002,
     type: "buff",
     matchRef: "Match 451",
     amount: "3.420 APT",
+    claimableAmountOctas: "342000000",
     settledTime: "Yesterday",
     claimable: true,
-    claimed: false
+    claimed: false,
+    settled: true
   },
   {
     id: 9003,
+    claimKey: 9003,
     type: "buff",
     matchRef: "Match 466",
     amount: "Pending",
+    claimableAmountOctas: "0",
     settledTime: "Awaiting settlement",
     claimable: false,
-    claimed: false
+    claimed: false,
+    settled: false
   }
 ];
 

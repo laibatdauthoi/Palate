@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { app_config } from "@/config/app_config";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { ActionButton } from "./action_button";
@@ -16,6 +17,14 @@ const wallet_status_copy = {
 
 function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function getChainStatusCopy(status: "idle" | "loading" | "ready" | "error", warning: string | null) {
+  if (warning) return "Using last read";
+  if (status === "ready") return "Ready";
+  if (status === "loading") return "Loading";
+  if (status === "error") return "Unavailable";
+  return "Idle";
 }
 
 export function WalletPanel() {
@@ -36,10 +45,11 @@ export function WalletPanel() {
     walletStatus
   } = usePalateWallet();
   const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const connected = walletStatus === "connected";
   const statusCopy = connected ? "Connected" : wallet_status_copy[walletStatus];
   const addressCopy = walletAddress ? shortenAddress(walletAddress) : statusCopy;
-  const chainStatusCopy = chainRead.status === "ready" ? "Ready" : chainRead.status === "loading" ? "Loading" : chainRead.status === "error" ? "Error" : "Idle";
+  const chainStatusCopy = getChainStatusCopy(chainRead.status, chainRead.warning);
   const walletBalanceCopy = walletBalanceStatus === "ready"
     ? walletBalance ?? "Unavailable"
     : walletBalanceStatus === "loading"
@@ -56,6 +66,16 @@ export function WalletPanel() {
         : palateBalanceReadStatus === "error"
           ? "Unavailable"
           : "Disconnected";
+  const showDetailsToggle = Boolean(chainRead.warning || chainRead.error || app_config.debugAptosReads);
+  const compactStatusLine = chainRead.error
+    ? "Contract read temporarily unavailable"
+    : walletStatus === "wrong_network"
+      ? "Switch to Aptos Testnet."
+      : walletError
+        ? walletError
+        : walletBalanceError && connected
+          ? "Wallet balance unavailable."
+          : null;
 
   async function handleConnect(nextWalletName: string) {
     await connectWallet(nextWalletName);
@@ -73,35 +93,35 @@ export function WalletPanel() {
         </div>
         <div className="wallet_compact_body">
           <strong>{connected ? addressCopy : statusCopy}</strong>
-          <span>Wallet Balance {walletBalanceCopy}</span>
-          <span>Palate Balance {palateBalanceCopy}</span>
+          <span><strong>Wallet:</strong> {walletBalanceCopy}</span>
+          <span><strong>Palate:</strong> {palateBalanceCopy}</span>
         </div>
         {connected ? (
           <div className="wallet_meta">
-            <span>{walletName ?? "Wallet"}</span>
-            <span>{networkName ?? "Network unavailable"}</span>
+            <span>{walletName ?? "Wallet"} · {(networkName ?? "Network").toLowerCase()} · <span className={`chain_status_pill chain_status_${chainRead.status}`}>{chainStatusCopy}</span></span>
           </div>
         ) : null}
-        {walletStatus === "wrong_network" ? (
-          <p className="wallet_message">Switch to Aptos Testnet before future on-chain actions.</p>
+        {compactStatusLine ? <p className={`wallet_message ${chainRead.error || walletStatus === "wrong_network" || walletError || walletBalanceError ? "wallet_message_error" : ""}`}>{compactStatusLine}</p> : null}
+        {showDetailsToggle ? (
+          <div className="wallet_details_section">
+            <button
+              type="button"
+              className="wallet_details_toggle"
+              onClick={() => setDetailsOpen((open) => !open)}
+            >
+              {detailsOpen ? "Hide Details" : "Details"}
+            </button>
+            {detailsOpen ? (
+              <div className="wallet_details_list">
+                <span>{chainRead.networkLabel}</span>
+                <span>Module {shortenAddress(chainRead.moduleAddress)}</span>
+                {chainRead.treasuryAddress ? <span>Treasury {shortenAddress(chainRead.treasuryAddress)}</span> : null}
+                {chainRead.warning ? <span className="chain_status_error">{chainRead.warning}</span> : null}
+                {chainRead.error ? <span className="chain_status_error">{chainRead.error}</span> : null}
+              </div>
+            ) : null}
+          </div>
         ) : null}
-        {walletError ? <p className="wallet_message wallet_message_error">{walletError}</p> : null}
-        {walletBalanceError && connected ? <p className="wallet_message wallet_message_error">Wallet balance unavailable.</p> : null}
-        <div className="chain_status_panel">
-          <div className="wallet_panel_header">
-            <span className="chain_status_network">{chainRead.networkLabel}</span>
-            <span className={`chain_status_pill chain_status_${chainRead.status}`}>{chainStatusCopy}</span>
-          </div>
-          <div className="chain_status_rows">
-            <span>Wallet {connected ? "Connected" : statusCopy}</span>
-            <span>Wallet balance {walletBalanceStatus === "ready" ? "Ready" : walletBalanceStatus === "loading" ? "Loading" : walletBalanceStatus === "error" ? "Unavailable" : "Idle"}</span>
-            <span>Palate Balance {palateBalanceReadStatus === "ready" ? "Ready" : palateBalanceReadStatus === "loading" ? "Loading" : palateBalanceReadStatus === "error" ? "Unavailable" : "Idle"}</span>
-            <span>Module {shortenAddress(chainRead.moduleAddress)}</span>
-            {chainRead.treasuryAddress ? <span>Treasury {shortenAddress(chainRead.treasuryAddress)}</span> : null}
-            {chainRead.warning ? <span className="chain_status_error">{chainRead.warning}</span> : null}
-            {chainRead.error ? <span className="chain_status_error">{chainRead.error}</span> : null}
-          </div>
-        </div>
         <div className="wallet_actions">
           {connected ? (
             <ActionButton className="wallet_compact_button" onClick={disconnectWallet} variant="secondary">Disconnect</ActionButton>

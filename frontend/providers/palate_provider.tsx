@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { mock_balance, mock_claims, mock_matches, mock_media, mock_summary, mock_waiting_pushes } from "@/data/mock_data";
+import { mock_balance, mock_matches, mock_media, mock_summary, mock_waiting_pushes } from "@/data/mock_data";
 import { VIDEO_ENABLED, app_config } from "@/config/app_config";
 import {
   buildClaimRewardPayload,
@@ -150,8 +150,8 @@ type PalateContextValue = {
   challengePush: (pushId: number, challengerMediaId: number, amount: string) => Promise<void>;
   createMockPush: (mediaId: number, amount: string) => Promise<void>;
   challengeMockPush: (pushId: number, challengerMediaId: number, amount: string) => Promise<void>;
-  claimReward: (claimId: number) => Promise<void>;
-  claimMockReward: (claimId: number) => Promise<void>;
+  claimReward: (claim: ClaimRecord) => Promise<void>;
+  claimMockReward: (claim: ClaimRecord) => Promise<void>;
 };
 
 const PalateContext = createContext<PalateContextValue | null>(null);
@@ -365,14 +365,12 @@ function assertNoMockDataInConnectedMode(input: {
   const hasMockMedia = input.mediaRecords.some(isMockMediaRecord)
     || input.waitingPushes.some((push) => isMockMediaRecord(push.media))
     || input.activeMatches.some((match) => isMockMediaRecord(match.mediaA) || isMockMediaRecord(match.mediaB));
-  const hasMockClaims = input.claimRecords.some((claim) => claim.id >= 9001 && claim.id <= 9003);
   const hasMockBalance = input.balance.availableBalance === mock_balance.availableBalance;
   const hasMockSummary = input.userSummary.walletAddress === mock_summary.walletAddress;
 
-  if (hasMockMedia || hasMockClaims || hasMockBalance || hasMockSummary) {
+  if (hasMockMedia || hasMockBalance || hasMockSummary) {
     console.warn("[Palate connected-mode boundary] Mock data detected in connected mode.", {
       hasMockMedia,
-      hasMockClaims,
       hasMockBalance,
       hasMockSummary
     });
@@ -575,6 +573,16 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setClaimReadStatus("loading");
     try {
       const nextClaimRecords = await readClaimRecords(ownerAddress);
+      if (app_config.debugAptosReads) {
+        console.info("[Palate claim records]", nextClaimRecords.map((record) => ({
+          claimKey: record.claimKey,
+          matchId: record.matchId,
+          type: record.type,
+          claimable: record.claimable,
+          claimed: record.claimed,
+          amount: record.amount
+        })));
+      }
       setClaimRecords(nextClaimRecords);
       setClaimReadStatus("ready");
       setUserSummary((current) => ({
@@ -1064,14 +1072,17 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function claimRewardOnChain(claimId: number) {
+  async function claimRewardOnChain(claim: ClaimRecord) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
       setFeedback({ type: "error", message: "Connect wallet to claim rewards." });
       return;
     }
 
-    const claim = claimRecords.find((candidate) => candidate.id === claimId);
-    if (!claim || !claim.matchId) {
+    if (!claim.matchId) {
+      setFeedback({ type: "error", message: "Claim is not available." });
+      return;
+    }
+    if (!claim.settled || claim.claimed || !claim.claimable || BigInt(claim.claimableAmountOctas) <= BigInt(0)) {
       setFeedback({ type: "error", message: "Claim is not available." });
       return;
     }
@@ -1630,7 +1641,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const resolvedMediaRecords = disconnectedPreviewMode ? previewMediaRecords : visibleMediaRecords;
   const resolvedWaitingPushes = disconnectedPreviewMode ? previewWaitingPushes : visibleWaitingPushes;
   const resolvedActiveMatches = disconnectedPreviewMode ? previewActiveMatches : visibleActiveMatches;
-  const resolvedClaimRecords = disconnectedPreviewMode ? mock_claims : claimRecords;
+  const resolvedClaimRecords = claimRecords;
   const resolvedUserSummary = disconnectedPreviewMode ? mock_summary : userSummary;
 
   useEffect(() => {

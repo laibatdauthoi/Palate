@@ -699,7 +699,7 @@ select.input_control option:checked,
 
 .wallet_panel {
   display: grid;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   margin-top: auto;
   border: 2px solid rgba(255, 47, 159, 0.2);
   border-radius: var(--radius-large);
@@ -721,7 +721,7 @@ select.input_control option:checked,
 
 .wallet_panel strong {
   display: block;
-  margin-top: var(--spacing-xs);
+  margin-top: 0;
 }
 
 .wallet_balance {
@@ -733,12 +733,32 @@ select.input_control option:checked,
 }
 
 .wallet_meta {
-  display: grid;
-  gap: var(--spacing-xs);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   color: var(--text-muted);
   font-size: var(--font-size-caption);
   font-weight: 800;
   line-height: 1.35;
+}
+
+.wallet_compact_body {
+  display: grid;
+  gap: 4px;
+}
+
+.wallet_compact_body span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-caption);
+  line-height: 1.35;
+}
+
+.wallet_compact_body span strong {
+  display: inline;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: inherit;
 }
 
 .wallet_status {
@@ -769,6 +789,36 @@ select.input_control option:checked,
 .wallet_actions {
   display: grid;
   gap: var(--spacing-sm);
+}
+
+.wallet_details_section {
+  display: grid;
+  gap: 6px;
+}
+
+.wallet_details_toggle {
+  justify-self: start;
+  border: 1px solid rgba(255, 47, 159, 0.18);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  padding: 4px 10px;
+  font-size: var(--font-size-caption);
+  font-weight: 800;
+  transition: var(--transition-fast);
+}
+
+.wallet_details_toggle:hover {
+  border-color: rgba(255, 47, 159, 0.34);
+  color: var(--text-primary);
+}
+
+.wallet_details_list {
+  display: grid;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: var(--font-size-caption);
+  line-height: 1.4;
 }
 
 .wallet_message {

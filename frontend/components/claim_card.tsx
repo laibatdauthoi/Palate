@@ -3,7 +3,9 @@ import { ActionButton } from "./action_button";
 import { StatusBadge } from "./status_badge";
 
 export function ClaimCard({ claim, onClaim, loading, actionDisabled }: { claim: ClaimRecord; onClaim?: () => void; loading?: boolean; actionDisabled?: boolean }) {
-  const disabled = actionDisabled || !claim.claimable || claim.claimed || loading;
+  const unavailable = !claim.settled || claim.claimed || !claim.claimable || BigInt(claim.claimableAmountOctas) <= BigInt(0);
+  const disabled = actionDisabled || unavailable || loading;
+  const buttonLabel = loading ? "Claiming" : claim.claimed ? "Claimed" : BigInt(claim.claimableAmountOctas) <= BigInt(0) ? "Unavailable" : "Claim";
 
   return (
     <article className="claim_card">
@@ -16,8 +18,8 @@ export function ClaimCard({ claim, onClaim, loading, actionDisabled }: { claim: 
         <strong>{claim.amount}</strong>
         <StatusBadge status={claim.claimed ? "claimed" : claim.claimable ? "claimable" : "pending"} />
       </div>
-      <ActionButton onClick={onClaim} variant={claim.claimable && !claim.claimed ? "primary" : "secondary"} disabled={disabled}>
-        {loading ? "Claiming" : claim.claimed ? "Claimed" : "Claim"}
+      <ActionButton onClick={onClaim} variant={claim.claimable && !claim.claimed && BigInt(claim.claimableAmountOctas) > BigInt(0) ? "primary" : "secondary"} disabled={disabled}>
+        {buttonLabel}
       </ActionButton>
     </article>
   );

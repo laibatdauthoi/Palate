@@ -127,13 +127,16 @@ export type PalateBalance = {
 
 export type ClaimRecord = {
   id: number;
+  claimKey: number;
   matchId?: number;
   type: ClaimType;
   matchRef: string;
   amount: string;
+  claimableAmountOctas: string;
   settledTime: string;
   claimable: boolean;
   claimed: boolean;
+  settled: boolean;
 };
 
 export type UserSummary = {
