@@ -7,9 +7,12 @@ import { WaitingPushCard } from "@/components/waiting_push_card";
 import { SectionPanel } from "@/components/section_panel";
 import { app_config } from "@/config/app_config";
 import { usePalate } from "@/providers/palate_provider";
+import { usePalateWallet } from "@/providers/wallet_provider";
 
 export default function HomePage() {
   const { activeMatches, balance, settleMatch, userSummary, waitingPushes } = usePalate();
+  const { walletStatus } = usePalateWallet();
+  const showPreviewNote = walletStatus === "disconnected" && app_config.mockMode;
   const stat_cards = [
     { label: "Active matches", value: String(activeMatches.length) },
     { label: "Pending Buffs", value: userSummary.pendingBuffs },
@@ -32,7 +35,7 @@ export default function HomePage() {
             <ActionButton href="/my-media/upload" variant="secondary">Upload Media</ActionButton>
             <ActionButton href="/push" variant="secondary">Push Media</ActionButton>
           </div>
-          <p className="mock_note">{app_config.mockMode ? "Aptos Testnet and Shelby integration are prepared for the next phase." : app_config.networkLabel}</p>
+          <p className="mock_note">{showPreviewNote ? "Disconnected preview mode is showing sample lobby data." : app_config.networkLabel}</p>
         </div>
         {featuredMatch ? (
           <div className="hero_match_preview">

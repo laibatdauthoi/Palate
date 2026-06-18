@@ -30,6 +30,7 @@ export const app_config = {
     "video/quicktime"
   ],
   supportedCategories: ["meme", "image", "audio", "video"] as MediaCategory[],
+  // Disconnected preview only. Never use this as a connected-wallet fallback.
   mockMode: true
 } as const;
 

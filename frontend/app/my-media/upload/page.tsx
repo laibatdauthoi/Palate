@@ -199,7 +199,7 @@ export default function UploadPage() {
         <SectionPanel title="Media and progress">
           <div className="stack">
             <div className="upload_preview">
-              <span>{category_labels[category]} media placeholder</span>
+              <span>{category_labels[category]} media</span>
             </div>
             <div className="upload_steps">
               {progress_steps.map((step, index) => (

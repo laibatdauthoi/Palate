@@ -46,6 +46,8 @@ function PushPageContent() {
   const [challengeAmount, setChallengeAmount] = useState("6.510");
   const [prefillReason, setPrefillReason] = useState<string | null>(null);
   const [dismissedChallengeId, setDismissedChallengeId] = useState<number | null>(null);
+  const [lastAppliedCreateMediaQuery, setLastAppliedCreateMediaQuery] = useState<string | null>(null);
+  const [lastAppliedChallengeQuery, setLastAppliedChallengeQuery] = useState<string | null>(null);
   const createMediaQuery = searchParams.get("mediaId");
   const challengePushQuery = searchParams.get("challengeId") ?? searchParams.get("pushId");
   const openWaitingPushes = waitingPushes.filter((push) =>
@@ -140,11 +142,17 @@ function PushPageContent() {
 
   useEffect(() => {
     if (!createMediaQuery) {
+      setLastAppliedCreateMediaQuery(null);
+      return;
+    }
+
+    if (createMediaQuery === lastAppliedCreateMediaQuery) {
       return;
     }
 
     const nextId = Number(createMediaQuery);
     if (Number.isNaN(nextId)) {
+      setLastAppliedCreateMediaQuery(createMediaQuery);
       return;
     }
 
@@ -152,6 +160,7 @@ function PushPageContent() {
     if (!candidate) {
       setCreateMediaId("");
       setPrefillReason("Selected media is no longer available.");
+      setLastAppliedCreateMediaQuery(createMediaQuery);
       return;
     }
 
@@ -160,22 +169,49 @@ function PushPageContent() {
       setCreateMediaId(String(candidate.id));
       setPrefillReason(null);
       setTab("Waiting");
+      setLastAppliedCreateMediaQuery(createMediaQuery);
       return;
     }
 
     setCreateMediaId("");
     setPrefillReason(eligibility.reason);
     setTab("Waiting");
-  }, [createMediaQuery, mediaRecords]);
+    setLastAppliedCreateMediaQuery(createMediaQuery);
+  }, [createMediaQuery, lastAppliedCreateMediaQuery, mediaRecords]);
+
+  useEffect(() => {
+    if (!createMediaId) {
+      return;
+    }
+
+    const candidate = mediaRecords.find((item) => String(item.id) === createMediaId);
+    if (!candidate) {
+      setCreateMediaId("");
+      setPrefillReason("Selected media is no longer available.");
+      return;
+    }
+
+    const eligibility = getPushEligibility(candidate);
+    if (!eligibility.eligible) {
+      setCreateMediaId("");
+      setPrefillReason(eligibility.reason);
+    }
+  }, [createMediaId, mediaRecords]);
 
   useEffect(() => {
     if (!challengePushQuery) {
+      setLastAppliedChallengeQuery(null);
+      return;
+    }
+
+    if (challengePushQuery === lastAppliedChallengeQuery) {
       return;
     }
 
     const nextId = Number(challengePushQuery);
     if (Number.isNaN(nextId)) {
       clearChallengeQuery();
+      setLastAppliedChallengeQuery(challengePushQuery);
       return;
     }
 
@@ -190,6 +226,7 @@ function PushPageContent() {
       setChallengeMediaId("");
       setModalOpen(false);
       clearChallengeQuery();
+      setLastAppliedChallengeQuery(challengePushQuery);
       return;
     }
 
@@ -198,7 +235,20 @@ function PushPageContent() {
     setChallengeMediaId("");
     setModalOpen(true);
     setTab("Waiting");
-  }, [challengePushQuery, clearChallengeQuery, dismissedChallengeId, openWaitingPushes]);
+    setLastAppliedChallengeQuery(challengePushQuery);
+  }, [challengePushQuery, clearChallengeQuery, dismissedChallengeId, lastAppliedChallengeQuery, openWaitingPushes]);
+
+  useEffect(() => {
+    if (challengePushId === null || selectedPush || !modalOpen) {
+      return;
+    }
+
+    setPrefillReason("Selected waiting push is no longer available.");
+    setChallengePushId(null);
+    setChallengeMediaId("");
+    setModalOpen(false);
+    clearChallengeQuery();
+  }, [challengePushId, clearChallengeQuery, modalOpen, selectedPush]);
 
   function openChallenge(pushId: number) {
     const push = openWaitingPushes.find((candidate) => candidate.id === pushId);
@@ -219,6 +269,7 @@ function PushPageContent() {
     next.delete("pushId");
     setDismissedChallengeId(null);
     setPrefillReason(null);
+    setLastAppliedChallengeQuery(String(pushId));
     setChallengePushId(pushId);
     setChallengeAmount(push?.minChallengeAmount.replace(" APT", "") ?? "1.000");
     setChallengeMediaId("");

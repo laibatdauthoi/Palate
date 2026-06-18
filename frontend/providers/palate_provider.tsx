@@ -345,22 +345,57 @@ function normalizeDeletePending(value: unknown): DeletePendingRecord[] {
     }));
 }
 
+function isMockMediaRecord(media: MediaRecord) {
+  return media.shelbyBlobRef.startsWith("mock://") || media.contentHash.startsWith("mock_hash_");
+}
+
+function assertNoMockDataInConnectedMode(input: {
+  connected: boolean;
+  balance: PalateBalance;
+  mediaRecords: MediaRecord[];
+  waitingPushes: WaitingPush[];
+  activeMatches: ActiveMatch[];
+  claimRecords: ClaimRecord[];
+  userSummary: UserSummary;
+}) {
+  if (!input.connected || process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  const hasMockMedia = input.mediaRecords.some(isMockMediaRecord)
+    || input.waitingPushes.some((push) => isMockMediaRecord(push.media))
+    || input.activeMatches.some((match) => isMockMediaRecord(match.mediaA) || isMockMediaRecord(match.mediaB));
+  const hasMockClaims = input.claimRecords.some((claim) => claim.id >= 9001 && claim.id <= 9003);
+  const hasMockBalance = input.balance.availableBalance === mock_balance.availableBalance;
+  const hasMockSummary = input.userSummary.walletAddress === mock_summary.walletAddress;
+
+  if (hasMockMedia || hasMockClaims || hasMockBalance || hasMockSummary) {
+    console.warn("[Palate connected-mode boundary] Mock data detected in connected mode.", {
+      hasMockMedia,
+      hasMockClaims,
+      hasMockBalance,
+      hasMockSummary
+    });
+  }
+}
+
 export function PalateProvider({ children }: { children: ReactNode }) {
   const { signAndSubmitTransaction, walletAddress, walletStatus: walletConnectionStatus } = usePalateWallet();
   const connectedWalletReady = walletConnectionStatus === "connected" && Boolean(walletAddress);
-  const [walletStatus, setWalletStatus] = useState<WalletStatus>("connected");
-  const [balance, setBalance] = useState<PalateBalance>(connectedWalletReady ? loading_balance : mock_balance);
-  const [mediaRecords, setMediaRecords] = useState<MediaRecord[]>(connectedWalletReady ? [] : mock_media);
+  const disconnectedPreviewMode = walletConnectionStatus === "disconnected";
+  const [walletStatus, setWalletStatus] = useState<WalletStatus>("disconnected");
+  const [balance, setBalance] = useState<PalateBalance>(loading_balance);
+  const [mediaRecords, setMediaRecords] = useState<MediaRecord[]>([]);
   const [pendingRegistrationMedia, setPendingRegistrationMedia] = useState<MediaRecord[]>([]);
   const [pendingRegistrationStorageLoaded, setPendingRegistrationStorageLoaded] = useState(false);
   const [deletePendingRecords, setDeletePendingRecords] = useState<DeletePendingRecord[]>([]);
   const [deletePendingStorageLoaded, setDeletePendingStorageLoaded] = useState(false);
   const [contentUnavailableIds, setContentUnavailableIds] = useState<number[]>([]);
   const [shelbyCleanupRequiredIds, setShelbyCleanupRequiredIds] = useState<number[]>([]);
-  const [waitingPushes, setWaitingPushes] = useState<WaitingPush[]>(connectedWalletReady ? [] : mock_waiting_pushes);
-  const [activeMatches, setActiveMatches] = useState<ActiveMatch[]>(connectedWalletReady ? [] : mock_matches);
-  const [claimRecords, setClaimRecords] = useState<ClaimRecord[]>(connectedWalletReady ? [] : mock_claims);
-  const [userSummary, setUserSummary] = useState<UserSummary>(connectedWalletReady ? { ...loading_summary, walletAddress: walletAddress ?? "" } : mock_summary);
+  const [waitingPushes, setWaitingPushes] = useState<WaitingPush[]>([]);
+  const [activeMatches, setActiveMatches] = useState<ActiveMatch[]>([]);
+  const [claimRecords, setClaimRecords] = useState<ClaimRecord[]>([]);
+  const [userSummary, setUserSummary] = useState<UserSummary>({ ...loading_summary, walletAddress: walletAddress ?? "" });
   const [currentAssignment, setCurrentAssignment] = useState<BuffAssignment | null>(null);
   const [completedBuffSide, setCompletedBuffSide] = useState<BuffSide | null>(null);
   const [noValidMatchAvailable, setNoValidMatchAvailable] = useState(false);
@@ -1581,20 +1616,48 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     mediaA: applyLocalMediaState(match.mediaA),
     mediaB: applyLocalMediaState(match.mediaB)
   }));
+  const previewMediaRecords = mock_media.map((media) => applyLocalMediaState(media));
+  const previewWaitingPushes = mock_waiting_pushes.map((push) => ({
+    ...push,
+    media: applyLocalMediaState(push.media)
+  }));
+  const previewActiveMatches = mock_matches.map((match) => ({
+    ...match,
+    mediaA: applyLocalMediaState(match.mediaA),
+    mediaB: applyLocalMediaState(match.mediaB)
+  }));
+  const resolvedBalance = disconnectedPreviewMode ? mock_balance : balance;
+  const resolvedMediaRecords = disconnectedPreviewMode ? previewMediaRecords : visibleMediaRecords;
+  const resolvedWaitingPushes = disconnectedPreviewMode ? previewWaitingPushes : visibleWaitingPushes;
+  const resolvedActiveMatches = disconnectedPreviewMode ? previewActiveMatches : visibleActiveMatches;
+  const resolvedClaimRecords = disconnectedPreviewMode ? mock_claims : claimRecords;
+  const resolvedUserSummary = disconnectedPreviewMode ? mock_summary : userSummary;
+
+  useEffect(() => {
+    assertNoMockDataInConnectedMode({
+      connected: connectedWalletReady,
+      balance,
+      mediaRecords: visibleMediaRecords,
+      waitingPushes: visibleWaitingPushes,
+      activeMatches: visibleActiveMatches,
+      claimRecords,
+      userSummary
+    });
+  }, [activeMatches, balance, claimRecords, connectedWalletReady, mediaRecords, userSummary, visibleActiveMatches, visibleMediaRecords, visibleWaitingPushes, waitingPushes]);
 
   const value: PalateContextValue = {
       walletStatus,
       setWalletStatus,
       mockWalletAddress,
-      balance,
-      mediaRecords: visibleMediaRecords,
-      waitingPushes: visibleWaitingPushes,
-      activeMatches: visibleActiveMatches,
+      balance: resolvedBalance,
+      mediaRecords: resolvedMediaRecords,
+      waitingPushes: resolvedWaitingPushes,
+      activeMatches: resolvedActiveMatches,
       currentAssignment,
       completedBuffSide,
       noValidMatchAvailable,
-      claimRecords,
-      userSummary,
+      claimRecords: resolvedClaimRecords,
+      userSummary: resolvedUserSummary,
       uploadStep,
       uploadRecovery,
       mediaReadStatus,

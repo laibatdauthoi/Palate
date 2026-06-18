@@ -2,8 +2,9 @@ import type { ActiveMatch, ClaimRecord, MediaRecord, PalateBalance, UserSummary,
 
 const mock_owner = "0x91f8...2b40";
 
-// Temporary mock data for early visual scaffolding only.
-// Replace with Aptos view calls and Shelby media sources during integration.
+// Disconnected preview data only.
+// Do not use this data as fallback in connected wallet mode.
+// Connected mode must render only real chain/local user state, loading states, or unavailable states.
 export const mock_media: MediaRecord[] = [
   {
     id: 1,
