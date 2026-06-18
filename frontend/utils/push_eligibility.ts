@@ -9,6 +9,7 @@ export type PushEligibility = {
 
 export type PushEligibilityOptions = {
   requireIdle?: boolean;
+  allowExpiredWaitingPush?: boolean;
 };
 
 function getStorageLabel(media: MediaRecord) {
@@ -20,6 +21,7 @@ function getStorageLabel(media: MediaRecord) {
 
 export function getPushEligibility(media: MediaRecord, options: PushEligibilityOptions = {}): PushEligibility {
   const requireIdle = options.requireIdle ?? true;
+  const allowExpiredWaitingPush = options.allowExpiredWaitingPush ?? false;
 
   if (media.source !== "palate") {
     return { eligible: false, reason: "Only Palate-registered media can be pushed." };
@@ -46,7 +48,12 @@ export function getPushEligibility(media: MediaRecord, options: PushEligibilityO
   if (media.status === "registration_failed") {
     return { eligible: false, reason: "Registration failed media cannot be pushed." };
   }
-  if (requireIdle && media.status !== "idle" && media.status !== "settled") {
+  const canUseExpiredWaitingPush = allowExpiredWaitingPush
+    && media.status === "waiting"
+    && media.waitingPushExpired === true
+    && typeof media.waitingPushId === "number";
+
+  if (requireIdle && media.status !== "idle" && media.status !== "settled" && !canUseExpiredWaitingPush) {
     return { eligible: false, reason: "Media must be idle to push." };
   }
   if (!isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName)) {

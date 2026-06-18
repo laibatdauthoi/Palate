@@ -102,12 +102,18 @@ export default function MyMediaPage() {
 
   function renderMediaCard(media: MediaRecord) {
     const isInvalid = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
-    const pushEligibility = (media.status === "idle" || media.status === "settled") ? getPushEligibility(media) : null;
-    const canPush = pushEligibility ? pushEligibility.eligible : false;
     const canCleanUpExpiredPush = media.source === "palate"
       && media.status === "waiting"
       && media.waitingPushExpired === true
       && typeof media.waitingPushId === "number";
+    const waitingExpiryUnavailable = media.source === "palate"
+      && media.status === "waiting"
+      && media.waitingPushExpired !== true
+      && (typeof media.waitingPushId !== "number" || typeof media.waitingPushExpired !== "boolean");
+    const pushEligibility = (media.status === "idle" || media.status === "settled" || canCleanUpExpiredPush)
+      ? getPushEligibility(media, { allowExpiredWaitingPush: true })
+      : null;
+    const canPush = pushEligibility ? pushEligibility.eligible : false;
     const isDeletable = media.source === "palate"
       && media.palateMediaId !== null
       && media.palateMediaId !== undefined
@@ -127,15 +133,15 @@ export default function MyMediaPage() {
               ? "Retry on-chain delete"
               : primaryDelete
               ? "Delete"
-              : media.status === "registration_failed"
+                : media.status === "registration_failed"
                 ? "Retry registration"
                 : media.status === "pending_registration"
                 ? "Registering"
+                : canPush
+                  ? "Push"
                 : canCleanUpExpiredPush
                   ? "Clean up expired push"
-                : (media.status === "idle" || (media.status === "settled" && canPush))
-                  ? "Push"
-                  : media.status === "waiting"
+                : media.status === "waiting"
                     ? "Waiting"
                     : media.status === "active"
                       ? "View Match"
@@ -146,8 +152,10 @@ export default function MyMediaPage() {
             || processingAction === `retryRegistration:${media.id}`
             || processingAction === `deleteMedia:${media.id}`
             || processingAction === `retryDelete:${media.id}`
+            || processingAction === "createPush"
             || (canCleanUpExpiredPush && processingAction === `expireWaitingPush:${media.waitingPushId}`)
-            || (media.status === "idle" && !canPush)
+            || (media.status === "waiting" && !canCleanUpExpiredPush && !canPush)
+            || ((media.status === "idle" || media.status === "settled" || canCleanUpExpiredPush) && !canPush && !canCleanUpExpiredPush)
           }
           onAction={
             media.shelbyCleanupRequired
@@ -158,13 +166,13 @@ export default function MyMediaPage() {
               ? () => setDeleteMediaId(media.id)
               : media.status === "registration_failed"
               ? () => retryPalateRegistration(media.id)
-              : canCleanUpExpiredPush
-                ? () => expireWaitingPush(media.waitingPushId!)
-              : (media.status === "idle" || media.status === "settled") && canPush
+              : canPush
                 ? () => {
                   startRouteTransition("my-media-card", "/push", "router.push");
                   router.push(`/push?mediaId=${media.id}`);
                 }
+              : canCleanUpExpiredPush
+                ? () => expireWaitingPush(media.waitingPushId!)
                 : media.status === "settled"
                   ? () => {
                     startRouteTransition("my-media-card", "/profile", "router.push");
@@ -172,8 +180,24 @@ export default function MyMediaPage() {
                   }
                 : undefined
           }
-        secondaryActionLabel={media.source === "palate_upload_recovery" ? "Clear" : isDeletable && !primaryDelete && !media.deletePending ? "Delete" : undefined}
-        onSecondaryAction={media.source === "palate_upload_recovery" ? () => clearPendingRegistration(media.id) : isDeletable && !primaryDelete && !media.deletePending ? () => setDeleteMediaId(media.id) : undefined}
+        secondaryActionLabel={
+          media.source === "palate_upload_recovery"
+            ? "Clear"
+            : canCleanUpExpiredPush && canPush
+              ? "Clean up expired push"
+              : isDeletable && !primaryDelete && !media.deletePending
+                ? "Delete"
+                : undefined
+        }
+        onSecondaryAction={
+          media.source === "palate_upload_recovery"
+            ? () => clearPendingRegistration(media.id)
+            : canCleanUpExpiredPush && canPush
+              ? () => expireWaitingPush(media.waitingPushId!)
+              : isDeletable && !primaryDelete && !media.deletePending
+                ? () => setDeleteMediaId(media.id)
+                : undefined
+        }
         onMediaToggle={
           canPlayMedia(media)
             ? () => {
@@ -185,10 +209,11 @@ export default function MyMediaPage() {
             }
             : undefined
         }
-        onPushAction={(media.status === "idle" || media.status === "settled") && canPush ? () => {
+        onPushAction={canPush ? () => {
           startRouteTransition("my-media-card", "/push", "router.push");
           router.push(`/push?mediaId=${media.id}`);
         } : undefined}
+        waitingExpiryUnavailable={waitingExpiryUnavailable}
       />
     );
   }

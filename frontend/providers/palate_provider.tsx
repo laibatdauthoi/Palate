@@ -614,7 +614,25 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setMediaReadStatus("loading");
     try {
       const nextMedia = await getUserMedia(ownerAddress);
-      setMediaRecords(nextMedia);
+      setMediaRecords((current) => nextMedia.map((record) => {
+        const previous = current.find((candidate) => candidate.id === record.id && candidate.source === "palate");
+        if (
+          record.status !== "waiting"
+          || !previous
+          || previous.status !== "waiting"
+          || (record.waitingPushId !== undefined && record.waitingPushExpired !== undefined)
+        ) {
+          return record;
+        }
+
+        return {
+          ...record,
+          waitingPushId: record.waitingPushId ?? previous.waitingPushId,
+          waitingPushExpired: record.waitingPushExpired ?? previous.waitingPushExpired,
+          waitingPushCreatedTimeSeconds: record.waitingPushCreatedTimeSeconds ?? previous.waitingPushCreatedTimeSeconds,
+          waitingPushExpirySeconds: record.waitingPushExpirySeconds ?? previous.waitingPushExpirySeconds
+        };
+      }));
       setMediaReadStatus("ready");
     } catch (error) {
       setMediaReadStatus("error");
@@ -1682,12 +1700,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     const media = mediaRecords.find((record) => record.id === mediaId);
     if (!media) {
-      setFeedback({ type: "error", message: "Choose registered idle Palate media to create a Push." });
+      setFeedback({ type: "error", message: "Choose registered idle or expired-waiting Palate media to create a Push." });
       finishPerf("end", { skipped: true, reason: "media not found" });
       return;
     }
 
-    const eligibility = getPushEligibility(media);
+    const eligibility = getPushEligibility(media, { allowExpiredWaitingPush: true });
     if (!eligibility.eligible) {
       if (process.env.NODE_ENV !== "production") {
         console.debug("[Palate Push eligibility]", {

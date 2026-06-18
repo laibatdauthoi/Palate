@@ -22,13 +22,16 @@ type MediaCardProps = {
   mediaActive?: boolean;
   mediaPlaying?: boolean;
   onMediaToggle?: () => void;
+  waitingExpiryUnavailable?: boolean;
 };
 
-export function MediaCard({ media, actionLabel, onAction, onPushAction, secondaryActionLabel, onSecondaryAction, actionDisabled, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaCardProps) {
+export function MediaCard({ media, actionLabel, onAction, onPushAction, secondaryActionLabel, onSecondaryAction, actionDisabled, mediaActive = false, mediaPlaying = false, onMediaToggle, waitingExpiryUnavailable = false }: MediaCardProps) {
   const displayTitle = getMediaDisplayTitle(media);
   const isInvalidMediaType = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
   const isVideoDisabled = media.category === "video" && !VIDEO_ENABLED;
-  const pushEligibility = media.status === "idle" ? getPushEligibility(media) : null;
+  const pushEligibility = (media.status === "idle" || media.waitingPushExpired === true)
+    ? getPushEligibility(media, { allowExpiredWaitingPush: true })
+    : null;
   const isShelbyUploadFailed = media.storageStatus === "shelby_upload_failed";
   const isDeletePending = media.deletePending === true;
   const isContentUnavailable = media.contentUnavailable === true;
@@ -112,7 +115,13 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
         {isExpiredWaitingPush ? (
           <div className="recovery_note">
             <span>This waiting push expired after 24 hours without a challenge.</span>
-            <span>Clean it up to refund the pusher and unlock this media.</span>
+            <span>Push again to let the contract auto-expire it, or clean it up manually first.</span>
+          </div>
+        ) : null}
+        {waitingExpiryUnavailable ? (
+          <div className="recovery_note">
+            <span>This media is still waiting on-chain.</span>
+            <span>Waiting-push expiry status is temporarily unavailable.</span>
           </div>
         ) : null}
         {isDeletePending ? (
