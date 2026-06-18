@@ -12,6 +12,46 @@ import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { formatOctasToApt } from "@/services/aptos_service";
 
+function isLoadingValue(value: string) {
+  return value === "Loading";
+}
+
+function isUnavailableValue(value: string) {
+  return value === "Unavailable";
+}
+
+function shortenAddress(address: string | null | undefined) {
+  if (!address) return "Not connected";
+  if (address.length <= 16) return address;
+  return `${address.slice(0, 8)}...${address.slice(-6)}`;
+}
+
+function classifyProfileFeedback(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("claim")) return "claim";
+  if (normalized.includes("reward credited")) return "claim";
+  if (normalized.includes("profile claims")) return "claim";
+  if (normalized.includes("deposit")) return "balance";
+  if (normalized.includes("withdraw")) return "balance";
+  if (normalized.includes("available palate balance")) return "balance";
+  if (normalized.includes("connect wallet to manage palate balance")) return "balance";
+
+  return "other";
+}
+
+function renderStatValue(value: string) {
+  if (isLoadingValue(value)) {
+    return <span className="stat_value_hint">Loading...</span>;
+  }
+
+  if (isUnavailableValue(value)) {
+    return <span className="stat_value_hint stat_value_unavailable">Unavailable</span>;
+  }
+
+  return <strong>{value}</strong>;
+}
+
 export default function ProfilePage() {
   return (
     <Suspense fallback={<div className="page_stack page_profile" />}>
@@ -21,7 +61,7 @@ export default function ProfilePage() {
 }
 
 function ProfilePageContent() {
-  const { balance, claimReadStatus, claimRecords, claimReward, depositBalance, feedback, processingAction, refreshClaims, userSummary, withdrawBalance } = usePalate();
+  const { balance, claimReadStatus, claimRecords, claimReward, depositBalance, feedback, processingAction, refreshClaims, userSummary, userSummaryReadStatus, withdrawBalance } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<"Stats" | "Claims">(searchParams.get("tab") === "Claims" ? "Claims" : "Stats");
@@ -62,6 +102,23 @@ function ProfilePageContent() {
           ? "Claims temporarily unavailable. Using last read."
           : "Claims temporarily unavailable."
         : null;
+  const statsReadMessage =
+    userSummaryReadStatus === "loading"
+      ? "Loading stats."
+      : userSummaryReadStatus === "error"
+        ? Object.values(userSummary).some((value) => value !== "Unavailable" && value !== "Loading" && value !== "" && value !== walletAddress)
+          ? "Stats temporarily unavailable. Using last read."
+          : "Stats temporarily unavailable."
+        : null;
+  const summaryClaimableValue =
+    claimReadStatus === "loading" && claimRecords.length === 0
+      ? "Loading"
+      : claimReadStatus === "error" && claimRecords.length === 0
+        ? "Unavailable"
+        : totalClaimableAmount;
+  const profileFeedbackTarget = feedback ? classifyProfileFeedback(feedback.message) : null;
+  const balanceFeedback = profileFeedbackTarget === "balance" ? feedback : null;
+  const claimFeedback = profileFeedbackTarget === "claim" ? feedback : null;
 
   useEffect(() => {
     if (tab !== "Claims" || !walletReady || claimReadStatus !== "idle") return;
@@ -97,19 +154,19 @@ function ProfilePageContent() {
         <SectionPanel>
           <div className="stat_card">
             <span>Wallet</span>
-            <strong>{walletAddress ?? "Not connected"}</strong>
+            <strong className="profile_address_value" title={walletAddress ?? "Not connected"}>{shortenAddress(walletAddress)}</strong>
           </div>
         </SectionPanel>
         <SectionPanel accent>
           <div className="stat_card">
             <span>Palate Balance</span>
-            <strong>{balance.availableBalance}</strong>
+            {renderStatValue(balance.availableBalance)}
           </div>
         </SectionPanel>
         <SectionPanel>
           <div className="stat_card">
             <span>Claimable amount</span>
-            <strong>{userSummary.claimableAmount}</strong>
+            {renderStatValue(summaryClaimableValue)}
           </div>
         </SectionPanel>
       </div>
@@ -125,14 +182,14 @@ function ProfilePageContent() {
           </ActionButton>
         </div>
         {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to manage Palate Balance.</p> : null}
-        {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
+        {balanceFeedback ? <p className={`feedback_text feedback_${balanceFeedback.type}`}>{balanceFeedback.message}</p> : null}
       </SectionPanel>
 
       <SectionPanel>
         <div className="tabs">
           {(["Stats", "Claims"] as const).map((item) => (
             <button
-              className={`tab_button ${tab === item ? "active" : ""}`}
+              className={`tab_button ${tab === item ? "active" : ""} ${item === "Claims" && claimableClaims.length > 0 ? "tab_button_attention" : ""}`}
               key={item}
               onClick={() => {
                 if (item === "Claims") {
@@ -142,21 +199,25 @@ function ProfilePageContent() {
               }}
             >
               {item}
+              {item === "Claims" && claimableClaims.length > 0 ? <span className="tab_badge">{claimableClaims.length}</span> : null}
             </button>
           ))}
         </div>
       </SectionPanel>
 
       {tab === "Stats" ? (
-        <div className="panel_grid">
+        <div className="stack">
+          {statsReadMessage ? <p className={`feedback_text ${userSummaryReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{statsReadMessage}</p> : null}
+          <div className="panel_grid">
           {profile_stats.map((stat) => (
             <SectionPanel key={stat.label}>
               <div className="stat_card">
                 <span>{stat.label}</span>
-                <strong>{stat.value}</strong>
+                {renderStatValue(stat.value)}
               </div>
             </SectionPanel>
           ))}
+          </div>
         </div>
       ) : (
         <div className="stack">
@@ -242,7 +303,7 @@ function ProfilePageContent() {
                 ) : null}
               </div>
             )}
-            {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
+            {claimFeedback ? <p className={`feedback_text feedback_${claimFeedback.type}`}>{claimFeedback.message}</p> : null}
           </SectionPanel>
         </div>
       )}

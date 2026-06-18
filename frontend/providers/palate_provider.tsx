@@ -23,6 +23,7 @@ import {
   getCurrentAssignment as readCurrentAssignment,
   getPalateBalance,
   getReadablePalateError,
+  getUserSummary as readUserSummary,
   getUserMedia,
   getWaitingPushes as readWaitingPushes,
   parseAptToOctas,
@@ -125,6 +126,7 @@ type PalateContextValue = {
   chainRead: ChainReadState;
   claimReadStatus: "idle" | "loading" | "ready" | "error";
   palateBalanceReadStatus: "idle" | "loading" | "ready" | "error";
+  userSummaryReadStatus: "idle" | "loading" | "ready" | "error";
   clearFeedback: () => void;
   refreshClaims: () => Promise<void>;
   connectMockWallet: () => void;
@@ -222,6 +224,25 @@ const loading_summary: UserSummary = {
   skipPenalty: "Loading"
 };
 
+const unavailable_summary: UserSummary = {
+  walletAddress: "",
+  claimableAmount: "Unavailable",
+  pushProfit: "Unavailable",
+  buffProfit: "Unavailable",
+  totalPushed: "Unavailable",
+  totalBuffed: "Unavailable",
+  pushWinRate: "Unavailable",
+  buffWinRate: "Unavailable",
+  pushCount: "Unavailable",
+  pushWins: "Unavailable",
+  pushLosses: "Unavailable",
+  buffCount: "Unavailable",
+  buffWins: "Unavailable",
+  buffLosses: "Unavailable",
+  pendingBuffs: "Unavailable",
+  skipPenalty: "Unavailable"
+};
+
 function parseApt(value: string) {
   const parsed = Number.parseFloat(value.replace("APT", "").trim());
   return Number.isFinite(parsed) ? parsed : 0;
@@ -245,9 +266,11 @@ function getMinChallengeAmount(pushAmount: string) {
 
 function getClaimableAmountFromRecords(records: ClaimRecord[]) {
   return records.reduce((total, record) => {
-    if (!record.claimable) return total;
+    if (!record.claimable || record.claimed) return total;
     try {
-      return total + parseApt(record.amount);
+      const amount = BigInt(record.claimableAmountOctas);
+      if (amount <= BigInt(0)) return total;
+      return total + parseApt(formatOctasToApt(amount));
     } catch {
       return total;
     }
@@ -404,6 +427,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [mediaReadStatus, setMediaReadStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [claimReadStatus, setClaimReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "idle" : "ready");
   const [palateBalanceReadStatus, setPalateBalanceReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
+  const [userSummaryReadStatus, setUserSummaryReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [chainRead, setChainRead] = useState<ChainReadState>(initial_chain_read_state);
@@ -595,6 +619,29 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function refreshUserSummaryForWallet(ownerAddress: string) {
+    setUserSummaryReadStatus("loading");
+    try {
+      const nextSummary = await readUserSummary(ownerAddress);
+      setUserSummary(nextSummary);
+      setUserSummaryReadStatus("ready");
+    } catch (error) {
+      console.error("[User summary read failed]", error);
+      setUserSummaryReadStatus("error");
+      setUserSummary((current) => {
+        const hasLoadingFields = Object.values(current).some((value) => value === "Loading");
+        if (!current.walletAddress || hasLoadingFields) {
+          return {
+            ...unavailable_summary,
+            walletAddress: ownerAddress
+          };
+        }
+
+        return current;
+      });
+    }
+  }
+
   async function refreshDeferredWalletState(ownerAddress: string) {
     setUserSummary((current) => ({
       ...current,
@@ -602,12 +649,32 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }));
     setMediaReadStatus("loading");
 
-    const [nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.allSettled([
+    const [nextSummary, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.allSettled([
+      readUserSummary(ownerAddress),
       getUserMedia(ownerAddress),
       readWaitingPushes(),
       readActiveMatches(),
       readCurrentAssignment(ownerAddress)
     ]);
+
+    if (nextSummary.status === "fulfilled") {
+      setUserSummary(nextSummary.value);
+      setUserSummaryReadStatus("ready");
+    } else {
+      console.error("[User summary read failed]", nextSummary.reason);
+      setUserSummaryReadStatus("error");
+      setUserSummary((current) => {
+        const hasLoadingFields = Object.values(current).some((value) => value === "Loading");
+        if (!current.walletAddress || hasLoadingFields) {
+          return {
+            ...unavailable_summary,
+            walletAddress: ownerAddress
+          };
+        }
+
+        return current;
+      });
+    }
 
     if (nextMedia.status === "fulfilled") {
       setMediaRecords(nextMedia.value);
@@ -660,8 +727,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           setMediaReadStatus("idle");
           setClaimReadStatus("idle");
           setPalateBalanceReadStatus("loading");
+          setUserSummaryReadStatus("loading");
           setUserSummary({ ...loading_summary, walletAddress: ownerAddress });
           await refreshPalateBalanceForWallet(ownerAddress);
+          await refreshUserSummaryForWallet(ownerAddress);
           deferredRefreshTimer = window.setTimeout(() => {
             if (cancelled) return;
             void refreshDeferredWalletState(ownerAddress).catch(() => {
@@ -1674,6 +1743,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       mediaReadStatus,
       claimReadStatus,
       palateBalanceReadStatus,
+      userSummaryReadStatus,
       processingAction,
       feedback,
       chainRead,

@@ -987,10 +987,73 @@ export async function getClaimRecords(walletAddress: string): Promise<ClaimRecor
     .sort((a, b) => b.id - a.id);
 }
 
-// Future Aptos view call boundary: read user_summary.
-export async function getUserSummary(_walletAddress: string): Promise<UserSummary> {
-  void _walletAddress;
-  notImplemented("getUserSummary");
+function formatWinRate(wins: number, total: number) {
+  if (total <= 0) return "0%";
+  return `${((wins / total) * 100).toFixed(1)}%`;
+}
+
+export async function getUserSummary(walletAddress: string): Promise<UserSummary> {
+  type ChainUserSummary = {
+    push_count: string | number;
+    push_win_count: string | number;
+    push_loss_count: string | number;
+    push_profit: string | number;
+    buff_count: string | number;
+    buff_win_count: string | number;
+    buff_loss_count: string | number;
+    buff_profit: string | number;
+    total_pushed: string | number;
+    total_buffed: string | number;
+    claimable_amount: string | number;
+  };
+
+  if (app_config.debugAptosReads) {
+    console.info("[Palate user summary] start", { view: "getUserSummary", walletAddress });
+  }
+
+  try {
+    const summary = await viewOne<ChainUserSummary>("getUserSummary", [walletAddress]);
+    const pushCount = asNumber(summary.push_count);
+    const pushWins = asNumber(summary.push_win_count);
+    const pushLosses = asNumber(summary.push_loss_count);
+    const buffCount = asNumber(summary.buff_count);
+    const buffWins = asNumber(summary.buff_win_count);
+    const buffLosses = asNumber(summary.buff_loss_count);
+
+    const result: UserSummary = {
+      walletAddress,
+      claimableAmount: formatOctasToApt(asString(summary.claimable_amount)),
+      pushProfit: formatOctasToApt(asString(summary.push_profit)),
+      buffProfit: formatOctasToApt(asString(summary.buff_profit)),
+      totalPushed: formatOctasToApt(asString(summary.total_pushed)),
+      totalBuffed: formatOctasToApt(asString(summary.total_buffed)),
+      pushWinRate: formatWinRate(pushWins, pushCount),
+      buffWinRate: formatWinRate(buffWins, buffCount),
+      pushCount: String(pushCount),
+      pushWins: String(pushWins),
+      pushLosses: String(pushLosses),
+      buffCount: String(buffCount),
+      buffWins: String(buffWins),
+      buffLosses: String(buffLosses),
+      pendingBuffs: "Unavailable",
+      skipPenalty: "Unavailable"
+    };
+
+    if (app_config.debugAptosReads) {
+      console.info("[Palate user summary] success", { view: "getUserSummary", walletAddress, summary: result });
+    }
+
+    return result;
+  } catch (error) {
+    if (app_config.debugAptosReads) {
+      console.warn("[Palate user summary] failure", {
+        view: "getUserSummary",
+        walletAddress,
+        error: error instanceof Error ? error.message : String(error ?? "Unknown error")
+      });
+    }
+    throw error;
+  }
 }
 
 // Future signed entry-function boundary. Local UI flows call provider actions until real Aptos transactions are wired.

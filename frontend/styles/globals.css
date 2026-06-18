@@ -526,6 +526,9 @@ img {
 }
 
 .tab_button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: transparent;
@@ -540,6 +543,27 @@ img {
   background: linear-gradient(135deg, rgba(255, 47, 159, 0.2), rgba(143, 85, 255, 0.06));
   color: var(--text-primary);
   box-shadow: 0 0 24px var(--glow-pink-soft);
+}
+
+.tab_button_attention {
+  border-color: rgba(255, 47, 159, 0.18);
+  box-shadow: 0 0 18px rgba(255, 47, 159, 0.16);
+  animation: claim_tab_pulse 1.8s ease-in-out infinite;
+}
+
+.tab_badge {
+  display: inline-grid;
+  min-width: 22px;
+  min-height: 22px;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 47, 159, 0.95), rgba(255, 126, 192, 0.9));
+  color: #fff7fb;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0 6px;
+  box-shadow: 0 0 16px rgba(255, 47, 159, 0.32);
 }
 
 .input_control {
@@ -2212,6 +2236,10 @@ select.input_control option:checked,
   gap: var(--spacing-sm);
 }
 
+.claim_rows_history .claim_row_actions .action_button {
+  display: none;
+}
+
 .claim_history_section {
   display: grid;
   gap: var(--spacing-sm);
@@ -2373,6 +2401,10 @@ select.input_control option:checked,
   align-items: end;
 }
 
+.page_profile {
+  gap: var(--spacing-lg);
+}
+
 .mock_form_grid {
   display: grid;
   grid-template-columns: minmax(240px, 1fr) minmax(180px, 0.5fr) auto;
@@ -2502,6 +2534,7 @@ select.input_control option:checked,
 .stat_card {
   display: grid;
   gap: var(--spacing-xs);
+  min-width: 0;
 }
 
 .stat_card span {
@@ -2513,12 +2546,29 @@ select.input_control option:checked,
 .stat_card strong {
   font-size: clamp(22px, 4vw, var(--font-size-heading-2));
   letter-spacing: -0.025em;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile_address_value {
+  font-size: clamp(18px, 2.8vw, 28px);
+}
+
+.stat_value_hint {
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.stat_value_unavailable {
+  color: #ffd7df;
 }
 
 .profile_summary_grid {
   display: grid;
   grid-template-columns: 1.2fr 1.4fr 1fr;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
 .profile_summary_grid .section_panel:nth-child(2) {
@@ -4324,6 +4374,16 @@ select.input_control,
   to {
     transform: translateX(5%);
     opacity: 0.76;
+  }
+}
+
+@keyframes claim_tab_pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 18px rgba(255, 47, 159, 0.16);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(255, 47, 159, 0.34);
   }
 }
 
