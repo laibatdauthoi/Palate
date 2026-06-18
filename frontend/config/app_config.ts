@@ -5,6 +5,7 @@ export const VIDEO_ENABLED = false;
 export const app_config = {
   appName: "Palate",
   networkLabel: "Aptos Testnet",
+  aptosFullnodeUrl: process.env.NEXT_PUBLIC_APTOS_FULLNODE_URL?.trim() || "https://api.testnet.aptoslabs.com/v1",
   moduleAddress: "0xe5e752771b9e1b5ac445d3d28f1bf636e6e6c3207e61917c036c1517c2b4373f",
   moduleName: "palate",
   debugAptosReads: process.env.NEXT_PUBLIC_DEBUG_APTOS_READS === "true",

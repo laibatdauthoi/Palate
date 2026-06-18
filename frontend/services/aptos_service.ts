@@ -18,13 +18,18 @@ import type {
   WaitingPush
 } from "@/types/palate";
 
-const aptos_config = new AptosConfig({ network: Network.TESTNET });
+const aptos_config = new AptosConfig({
+  network: Network.TESTNET,
+  fullnode: app_config.aptosFullnodeUrl
+});
 const aptos = new Aptos(aptos_config);
 const OCTAS_PER_APT = BigInt(100000000);
 const view_retry_count = 2;
 const view_retry_delay_ms = 250;
 const wallet_balance_retry_count = 2;
 const wallet_balance_retry_delay_ms = 250;
+const rate_limit_cooldown_ms = 20000;
+const max_concurrent_reads = 2;
 const aptos_coin_type = "0x1::aptos_coin::AptosCoin";
 const aptos_coin_store_resource = `0x1::coin::CoinStore<${aptos_coin_type}>`;
 
@@ -43,7 +48,22 @@ type ReadDiagnosticsOptions = {
   functionId?: string;
   retries?: number;
   delayMs?: number;
+  dedupeKey?: string;
 };
+
+type ReadError = Error & {
+  status?: number;
+  endpoint?: string;
+  readName?: string;
+  isRateLimit?: boolean;
+  retryCount?: number;
+  durationMs?: number;
+};
+
+let read_cooldown_until = 0;
+let active_read_count = 0;
+const read_queue: Array<() => void> = [];
+const inflight_reads = new Map<string, Promise<unknown>>();
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -56,32 +76,108 @@ function getErrorMessage(error: unknown) {
 function extractErrorDetails(error: unknown) {
   if (!error || typeof error !== "object") return {};
 
-  const maybe = error as { url?: string; status?: number; response?: { status?: number } };
+  const maybe = error as { url?: string; status?: number; endpoint?: string; response?: { status?: number } };
   return {
-    url: maybe.url,
+    url: maybe.url ?? maybe.endpoint,
     status: maybe.status ?? maybe.response?.status
   };
+}
+
+function createReadError(name: string, endpoint: string, message: string, extras: Partial<ReadError> = {}): ReadError {
+  const error = new Error(message) as ReadError;
+  error.name = "PalateReadError";
+  error.readName = name;
+  error.endpoint = endpoint;
+  Object.assign(error, extras);
+  return error;
+}
+
+function isRateLimitError(error: unknown): error is ReadError {
+  return typeof error === "object" && error !== null && (error as ReadError).isRateLimit === true;
+}
+
+function withReadSlot<T>(task: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const run = () => {
+      active_read_count += 1;
+      void task()
+        .then(resolve, reject)
+        .finally(() => {
+          active_read_count = Math.max(0, active_read_count - 1);
+          const next = read_queue.shift();
+          if (next) next();
+        });
+    };
+
+    if (active_read_count < max_concurrent_reads) {
+      run();
+      return;
+    }
+
+    read_queue.push(run);
+  });
+}
+
+async function fetchJsonWithDiagnostics<T>(name: string, endpointPath: string, init?: RequestInit): Promise<T> {
+  const endpoint = endpointPath.startsWith("http") ? endpointPath : `${app_config.aptosFullnodeUrl}${endpointPath}`;
+  const response = await fetch(endpoint, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      ...(init?.headers ?? {})
+    }
+  });
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (response.status === 429) {
+    const bodyText = await response.text();
+    throw createReadError(name, endpoint, "Aptos RPC rate limited", {
+      status: 429,
+      isRateLimit: true,
+      cause: bodyText
+    });
+  }
+
+  if (!response.ok) {
+    const bodyText = contentType.includes("application/json") ? JSON.stringify(await response.json().catch(() => null)) : await response.text();
+    throw createReadError(name, endpoint, bodyText || `HTTP ${response.status}`, {
+      status: response.status
+    });
+  }
+
+  if (!contentType.includes("application/json")) {
+    const bodyText = await response.text();
+    throw createReadError(name, endpoint, bodyText || "Unexpected non-JSON response.", {
+      status: response.status
+    });
+  }
+
+  return response.json() as Promise<T>;
 }
 
 async function viewOne<T>(functionName: string, functionArguments: SimpleEntryFunctionArgumentTypes[] = []): Promise<T> {
   return readWithDiagnostics(
     `view:${functionName}`,
     async () => {
-      const result = await aptos.view<[T]>({
-        payload: {
+      const result = await fetchJsonWithDiagnostics<[T]>(`view:${functionName}`, "/view", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
           function: viewFunction(functionName),
-          typeArguments: [],
-          functionArguments
-        }
+          type_arguments: [],
+          arguments: functionArguments
+        })
       });
-
       return result[0];
     },
     {
       functionId: viewFunction(functionName),
-      endpoint: "view",
+      endpoint: "/view",
       retries: view_retry_count,
-      delayMs: view_retry_delay_ms
+      delayMs: view_retry_delay_ms,
+      dedupeKey: `view:${functionName}:${JSON.stringify(functionArguments)}`
     }
   );
 }
@@ -123,40 +219,73 @@ function delay(ms: number) {
 async function readWithDiagnostics<T>(name: string, read: () => Promise<T>, options: ReadDiagnosticsOptions = {}): Promise<T> {
   const retries = options.retries ?? 0;
   const delayMs = options.delayMs ?? 0;
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt <= retries; attempt += 1) {
-    const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
-    try {
-      return await read();
-    } catch (error) {
-      lastError = error;
-      const duration = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt);
-      const details = extractErrorDetails(error);
-      const payload = {
-        name,
-        message: getErrorMessage(error),
-        functionId: options.functionId ?? null,
-        endpoint: options.endpoint ?? details.url ?? null,
-        retryCount: attempt,
-        durationMs: duration,
-        status: details.status ?? null
-      };
-
-      if (app_config.debugAptosReads) {
-        console.warn("[Palate read failed]", payload, error);
-      } else {
-        console.warn("[Palate read failed]", payload);
-      }
-
-      if (attempt === retries) {
-        break;
-      }
-      await delay(delayMs * (attempt + 1));
-    }
+  const dedupeKey = options.dedupeKey ?? name;
+  const cachedInFlight = inflight_reads.get(dedupeKey) as Promise<T> | undefined;
+  if (cachedInFlight) {
+    return cachedInFlight;
   }
 
-  throw lastError instanceof Error ? lastError : new Error(`${name} failed.`);
+  const execution = withReadSlot(async () => {
+    const now = Date.now();
+    if (read_cooldown_until > now) {
+      throw createReadError(name, options.endpoint ?? name, "Aptos RPC rate limited", {
+        status: 429,
+        isRateLimit: true
+      });
+    }
+
+  let lastError: unknown;
+
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+      try {
+        return await read();
+      } catch (error) {
+        lastError = error;
+        const duration = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt);
+        const details = extractErrorDetails(error);
+        const payload = {
+          name,
+          message: getErrorMessage(error),
+          functionId: options.functionId ?? null,
+          endpoint: options.endpoint ?? details.url ?? null,
+          retryCount: attempt,
+          durationMs: duration,
+          status: details.status ?? null
+        };
+
+        if (isRateLimitError(error) || details.status === 429 || getErrorMessage(error).toLowerCase().includes("rate limit")) {
+          read_cooldown_until = Date.now() + rate_limit_cooldown_ms;
+          if (app_config.debugAptosReads) {
+            console.warn("Aptos RPC rate limited", payload, error);
+          } else {
+            console.warn("Aptos RPC rate limited", payload);
+          }
+          break;
+        }
+
+        if (app_config.debugAptosReads) {
+          console.warn("[Palate read failed]", payload, error);
+        } else {
+          console.warn("[Palate read failed]", payload);
+        }
+
+        if (attempt === retries) {
+          break;
+        }
+        await delay(delayMs * (attempt + 1));
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error(`${name} failed.`);
+  });
+
+  inflight_reads.set(dedupeKey, execution);
+  execution.finally(() => {
+    inflight_reads.delete(dedupeKey);
+  });
+
+  return execution;
 }
 
 function categoryToChainValue(category: MediaCategory, constants?: ChainCategoryConstants | null) {
@@ -411,42 +540,34 @@ export async function getWalletAptBalance(walletAddress: string): Promise<string
   const readers: Array<() => Promise<number | string | bigint>> = [
     () =>
       readWithDiagnostics(
-        "wallet:getAccountAPTAmount",
-        () => aptos.getAccountAPTAmount({ accountAddress: walletAddress }),
-        {
-          endpoint: "accounts/getAccountAPTAmount",
-          retries: wallet_balance_retry_count,
-          delayMs: wallet_balance_retry_delay_ms
-        }
-      ),
-    () =>
-      readWithDiagnostics(
-        "wallet:getAccountCoinAmount",
-        () => aptos.getAccountCoinAmount({ accountAddress: walletAddress, coinType: aptos_coin_type }),
-        {
-          endpoint: "accounts/getAccountCoinAmount",
-          retries: wallet_balance_retry_count,
-          delayMs: wallet_balance_retry_delay_ms
-        }
-      ),
-    async () =>
-      readWithDiagnostics(
         "wallet:getAccountResource:CoinStore",
         async () => {
-          const resource = await aptos.getAccountResource<{ coin?: { value?: string | number | bigint } }>({
-            accountAddress: walletAddress,
-            resourceType: aptos_coin_store_resource
-          });
-          const value = resource.coin?.value;
+          const resource = await fetchJsonWithDiagnostics<{ data: { coin?: { value?: string | number | bigint } } }>(
+            "wallet:getAccountResource:CoinStore",
+            `/accounts/${walletAddress}/resource/${encodeURIComponent(aptos_coin_store_resource)}`
+          );
+          const value = resource.data?.coin?.value;
           if (value === undefined || value === null) {
             throw new Error("CoinStore balance field is missing.");
           }
           return value;
         },
         {
-          endpoint: `accounts/${walletAddress}/resource/${aptos_coin_store_resource}`,
+          endpoint: `/accounts/${walletAddress}/resource/${aptos_coin_store_resource}`,
           retries: wallet_balance_retry_count,
-          delayMs: wallet_balance_retry_delay_ms
+          delayMs: wallet_balance_retry_delay_ms,
+          dedupeKey: `wallet-balance:${walletAddress}`
+        }
+      ),
+    () =>
+      readWithDiagnostics(
+        "wallet:getBalance",
+        () => aptos.getBalance({ accountAddress: walletAddress, asset: aptos_coin_type }),
+        {
+          endpoint: "accounts/getBalance",
+          retries: wallet_balance_retry_count,
+          delayMs: wallet_balance_retry_delay_ms,
+          dedupeKey: `wallet-balance:${walletAddress}:fallback`
         }
       )
   ];
@@ -458,6 +579,9 @@ export async function getWalletAptBalance(walletAddress: string): Promise<string
       return formatOctasToApt(amount);
     } catch (error) {
       lastError = error;
+      if (isRateLimitError(error) || extractErrorDetails(error).status === 429) {
+        break;
+      }
     }
   }
 

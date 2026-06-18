@@ -548,30 +548,19 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function refreshWalletGameState(ownerAddress: string) {
+  async function refreshDeferredWalletState(ownerAddress: string) {
     setUserSummary((current) => ({
       ...current,
       walletAddress: ownerAddress
     }));
-    setPalateBalanceReadStatus("loading");
     setMediaReadStatus("loading");
 
-    const [nextBalance, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.allSettled([
-      getPalateBalance(ownerAddress),
+    const [nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.allSettled([
       getUserMedia(ownerAddress),
       readWaitingPushes(),
       readActiveMatches(),
       readCurrentAssignment(ownerAddress)
     ]);
-
-    if (nextBalance.status === "fulfilled") {
-      setBalance(nextBalance.value);
-      setPalateBalanceReadStatus("ready");
-    } else {
-      console.error("[Palate balance read failed]", nextBalance.reason);
-      setBalance(unavailable_balance);
-      setPalateBalanceReadStatus("error");
-    }
 
     if (nextMedia.status === "fulfilled") {
       setMediaRecords(nextMedia.value);
@@ -600,10 +589,16 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function refreshWalletGameState(ownerAddress: string) {
+    await refreshPalateBalanceForWallet(ownerAddress);
+    await refreshDeferredWalletState(ownerAddress);
+  }
+
   useEffect(() => {
     if (walletConnectionStatus !== "connected" || !walletAddress) return;
 
     let cancelled = false;
+    let deferredRefreshTimer: number | null = null;
     const ownerAddress = walletAddress;
 
     async function refreshOnWalletConnect() {
@@ -615,11 +610,19 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           setActiveMatches([]);
           setCurrentAssignment(null);
           setClaimRecords([]);
-          setMediaReadStatus("loading");
+          setMediaReadStatus("idle");
           setClaimReadStatus("idle");
           setPalateBalanceReadStatus("loading");
           setUserSummary({ ...loading_summary, walletAddress: ownerAddress });
-          await refreshWalletGameState(ownerAddress);
+          await refreshPalateBalanceForWallet(ownerAddress);
+          deferredRefreshTimer = window.setTimeout(() => {
+            if (cancelled) return;
+            void refreshDeferredWalletState(ownerAddress).catch(() => {
+              if (!cancelled) {
+                setFeedback({ type: "info", message: "Using last read." });
+              }
+            });
+          }, 350);
         }
       } catch {
         if (!cancelled) {
@@ -632,6 +635,9 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
+      if (deferredRefreshTimer !== null) {
+        window.clearTimeout(deferredRefreshTimer);
+      }
     };
   }, [walletAddress, walletConnectionStatus]);
 
