@@ -155,9 +155,11 @@ type PalateContextValue = {
   claimReadStatus: "idle" | "loading" | "ready" | "error";
   palateBalanceReadStatus: "idle" | "loading" | "ready" | "error";
   userSummaryReadStatus: "idle" | "loading" | "ready" | "error";
+  activityReadStatus: "idle" | "loading" | "ready" | "error";
   claimableRewardsSummary: ClaimableRewardsSummary;
   clearFeedback: () => void;
   refreshClaims: () => Promise<void>;
+  refreshProfileActivity: () => Promise<void>;
   connectMockWallet: () => void;
   disconnectMockWallet: () => void;
   simulateWrongNetwork: () => void;
@@ -444,6 +446,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [claimReadStatus, setClaimReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "idle" : "ready");
   const [palateBalanceReadStatus, setPalateBalanceReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
   const [userSummaryReadStatus, setUserSummaryReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
+  const [activityReadStatus, setActivityReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [chainRead, setChainRead] = useState<ChainReadState>(initial_chain_read_state);
@@ -665,6 +668,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       walletAddress: ownerAddress
     }));
     setMediaReadStatus("loading");
+    setActivityReadStatus("loading");
 
     const [nextSummary, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.allSettled([
       readUserSummary(ownerAddress),
@@ -718,11 +722,27 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     } else {
       console.error("[Assignment read failed]", nextAssignment.reason);
     }
+
+    const hadDeferredFailure = [nextSummary, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment].some((result) => result.status === "rejected");
+    setActivityReadStatus(hadDeferredFailure ? "error" : "ready");
   }
 
   async function refreshWalletGameState(ownerAddress: string) {
     await refreshPalateBalanceForWallet(ownerAddress);
     await refreshDeferredWalletState(ownerAddress);
+  }
+
+  async function refreshProfileActivityForWallet(ownerAddress: string) {
+    await refreshPalateBalanceForWallet(ownerAddress);
+    await refreshUserSummaryForWallet(ownerAddress);
+    const [activityResult, claimsResult] = await Promise.allSettled([
+      refreshDeferredWalletState(ownerAddress),
+      refreshClaimsForWallet(ownerAddress)
+    ]);
+
+    if (activityResult.status === "rejected" || claimsResult.status === "rejected") {
+      throw new Error("Profile activity refresh did not complete cleanly.");
+    }
   }
 
   useEffect(() => {
@@ -745,6 +765,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           setClaimReadStatus("idle");
           setPalateBalanceReadStatus("loading");
           setUserSummaryReadStatus("loading");
+          setActivityReadStatus("loading");
           setUserSummary({ ...loading_summary, walletAddress: ownerAddress });
           await refreshPalateBalanceForWallet(ownerAddress);
           await refreshUserSummaryForWallet(ownerAddress);
@@ -1766,6 +1787,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       claimReadStatus,
       palateBalanceReadStatus,
       userSummaryReadStatus,
+      activityReadStatus,
       claimableRewardsSummary,
       processingAction,
       feedback,
@@ -1774,6 +1796,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       refreshClaims: async () => {
         if (!walletAddress) return;
         await refreshClaimsForWallet(walletAddress);
+      },
+      refreshProfileActivity: async () => {
+        if (!walletAddress) return;
+        await refreshProfileActivityForWallet(walletAddress);
       },
       connectMockWallet: () => {
         setWalletStatus("connecting");
