@@ -58,7 +58,7 @@ export function MatchCard({ match, actionHref, onSettle, settleDisabled }: Match
                     syncDurationMs: Math.round(uiPerfNow() - startedAt)
                   });
                 }}
-                variant="secondary"
+                variant="primary"
               >
                 Settle
               </ActionButton>

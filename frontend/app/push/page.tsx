@@ -69,7 +69,11 @@ function PushPageContent() {
       && getPushEligibility(media, { allowExpiredWaitingPush: true }).eligible
   );
   const challengeOptions = selectedPush ? pushableMedia.filter((media) => media.category === selectedPush.media.category) : pushableMedia;
-  const challengeMediaEmptyMessage = selectedPush && challengeOptions.length === 0 ? "No eligible same-category media available." : null;
+  const challengeMediaEmptyMessage = selectedPush && challengeOptions.length === 0 ? "No eligible same-category media." : null;
+  const selectedPushCategoryLabel = selectedPush ? category_labels[selectedPush.media.category].toUpperCase() : "MEDIA";
+  const hasEligibleChallengeMedia = Boolean(selectedPush && !selectedPushIsOwned && challengeOptions.length > 0);
+  const showChallengeEmptyState = Boolean(selectedPush && !selectedPushIsOwned && challengeOptions.length === 0);
+  const challengeFeedback = isChallengeFeedback(feedback) ? feedback : null;
   const pushBusy = processingAction === "createPush" || processingAction === "challengePush";
   const walletReady = walletStatus === "connected";
   const minPushOctas = chainRead.protocolConfig?.minPushAmount ? BigInt(chainRead.protocolConfig.minPushAmount) : null;
@@ -113,9 +117,7 @@ function PushPageContent() {
       }))
     : [{ label: "No waiting pushes", value: "" }];
   const challengeMediaOptions: DropdownOption<string>[] = [
-    challengeMediaEmptyMessage
-      ? { label: challengeMediaEmptyMessage, value: "" }
-      : { label: "Select idle media", value: "" },
+    { label: "Select idle media", value: "" },
     ...challengeOptions.map((media) => ({
       label: `${getMediaDisplayTitle(media)} - ${category_labels[media.category]}`,
       value: String(media.id)
@@ -409,37 +411,57 @@ function PushPageContent() {
 
       <ModalShell title="Challenge Push" open={modalOpen} onClose={closeChallengeModal}>
         <div className="stack challenge_modal_content">
-          <p className="secondary_text">Select same-category idle media and enter a push amount at or above the required minimum.</p>
-          <CustomDropdown
-            label="Waiting push"
-            onChange={(nextValue) => setChallengePushId(nextValue ? Number(nextValue) : null)}
-            options={waitingPushOptions}
-            value={selectedPush ? String(selectedPush.id) : ""}
-          />
-          <CustomDropdown label="Idle media" onChange={setChallengeMediaId} options={challengeMediaOptions} value={challengeMediaId} />
-          {challengeMediaEmptyMessage ? <p className="feedback_text feedback_error">{challengeMediaEmptyMessage}</p> : null}
+          {selectedPush ? (
+            <div className="challenge_modal_summary">
+              <div>
+                <span className="state_mark">Waiting push</span>
+                <strong>{getMediaDisplayTitle(selectedPush.media)}</strong>
+              </div>
+              <div>
+                <span className="state_mark">Minimum</span>
+                <strong>{requiredChallengeLabel}</strong>
+              </div>
+            </div>
+          ) : null}
           {selfChallengeReason ? <p className="feedback_text feedback_error">{selfChallengeReason}</p> : null}
-          <div className="amount_field_stack">
-            <AmountInput label="Challenge amount" onChange={setChallengeAmount} placeholder={`Minimum ${requiredChallengeLabel}`} value={challengeAmount} />
-            <p className={`amount_helper ${challengeAmountValidation.valid && challengeBalanceValid ? "" : "amount_helper_error"}`}>
-              {challengeAmountHelperText}
-            </p>
-          </div>
-          <div className="state_card">
-            <span className="state_mark">Minimum challenge amount</span>
-            <strong>{requiredChallengeLabel}</strong>
-            <p>Cross-category challenge is blocked by contract rules and should also be blocked in the UI.</p>
-          </div>
-          {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
-          <ActionButton
-            disabled={pushBusy || !walletReady || !selectedPush || selectedPushIsOwned || !challengeMediaId || !challengeAmountValidation.valid || !challengeBalanceValid}
-            onClick={() => {
-              if (!selectedPush || selectedPushIsOwned) return;
-              challengePush(selectedPush.id, Number(challengeMediaId), challengeAmount);
-            }}
-          >
-            {processingAction === "challengePush" ? "Challenging" : "Confirm Challenge"}
-          </ActionButton>
+          {showChallengeEmptyState ? (
+            <div className="challenge_empty_state">
+              <strong>{challengeMediaEmptyMessage}</strong>
+              <p>Upload or free an idle {selectedPushCategoryLabel} media item to challenge this push.</p>
+              <div className="challenge_empty_actions">
+                <ActionButton href="/my-media" variant="secondary">Go to My Media</ActionButton>
+                <ActionButton href="/my-media/upload" variant="ghost">Upload Media</ActionButton>
+              </div>
+            </div>
+          ) : null}
+          {selectedPush && !selfChallengeReason && hasEligibleChallengeMedia ? (
+            <>
+              <p className="secondary_text challenge_modal_intro">Select same-category idle media and enter a push amount at or above the required minimum.</p>
+              <CustomDropdown
+                label="Waiting push"
+                onChange={(nextValue) => setChallengePushId(nextValue ? Number(nextValue) : null)}
+                options={waitingPushOptions}
+                value={selectedPush ? String(selectedPush.id) : ""}
+              />
+              <CustomDropdown label="Idle media" onChange={setChallengeMediaId} options={challengeMediaOptions} value={challengeMediaId} />
+              <div className="amount_field_stack">
+                <AmountInput label="Challenge amount" onChange={setChallengeAmount} placeholder={`Minimum ${requiredChallengeLabel}`} value={challengeAmount} />
+                <p className={`amount_helper ${challengeAmountValidation.valid && challengeBalanceValid ? "" : "amount_helper_error"}`}>
+                  {challengeAmountHelperText}
+                </p>
+              </div>
+              {challengeFeedback ? <p className={`feedback_text feedback_${challengeFeedback.type}`}>{challengeFeedback.message}</p> : null}
+              <ActionButton
+                disabled={pushBusy || !walletReady || !selectedPush || selectedPushIsOwned || !challengeMediaId || !challengeAmountValidation.valid || !challengeBalanceValid}
+                onClick={() => {
+                  if (!selectedPush || selectedPushIsOwned) return;
+                  challengePush(selectedPush.id, Number(challengeMediaId), challengeAmount);
+                }}
+              >
+                {processingAction === "challengePush" ? "Challenging" : "Confirm Challenge"}
+              </ActionButton>
+            </>
+          ) : null}
         </div>
       </ModalShell>
     </div>
@@ -475,4 +497,11 @@ function parseAmountOctas(value: string) {
   } catch {
     return null;
   }
+}
+
+function isChallengeFeedback(
+  feedback: { type: "success" | "error" | "info"; message: string } | null
+) {
+  if (!feedback) return false;
+  return /challenge/i.test(feedback.message);
 }

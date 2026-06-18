@@ -39,6 +39,12 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
   const isShelbyCleanupRequired = media.shelbyCleanupRequired === true;
   const isExpiredWaitingPush = media.waitingPushExpired === true && typeof media.waitingPushId === "number";
   const isDeleteAction = actionLabel === "Delete";
+  const isPrimaryAction = actionLabel === "Push" || actionLabel === "Retry registration";
+  const actionVariant = isDeleteAction || isShelbyUploadFailed || isShelbyCleanupRequired
+    ? "danger"
+    : isPrimaryAction
+      ? "primary"
+      : "secondary";
 
   function handleCardClick(event: MouseEvent<HTMLElement>) {
     if (!onMediaToggle || media.category !== "audio") return;
@@ -98,7 +104,7 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
         <div className="spread media_meta">
           <span>{media.createdTime}</span>
           <div className="media_card_actions">
-            {actionLabel ? <ActionButton disabled={actionDisabled || (isVideoDisabled && !isDeleteAction) || (isInvalidMediaType && !isDeleteAction && !isShelbyUploadFailed) || (isContentUnavailable && !isDeleteAction && !isDeletePending)} onClick={handleActionClick} variant={isDeleteAction || isShelbyUploadFailed || isShelbyCleanupRequired ? "danger" : "secondary"}>{actionLabel}</ActionButton> : null}
+            {actionLabel ? <ActionButton disabled={actionDisabled || (isVideoDisabled && !isDeleteAction) || (isInvalidMediaType && !isDeleteAction && !isShelbyUploadFailed) || (isContentUnavailable && !isDeleteAction && !isDeletePending)} onClick={handleActionClick} variant={actionVariant}>{actionLabel}</ActionButton> : null}
             {secondaryActionLabel ? <ActionButton onClick={onSecondaryAction} variant="ghost">{secondaryActionLabel}</ActionButton> : null}
           </div>
         </div>

@@ -58,9 +58,9 @@ export function WaitingPushCard({ push, onChallenge, challengeHref, challengeDis
         {challengeDisabledReason ? <p className="feedback_text feedback_error">{challengeDisabledReason}</p> : null}
         <div className="waiting_push_actions">
           {challengeHref && canChallenge ? (
-            <ActionButton href={challengeHref} variant="secondary">Challenge</ActionButton>
+            <ActionButton href={challengeHref} variant="primary">Challenge</ActionButton>
           ) : (
-            <ActionButton disabled={!canChallenge} onClick={canChallenge ? onChallenge : undefined} variant="secondary">{push.status === "open" ? "Challenge" : "Closed"}</ActionButton>
+            <ActionButton disabled={!canChallenge} onClick={canChallenge ? onChallenge : undefined} variant="primary">{push.status === "open" ? "Challenge" : "Closed"}</ActionButton>
           )}
         </div>
       </div>
