@@ -139,6 +139,12 @@ export type ClaimRecord = {
   settled: boolean;
 };
 
+export type ClaimableRewardsSummary = {
+  claimableCount: number;
+  claimableTotalOctas: string;
+  hasClaimableRewards: boolean;
+};
+
 export type UserSummary = {
   walletAddress: string;
   claimableAmount: string;

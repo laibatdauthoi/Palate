@@ -52,6 +52,7 @@ import type {
   BuffAssignment,
   BuffSide,
   ChainReadState,
+  ClaimableRewardsSummary,
   ClaimRecord,
   MediaCategory,
   MediaFormat,
@@ -105,6 +106,33 @@ type DeletePendingRecord = {
   status: "delete_pending";
 };
 
+function getClaimableRewardsSummary(records: ClaimRecord[]): ClaimableRewardsSummary {
+  const claimableTotalOctas = records.reduce((total, record) => {
+    if (!record.claimable || record.claimed) return total;
+    try {
+      const amount = BigInt(record.claimableAmountOctas);
+      if (amount <= BigInt(0)) return total;
+      return total + amount;
+    } catch {
+      return total;
+    }
+  }, BigInt(0));
+
+  const claimableCount = records.reduce((count, record) => {
+    try {
+      return record.claimable && !record.claimed && BigInt(record.claimableAmountOctas) > BigInt(0) ? count + 1 : count;
+    } catch {
+      return count;
+    }
+  }, 0);
+
+  return {
+    claimableCount,
+    claimableTotalOctas: claimableTotalOctas.toString(),
+    hasClaimableRewards: claimableCount > 0
+  };
+}
+
 type PalateContextValue = {
   walletStatus: WalletStatus;
   setWalletStatus: (status: WalletStatus) => void;
@@ -127,6 +155,7 @@ type PalateContextValue = {
   claimReadStatus: "idle" | "loading" | "ready" | "error";
   palateBalanceReadStatus: "idle" | "loading" | "ready" | "error";
   userSummaryReadStatus: "idle" | "loading" | "ready" | "error";
+  claimableRewardsSummary: ClaimableRewardsSummary;
   clearFeedback: () => void;
   refreshClaims: () => Promise<void>;
   connectMockWallet: () => void;
@@ -262,19 +291,6 @@ function delay(ms = 420) {
 
 function getMinChallengeAmount(pushAmount: string) {
   return formatApt(parseApt(pushAmount) * 1.05);
-}
-
-function getClaimableAmountFromRecords(records: ClaimRecord[]) {
-  return records.reduce((total, record) => {
-    if (!record.claimable || record.claimed) return total;
-    try {
-      const amount = BigInt(record.claimableAmountOctas);
-      if (amount <= BigInt(0)) return total;
-      return total + parseApt(formatOctasToApt(amount));
-    } catch {
-      return total;
-    }
-  }, 0);
 }
 
 function getMimeType(format: MediaFormat) {
@@ -609,9 +625,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       }
       setClaimRecords(nextClaimRecords);
       setClaimReadStatus("ready");
+      const nextClaimableSummary = getClaimableRewardsSummary(nextClaimRecords);
       setUserSummary((current) => ({
         ...current,
-        claimableAmount: formatApt(getClaimableAmountFromRecords(nextClaimRecords))
+        claimableAmount: formatOctasToApt(nextClaimableSummary.claimableTotalOctas)
       }));
     } catch (error) {
       console.error("[Claim discovery read failed]", error);
@@ -733,8 +750,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           await refreshUserSummaryForWallet(ownerAddress);
           deferredRefreshTimer = window.setTimeout(() => {
             if (cancelled) return;
-            void refreshDeferredWalletState(ownerAddress).catch(() => {
-              if (!cancelled) {
+            void Promise.allSettled([
+              refreshDeferredWalletState(ownerAddress),
+              refreshClaimsForWallet(ownerAddress)
+            ]).then((results) => {
+              if (cancelled) return;
+              if (results.some((result) => result.status === "rejected")) {
                 setFeedback({ type: "info", message: "Using last read." });
               }
             });
@@ -1712,6 +1733,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const resolvedActiveMatches = disconnectedPreviewMode ? previewActiveMatches : visibleActiveMatches;
   const resolvedClaimRecords = claimRecords;
   const resolvedUserSummary = disconnectedPreviewMode ? mock_summary : userSummary;
+  const claimableRewardsSummary = getClaimableRewardsSummary(resolvedClaimRecords);
 
   useEffect(() => {
     assertNoMockDataInConnectedMode({
@@ -1744,6 +1766,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       claimReadStatus,
       palateBalanceReadStatus,
       userSummaryReadStatus,
+      claimableRewardsSummary,
       processingAction,
       feedback,
       chainRead,

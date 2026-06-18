@@ -61,7 +61,7 @@ export default function ProfilePage() {
 }
 
 function ProfilePageContent() {
-  const { balance, claimReadStatus, claimRecords, claimReward, depositBalance, feedback, processingAction, refreshClaims, userSummary, userSummaryReadStatus, withdrawBalance } = usePalate();
+  const { balance, claimReadStatus, claimRecords, claimReward, claimableRewardsSummary, depositBalance, feedback, processingAction, userSummary, userSummaryReadStatus, withdrawBalance } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<"Stats" | "Claims">(searchParams.get("tab") === "Claims" ? "Claims" : "Stats");
@@ -90,10 +90,7 @@ function ProfilePageContent() {
     [claimRecords]
   );
   const claimedClaims = useMemo(() => claimRecords.filter((claim) => claim.claimed), [claimRecords]);
-  const totalClaimableAmount = useMemo(
-    () => formatOctasToApt(claimableClaims.reduce((total, claim) => total + BigInt(claim.claimableAmountOctas), BigInt(0))),
-    [claimableClaims]
-  );
+  const totalClaimableAmount = useMemo(() => formatOctasToApt(claimableRewardsSummary.claimableTotalOctas), [claimableRewardsSummary.claimableTotalOctas]);
   const claimReadMessage =
     claimReadStatus === "loading"
       ? "Loading claims."
@@ -119,11 +116,6 @@ function ProfilePageContent() {
   const profileFeedbackTarget = feedback ? classifyProfileFeedback(feedback.message) : null;
   const balanceFeedback = profileFeedbackTarget === "balance" ? feedback : null;
   const claimFeedback = profileFeedbackTarget === "claim" ? feedback : null;
-
-  useEffect(() => {
-    if (tab !== "Claims" || !walletReady || claimReadStatus !== "idle") return;
-    void refreshClaims();
-  }, [claimReadStatus, refreshClaims, tab, walletReady]);
 
   useEffect(() => {
     if (searchParams.get("tab") === "Claims") {
@@ -189,7 +181,7 @@ function ProfilePageContent() {
         <div className="tabs">
           {(["Stats", "Claims"] as const).map((item) => (
             <button
-              className={`tab_button ${tab === item ? "active" : ""} ${item === "Claims" && claimableClaims.length > 0 ? "tab_button_attention" : ""}`}
+              className={`tab_button ${tab === item ? "active" : ""} ${item === "Claims" && claimableRewardsSummary.hasClaimableRewards ? "tab_button_attention" : ""}`}
               key={item}
               onClick={() => {
                 if (item === "Claims") {
@@ -199,7 +191,7 @@ function ProfilePageContent() {
               }}
             >
               {item}
-              {item === "Claims" && claimableClaims.length > 0 ? <span className="tab_badge">{claimableClaims.length}</span> : null}
+              {item === "Claims" && claimableRewardsSummary.hasClaimableRewards ? <span className="tab_badge">{claimableRewardsSummary.claimableCount}</span> : null}
             </button>
           ))}
         </div>
@@ -229,7 +221,7 @@ function ProfilePageContent() {
               </div>
               <div className="claim_summary_item">
                 <span>Ready</span>
-                <strong>{claimableClaims.length} rewards</strong>
+                <strong>{claimableRewardsSummary.claimableCount} rewards</strong>
               </div>
               <div className="claim_summary_item">
                 <span>Claimed</span>
