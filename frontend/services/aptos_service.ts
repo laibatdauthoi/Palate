@@ -20,7 +20,12 @@ import type {
 
 const aptos_config = new AptosConfig({
   network: Network.TESTNET,
-  fullnode: app_config.aptosFullnodeUrl
+  fullnode: app_config.aptosFullnodeUrl,
+  clientConfig: app_config.testnetApiKeyEnabled
+    ? {
+        API_KEY: app_config.testnetApiKey
+      }
+    : undefined
 });
 const aptos = new Aptos(aptos_config);
 const OCTAS_PER_APT = BigInt(100000000);
@@ -32,6 +37,7 @@ const rate_limit_cooldown_ms = 20000;
 const max_concurrent_reads = 2;
 const aptos_coin_type = "0x1::aptos_coin::AptosCoin";
 const aptos_coin_store_resource = `0x1::coin::CoinStore<${aptos_coin_type}>`;
+const aptos_api_key_header_name = "Authorization";
 
 const module_id = `${app_config.moduleAddress}::${app_config.moduleName}`;
 
@@ -64,6 +70,7 @@ let read_cooldown_until = 0;
 let active_read_count = 0;
 const read_queue: Array<() => void> = [];
 const inflight_reads = new Map<string, Promise<unknown>>();
+let aptos_api_key_mode_logged = false;
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -90,6 +97,26 @@ function createReadError(name: string, endpoint: string, message: string, extras
   error.endpoint = endpoint;
   Object.assign(error, extras);
   return error;
+}
+
+function getAptosRequestHeaders(headers?: HeadersInit, options: { includeJsonContentType?: boolean } = {}) {
+  const merged = new Headers(headers);
+
+  if (!merged.has("Accept")) {
+    merged.set("Accept", "application/json");
+  }
+
+  if (options.includeJsonContentType && !merged.has("Content-Type")) {
+    merged.set("Content-Type", "application/json");
+  }
+
+  if (app_config.testnetApiKeyEnabled && !merged.has(aptos_api_key_header_name)) {
+    // The local Aptos TS SDK maps clientConfig.API_KEY to Authorization: Bearer <key>.
+    // Keep the header name centralized here so it is easy to change if provider requirements differ.
+    merged.set(aptos_api_key_header_name, `Bearer ${app_config.testnetApiKey}`);
+  }
+
+  return merged;
 }
 
 function isRateLimitError(error: unknown): error is ReadError {
@@ -122,10 +149,9 @@ async function fetchJsonWithDiagnostics<T>(name: string, endpointPath: string, i
   const endpoint = endpointPath.startsWith("http") ? endpointPath : `${app_config.aptosFullnodeUrl}${endpointPath}`;
   const response = await fetch(endpoint, {
     ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init?.headers ?? {})
-    }
+    headers: getAptosRequestHeaders(init?.headers, {
+      includeJsonContentType: init?.method?.toUpperCase() === "POST"
+    })
   });
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -161,9 +187,6 @@ async function viewOne<T>(functionName: string, functionArguments: SimpleEntryFu
     async () => {
       const result = await fetchJsonWithDiagnostics<[T]>(`view:${functionName}`, "/view", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
         body: JSON.stringify({
           function: viewFunction(functionName),
           type_arguments: [],
@@ -217,6 +240,11 @@ function delay(ms: number) {
 }
 
 async function readWithDiagnostics<T>(name: string, read: () => Promise<T>, options: ReadDiagnosticsOptions = {}): Promise<T> {
+  if (app_config.debugAptosReads && !aptos_api_key_mode_logged) {
+    aptos_api_key_mode_logged = true;
+    console.info("Aptos API key enabled:", app_config.testnetApiKeyEnabled);
+  }
+
   const retries = options.retries ?? 0;
   const delayMs = options.delayMs ?? 0;
   const dedupeKey = options.dedupeKey ?? name;
