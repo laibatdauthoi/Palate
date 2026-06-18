@@ -231,6 +231,10 @@ function formatApt(value: number) {
   return `${Math.max(0, value).toFixed(3)} APT`;
 }
 
+function normalizeAddress(address: string | null | undefined) {
+  return address?.trim().toLowerCase() ?? null;
+}
+
 function delay(ms = 420) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
@@ -1492,6 +1496,11 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     if (!selectedPush || !challengerMedia) {
       setFeedback({ type: "error", message: "Select an open waiting push and registered idle challenger media." });
+      return;
+    }
+
+    if (normalizeAddress(selectedPush.pusherAddress) === normalizeAddress(walletAddress)) {
+      setFeedback({ type: "error", message: "You cannot challenge your own push." });
       return;
     }
 

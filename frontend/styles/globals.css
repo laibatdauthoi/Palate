@@ -2227,6 +2227,7 @@ select.input_control option:checked,
 .modal_shell {
   width: min(100%, 620px);
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: var(--spacing-lg);
   border: 2px solid rgba(255, 47, 159, 0.28);
   border-radius: var(--radius-xl);
@@ -2234,7 +2235,8 @@ select.input_control option:checked,
     radial-gradient(circle at top right, rgba(255, 47, 159, 0.18), transparent 36%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 24%),
     var(--surface-elevated);
-  max-height: 85dvh;
+  max-height: 90dvh;
+  min-height: 0;
   overflow: hidden;
   box-shadow: var(--shadow-modal), var(--shadow-bevel);
   padding: var(--spacing-xl);
@@ -2251,8 +2253,16 @@ select.input_control option:checked,
   display: grid;
   gap: var(--spacing-lg);
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding-right: 4px;
+}
+
+.challenge_modal_content {
+  min-height: 0;
+  padding-bottom: 2px;
 }
 
 .home_hero {

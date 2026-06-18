@@ -34,7 +34,7 @@ export default function PushPage() {
 
 function PushPageContent() {
   const { activeMatches, balance, challengePush, chainRead, createPush, feedback, mediaRecords, processingAction, settleMatch, waitingPushes } = usePalate();
-  const { walletStatus } = usePalateWallet();
+  const { walletAddress, walletStatus } = usePalateWallet();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<"Waiting" | "Live Matches">("Waiting");
@@ -53,6 +53,13 @@ function PushPageContent() {
       && getPushEligibility(push.media, { requireIdle: false }).eligible
   );
   const selectedPush = openWaitingPushes.find((push) => push.id === challengePushId) ?? null;
+  const normalizedWalletAddress = normalizeAddress(walletAddress);
+  const selectedPushIsOwned = Boolean(
+    selectedPush
+      && normalizedWalletAddress
+      && normalizeAddress(selectedPush.pusherAddress) === normalizedWalletAddress
+  );
+  const selfChallengeReason = selectedPushIsOwned ? "You cannot challenge your own push." : null;
   const idleMedia = mediaRecords.filter((media) =>
     media.status === "idle"
       && getPushEligibility(media).eligible
@@ -195,6 +202,18 @@ function PushPageContent() {
 
   function openChallenge(pushId: number) {
     const push = openWaitingPushes.find((candidate) => candidate.id === pushId);
+    if (!push) {
+      setPrefillReason("Selected waiting push is no longer available.");
+      clearChallengeQuery();
+      return;
+    }
+
+    if (normalizedWalletAddress && normalizeAddress(push.pusherAddress) === normalizedWalletAddress) {
+      setPrefillReason("You cannot challenge your own push.");
+      setDismissedChallengeId(null);
+      return;
+    }
+
     const next = new URLSearchParams(searchParams.toString());
     next.set("challengeId", String(pushId));
     next.delete("pushId");
@@ -263,7 +282,16 @@ function PushPageContent() {
       {tab === "Waiting" ? (
         <div className="compact_card_grid compact_card_grid_waiting">
           {openWaitingPushes.map((push) => (
-            <WaitingPushCard key={push.id} push={push} onChallenge={() => openChallenge(push.id)} />
+            <WaitingPushCard
+              key={push.id}
+              push={push}
+              challengeDisabledReason={
+                normalizedWalletAddress && normalizeAddress(push.pusherAddress) === normalizedWalletAddress
+                  ? "You cannot challenge your own push."
+                  : null
+              }
+              onChallenge={() => openChallenge(push.id)}
+            />
           ))}
         </div>
       ) : (
@@ -280,7 +308,7 @@ function PushPageContent() {
       )}
 
       <ModalShell title="Challenge Push" open={modalOpen} onClose={closeChallengeModal}>
-        <div className="stack">
+        <div className="stack challenge_modal_content">
           <p className="secondary_text">Select same-category idle media and enter a push amount at or above the required minimum.</p>
           <CustomDropdown
             label="Waiting push"
@@ -290,6 +318,7 @@ function PushPageContent() {
           />
           <CustomDropdown label="Idle media" onChange={setChallengeMediaId} options={challengeMediaOptions} value={challengeMediaId} />
           {challengeMediaEmptyMessage ? <p className="feedback_text feedback_error">{challengeMediaEmptyMessage}</p> : null}
+          {selfChallengeReason ? <p className="feedback_text feedback_error">{selfChallengeReason}</p> : null}
           <div className="amount_field_stack">
             <AmountInput label="Challenge amount" onChange={setChallengeAmount} placeholder={`Minimum ${requiredChallengeLabel}`} value={challengeAmount} />
             <p className={`amount_helper ${challengeAmountValidation.valid && challengeBalanceValid ? "" : "amount_helper_error"}`}>
@@ -303,9 +332,9 @@ function PushPageContent() {
           </div>
           {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
           <ActionButton
-            disabled={pushBusy || !walletReady || !selectedPush || !challengeMediaId || !challengeAmountValidation.valid || !challengeBalanceValid}
+            disabled={pushBusy || !walletReady || !selectedPush || selectedPushIsOwned || !challengeMediaId || !challengeAmountValidation.valid || !challengeBalanceValid}
             onClick={() => {
-              if (!selectedPush) return;
+              if (!selectedPush || selectedPushIsOwned) return;
               challengePush(selectedPush.id, Number(challengeMediaId), challengeAmount);
             }}
           >
@@ -315,6 +344,10 @@ function PushPageContent() {
       </ModalShell>
     </div>
   );
+}
+
+function normalizeAddress(address: string | null | undefined) {
+  return address?.trim().toLowerCase() ?? null;
 }
 
 function validateAmount(value: string, minimumOctas: bigint | null, label: string) {

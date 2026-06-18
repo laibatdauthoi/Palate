@@ -10,6 +10,7 @@ type WaitingPushCardProps = {
   push: WaitingPush;
   onChallenge?: () => void;
   challengeHref?: string;
+  challengeDisabledReason?: string | null;
 };
 
 function shortenAddress(address: string) {
@@ -17,9 +18,9 @@ function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export function WaitingPushCard({ push, onChallenge, challengeHref }: WaitingPushCardProps) {
+export function WaitingPushCard({ push, onChallenge, challengeHref, challengeDisabledReason }: WaitingPushCardProps) {
   const displayTitle = getMediaDisplayTitle(push.media);
-  const canChallenge = push.status === "open" && Boolean(challengeHref || onChallenge);
+  const canChallenge = push.status === "open" && !challengeDisabledReason && Boolean(challengeHref || onChallenge);
   return (
     <article className="waiting_push_card">
       <div className={`waiting_media media_preview_${push.media.accent}`}>
@@ -54,6 +55,7 @@ export function WaitingPushCard({ push, onChallenge, challengeHref }: WaitingPus
             <dd>{push.createdTime}</dd>
           </div>
         </dl>
+        {challengeDisabledReason ? <p className="feedback_text feedback_error">{challengeDisabledReason}</p> : null}
         <div className="waiting_push_actions">
           {challengeHref && canChallenge ? (
             <ActionButton href={challengeHref} variant="secondary">Challenge</ActionButton>
