@@ -7,6 +7,7 @@ export const app_config = {
   networkLabel: "Aptos Testnet",
   moduleAddress: "0xe5e752771b9e1b5ac445d3d28f1bf636e6e6c3207e61917c036c1517c2b4373f",
   moduleName: "palate",
+  debugAptosReads: process.env.NEXT_PUBLIC_DEBUG_APTOS_READS === "true",
   shelby: {
     network: "testnet",
     apiKey: process.env.NEXT_PUBLIC_SHELBY_API_KEY ?? "",

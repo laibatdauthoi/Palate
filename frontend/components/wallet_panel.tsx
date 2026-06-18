@@ -19,7 +19,7 @@ function shortenAddress(address: string) {
 }
 
 export function WalletPanel() {
-  const { balance, chainRead } = usePalate();
+  const { balance, chainRead, palateBalanceReadStatus } = usePalate();
   const {
     availableWallets,
     connectWallet,
@@ -47,7 +47,15 @@ export function WalletPanel() {
       : walletBalanceStatus === "error"
         ? "Unavailable"
         : "Disconnected";
-  const palateBalanceCopy = connected ? balance.availableBalance : "Disconnected";
+  const palateBalanceCopy = !connected
+    ? "Disconnected"
+    : palateBalanceReadStatus === "ready"
+      ? balance.availableBalance
+      : palateBalanceReadStatus === "loading"
+        ? "Loading"
+        : palateBalanceReadStatus === "error"
+          ? "Unavailable"
+          : "Disconnected";
 
   async function handleConnect(nextWalletName: string) {
     await connectWallet(nextWalletName);
@@ -85,6 +93,9 @@ export function WalletPanel() {
             <span className={`chain_status_pill chain_status_${chainRead.status}`}>{chainStatusCopy}</span>
           </div>
           <div className="chain_status_rows">
+            <span>Wallet {connected ? "Connected" : statusCopy}</span>
+            <span>Wallet balance {walletBalanceStatus === "ready" ? "Ready" : walletBalanceStatus === "loading" ? "Loading" : walletBalanceStatus === "error" ? "Unavailable" : "Idle"}</span>
+            <span>Palate Balance {palateBalanceReadStatus === "ready" ? "Ready" : palateBalanceReadStatus === "loading" ? "Loading" : palateBalanceReadStatus === "error" ? "Unavailable" : "Idle"}</span>
             <span>Module {shortenAddress(chainRead.moduleAddress)}</span>
             {chainRead.treasuryAddress ? <span>Treasury {shortenAddress(chainRead.treasuryAddress)}</span> : null}
             {chainRead.warning ? <span className="chain_status_error">{chainRead.warning}</span> : null}

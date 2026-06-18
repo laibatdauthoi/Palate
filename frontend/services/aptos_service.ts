@@ -23,6 +23,10 @@ const aptos = new Aptos(aptos_config);
 const OCTAS_PER_APT = BigInt(100000000);
 const view_retry_count = 2;
 const view_retry_delay_ms = 250;
+const wallet_balance_retry_count = 2;
+const wallet_balance_retry_delay_ms = 250;
+const aptos_coin_type = "0x1::aptos_coin::AptosCoin";
+const aptos_coin_store_resource = `0x1::coin::CoinStore<${aptos_coin_type}>`;
 
 const module_id = `${app_config.moduleAddress}::${app_config.moduleName}`;
 
@@ -34,8 +38,33 @@ function viewFunction(functionName: string) {
   return `${module_id}::${functionName}` as `${string}::${string}::${string}`;
 }
 
+type ReadDiagnosticsOptions = {
+  endpoint?: string;
+  functionId?: string;
+  retries?: number;
+  delayMs?: number;
+};
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return String(error ?? "Unknown read failure");
+}
+
+function extractErrorDetails(error: unknown) {
+  if (!error || typeof error !== "object") return {};
+
+  const maybe = error as { url?: string; status?: number; response?: { status?: number } };
+  return {
+    url: maybe.url,
+    status: maybe.status ?? maybe.response?.status
+  };
+}
+
 async function viewOne<T>(functionName: string, functionArguments: SimpleEntryFunctionArgumentTypes[] = []): Promise<T> {
-  return retryRead(
+  return readWithDiagnostics(
     `view:${functionName}`,
     async () => {
       const result = await aptos.view<[T]>({
@@ -47,6 +76,12 @@ async function viewOne<T>(functionName: string, functionArguments: SimpleEntryFu
       });
 
       return result[0];
+    },
+    {
+      functionId: viewFunction(functionName),
+      endpoint: "view",
+      retries: view_retry_count,
+      delayMs: view_retry_delay_ms
     }
   );
 }
@@ -85,23 +120,43 @@ function delay(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-async function retryRead<T>(label: string, read: () => Promise<T>): Promise<T> {
+async function readWithDiagnostics<T>(name: string, read: () => Promise<T>, options: ReadDiagnosticsOptions = {}): Promise<T> {
+  const retries = options.retries ?? 0;
+  const delayMs = options.delayMs ?? 0;
   let lastError: unknown;
 
-  for (let attempt = 0; attempt <= view_retry_count; attempt += 1) {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
     try {
       return await read();
     } catch (error) {
       lastError = error;
-      console.error(`[Palate read failed] ${label}`, { attempt: attempt + 1, error });
-      if (attempt === view_retry_count) {
+      const duration = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt);
+      const details = extractErrorDetails(error);
+      const payload = {
+        name,
+        message: getErrorMessage(error),
+        functionId: options.functionId ?? null,
+        endpoint: options.endpoint ?? details.url ?? null,
+        retryCount: attempt,
+        durationMs: duration,
+        status: details.status ?? null
+      };
+
+      if (app_config.debugAptosReads) {
+        console.warn("[Palate read failed]", payload, error);
+      } else {
+        console.warn("[Palate read failed]", payload);
+      }
+
+      if (attempt === retries) {
         break;
       }
-      await delay(view_retry_delay_ms * (attempt + 1));
+      await delay(delayMs * (attempt + 1));
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error(`${label} failed.`);
+  throw lastError instanceof Error ? lastError : new Error(`${name} failed.`);
 }
 
 function categoryToChainValue(category: MediaCategory, constants?: ChainCategoryConstants | null) {
@@ -353,12 +408,60 @@ export async function getProtocolConfig(): Promise<ChainProtocolConfig> {
 }
 
 export async function getWalletAptBalance(walletAddress: string): Promise<string> {
-  const amount = await retryRead(
-    "wallet:getAccountAPTAmount",
-    () => aptos.getAccountAPTAmount({ accountAddress: walletAddress })
-  );
+  const readers: Array<() => Promise<number | string | bigint>> = [
+    () =>
+      readWithDiagnostics(
+        "wallet:getAccountAPTAmount",
+        () => aptos.getAccountAPTAmount({ accountAddress: walletAddress }),
+        {
+          endpoint: "accounts/getAccountAPTAmount",
+          retries: wallet_balance_retry_count,
+          delayMs: wallet_balance_retry_delay_ms
+        }
+      ),
+    () =>
+      readWithDiagnostics(
+        "wallet:getAccountCoinAmount",
+        () => aptos.getAccountCoinAmount({ accountAddress: walletAddress, coinType: aptos_coin_type }),
+        {
+          endpoint: "accounts/getAccountCoinAmount",
+          retries: wallet_balance_retry_count,
+          delayMs: wallet_balance_retry_delay_ms
+        }
+      ),
+    async () =>
+      readWithDiagnostics(
+        "wallet:getAccountResource:CoinStore",
+        async () => {
+          const resource = await aptos.getAccountResource<{ coin?: { value?: string | number | bigint } }>({
+            accountAddress: walletAddress,
+            resourceType: aptos_coin_store_resource
+          });
+          const value = resource.coin?.value;
+          if (value === undefined || value === null) {
+            throw new Error("CoinStore balance field is missing.");
+          }
+          return value;
+        },
+        {
+          endpoint: `accounts/${walletAddress}/resource/${aptos_coin_store_resource}`,
+          retries: wallet_balance_retry_count,
+          delayMs: wallet_balance_retry_delay_ms
+        }
+      )
+  ];
 
-  return formatOctasToApt(amount);
+  let lastError: unknown;
+  for (const read of readers) {
+    try {
+      const amount = await read();
+      return formatOctasToApt(amount);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Wallet balance unavailable.");
 }
 
 function entryPayload(functionName: string, functionArguments: SimpleEntryFunctionArgumentTypes[]): InputGenerateTransactionPayloadData {

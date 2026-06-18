@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
@@ -45,6 +45,7 @@ function PushPageContent() {
   const [challengeMediaId, setChallengeMediaId] = useState("");
   const [challengeAmount, setChallengeAmount] = useState("6.510");
   const [prefillReason, setPrefillReason] = useState<string | null>(null);
+  const [dismissedChallengeId, setDismissedChallengeId] = useState<number | null>(null);
   const createMediaQuery = searchParams.get("mediaId");
   const challengePushQuery = searchParams.get("challengeId") ?? searchParams.get("pushId");
   const openWaitingPushes = waitingPushes.filter((push) =>
@@ -110,6 +111,26 @@ function PushPageContent() {
     }))
   ];
 
+  const replacePushQuery = useCallback((next: URLSearchParams) => {
+    const query = next.toString();
+    router.replace(query ? `/push?${query}` : "/push", { scroll: false });
+  }, [router]);
+
+  const clearChallengeQuery = useCallback(() => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("challengeId");
+    next.delete("pushId");
+    replacePushQuery(next);
+  }, [replacePushQuery, searchParams]);
+
+  function closeChallengeModal() {
+    setModalOpen(false);
+    setDismissedChallengeId(challengePushId);
+    setChallengePushId(null);
+    setChallengeMediaId("");
+    clearChallengeQuery();
+  }
+
   useEffect(() => {
     if (!createMediaQuery) {
       return;
@@ -147,12 +168,21 @@ function PushPageContent() {
 
     const nextId = Number(challengePushQuery);
     if (Number.isNaN(nextId)) {
+      clearChallengeQuery();
+      return;
+    }
+
+    if (dismissedChallengeId === nextId) {
       return;
     }
 
     const push = openWaitingPushes.find((candidate) => candidate.id === nextId);
     if (!push) {
       setPrefillReason("Selected waiting push is no longer available.");
+      setChallengePushId(null);
+      setChallengeMediaId("");
+      setModalOpen(false);
+      clearChallengeQuery();
       return;
     }
 
@@ -161,15 +191,21 @@ function PushPageContent() {
     setChallengeMediaId("");
     setModalOpen(true);
     setTab("Waiting");
-  }, [challengePushQuery, openWaitingPushes]);
+  }, [challengePushQuery, clearChallengeQuery, dismissedChallengeId, openWaitingPushes]);
 
   function openChallenge(pushId: number) {
     const push = openWaitingPushes.find((candidate) => candidate.id === pushId);
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("challengeId", String(pushId));
+    next.delete("pushId");
+    setDismissedChallengeId(null);
+    setPrefillReason(null);
     setChallengePushId(pushId);
     setChallengeAmount(push?.minChallengeAmount.replace(" APT", "") ?? "1.000");
     setChallengeMediaId("");
     setModalOpen(true);
-    router.replace(`/push?challengeId=${pushId}`, { scroll: false });
+    setTab("Waiting");
+    replacePushQuery(next);
   }
 
   useEffect(() => {
@@ -227,7 +263,7 @@ function PushPageContent() {
       {tab === "Waiting" ? (
         <div className="compact_card_grid compact_card_grid_waiting">
           {openWaitingPushes.map((push) => (
-            <WaitingPushCard key={push.id} challengeHref={`/push?challengeId=${push.id}`} push={push} onChallenge={() => openChallenge(push.id)} />
+            <WaitingPushCard key={push.id} push={push} onChallenge={() => openChallenge(push.id)} />
           ))}
         </div>
       ) : (
@@ -243,7 +279,7 @@ function PushPageContent() {
         </div>
       )}
 
-      <ModalShell title="Challenge Push" open={modalOpen} onClose={() => setModalOpen(false)}>
+      <ModalShell title="Challenge Push" open={modalOpen} onClose={closeChallengeModal}>
         <div className="stack">
           <p className="secondary_text">Select same-category idle media and enter a push amount at or above the required minimum.</p>
           <CustomDropdown

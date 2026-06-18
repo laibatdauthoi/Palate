@@ -124,6 +124,7 @@ type PalateContextValue = {
   feedback: Feedback;
   chainRead: ChainReadState;
   claimReadStatus: "idle" | "loading" | "ready" | "error";
+  palateBalanceReadStatus: "idle" | "loading" | "ready" | "error";
   clearFeedback: () => void;
   refreshClaims: () => Promise<void>;
   connectMockWallet: () => void;
@@ -365,6 +366,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [uploadRecovery, setUploadRecovery] = useState<UploadRecoveryState>(initial_upload_recovery_state);
   const [mediaReadStatus, setMediaReadStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [claimReadStatus, setClaimReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "idle" : "ready");
+  const [palateBalanceReadStatus, setPalateBalanceReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [chainRead, setChainRead] = useState<ChainReadState>(initial_chain_read_state);
@@ -505,12 +507,15 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshPalateBalanceForWallet(ownerAddress: string) {
+    setPalateBalanceReadStatus("loading");
     try {
       const nextBalance = await getPalateBalance(ownerAddress);
       setBalance(nextBalance);
+      setPalateBalanceReadStatus("ready");
     } catch (error) {
       console.error("[Palate balance read failed]", error);
       setBalance(unavailable_balance);
+      setPalateBalanceReadStatus("error");
       throw error;
     }
   }
@@ -529,7 +534,6 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
   async function refreshClaimsForWallet(ownerAddress: string) {
     setClaimReadStatus("loading");
-    setClaimRecords([]);
     try {
       const nextClaimRecords = await readClaimRecords(ownerAddress);
       setClaimRecords(nextClaimRecords);
@@ -549,6 +553,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       ...current,
       walletAddress: ownerAddress
     }));
+    setPalateBalanceReadStatus("loading");
+    setMediaReadStatus("loading");
 
     const [nextBalance, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.allSettled([
       getPalateBalance(ownerAddress),
@@ -560,9 +566,11 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     if (nextBalance.status === "fulfilled") {
       setBalance(nextBalance.value);
+      setPalateBalanceReadStatus("ready");
     } else {
       console.error("[Palate balance read failed]", nextBalance.reason);
       setBalance(unavailable_balance);
+      setPalateBalanceReadStatus("error");
     }
 
     if (nextMedia.status === "fulfilled") {
@@ -609,6 +617,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           setClaimRecords([]);
           setMediaReadStatus("loading");
           setClaimReadStatus("idle");
+          setPalateBalanceReadStatus("loading");
           setUserSummary({ ...loading_summary, walletAddress: ownerAddress });
           await refreshWalletGameState(ownerAddress);
         }
@@ -1575,6 +1584,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       uploadRecovery,
       mediaReadStatus,
       claimReadStatus,
+      palateBalanceReadStatus,
       processingAction,
       feedback,
       chainRead,
