@@ -1055,7 +1055,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
       await refreshClaimsForWallet(walletAddress);
-      setFeedback({ type: "success", message: `Match settled ${shortenTransactionHash(transactionHash)}.` });
+      setFeedback({ type: "success", message: `Match settled ${shortenTransactionHash(transactionHash)}. Check Profile Claims for rewards.` });
     } catch (error) {
       console.error("settleMatch failed", error);
       setFeedback({ type: "error", message: getReadablePalateError(error, "Settle Match failed.") });
@@ -1086,7 +1086,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
       await refreshClaimsForWallet(walletAddress);
-      setFeedback({ type: "success", message: `${claim.type === "buff" ? "Buff" : "Push"} reward credited to Palate Balance.` });
+      setFeedback({ type: "success", message: `${claim.type === "buff" ? "Buff" : "Push"} reward credited to Palate Balance ${shortenTransactionHash(transactionHash)}.` });
     } catch (error) {
       console.error("claimReward failed", error);
       setFeedback({ type: "error", message: getReadablePalateError(error, "Claim failed.") });

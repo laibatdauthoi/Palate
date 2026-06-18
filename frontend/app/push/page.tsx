@@ -63,7 +63,7 @@ function PushPageContent() {
   );
   const selfChallengeReason = selectedPushIsOwned ? "You cannot challenge your own push." : null;
   const idleMedia = mediaRecords.filter((media) =>
-    media.status === "idle"
+    (media.status === "idle" || media.status === "settled")
       && getPushEligibility(media).eligible
   );
   const challengeOptions = selectedPush ? idleMedia.filter((media) => media.category === selectedPush.media.category) : idleMedia;

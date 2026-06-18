@@ -630,6 +630,7 @@ module palate::palate {
         assert!(push_amount >= state.protocol_config.min_push_amount, E_PUSH_AMOUNT_TOO_LOW);
 
         let media_index = findMediaIndex(state, media_id);
+        repairLegacySettledMediaStatusIfNeeded(state, media_index);
         let media = vector::borrow(&state.media_records, media_index);
         assert!(media.owner == pusher, E_NOT_MEDIA_OWNER);
         assert!(effectiveMediaStorageStatus(media) == STORAGE_STATUS_UPLOADED, E_MEDIA_NOT_UPLOADED);
@@ -711,6 +712,7 @@ module palate::palate {
         assert!(push_amount >= required_amount, E_CHALLENGE_AMOUNT_TOO_LOW);
 
         let challenger_media_index = findMediaIndex(state, challenger_media_id);
+        repairLegacySettledMediaStatusIfNeeded(state, challenger_media_index);
         let challenger_media = vector::borrow(&state.media_records, challenger_media_index);
         assert!(challenger_media.owner == challenger, E_NOT_MEDIA_OWNER);
         assert!(effectiveMediaStorageStatus(challenger_media) == STORAGE_STATUS_UPLOADED, E_MEDIA_NOT_UPLOADED);
@@ -935,6 +937,14 @@ module palate::palate {
             score_b,
             settled_time: current_time,
         });
+    }
+
+    public entry fun repairSettledMatchMedia(_account: &signer, match_id: u64) acquires PalateState, MediaStorageStatusRegistry {
+        assertInitialized();
+
+        let state = borrow_global_mut<PalateState>(@palate);
+        let match_index = findActiveMatchIndex(state, match_id);
+        repairSettledMatchMediaInternal(state, match_index);
     }
 
     public entry fun claimPush(account: &signer, match_id: u64) acquires PalateState {
@@ -2004,6 +2014,16 @@ module palate::palate {
     }
 
     #[test_only]
+    public entry fun setMediaStatusForTesting(account: &signer, media_id: u64, status: u8) acquires PalateState {
+        assertInitialized();
+        assert!(signer::address_of(account) == @palate, E_NOT_MODULE_PUBLISHER);
+
+        let state = borrow_global_mut<PalateState>(@palate);
+        let media_index = findMediaIndex(state, media_id);
+        vector::borrow_mut(&mut state.media_records, media_index).status = status;
+    }
+
+    #[test_only]
     public fun getNextAssignmentStartIndexForTesting(user: address): u64 acquires PalateState {
         assertInitialized();
 
@@ -2368,6 +2388,45 @@ module palate::palate {
                 reduceLockedBuffAmount(state, record_user, record_amount);
             };
             index = index + 1;
+        };
+    }
+
+    fun repairSettledMatchMediaInternal(state: &mut PalateState, match_index: u64) acquires MediaStorageStatusRegistry {
+        let media_a_index;
+        let media_b_index;
+        {
+            let active_match = vector::borrow(&state.active_matches, match_index);
+            assert!(active_match.status == MATCH_STATUS_SETTLED, E_MATCH_NOT_SETTLED);
+            media_a_index = findMediaIndex(state, active_match.media_a_id);
+            media_b_index = findMediaIndex(state, active_match.media_b_id);
+        };
+
+        repairLegacySettledMediaStatusIfNeeded(state, media_a_index);
+        repairLegacySettledMediaStatusIfNeeded(state, media_b_index);
+    }
+
+    fun repairLegacySettledMediaStatusIfNeeded(state: &mut PalateState, media_index: u64) acquires MediaStorageStatusRegistry {
+        let media = vector::borrow(&state.media_records, media_index);
+        if (media.status != STATUS_SETTLED) {
+            return
+        };
+        if (effectiveMediaStorageStatus(media) != STORAGE_STATUS_UPLOADED) {
+            return
+        };
+        let media_id = media.media_id;
+
+        let match_length = vector::length(&state.active_matches);
+        let match_index = 0;
+        while (match_index < match_length) {
+            let active_match = vector::borrow(&state.active_matches, match_index);
+            if (
+                active_match.status == MATCH_STATUS_SETTLED
+                    && (active_match.media_a_id == media_id || active_match.media_b_id == media_id)
+            ) {
+                vector::borrow_mut(&mut state.media_records, media_index).status = STATUS_IDLE;
+                return
+            };
+            match_index = match_index + 1;
         };
     }
 

@@ -84,7 +84,7 @@ export default function MyMediaPage() {
 
   function renderMediaCard(media: MediaRecord) {
     const isInvalid = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
-    const pushEligibility = media.status === "idle" ? getPushEligibility(media) : null;
+    const pushEligibility = (media.status === "idle" || media.status === "settled") ? getPushEligibility(media) : null;
     const canPush = pushEligibility ? pushEligibility.eligible : false;
     const isDeletable = media.source === "palate"
       && media.palateMediaId !== null
@@ -109,7 +109,7 @@ export default function MyMediaPage() {
                 ? "Retry registration"
                 : media.status === "pending_registration"
                 ? "Registering"
-                : media.status === "idle"
+                : (media.status === "idle" || (media.status === "settled" && canPush))
                   ? "Push"
                   : media.status === "waiting"
                     ? "Waiting"
@@ -133,8 +133,10 @@ export default function MyMediaPage() {
               ? () => setDeleteMediaId(media.id)
               : media.status === "registration_failed"
               ? () => retryPalateRegistration(media.id)
-              : media.status === "idle" && canPush
+              : (media.status === "idle" || media.status === "settled") && canPush
                 ? () => router.push(`/push?mediaId=${media.id}`)
+                : media.status === "settled"
+                  ? () => router.push("/profile?tab=Claims")
                 : undefined
           }
         secondaryActionLabel={media.source === "palate_upload_recovery" ? "Clear" : isDeletable && !primaryDelete && !media.deletePending ? "Delete" : undefined}
@@ -150,7 +152,7 @@ export default function MyMediaPage() {
             }
             : undefined
         }
-        onPushAction={media.status === "idle" && canPush ? () => router.push(`/push?mediaId=${media.id}`) : undefined}
+        onPushAction={(media.status === "idle" || media.status === "settled") && canPush ? () => router.push(`/push?mediaId=${media.id}`) : undefined}
       />
     );
   }

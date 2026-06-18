@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
 import { EmptyState } from "@/components/empty_state";
@@ -11,9 +12,18 @@ import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 
 export default function ProfilePage() {
+  return (
+    <Suspense fallback={<div className="page_stack page_profile" />}>
+      <ProfilePageContent />
+    </Suspense>
+  );
+}
+
+function ProfilePageContent() {
   const { balance, claimReadStatus, claimRecords, claimReward, depositBalance, feedback, processingAction, refreshClaims, userSummary, withdrawBalance } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
-  const [tab, setTab] = useState<"Stats" | "Claims">("Stats");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<"Stats" | "Claims">(searchParams.get("tab") === "Claims" ? "Claims" : "Stats");
   const [balanceAmount, setBalanceAmount] = useState("1.000");
   const balanceBusy = processingAction === "deposit" || processingAction === "withdraw";
   const walletReady = walletStatus === "connected" && Boolean(walletAddress);
@@ -37,6 +47,12 @@ export default function ProfilePage() {
     if (tab !== "Claims" || !walletReady || claimReadStatus !== "idle") return;
     void refreshClaims();
   }, [claimReadStatus, refreshClaims, tab, walletReady]);
+
+  useEffect(() => {
+    if (searchParams.get("tab") === "Claims") {
+      setTab("Claims");
+    }
+  }, [searchParams]);
 
   return (
     <div className="page_stack page_profile">

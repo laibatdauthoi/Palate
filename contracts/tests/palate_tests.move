@@ -1719,6 +1719,36 @@ module palate::palate_tests {
         assert!(palate::getWaitingPushMediaId(1) == 0, 1);
     }
 
+    #[test(admin = @palate, framework = @0x1, pusher = @0x3821, challenger = @0x3831)]
+    fun legacySettledMediaCanBeRepairedExplicitly(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+        palate::setMediaStatusForTesting(&admin, 0, palate::statusSettled());
+        palate::setMediaStatusForTesting(&admin, 1, palate::statusSettled());
+
+        palate::repairSettledMatchMedia(&pusher, 0);
+        palate::repairSettledMatchMedia(&pusher, 0);
+
+        assert!(palate::getMediaStatus(0) == palate::statusIdle(), 0);
+        assert!(palate::getMediaStatus(1) == palate::statusIdle(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x3822, challenger = @0x3832)]
+    fun legacySettledMediaCanCreatePushAgainWithoutManualRepair(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+        palate::setMediaStatusForTesting(&admin, 0, palate::statusSettled());
+
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        assert!(palate::getMediaStatus(0) == palate::statusWaiting(), 0);
+        assert!(palate::getWaitingPushMediaId(1) == 0, 1);
+    }
+
     #[test(admin = @palate, framework = @0x1, pusher = @0x382, challenger = @0x383)]
     fun settleMatchDoesNotRequireMinimumBuffCount(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);

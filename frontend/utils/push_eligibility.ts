@@ -46,7 +46,7 @@ export function getPushEligibility(media: MediaRecord, options: PushEligibilityO
   if (media.status === "registration_failed") {
     return { eligible: false, reason: "Registration failed media cannot be pushed." };
   }
-  if (requireIdle && media.status !== "idle") {
+  if (requireIdle && media.status !== "idle" && media.status !== "settled") {
     return { eligible: false, reason: "Media must be idle to push." };
   }
   if (!isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName)) {

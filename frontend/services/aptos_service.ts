@@ -656,6 +656,10 @@ export function buildSettleMatchPayload(matchId: number | string): InputGenerate
   return entryPayload("settleMatch", [String(matchId)]);
 }
 
+export function buildRepairSettledMatchMediaPayload(matchId: number | string): InputGenerateTransactionPayloadData {
+  return entryPayload("repairSettledMatchMedia", [String(matchId)]);
+}
+
 export type ClaimRewardInput = {
   type: ClaimRecord["type"];
   matchId: number | string;
@@ -946,40 +950,38 @@ function claimRewardTypeToFrontend(value: number): ClaimRecord["type"] {
 }
 
 export async function getClaimRecords(walletAddress: string): Promise<ClaimRecord[]> {
-  const count = Number(asString(await viewOne("getClaimDiscoveryRecordCount", [walletAddress])));
-  if (!Number.isFinite(count) || count <= 0) {
+  type ChainClaimDiscoveryRecord = {
+    claim_key: string | number;
+    match_id: string | number;
+    reward_type: string | number;
+    claimable_amount: string | number;
+    claimable: boolean;
+    claimed: boolean;
+    settled: boolean;
+  };
+
+  const records = await viewOne<ChainClaimDiscoveryRecord[]>("getClaimDiscoveryRecords", [walletAddress]);
+  if (!Array.isArray(records) || records.length === 0) {
     return [];
   }
 
-  const records = await Promise.all(
-    Array.from({ length: count }, async (_, index) => {
-      const [claimKey, matchId, rewardType, claimableAmount, claimable, claimed, settled] = await Promise.all([
-        viewOne("getClaimDiscoveryRecordClaimKey", [walletAddress, String(index)]),
-        viewOne("getClaimDiscoveryRecordMatchId", [walletAddress, String(index)]),
-        viewOne("getClaimDiscoveryRecordRewardType", [walletAddress, String(index)]),
-        viewOne("getClaimDiscoveryRecordClaimableAmount", [walletAddress, String(index)]),
-        viewOne("getClaimDiscoveryRecordClaimable", [walletAddress, String(index)]),
-        viewOne("getClaimDiscoveryRecordClaimed", [walletAddress, String(index)]),
-        viewOne("getClaimDiscoveryRecordSettled", [walletAddress, String(index)])
-      ]);
-
-      const normalizedMatchId = Number(asString(matchId));
-      const normalizedRewardType = claimRewardTypeToFrontend(asNumber(rewardType));
+  return records
+    .map((record) => {
+      const normalizedMatchId = Number(asString(record.match_id));
+      const normalizedRewardType = claimRewardTypeToFrontend(asNumber(record.reward_type));
 
       return {
-        id: Number(asString(claimKey)),
+        id: Number(asString(record.claim_key)),
         matchId: normalizedMatchId,
         type: normalizedRewardType,
         matchRef: `Match ${normalizedMatchId}`,
-        amount: formatOctasToApt(asString(claimableAmount)),
-        settledTime: Boolean(settled) ? "Settled on chain" : "Pending settlement",
-        claimable: Boolean(claimable),
-        claimed: Boolean(claimed)
+        amount: formatOctasToApt(asString(record.claimable_amount)),
+        settledTime: Boolean(record.settled) ? "Settled on chain" : "Pending settlement",
+        claimable: Boolean(record.claimable),
+        claimed: Boolean(record.claimed)
       } satisfies ClaimRecord;
     })
-  );
-
-  return records.sort((a, b) => b.id - a.id);
+    .sort((a, b) => b.id - a.id);
 }
 
 // Future Aptos view call boundary: read user_summary.

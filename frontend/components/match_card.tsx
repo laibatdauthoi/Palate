@@ -16,6 +16,8 @@ type MatchCardProps = {
 export function MatchCard({ match, actionHref, onSettle, settleDisabled }: MatchCardProps) {
   const countdown = useLiveCountdown(Number(match.endTimeSeconds), { endedLabel: "Ready to settle" });
   const isSettleEligible = match.status === "active" && countdown.isEnded;
+  const resolvedActionHref = match.status === "settled" ? "/profile?tab=Claims" : (actionHref ?? "/buff");
+  const resolvedActionLabel = match.status === "settled" ? "View Result" : "View";
   return (
     <article className="match_card">
       <div className="match_media_pair">
@@ -42,7 +44,7 @@ export function MatchCard({ match, actionHref, onSettle, settleDisabled }: Match
                 Settle
               </ActionButton>
             ) : null}
-            <ActionButton href={actionHref ?? "/buff"} variant="secondary">View</ActionButton>
+            <ActionButton href={resolvedActionHref} variant="secondary">{resolvedActionLabel}</ActionButton>
           </div>
         </div>
         <p className="mock_note">Live score, Buff pool, leading side, odds, and win probability are intentionally hidden.</p>
