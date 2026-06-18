@@ -40,7 +40,7 @@ const category_values = {
 } as const satisfies Record<Exclude<(typeof categories)[number], "All Categories">, MediaCategory>;
 
 export default function MyMediaPage() {
-  const { clearPendingRegistration, deleteMedia, mediaReadStatus, mediaRecords, processingAction, retryOnChainDelete, retryPalateRegistration } = usePalate();
+  const { clearPendingRegistration, deleteMedia, expireWaitingPush, mediaReadStatus, mediaRecords, processingAction, retryOnChainDelete, retryPalateRegistration } = usePalate();
   const { canPlayMedia, currentTrackId, isPlaying, playMedia, setQueueFromMedia, togglePlayback } = useMediaPlayer();
   const { walletStatus } = usePalateWallet();
   const router = useRouter();
@@ -104,6 +104,10 @@ export default function MyMediaPage() {
     const isInvalid = media.source === "palate" && !isMediaCategoryCompatible(media.category, media.mimeType, media.originalFileName);
     const pushEligibility = (media.status === "idle" || media.status === "settled") ? getPushEligibility(media) : null;
     const canPush = pushEligibility ? pushEligibility.eligible : false;
+    const canCleanUpExpiredPush = media.source === "palate"
+      && media.status === "waiting"
+      && media.waitingPushExpired === true
+      && typeof media.waitingPushId === "number";
     const isDeletable = media.source === "palate"
       && media.palateMediaId !== null
       && media.palateMediaId !== undefined
@@ -127,6 +131,8 @@ export default function MyMediaPage() {
                 ? "Retry registration"
                 : media.status === "pending_registration"
                 ? "Registering"
+                : canCleanUpExpiredPush
+                  ? "Clean up expired push"
                 : (media.status === "idle" || (media.status === "settled" && canPush))
                   ? "Push"
                   : media.status === "waiting"
@@ -140,6 +146,7 @@ export default function MyMediaPage() {
             || processingAction === `retryRegistration:${media.id}`
             || processingAction === `deleteMedia:${media.id}`
             || processingAction === `retryDelete:${media.id}`
+            || (canCleanUpExpiredPush && processingAction === `expireWaitingPush:${media.waitingPushId}`)
             || (media.status === "idle" && !canPush)
           }
           onAction={
@@ -151,6 +158,8 @@ export default function MyMediaPage() {
               ? () => setDeleteMediaId(media.id)
               : media.status === "registration_failed"
               ? () => retryPalateRegistration(media.id)
+              : canCleanUpExpiredPush
+                ? () => expireWaitingPush(media.waitingPushId!)
               : (media.status === "idle" || media.status === "settled") && canPush
                 ? () => {
                   startRouteTransition("my-media-card", "/push", "router.push");

@@ -33,6 +33,7 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
   const isDeletePending = media.deletePending === true;
   const isContentUnavailable = media.contentUnavailable === true;
   const isShelbyCleanupRequired = media.shelbyCleanupRequired === true;
+  const isExpiredWaitingPush = media.waitingPushExpired === true && typeof media.waitingPushId === "number";
   const isDeleteAction = actionLabel === "Delete";
 
   function handleCardClick(event: MouseEvent<HTMLElement>) {
@@ -106,6 +107,12 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
           <div className="recovery_note">
             <span>Shelby registration succeeded, but file upload failed.</span>
             <span>This media cannot be pushed or challenged. Delete it and upload again.</span>
+          </div>
+        ) : null}
+        {isExpiredWaitingPush ? (
+          <div className="recovery_note">
+            <span>This waiting push expired after 24 hours without a challenge.</span>
+            <span>Clean it up to refund the pusher and unlock this media.</span>
           </div>
         ) : null}
         {isDeletePending ? (

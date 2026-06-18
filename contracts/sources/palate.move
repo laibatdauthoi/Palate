@@ -51,6 +51,7 @@ module palate::palate {
     const E_INVALID_SCORE_CONFIG: u64 = 40;
     const E_MEDIA_NOT_UPLOADED: u64 = 41;
     const E_MEDIA_NOT_FAILED_UPLOAD: u64 = 42;
+    const E_WAITING_PUSH_EXPIRED: u64 = 43;
 
     /// Category values.
     const CATEGORY_MEME: u8 = 1;
@@ -79,6 +80,7 @@ module palate::palate {
     const WAITING_PUSH_STATUS_OPEN: u8 = 1;
     const WAITING_PUSH_STATUS_CANCELLED: u8 = 2;
     const WAITING_PUSH_STATUS_CHALLENGED: u8 = 3;
+    const WAITING_PUSH_EXPIRY_SECONDS: u64 = 86400;
 
     /// Side values.
     const SIDE_A: u8 = 1;
@@ -159,6 +161,15 @@ module palate::palate {
     struct UserMediaIndex has copy, drop, store {
         owner: address,
         media_ids: vector<u64>,
+    }
+
+    struct WaitingPushMediaIndexRegistry has key {
+        records: vector<WaitingPushMediaIndexRecord>,
+    }
+
+    struct WaitingPushMediaIndexRecord has copy, drop, store {
+        media_id: u64,
+        push_id: u64,
     }
 
     /// Spec name: waiting_push. Move requires struct names to start uppercase.
@@ -389,6 +400,23 @@ module palate::palate {
         initializeInternal(account, treasury_address)
     }
 
+    public entry fun initializeWaitingPushMediaIndex(account: &signer) acquires PalateState, WaitingPushMediaIndexRegistry {
+        assertInitialized();
+
+        let admin = signer::address_of(account);
+        let state = borrow_global<PalateState>(@palate);
+        assertConfigAdmin(state, admin);
+
+        if (!exists<WaitingPushMediaIndexRegistry>(@palate)) {
+            move_to(account, WaitingPushMediaIndexRegistry {
+                records: vector::empty<WaitingPushMediaIndexRecord>(),
+            });
+        };
+
+        let registry = borrow_global_mut<WaitingPushMediaIndexRegistry>(@palate);
+        rebuildWaitingPushMediaIndex(state, registry);
+    }
+
     fun initializeInternal(account: &signer, treasury_address: address) {
         let admin_address = signer::address_of(account);
         assert!(admin_address == @palate, E_NOT_MODULE_PUBLISHER);
@@ -429,6 +457,10 @@ module palate::palate {
             next_media_id: 0,
             next_push_id: 0,
             next_match_id: 0,
+        });
+
+        move_to(account, WaitingPushMediaIndexRegistry {
+            records: vector::empty<WaitingPushMediaIndexRecord>(),
         });
     }
 
@@ -622,7 +654,7 @@ module palate::palate {
         vector::empty<u64>()
     }
 
-    public entry fun createPush(account: &signer, media_id: u64, push_amount: u64) acquires PalateState, MediaStorageStatusRegistry {
+    public entry fun createPush(account: &signer, media_id: u64, push_amount: u64) acquires PalateState, MediaStorageStatusRegistry, WaitingPushMediaIndexRegistry {
         assertInitialized();
 
         let pusher = signer::address_of(account);
@@ -631,16 +663,20 @@ module palate::palate {
 
         let media_index = findMediaIndex(state, media_id);
         repairLegacySettledMediaStatusIfNeeded(state, media_index);
-        let media = vector::borrow(&state.media_records, media_index);
+        let media = *vector::borrow(&state.media_records, media_index);
         assert!(media.owner == pusher, E_NOT_MEDIA_OWNER);
-        assert!(effectiveMediaStorageStatus(media) == STORAGE_STATUS_UPLOADED, E_MEDIA_NOT_UPLOADED);
-        assert!(media.status == STATUS_IDLE, E_MEDIA_NOT_IDLE);
+        assert!(effectiveMediaStorageStatus(&media) == STORAGE_STATUS_UPLOADED, E_MEDIA_NOT_UPLOADED);
+        if (media.status == STATUS_WAITING) {
+            autoExpireIndexedWaitingPushForMediaIfNeeded(state, media_id);
+        };
+        assert!(vector::borrow(&state.media_records, media_index).status == STATUS_IDLE, E_MEDIA_NOT_IDLE);
         let category = media.category;
 
         debitAvailableToPushEscrow(state, pusher, push_amount);
         vector::borrow_mut(&mut state.media_records, media_index).status = STATUS_WAITING;
         let push_id = state.next_push_id;
         state.next_push_id = push_id + 1;
+        let created_time = timestamp::now_seconds();
 
         vector::push_back(&mut state.waiting_pushes, WaitingPush {
             push_id,
@@ -648,9 +684,10 @@ module palate::palate {
             pusher,
             category,
             push_amount,
-            created_time: 0,
+            created_time,
             status: WAITING_PUSH_STATUS_OPEN,
         });
+        setWaitingPushIndex(media_id, push_id);
 
         event::emit(PushCreatedEvent {
             push_id,
@@ -661,7 +698,7 @@ module palate::palate {
         });
     }
 
-    public entry fun cancelPush(account: &signer, push_id: u64) acquires PalateState {
+    public entry fun cancelPush(account: &signer, push_id: u64) acquires PalateState, WaitingPushMediaIndexRegistry {
         assertInitialized();
 
         let pusher = signer::address_of(account);
@@ -670,14 +707,25 @@ module palate::palate {
         let waiting_push = vector::borrow(&state.waiting_pushes, push_index);
         assert!(waiting_push.pusher == pusher, E_NOT_PUSH_CREATOR);
         assert!(waiting_push.status == WAITING_PUSH_STATUS_OPEN, E_PUSH_NOT_OPEN);
+        let (media_id, _, _) = cancelWaitingPushInternal(state, push_index);
 
-        let media_id = waiting_push.media_id;
-        let push_amount = waiting_push.push_amount;
-        let media_index = findMediaIndex(state, media_id);
+        event::emit(PushCancelledEvent {
+            push_id,
+            media_id,
+            pusher,
+        });
+    }
 
-        refundPushEscrowToAvailable(state, pusher, push_amount);
-        vector::borrow_mut(&mut state.media_records, media_index).status = STATUS_IDLE;
-        vector::borrow_mut(&mut state.waiting_pushes, push_index).status = WAITING_PUSH_STATUS_CANCELLED;
+    public entry fun expireWaitingPush(_account: &signer, push_id: u64) acquires PalateState, WaitingPushMediaIndexRegistry {
+        assertInitialized();
+
+        let state = borrow_global_mut<PalateState>(@palate);
+        let push_index = findWaitingPushIndex(state, push_id);
+        let waiting_push = vector::borrow(&state.waiting_pushes, push_index);
+        assert!(waiting_push.status == WAITING_PUSH_STATUS_OPEN, E_PUSH_NOT_OPEN);
+        assert!(isWaitingPushExpiredAtTime(waiting_push, timestamp::now_seconds()), E_WAITING_PUSH_EXPIRED);
+
+        let (media_id, pusher, _) = cancelWaitingPushInternal(state, push_index);
 
         event::emit(PushCancelledEvent {
             push_id,
@@ -691,7 +739,7 @@ module palate::palate {
         push_id: u64,
         challenger_media_id: u64,
         push_amount: u64,
-    ) acquires PalateState, MediaStorageStatusRegistry {
+    ) acquires PalateState, MediaStorageStatusRegistry, WaitingPushMediaIndexRegistry {
         assertInitialized();
 
         let challenger = signer::address_of(account);
@@ -699,6 +747,7 @@ module palate::palate {
         let push_index = findWaitingPushIndex(state, push_id);
         let waiting_push = vector::borrow(&state.waiting_pushes, push_index);
         assert!(waiting_push.status == WAITING_PUSH_STATUS_OPEN, E_PUSH_NOT_OPEN);
+        assert!(!isWaitingPushExpiredAtTime(waiting_push, timestamp::now_seconds()), E_WAITING_PUSH_EXPIRED);
         assert!(waiting_push.pusher != challenger, E_PUSHER_CANNOT_CHALLENGE_OWN_PUSH);
         let media_a_id = waiting_push.media_id;
         let pusher_a = waiting_push.pusher;
@@ -725,6 +774,7 @@ module palate::palate {
         vector::borrow_mut(&mut state.media_records, media_a_index).status = STATUS_ACTIVE;
         vector::borrow_mut(&mut state.media_records, challenger_media_index).status = STATUS_ACTIVE;
         vector::borrow_mut(&mut state.waiting_pushes, push_index).status = WAITING_PUSH_STATUS_CHALLENGED;
+        clearWaitingPushIndex(media_a_id);
 
         let match_id = state.next_match_id;
         state.next_match_id = match_id + 1;
@@ -1056,12 +1106,13 @@ module palate::palate {
         assertInitialized();
 
         let state = borrow_global<PalateState>(@palate);
+        let current_time = timestamp::now_seconds();
         let ids = vector::empty<u64>();
         let length = vector::length(&state.waiting_pushes);
         let index = 0;
         while (index < length) {
             let waiting_push = vector::borrow(&state.waiting_pushes, index);
-            if (waiting_push.status == WAITING_PUSH_STATUS_OPEN) {
+            if (waiting_push.status == WAITING_PUSH_STATUS_OPEN && !isWaitingPushExpiredAtTime(waiting_push, current_time)) {
                 vector::push_back(&mut ids, waiting_push.push_id);
             };
             index = index + 1;
@@ -1280,6 +1331,31 @@ module palate::palate {
     #[view]
     public fun getWaitingPushStatus(push_id: u64): u8 acquires PalateState {
         getWaitingPushRecord(push_id).status
+    }
+
+    #[view]
+    public fun getWaitingPushCreatedTime(push_id: u64): u64 acquires PalateState {
+        getWaitingPushRecord(push_id).created_time
+    }
+
+    #[view]
+    public fun getWaitingPushExpirySeconds(): u64 {
+        WAITING_PUSH_EXPIRY_SECONDS
+    }
+
+    #[view]
+    public fun isWaitingPushExpired(push_id: u64): bool acquires PalateState {
+        let waiting_push = getWaitingPushRecord(push_id);
+        isWaitingPushExpiredAtTime(&waiting_push, timestamp::now_seconds())
+    }
+
+    #[view]
+    public fun getWaitingPushIdForMedia(media_id: u64): u64 acquires WaitingPushMediaIndexRegistry {
+        let (found, push_id) = tryGetWaitingPushIndex(media_id);
+        if (found) {
+            return push_id
+        };
+        abort E_PUSH_NOT_FOUND
     }
 
     #[view]
@@ -1920,6 +1996,11 @@ module palate::palate {
     }
 
     #[view]
+    public fun waitingPushExpiredErrorCode(): u64 {
+        E_WAITING_PUSH_EXPIRED
+    }
+
+    #[view]
     public fun matchStatusActive(): u8 {
         MATCH_STATUS_ACTIVE
     }
@@ -2516,6 +2597,121 @@ module palate::palate {
         };
 
         abort E_PUSH_NOT_FOUND
+    }
+
+    fun isWaitingPushExpiredAtTime(waiting_push: &WaitingPush, current_time: u64): bool {
+        current_time >= waiting_push.created_time + WAITING_PUSH_EXPIRY_SECONDS
+    }
+
+    fun cancelWaitingPushInternal(state: &mut PalateState, push_index: u64): (u64, address, u64) acquires WaitingPushMediaIndexRegistry {
+        let waiting_push = *vector::borrow(&state.waiting_pushes, push_index);
+        let media_id = waiting_push.media_id;
+        let pusher = waiting_push.pusher;
+        let push_amount = waiting_push.push_amount;
+        let media_index = findMediaIndex(state, media_id);
+
+        refundPushEscrowToAvailable(state, pusher, push_amount);
+        vector::borrow_mut(&mut state.media_records, media_index).status = STATUS_IDLE;
+        vector::borrow_mut(&mut state.waiting_pushes, push_index).status = WAITING_PUSH_STATUS_CANCELLED;
+        clearWaitingPushIndex(media_id);
+        (media_id, pusher, push_amount)
+    }
+
+    fun tryGetWaitingPushIndex(media_id: u64): (bool, u64) acquires WaitingPushMediaIndexRegistry {
+        if (!exists<WaitingPushMediaIndexRegistry>(@palate)) {
+            return (false, 0)
+        };
+
+        let registry = borrow_global<WaitingPushMediaIndexRegistry>(@palate);
+        let length = vector::length(&registry.records);
+        let index = 0;
+        while (index < length) {
+            let record = vector::borrow(&registry.records, index);
+            if (record.media_id == media_id) {
+                return (true, record.push_id)
+            };
+            index = index + 1;
+        };
+
+        (false, 0)
+    }
+
+    fun setWaitingPushIndex(media_id: u64, push_id: u64) acquires WaitingPushMediaIndexRegistry {
+        let registry = borrow_global_mut<WaitingPushMediaIndexRegistry>(@palate);
+        let length = vector::length(&registry.records);
+        let index = 0;
+        while (index < length) {
+            let record = vector::borrow_mut(&mut registry.records, index);
+            if (record.media_id == media_id) {
+                record.push_id = push_id;
+                return
+            };
+            index = index + 1;
+        };
+
+        vector::push_back(&mut registry.records, WaitingPushMediaIndexRecord {
+            media_id,
+            push_id,
+        });
+    }
+
+    fun clearWaitingPushIndex(media_id: u64) acquires WaitingPushMediaIndexRegistry {
+        if (!exists<WaitingPushMediaIndexRegistry>(@palate)) {
+            return
+        };
+
+        let registry = borrow_global_mut<WaitingPushMediaIndexRegistry>(@palate);
+        let length = vector::length(&registry.records);
+        let index = 0;
+        while (index < length) {
+            let record = *vector::borrow(&registry.records, index);
+            if (record.media_id == media_id) {
+                vector::swap_remove(&mut registry.records, index);
+                return
+            };
+            index = index + 1;
+        };
+    }
+
+    fun rebuildWaitingPushMediaIndex(state: &PalateState, registry: &mut WaitingPushMediaIndexRegistry) {
+        registry.records = vector::empty<WaitingPushMediaIndexRecord>();
+
+        let length = vector::length(&state.waiting_pushes);
+        let index = 0;
+        while (index < length) {
+            let waiting_push = vector::borrow(&state.waiting_pushes, index);
+            if (waiting_push.status == WAITING_PUSH_STATUS_OPEN) {
+                vector::push_back(&mut registry.records, WaitingPushMediaIndexRecord {
+                    media_id: waiting_push.media_id,
+                    push_id: waiting_push.push_id,
+                });
+            };
+            index = index + 1;
+        };
+    }
+
+    fun autoExpireIndexedWaitingPushForMediaIfNeeded(state: &mut PalateState, media_id: u64) acquires WaitingPushMediaIndexRegistry {
+        let (found, push_id) = tryGetWaitingPushIndex(media_id);
+        if (!found) {
+            return
+        };
+
+        let push_index = findWaitingPushIndex(state, push_id);
+        let waiting_push = *vector::borrow(&state.waiting_pushes, push_index);
+        if (waiting_push.status != WAITING_PUSH_STATUS_OPEN) {
+            clearWaitingPushIndex(media_id);
+            return
+        };
+        if (!isWaitingPushExpiredAtTime(&waiting_push, timestamp::now_seconds())) {
+            return
+        };
+
+        let (expired_media_id, pusher, _) = cancelWaitingPushInternal(state, push_index);
+        event::emit(PushCancelledEvent {
+            push_id,
+            media_id: expired_media_id,
+            pusher,
+        });
     }
 
     fun findActiveMatchIndex(state: &PalateState, match_id: u64): u64 {

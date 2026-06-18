@@ -427,26 +427,33 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
 
   const togglePlayback = useCallback(() => {
     if (!currentTrack) return;
+    const activeElement = getActiveElement();
+    if (!activeElement) return;
+
     if (isPlaying) {
       playIntentRef.current = "pause";
       userPausedRef.current = true;
       playAttemptInFlightRef.current = false;
-      getActiveElement()?.pause();
+      activeElement.pause();
       setIsPlaying(false);
       setLoading(false);
       setBuffering(false);
       return;
     }
-    const activeElement = getActiveElement();
-    if (!activeElement) return;
+
     playIntentRef.current = "play";
     userPausedRef.current = false;
     playAttemptInFlightRef.current = false;
     setPlaybackError(null);
-    setLoading(true);
     setIsPlaying(true);
+    const safeDuration = getFiniteMediaTime(activeElement.duration);
+    const isAtEnd = safeDuration > 0 && activeElement.currentTime >= Math.max(0, safeDuration - 0.25);
+    if (isAtEnd) {
+      activeElement.currentTime = 0;
+      setProgress(0);
+    }
+    setLoading(true);
     setBuffering(false);
-    activeElement.load();
     evaluatePlaybackBuffer("togglePlayback");
   }, [currentTrack, evaluatePlaybackBuffer, getActiveElement, isPlaying]);
 
@@ -694,7 +701,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     activeElement.muted = muted;
     setDuration(getFiniteMediaTime(activeElement.duration));
     setProgress(getFiniteMediaTime(activeElement.currentTime));
-  }, [currentTrack, getActiveElement, isPlaying, muted, volume]);
+  }, [currentTrack, getActiveElement, muted, volume]);
 
   useEffect(() => {
     if (!currentTrack || typeof window === "undefined") return;
@@ -836,30 +843,32 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
           {buffering ? <small>Buffering…</small> : null}
           {playbackError ? <small className="global_media_error">{playbackError}</small> : null}
         </div>
-        <div className="global_media_controls">
-          <button aria-label="Previous track" className="media_icon_button" onClick={playPrevious} type="button"><PlayerIcon name="previous" /></button>
-          <button aria-label={isPlaying ? "Pause" : "Play"} className="media_icon_button primary" onClick={togglePlayback} type="button"><PlayerIcon name={isPlaying ? "pause" : "play"} /></button>
-          <button aria-label="Next track" className="media_icon_button" onClick={() => playNext()} type="button"><PlayerIcon name="next" /></button>
-          <button aria-label={shuffle ? "Disable shuffle" : "Enable shuffle"} className={`media_icon_button ${shuffle ? "active" : ""}`} onClick={() => setShuffle((current) => !current)} type="button"><PlayerIcon name="shuffle" /></button>
-          <button
-            aria-label={`Repeat mode ${repeatMode}`}
-            className={`media_icon_button ${repeatMode !== "off" ? "active" : ""}`}
-            onClick={() => setRepeatMode((current) => current === "off" ? "one" : current === "one" ? "all" : "off")}
-            type="button"
-          >
-            <PlayerIcon name={repeatMode === "one" ? "repeatOne" : repeatMode === "all" ? "repeatAll" : "repeatOff"} />
-          </button>
-          <button aria-label={muted ? "Unmute" : "Mute"} className={`media_icon_button ${muted ? "active" : ""}`} onClick={toggleMute} type="button"><PlayerIcon name={muted ? "mute" : "volume"} /></button>
+        <div className="global_media_control_row">
+          <div className="global_media_controls">
+            <button aria-label="Previous track" className="media_icon_button" onClick={playPrevious} type="button"><PlayerIcon name="previous" /></button>
+            <button aria-label={isPlaying ? "Pause" : "Play"} className="media_icon_button primary" onClick={togglePlayback} type="button"><PlayerIcon name={isPlaying ? "pause" : "play"} /></button>
+            <button aria-label="Next track" className="media_icon_button" onClick={() => playNext()} type="button"><PlayerIcon name="next" /></button>
+            <button aria-label={shuffle ? "Disable shuffle" : "Enable shuffle"} className={`media_icon_button ${shuffle ? "active" : ""}`} onClick={() => setShuffle((current) => !current)} type="button"><PlayerIcon name="shuffle" /></button>
+            <button
+              aria-label={`Repeat mode ${repeatMode}`}
+              className={`media_icon_button ${repeatMode !== "off" ? "active" : ""}`}
+              onClick={() => setRepeatMode((current) => current === "off" ? "one" : current === "one" ? "all" : "off")}
+              type="button"
+            >
+              <PlayerIcon name={repeatMode === "one" ? "repeatOne" : repeatMode === "all" ? "repeatAll" : "repeatOff"} />
+            </button>
+            <button aria-label={muted ? "Unmute" : "Mute"} className={`media_icon_button ${muted ? "active" : ""}`} onClick={toggleMute} type="button"><PlayerIcon name={muted ? "mute" : "volume"} /></button>
+          </div>
+          <label className="global_media_volume">
+            <span>Vol</span>
+            <input aria-label="Media volume" max={1} min={0} onChange={(event) => changeVolume(Number(event.target.value))} step={0.01} type="range" value={volume} />
+          </label>
         </div>
         <div className="global_media_progress">
           <span>{formatSeconds(progress)}</span>
           <input aria-label="Media progress" max={progressMax} min={0} onChange={(event) => seek(Number(event.target.value))} step={0.1} type="range" value={progressValue} />
           <span>{formatSeconds(duration)}</span>
         </div>
-        <label className="global_media_volume">
-          <span>Vol</span>
-          <input aria-label="Media volume" max={1} min={0} onChange={(event) => changeVolume(Number(event.target.value))} step={0.01} type="range" value={volume} />
-        </label>
       </div>
     </MediaPlayerContext.Provider>
   );

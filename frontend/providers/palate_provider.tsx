@@ -8,6 +8,7 @@ import {
   buildChallengePushPayload,
   buildCreatePushPayload,
   buildDeleteMediaPayload,
+  buildExpireWaitingPushPayload,
   buildFindMatchPayload,
   buildPlaceBuffPayload,
   buildSettleMatchPayload,
@@ -185,6 +186,7 @@ type PalateContextValue = {
   uploadMockMedia: (input: UploadMediaInput) => Promise<void>;
   createPush: (mediaId: number, amount: string) => Promise<void>;
   challengePush: (pushId: number, challengerMediaId: number, amount: string) => Promise<void>;
+  expireWaitingPush: (pushId: number) => Promise<void>;
   createMockPush: (mediaId: number, amount: string) => Promise<void>;
   challengeMockPush: (pushId: number, challengerMediaId: number, amount: string) => Promise<void>;
   claimReward: (claim: ClaimRecord) => Promise<void>;
@@ -1823,6 +1825,47 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function expireWaitingPushOnChain(pushId: number) {
+    const finishPerf = startUiPerf("expireWaitingPushOnChain", { pushId });
+    if (walletConnectionStatus !== "connected" || !walletAddress) {
+      setFeedback({ type: "error", message: "Connect wallet to clean up an expired push." });
+      finishPerf("end", { skipped: true, reason: "wallet not connected" });
+      return;
+    }
+
+    const expiredPush = waitingPushes.find((push) =>
+      push.id === pushId
+        && push.status === "open"
+        && push.media.ownerAddress.toLowerCase() === walletAddress.toLowerCase()
+        && push.media.waitingPushExpired === true
+    );
+
+    if (!expiredPush) {
+      setFeedback({ type: "error", message: "Choose your expired waiting push to clean up." });
+      finishPerf("end", { skipped: true, reason: "expired push not found" });
+      return;
+    }
+
+    setProcessingAction(`expireWaitingPush:${pushId}`);
+    setFeedback(null);
+
+    try {
+      const data = buildExpireWaitingPushPayload(pushId);
+      const transactionHash = await signAndSubmitTransaction({ data });
+      setFeedback({ type: "info", message: `Expired push cleanup submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      await waitForPalateTransaction(transactionHash);
+      await refreshWalletGameState(walletAddress);
+      setFeedback({ type: "success", message: `Expired waiting push cleaned up ${shortenTransactionHash(transactionHash)}.` });
+      finishPerf("success", { transactionHash, refreshedGameState: true });
+    } catch (error) {
+      console.error("expireWaitingPush failed", error);
+      setFeedback({ type: "error", message: getReadablePalateError(error, "Expired waiting push cleanup failed.") });
+      finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setProcessingAction(null);
+    }
+  }
+
   const visibleMediaRecords = useMemo(() => [
     ...pendingRegistrationMedia.filter((media) => !walletAddress || media.ownerAddress.toLowerCase() === walletAddress.toLowerCase()),
     ...mediaRecords
@@ -1971,6 +2014,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       },
       createPush: createPushOnChain,
       challengePush: challengePushOnChain,
+      expireWaitingPush: expireWaitingPushOnChain,
       createMockPush: async (mediaId, amount) => {
         await runMockAction("createPush", () => {
           const media = mediaRecords.find((record) => record.id === mediaId);

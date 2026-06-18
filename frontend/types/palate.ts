@@ -79,6 +79,10 @@ export type MediaRecord = {
   registrationError?: string | null;
   registrationRetryCount?: number;
   createdTimeSeconds?: string;
+  waitingPushId?: number;
+  waitingPushExpired?: boolean;
+  waitingPushCreatedTimeSeconds?: string;
+  waitingPushExpirySeconds?: string;
   accent: "pink" | "purple" | "rose" | "deep";
 };
 
@@ -91,6 +95,8 @@ export type WaitingPush = {
   minChallengeAmount: string;
   minChallengeAmountOctas?: string;
   createdTime: string;
+  createdTimeSeconds?: string;
+  expirySeconds?: string;
   status: "open" | "cancelled" | "challenged";
 };
 

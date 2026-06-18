@@ -792,6 +792,184 @@ module palate::palate_tests {
         assert!(palate::getLockedPushAmount(signer::address_of(&user)) == 0, 4);
     }
 
+    #[test(admin = @palate, framework = @0x1, pusher = @0x2301, challenger = @0x2302)]
+    fun waitingPushVisibleAndChallengeableBeforeExpiry(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &pusher, b"pre-expiry-a.png", 1);
+        registerImage(&framework, &challenger, b"pre-expiry-b.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        timestamp::fast_forward_seconds(palate::getWaitingPushExpirySeconds() - 1);
+
+        let pushes = palate::getWaitingPushes();
+        assert!(vector::length(&pushes) == 1, 0);
+        assert!(*vector::borrow(&pushes, 0) == 0, 1);
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+        assert!(palate::getWaitingPushStatus(0) == palate::waitingPushStatusChallenged(), 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x23021)]
+    fun waitingPushIndexIsSetAfterCreatePush(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"index-set.png", 1);
+
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+
+        assert!(palate::getWaitingPushIdForMedia(0) == 0, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x23022)]
+    #[expected_failure(abort_code = 9, location = palate::palate)]
+    fun waitingPushIndexIsClearedAfterCancelPush(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"index-clear-cancel.png", 1);
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+
+        palate::cancelPush(&user, 0);
+        palate::getWaitingPushIdForMedia(0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x2303)]
+    fun expiredWaitingPushIsHiddenFromActiveWaitingView(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"expired-hidden.png", 1);
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+
+        timestamp::fast_forward_seconds(palate::getWaitingPushExpirySeconds());
+
+        let pushes = palate::getWaitingPushes();
+        assert!(vector::length(&pushes) == 0, 0);
+        assert!(palate::isWaitingPushExpired(0), 1);
+        assert!(palate::getMediaStatus(0) == palate::statusWaiting(), 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x2304, challenger = @0x2305)]
+    #[expected_failure(abort_code = 43, location = palate::palate)]
+    fun challengePushRejectsExpiredWaitingPush(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &pusher, b"expired-challenge-a.png", 1);
+        registerImage(&framework, &challenger, b"expired-challenge-b.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        timestamp::fast_forward_seconds(palate::getWaitingPushExpirySeconds());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x2306)]
+    fun expireWaitingPushUnlocksMediaAndRefundsPusher(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"expire-cleanup.png", 1);
+
+        let available_before_push = palate::getAvailableBalance(signer::address_of(&user));
+        let amount = palate::getMinPushAmount();
+        palate::createPush(&user, 0, amount);
+        timestamp::fast_forward_seconds(palate::getWaitingPushExpirySeconds());
+
+        palate::expireWaitingPush(&user, 0);
+
+        assert!(palate::getWaitingPushStatus(0) == palate::waitingPushStatusCancelled(), 0);
+        assert!(palate::getMediaStatus(0) == palate::statusIdle(), 1);
+        assert!(palate::getPushEscrowBalance() == 0, 2);
+        assert!(palate::getAvailableBalance(signer::address_of(&user)) == available_before_push, 3);
+        assert!(palate::getLockedPushAmount(signer::address_of(&user)) == 0, 4);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x2307)]
+    #[expected_failure(abort_code = 11, location = palate::palate)]
+    fun expireWaitingPushCannotRunTwice(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"expire-twice.png", 1);
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+        timestamp::fast_forward_seconds(palate::getWaitingPushExpirySeconds());
+
+        palate::expireWaitingPush(&user, 0);
+        palate::expireWaitingPush(&user, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x23071)]
+    #[expected_failure(abort_code = 9, location = palate::palate)]
+    fun waitingPushIndexIsClearedAfterExpireWaitingPush(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"index-clear-expire.png", 1);
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+        timestamp::fast_forward_seconds(palate::getWaitingPushExpirySeconds());
+
+        palate::expireWaitingPush(&user, 0);
+        palate::getWaitingPushIdForMedia(0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x2308, challenger = @0x2309)]
+    #[expected_failure(abort_code = 11, location = palate::palate)]
+    fun expireWaitingPushCannotExpireMatchedPush(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &pusher, b"matched-expire-a.png", 1);
+        registerImage(&framework, &challenger, b"matched-expire-b.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+        timestamp::fast_forward_seconds(palate::getWaitingPushExpirySeconds());
+
+        palate::expireWaitingPush(&pusher, 0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x23081, challenger = @0x23082)]
+    #[expected_failure(abort_code = 9, location = palate::palate)]
+    fun waitingPushIndexIsClearedAfterChallengePush(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &pusher, b"index-clear-challenge-a.png", 1);
+        registerImage(&framework, &challenger, b"index-clear-challenge-b.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+        palate::getWaitingPushIdForMedia(0);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x2310)]
+    fun mediaCanBePushedAgainAfterExpiredPushCleanup(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"repush-after-expire.png", 1);
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+        timestamp::fast_forward_seconds(palate::getWaitingPushExpirySeconds());
+
+        palate::expireWaitingPush(&user, 0);
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+
+        assert!(palate::getWaitingPushStatus(1) == palate::waitingPushStatusOpen(), 0);
+        assert!(palate::getMediaStatus(0) == palate::statusWaiting(), 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x23101)]
+    fun createPushAutoExpiresExpiredWaitingPushForSameMedia(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"auto-expire-create.png", 1);
+
+        let available_before_first_push = palate::getAvailableBalance(signer::address_of(&user));
+        let amount = palate::getMinPushAmount();
+        palate::createPush(&user, 0, amount);
+        timestamp::fast_forward_seconds(palate::getWaitingPushExpirySeconds());
+
+        palate::createPush(&user, 0, amount);
+
+        assert!(palate::getWaitingPushStatus(0) == palate::waitingPushStatusCancelled(), 0);
+        assert!(palate::getWaitingPushStatus(1) == palate::waitingPushStatusOpen(), 1);
+        assert!(palate::getWaitingPushIdForMedia(0) == 1, 2);
+        assert!(palate::getPushEscrowBalance() == amount, 3);
+        assert!(palate::getLockedPushAmount(signer::address_of(&user)) == amount, 4);
+        assert!(palate::getAvailableBalance(signer::address_of(&user)) == available_before_first_push - amount, 5);
+        assert!(palate::getMediaStatus(0) == palate::statusWaiting(), 6);
+    }
+
+    #[test(admin = @palate, framework = @0x1, user = @0x23102)]
+    #[expected_failure(abort_code = 7, location = palate::palate)]
+    fun createPushDoesNotAutoExpireNonExpiredWaitingPush(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &user, b"auto-expire-blocked.png", 1);
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+
+        palate::createPush(&user, 0, palate::getMinPushAmount());
+    }
+
     #[test(admin = @palate, framework = @0x1, pusher = @0x210, challenger = @0x211)]
     fun challengePushSucceedsWithSameCategoryIdleMedia(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);

@@ -516,6 +516,7 @@ function getActivityLabel(functionName: string) {
     delete_failed_media: "Deleted failed media",
     createPush: "Created push",
     cancelPush: "Canceled push",
+    expireWaitingPush: "Expired waiting push",
     challengePush: "Challenged push",
     findMatch: "Found match",
     placeBuff: "Placed Buff",
@@ -545,6 +546,7 @@ function getActivityFilter(functionName: string): Exclude<PalateActivityFilter, 
     delete_failed_media: "Media",
     createPush: "Push",
     cancelPush: "Push",
+    expireWaitingPush: "Push",
     challengePush: "Push",
     findMatch: "Buff",
     placeBuff: "Buff",
@@ -594,6 +596,9 @@ export function getReadablePalateError(error: unknown, fallback = "Transaction f
   }
   if (rawMessage.includes("E_PUSH_AMOUNT_TOO_LOW") || normalized.includes("abort_code: 8") || normalized.includes("abort code: 8") || normalized.includes("code: 8")) {
     return "Push amount is below the minimum.";
+  }
+  if (rawMessage.includes("E_WAITING_PUSH_EXPIRED") || normalized.includes("abort_code: 43") || normalized.includes("abort code: 43") || normalized.includes("code: 43")) {
+    return "Waiting push already expired. Clean it up before continuing.";
   }
   if (rawMessage.includes("E_CHALLENGE_AMOUNT_TOO_LOW") || normalized.includes("abort_code: 13") || normalized.includes("abort code: 13") || normalized.includes("code: 13")) {
     return "Challenge amount is below the required minimum.";
@@ -773,6 +778,10 @@ export function buildChallengePushPayload(pushId: number | string, challengerMed
   return entryPayload("challengePush", [String(pushId), String(challengerMediaId), pushAmountOctas]);
 }
 
+export function buildExpireWaitingPushPayload(pushId: number | string): InputGenerateTransactionPayloadData {
+  return entryPayload("expireWaitingPush", [String(pushId)]);
+}
+
 export function buildFindMatchPayload(): InputGenerateTransactionPayloadData {
   return entryPayload("findMatch", []);
 }
@@ -913,7 +922,7 @@ async function getMediaRecordById(mediaId: string): Promise<MediaRecord> {
   const mediaCategory = chainCategoryToFrontend(asNumber(category));
   const mediaMimeType = decodeUtf8(mimeType);
 
-  return {
+  const record: MediaRecord = {
     id: Number(mediaId),
     palateMediaId: Number(mediaId),
     source: "palate",
@@ -929,6 +938,25 @@ async function getMediaRecordById(mediaId: string): Promise<MediaRecord> {
     mimeType: mediaMimeType,
     accent: accentForCategory(mediaCategory)
   };
+
+  if (record.status === "waiting" && record.storageStatus === "uploaded") {
+    try {
+      const waitingPushId = asString(await viewOne("getWaitingPushIdForMedia", [mediaId]));
+      const [waitingPushCreatedTime, waitingPushExpired, waitingPushExpirySeconds] = await Promise.all([
+        viewOne("getWaitingPushCreatedTime", [waitingPushId]),
+        viewOne("isWaitingPushExpired", [waitingPushId]),
+        viewOne("getWaitingPushExpirySeconds")
+      ]);
+      record.waitingPushId = Number(waitingPushId);
+      record.waitingPushCreatedTimeSeconds = asString(waitingPushCreatedTime);
+      record.waitingPushExpired = Boolean(waitingPushExpired);
+      record.waitingPushExpirySeconds = asString(waitingPushExpirySeconds);
+    } catch {
+      // Preserve the chain media record even if waiting-push metadata is unavailable.
+    }
+  }
+
+  return record;
 }
 
 export async function getUserMedia(walletAddress: string): Promise<MediaRecord[]> {
@@ -944,13 +972,17 @@ async function getWaitingPushById(pushId: string): Promise<WaitingPush> {
     pusherAddress,
     pushAmount,
     status,
-    minChallengeAmount
+    minChallengeAmount,
+    createdTime,
+    expirySeconds
   ] = await Promise.all([
     viewOne("getWaitingPushMediaId", [pushId]),
     viewOne("getWaitingPushPusher", [pushId]),
     viewOne("getWaitingPushAmount", [pushId]),
     viewOne("getWaitingPushStatus", [pushId]),
-    viewOne("getMinimumChallengeAmount", [pushId])
+    viewOne("getMinimumChallengeAmount", [pushId]),
+    viewOne("getWaitingPushCreatedTime", [pushId]),
+    viewOne("getWaitingPushExpirySeconds")
   ]);
 
   const media = await getMediaRecordById(asString(mediaId));
@@ -963,7 +995,9 @@ async function getWaitingPushById(pushId: string): Promise<WaitingPush> {
     pushAmountOctas: asString(pushAmount),
     minChallengeAmount: formatOctasToApt(asString(minChallengeAmount)),
     minChallengeAmountOctas: asString(minChallengeAmount),
-    createdTime: "On chain",
+    createdTime: formatChainTime(asString(createdTime)),
+    createdTimeSeconds: asString(createdTime),
+    expirySeconds: asString(expirySeconds),
     status: chainWaitingPushStatusToFrontend(asNumber(status))
   };
 }
