@@ -11,6 +11,8 @@ import type {
   MediaCategory,
   MediaFormat,
   MediaRecord,
+  PalateActivityTransaction,
+  PalateActivityFilter,
   MediaStorageStatus,
   MediaStatus,
   PalateBalance,
@@ -391,6 +393,13 @@ function formatChainTime(createdTime: string) {
   }).format(new Date(millis));
 }
 
+function formatTransactionTimestamp(timestampMicros: string | number | null | undefined) {
+  if (timestampMicros === null || timestampMicros === undefined) return null;
+  const numeric = Number(timestampMicros);
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return formatChainTime(String(Math.floor(numeric / 1000000)));
+}
+
 function formatTimeRemaining(endTime: string) {
   const endSeconds = Number(endTime);
   if (!Number.isFinite(endSeconds) || endSeconds <= 0) return "On chain";
@@ -428,6 +437,106 @@ export function formatOctasToApt(octas: string | number | bigint): string {
   const fractionalText = fractional.toString().padStart(8, "0").replace(/0+$/, "");
 
   return `${whole.toString()}${fractionalText ? `.${fractionalText}` : ""} APT`;
+}
+
+function isNumericArgument(value: unknown): value is string | number {
+  if (typeof value === "number") return Number.isFinite(value);
+  if (typeof value === "string") return /^\d+$/.test(value);
+  return false;
+}
+
+function decodeActivityAmount(functionName: string, args: unknown[]) {
+  const amountIndexByFunction: Partial<Record<string, number>> = {
+    depositBalance: 0,
+    withdrawBalance: 0,
+    createPush: 1,
+    challengePush: 2,
+    placeBuff: 1
+  };
+
+  const amountIndex = amountIndexByFunction[functionName];
+  if (amountIndex === undefined) return undefined;
+  const candidate = args[amountIndex];
+  if (!isNumericArgument(candidate)) return undefined;
+  return formatOctasToApt(candidate);
+}
+
+function decodeActivityId(functionName: string, args: unknown[]) {
+  const idIndexByFunction: Partial<Record<string, number>> = {
+    delete_media: 0,
+    delete_failed_media: 0,
+    createPush: 0,
+    cancelPush: 0,
+    challengePush: 0,
+    settleMatch: 0,
+    claimPush: 0,
+    claimBuff: 0,
+    repairSettledMatchMedia: 0
+  };
+
+  const idIndex = idIndexByFunction[functionName];
+  if (idIndex === undefined) return undefined;
+  const candidate = args[idIndex];
+  if (!isNumericArgument(candidate)) return undefined;
+  return String(candidate);
+}
+
+function getActivityLabel(functionName: string) {
+  const labels: Record<string, string> = {
+    initialize: "Initialized Palate",
+    depositBalance: "Deposited",
+    withdrawBalance: "Withdrew",
+    registerMedia: "Registered media",
+    register_shelby_upload_failed_media: "Registered failed upload",
+    delete_media: "Deleted media",
+    delete_failed_media: "Deleted failed media",
+    createPush: "Created push",
+    cancelPush: "Canceled push",
+    challengePush: "Challenged push",
+    findMatch: "Found match",
+    placeBuff: "Placed Buff",
+    skipMatch: "Skipped match",
+    settleMatch: "Settled match",
+    claimPush: "Claimed reward",
+    claimBuff: "Claimed reward",
+    repairSettledMatchMedia: "Repaired settled media",
+    updateFeeConfig: "Updated fee config",
+    updatePushConfig: "Updated push config",
+    updateBuffConfig: "Updated Buff config",
+    updateMatchConfig: "Updated match config",
+    updateScoreConfig: "Updated score config"
+  };
+
+  return labels[functionName] ?? functionName;
+}
+
+function getActivityFilter(functionName: string): Exclude<PalateActivityFilter, "All" | "Failed"> | null {
+  const filters: Record<string, Exclude<PalateActivityFilter, "All" | "Failed">> = {
+    initialize: "Admin",
+    depositBalance: "Balance",
+    withdrawBalance: "Balance",
+    registerMedia: "Media",
+    register_shelby_upload_failed_media: "Media",
+    delete_media: "Media",
+    delete_failed_media: "Media",
+    createPush: "Push",
+    cancelPush: "Push",
+    challengePush: "Push",
+    findMatch: "Buff",
+    placeBuff: "Buff",
+    skipMatch: "Buff",
+    settleMatch: "Match",
+    claimPush: "Claims",
+    claimBuff: "Claims",
+    repairSettledMatchMedia: "Media",
+    updateFeeConfig: "Admin",
+    updatePushConfig: "Admin",
+    updateBuffConfig: "Admin",
+    updateMatchConfig: "Admin",
+    updateScoreConfig: "Admin"
+  };
+
+  return filters[functionName] ?? null;
 }
 
 export function shortenTransactionHash(hash: string) {
@@ -985,6 +1094,72 @@ export async function getClaimRecords(walletAddress: string): Promise<ClaimRecor
       } satisfies ClaimRecord;
     })
     .sort((a, b) => b.id - a.id);
+}
+
+type AccountTransactionPayload = {
+  type?: string;
+  function?: string;
+  arguments?: unknown[];
+};
+
+type AccountTransaction = {
+  type?: string;
+  hash?: string;
+  success?: boolean;
+  timestamp?: string;
+  version?: string;
+  payload?: AccountTransactionPayload;
+};
+
+export async function getPalateTransactionLog(walletAddress: string, options: { limit?: number } = {}): Promise<PalateActivityTransaction[]> {
+  const limit = Math.max(1, Math.min(options.limit ?? 80, 100));
+  const normalizedWalletAddress = walletAddress.trim().toLowerCase();
+  const endpoint = `/accounts/${walletAddress}/transactions?limit=${limit}`;
+  const transactions = await readWithDiagnostics<AccountTransaction[]>(
+    `accountTransactions:${normalizedWalletAddress}`,
+    () => fetchJsonWithDiagnostics<AccountTransaction[]>(`accountTransactions:${normalizedWalletAddress}`, endpoint),
+    {
+      endpoint,
+      retries: 1,
+      delayMs: view_retry_delay_ms,
+      dedupeKey: `accountTransactions:${normalizedWalletAddress}:${limit}`
+    }
+  );
+
+  const palateTransactions: PalateActivityTransaction[] = transactions
+    .filter((transaction) => transaction.type === "user_transaction")
+    .map((transaction): PalateActivityTransaction | null => {
+      const payload = transaction.payload;
+      const fullFunction = payload?.function;
+      if (!fullFunction || !fullFunction.startsWith(`${module_id}::`)) {
+        return null;
+      }
+
+      const functionName = fullFunction.split("::").pop() ?? fullFunction;
+      const filter = getActivityFilter(functionName);
+      if (!filter) return null;
+
+      const hash = transaction.hash ?? "";
+      const args = Array.isArray(payload?.arguments) ? payload.arguments : [];
+      const success = transaction.success === true;
+
+      return {
+        id: hash || `${functionName}:${transaction.version ?? Math.random().toString(36).slice(2)}`,
+        hash,
+        shortHash: hash ? shortenTransactionHash(hash) : "Unknown tx",
+        functionName,
+        filter,
+        title: getActivityLabel(functionName),
+        status: success ? "Success" : "Failed",
+        timestamp: formatTransactionTimestamp(transaction.timestamp),
+        amount: decodeActivityAmount(functionName, args),
+        decodedId: decodeActivityId(functionName, args),
+        explorerUrl: hash ? `${app_config.aptosExplorerBaseUrl}/${hash}?network=testnet` : `${app_config.aptosExplorerBaseUrl}?network=testnet`
+      } satisfies PalateActivityTransaction;
+    })
+    .filter((transaction): transaction is PalateActivityTransaction => transaction !== null);
+
+  return palateTransactions;
 }
 
 function formatWinRate(wins: number, total: number) {

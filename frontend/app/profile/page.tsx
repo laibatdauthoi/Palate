@@ -12,25 +12,9 @@ import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { formatOctasToApt } from "@/services/aptos_service";
-import { getPushEligibility } from "@/utils/push_eligibility";
-import type { ActiveMatch, ClaimRecord, MediaRecord, WaitingPush } from "@/types/palate";
+import type { PalateActivityFilter, PalateActivityTransaction } from "@/types/palate";
 
 type ProfileTab = "Stats" | "Claims" | "Activity";
-type ActivityFilter = "All" | "Media" | "Pushes" | "Matches" | "Claims";
-type ActivityRow = {
-  id: string;
-  filter: ActivityFilter;
-  eventType: string;
-  title: string;
-  shortId?: string;
-  amount?: string;
-  status: string;
-  timestamp?: string | null;
-  href?: string;
-  actionLabel?: string;
-  actionHref?: string;
-  actionDisabled?: boolean;
-};
 
 function isLoadingValue(value: string) {
   return value === "Loading";
@@ -52,6 +36,7 @@ function classifyProfileFeedback(message: string) {
   if (normalized.includes("claim")) return "claim";
   if (normalized.includes("reward credited")) return "claim";
   if (normalized.includes("profile claims")) return "claim";
+  if (normalized.includes("transaction log")) return "activity";
   if (normalized.includes("using last read")) return "activity";
   if (normalized.includes("deposit")) return "balance";
   if (normalized.includes("withdraw")) return "balance";
@@ -69,30 +54,6 @@ function parseProfileTab(value: string | null): ProfileTab {
   return "Stats";
 }
 
-function shortenId(value: string | number | null | undefined, prefix = "#") {
-  if (value === null || value === undefined) return undefined;
-  const text = String(value);
-  return text.length > 18 ? `${prefix}${text.slice(0, 8)}...${text.slice(-6)}` : `${prefix}${text}`;
-}
-
-function normalizeAddress(address: string | null | undefined) {
-  return address?.trim().toLowerCase() ?? "";
-}
-
-function getActivityStatusLabel(status: string) {
-  if (status === "pending_registration") return "Pending registration";
-  if (status === "registration_failed") return "Registration failed";
-  if (status === "shelby_upload_failed") return "Shelby upload failed";
-  if (status === "delete_pending") return "Delete pending";
-  if (status === "content_unavailable") return "Content unavailable";
-  if (status === "open") return "Waiting";
-  if (status === "active") return "Active";
-  if (status === "settled") return "Settled";
-  if (status === "claimable") return "Claimable";
-  if (status === "claimed") return "Claimed";
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
 function renderStatValue(value: string) {
   if (isLoadingValue(value)) {
     return <span className="stat_value_hint">Loading...</span>;
@@ -105,80 +66,21 @@ function renderStatValue(value: string) {
   return <strong>{value}</strong>;
 }
 
-function buildMediaActivityRow(media: MediaRecord): ActivityRow {
-  const pushEligibility = getPushEligibility(media);
-  const derivedStatus =
-    media.deletePending ? "delete_pending"
-      : media.contentUnavailable ? "content_unavailable"
-        : media.storageStatus === "shelby_upload_failed" ? "shelby_upload_failed"
-          : media.status;
-
-  return {
-    id: `media-${media.id}`,
-    filter: "Media",
-    eventType: media.source === "palate_upload_recovery" ? "Recovery" : "Media",
-    title: media.title,
-    shortId: shortenId(media.palateMediaId ?? media.id),
-    status: getActivityStatusLabel(derivedStatus),
-    timestamp: media.createdTime || null,
-    href: "/my-media",
-    actionLabel: pushEligibility.eligible ? "Push" : "View",
-    actionHref: pushEligibility.eligible ? `/push?mediaId=${media.id}` : "/my-media",
-    actionDisabled: false
-  };
+function formatActivityMeta(transaction: PalateActivityTransaction) {
+  const parts: string[] = [transaction.status, transaction.shortHash];
+  if (transaction.decodedId) {
+    parts.push(`#${transaction.decodedId}`);
+  }
+  if (transaction.amount) {
+    parts.push(transaction.amount);
+  }
+  if (transaction.timestamp) {
+    parts.push(transaction.timestamp);
+  }
+  return parts;
 }
 
-function buildWaitingPushActivityRow(push: WaitingPush, connectedAddress: string): ActivityRow {
-  const isOwnPush = normalizeAddress(push.pusherAddress) === connectedAddress;
-  return {
-    id: `push-${push.id}`,
-    filter: "Pushes",
-    eventType: "Push",
-    title: push.media.title,
-    shortId: shortenId(push.id),
-    amount: push.pushAmount,
-    status: getActivityStatusLabel(push.status),
-    timestamp: push.createdTime || null,
-    href: "/push",
-    actionLabel: isOwnPush ? "Open Push" : "Challenge",
-    actionHref: isOwnPush ? "/push" : `/push?challengeId=${push.id}`
-  };
-}
-
-function buildMatchActivityRow(match: ActiveMatch): ActivityRow {
-  const readyToSettle = match.status === "active" && match.timeRemaining === "Ready to settle";
-  return {
-    id: `match-${match.id}`,
-    filter: "Matches",
-    eventType: "Match",
-    title: `${match.mediaA.title} vs ${match.mediaB.title}`,
-    shortId: shortenId(match.id),
-    amount: `${match.pushAmountA} / ${match.pushAmountB}`,
-    status: readyToSettle ? "Ready to settle" : getActivityStatusLabel(match.status),
-    timestamp: null,
-    href: match.status === "settled" ? "/profile?tab=Claims" : "/buff",
-    actionLabel: match.status === "settled" ? "View Claims" : "Open Buff",
-    actionHref: match.status === "settled" ? "/profile?tab=Claims" : "/buff"
-  };
-}
-
-function buildClaimActivityRow(claim: ClaimRecord): ActivityRow {
-  const claimable = claim.claimable && !claim.claimed && BigInt(claim.claimableAmountOctas) > BigInt(0);
-  return {
-    id: `claim-${claim.claimKey}`,
-    filter: "Claims",
-    eventType: claim.type === "buff" ? "Buff reward" : "Push reward",
-    title: claim.matchRef,
-    shortId: shortenId(claim.matchId),
-    amount: claim.amount,
-    status: claim.claimed ? "Claimed" : claimable ? "Claimable" : "Unavailable",
-    timestamp: null,
-    href: "/profile?tab=Claims",
-    actionLabel: claimable ? "Claim" : "Open Claims",
-    actionHref: "/profile?tab=Claims",
-    actionDisabled: !claimable
-  };
-}
+const activity_filters: Exclude<PalateActivityFilter, "Admin">[] = ["All", "Media", "Push", "Buff", "Match", "Claims", "Balance", "Failed"];
 
 export default function ProfilePage() {
   return (
@@ -190,8 +92,8 @@ export default function ProfilePage() {
 
 function ProfilePageContent() {
   const {
-    activeMatches,
     activityReadStatus,
+    activityTransactions,
     balance,
     claimReadStatus,
     claimRecords,
@@ -199,13 +101,10 @@ function ProfilePageContent() {
     claimableRewardsSummary,
     depositBalance,
     feedback,
-    mediaRecords,
     processingAction,
     refreshProfileActivity,
-    settleMatch,
     userSummary,
     userSummaryReadStatus,
-    waitingPushes,
     withdrawBalance
   } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
@@ -213,16 +112,16 @@ function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<ProfileTab>(parseProfileTab(searchParams.get("tab")));
-  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("All");
+  const [activityFilter, setActivityFilter] = useState<Exclude<PalateActivityFilter, "Admin">>("All");
   const [balanceAmount, setBalanceAmount] = useState("1.000");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyTouched, setHistoryTouched] = useState(false);
   const [activityRefreshing, setActivityRefreshing] = useState(false);
+  const [activityVisibleCount, setActivityVisibleCount] = useState(20);
   const balanceBusy = processingAction === "deposit" || processingAction === "withdraw";
   const walletReady = walletStatus === "connected" && Boolean(walletAddress);
   const claimBusy = processingAction === "claimReward";
-  const settleBusy = processingAction === "settleMatch";
-  const connectedAddress = normalizeAddress(walletAddress);
+
   const profile_stats = [
     { label: "Push count", value: userSummary.pushCount },
     { label: "Push wins", value: userSummary.pushWins },
@@ -237,12 +136,14 @@ function ProfilePageContent() {
     { label: "Total pushed", value: userSummary.totalPushed },
     { label: "Total buffed", value: userSummary.totalBuffed }
   ];
+
   const claimableClaims = useMemo(
     () => claimRecords.filter((claim) => claim.settled && !claim.claimed && claim.claimable && BigInt(claim.claimableAmountOctas) > BigInt(0)),
     [claimRecords]
   );
   const claimedClaims = useMemo(() => claimRecords.filter((claim) => claim.claimed), [claimRecords]);
   const totalClaimableAmount = useMemo(() => formatOctasToApt(claimableRewardsSummary.claimableTotalOctas), [claimableRewardsSummary.claimableTotalOctas]);
+
   const claimReadMessage =
     claimReadStatus === "loading"
       ? "Loading claims."
@@ -251,6 +152,7 @@ function ProfilePageContent() {
           ? "Claims temporarily unavailable. Using last read."
           : "Claims temporarily unavailable."
         : null;
+
   const statsReadMessage =
     userSummaryReadStatus === "loading"
       ? "Loading stats."
@@ -259,67 +161,42 @@ function ProfilePageContent() {
           ? "Stats temporarily unavailable. Using last read."
           : "Stats temporarily unavailable."
         : null;
+
   const summaryClaimableValue =
     claimReadStatus === "loading" && claimRecords.length === 0
       ? "Loading"
       : claimReadStatus === "error" && claimRecords.length === 0
         ? "Unavailable"
         : totalClaimableAmount;
+
   const profileFeedbackTarget = feedback ? classifyProfileFeedback(feedback.message) : null;
   const balanceFeedback = profileFeedbackTarget === "balance" ? feedback : null;
   const claimFeedback = profileFeedbackTarget === "claim" ? feedback : null;
   const activityFeedback = profileFeedbackTarget === "activity" ? feedback : null;
 
-  const userMediaActivity = useMemo(
-    () => mediaRecords
-      .filter((media) => normalizeAddress(media.ownerAddress) === connectedAddress)
-      .map(buildMediaActivityRow),
-    [connectedAddress, mediaRecords]
+  const filteredActivityTransactions = useMemo(
+    () =>
+      activityTransactions.filter((transaction) => {
+        if (activityFilter === "All") return true;
+        if (activityFilter === "Failed") return transaction.status === "Failed";
+        return transaction.filter === activityFilter;
+      }),
+    [activityFilter, activityTransactions]
   );
-  const userWaitingPushActivity = useMemo(
-    () => waitingPushes
-      .filter((push) => normalizeAddress(push.pusherAddress) === connectedAddress || normalizeAddress(push.media.ownerAddress) === connectedAddress)
-      .map((push) => buildWaitingPushActivityRow(push, connectedAddress)),
-    [connectedAddress, waitingPushes]
+  const visibleActivityTransactions = useMemo(
+    () => filteredActivityTransactions.slice(0, activityVisibleCount),
+    [activityVisibleCount, filteredActivityTransactions]
   );
-  const userMatchActivity = useMemo(
-    () => activeMatches
-      .filter((match) =>
-        normalizeAddress(match.pusherA) === connectedAddress
-          || normalizeAddress(match.pusherB) === connectedAddress
-          || normalizeAddress(match.mediaA.ownerAddress) === connectedAddress
-          || normalizeAddress(match.mediaB.ownerAddress) === connectedAddress
-      )
-      .map(buildMatchActivityRow),
-    [activeMatches, connectedAddress]
-  );
-  const claimActivity = useMemo(() => claimRecords.map(buildClaimActivityRow), [claimRecords]);
-  const activityRows = useMemo(
-    () => [...userMediaActivity, ...userWaitingPushActivity, ...userMatchActivity, ...claimActivity],
-    [claimActivity, userMatchActivity, userMediaActivity, userWaitingPushActivity]
-  );
-  const filteredActivityRows = useMemo(
-    () => activityRows.filter((row) => activityFilter === "All" || row.filter === activityFilter),
-    [activityFilter, activityRows]
-  );
+  const canLoadMoreActivity = visibleActivityTransactions.length < filteredActivityTransactions.length;
+
   const activityReadMessage =
     activityReadStatus === "loading" || activityRefreshing
       ? "Loading activity."
       : activityReadStatus === "error"
-        ? activityRows.length > 0
+        ? activityTransactions.length > 0
           ? "Activity temporarily unavailable. Using last read."
           : "Activity temporarily unavailable."
         : null;
-  const activitySummary = useMemo(
-    () => ({
-      mediaCount: userMediaActivity.length,
-      waitingPushCount: userWaitingPushActivity.length,
-      activeMatchCount: userMatchActivity.length,
-      claimableCount: claimableRewardsSummary.claimableCount,
-      claimedCount: claimedClaims.length
-    }),
-    [claimableRewardsSummary.claimableCount, claimedClaims.length, userMatchActivity.length, userMediaActivity.length, userWaitingPushActivity.length]
-  );
 
   useEffect(() => {
     setTab(parseProfileTab(searchParams.get("tab")));
@@ -336,11 +213,21 @@ function ProfilePageContent() {
     }
   }, [claimableClaims.length, historyTouched, tab]);
 
+  useEffect(() => {
+    setActivityVisibleCount(20);
+  }, [activityFilter]);
+
+  useEffect(() => {
+    if (tab !== "Activity" || !walletReady || activityReadStatus !== "idle") return;
+    void refreshProfileActivity();
+  }, [activityReadStatus, refreshProfileActivity, tab, walletReady]);
+
   async function handleRefreshActivity() {
     if (!walletReady) return;
     setActivityRefreshing(true);
     try {
       await refreshProfileActivity();
+      setActivityVisibleCount(20);
     } finally {
       setActivityRefreshing(false);
     }
@@ -423,14 +310,14 @@ function ProfilePageContent() {
         <div className="stack">
           {statsReadMessage ? <p className={`feedback_text ${userSummaryReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{statsReadMessage}</p> : null}
           <div className="panel_grid">
-          {profile_stats.map((stat) => (
-            <SectionPanel key={stat.label}>
-              <div className="stat_card">
-                <span>{stat.label}</span>
-                {renderStatValue(stat.value)}
-              </div>
-            </SectionPanel>
-          ))}
+            {profile_stats.map((stat) => (
+              <SectionPanel key={stat.label}>
+                <div className="stat_card">
+                  <span>{stat.label}</span>
+                  {renderStatValue(stat.value)}
+                </div>
+              </SectionPanel>
+            ))}
           </div>
         </div>
       ) : tab === "Claims" ? (
@@ -504,12 +391,7 @@ function ProfilePageContent() {
                     {historyOpen ? (
                       <div className="claim_rows claim_rows_history">
                         {claimedClaims.map((claim) => (
-                          <ClaimCard
-                            actionDisabled
-                            claim={claim}
-                            key={claim.claimKey}
-                            loading={false}
-                          />
+                          <ClaimCard actionDisabled claim={claim} key={claim.claimKey} loading={false} />
                         ))}
                       </div>
                     ) : null}
@@ -522,15 +404,14 @@ function ProfilePageContent() {
         </div>
       ) : (
         <div className="stack">
-          <SectionPanel title="Activity" copy="Your recent on-chain and local Palate activity in one place.">
+          <SectionPanel title="Activity">
             <div className="activity_header_bar">
               <div className="activity_header_copy">
                 <span className="eyebrow">Activity</span>
-                <p>Media, pushes, matches, and rewards use only real connected-wallet data.</p>
               </div>
               <div className="activity_header_actions">
                 <span className={`activity_status ${activityReadStatus === "error" ? "activity_status_error" : ""}`}>
-                  {activityReadStatus === "error" && activityRows.length > 0 ? "Using last read" : activityReadStatus === "error" ? "Unavailable" : activityRefreshing || activityReadStatus === "loading" ? "Loading" : "Ready"}
+                  {activityReadStatus === "error" && activityTransactions.length > 0 ? "Using last read" : activityReadStatus === "error" ? "Unavailable" : activityRefreshing || activityReadStatus === "loading" ? "Loading" : "Ready"}
                 </span>
                 <ActionButton disabled={!walletReady || activityRefreshing} onClick={handleRefreshActivity} variant="secondary">
                   {activityRefreshing ? "Refreshing..." : "Refresh"}
@@ -542,88 +423,56 @@ function ProfilePageContent() {
               <EmptyState title="Connect wallet to view activity." copy="Activity only appears for the connected wallet." />
             ) : (
               <div className="activity_stack">
-                <div className="activity_summary_strip">
-                  <div className="activity_summary_item"><span>Media</span><strong>{activitySummary.mediaCount}</strong></div>
-                  <div className="activity_summary_item"><span>Waiting pushes</span><strong>{activitySummary.waitingPushCount}</strong></div>
-                  <div className="activity_summary_item"><span>Active matches</span><strong>{activitySummary.activeMatchCount}</strong></div>
-                  <div className="activity_summary_item"><span>Claimable</span><strong>{activitySummary.claimableCount}</strong></div>
-                  <div className="activity_summary_item"><span>Claimed</span><strong>{activitySummary.claimedCount}</strong></div>
-                </div>
-
-                <div className="activity_filters">
-                  {(["All", "Media", "Pushes", "Matches", "Claims"] as const).map((filter) => (
-                    <button
-                      className={`activity_filter_button ${activityFilter === filter ? "active" : ""}`}
-                      key={filter}
-                      onClick={() => setActivityFilter(filter)}
-                      type="button"
-                    >
-                      {filter}
-                    </button>
-                  ))}
+                <div className="activity_filters_scroller">
+                  <div className="activity_filters">
+                    {activity_filters.map((filter) => (
+                      <button
+                        className={`activity_filter_button ${activityFilter === filter ? "active" : ""}`}
+                        key={filter}
+                        onClick={() => setActivityFilter(filter)}
+                        type="button"
+                      >
+                        {filter}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {activityReadMessage ? <p className={`feedback_text ${activityReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{activityReadMessage}</p> : null}
                 {activityFeedback ? <p className={`feedback_text feedback_${activityFeedback.type}`}>{activityFeedback.message}</p> : null}
 
-                {filteredActivityRows.length === 0 ? (
-                  <EmptyState title="No activity yet." copy="Your connected wallet has no real media, push, match, or reward activity yet." />
+                {filteredActivityTransactions.length === 0 && activityReadStatus !== "loading" ? (
+                  <EmptyState title="No Palate activity yet." copy="Palate transaction history will appear here after the connected wallet sends Palate actions." />
                 ) : (
                   <div className="activity_rows">
-                    {filteredActivityRows.map((row) => (
-                      <article className="activity_row" key={row.id}>
+                    {visibleActivityTransactions.map((transaction) => (
+                      <article className="activity_row" key={transaction.id}>
                         <div className="activity_row_main">
-                          <span className="activity_type_chip">{row.eventType}</span>
+                          <span className="activity_type_chip">{transaction.filter}</span>
                           <div className="activity_row_copy">
-                            <strong>{row.title}</strong>
+                            <strong>{transaction.title}</strong>
                             <div className="activity_row_meta">
-                              {row.shortId ? <span>{row.shortId}</span> : null}
-                              <span>{row.status}</span>
-                              {row.timestamp ? <span>{row.timestamp}</span> : null}
-                              {row.amount ? <span>{row.amount}</span> : null}
+                              {formatActivityMeta(transaction).map((item) => <span key={`${transaction.id}-${item}`}>{item}</span>)}
                             </div>
                           </div>
                         </div>
                         <div className="activity_row_actions">
-                          {row.href ? <Link className="activity_link" href={row.href}>Open</Link> : null}
-                          {row.actionHref ? (
-                            <ActionButton disabled={row.actionDisabled} href={row.actionHref} variant="ghost">
-                              {row.actionLabel}
-                            </ActionButton>
-                          ) : null}
-                          {row.filter === "Claims" && row.actionLabel === "Claim" ? (
-                            <ActionButton
-                              disabled={claimBusy}
-                              onClick={() => {
-                                const claim = claimRecords.find((candidate) => `claim-${candidate.claimKey}` === row.id);
-                                if (claim) {
-                                  void claimReward(claim);
-                                }
-                              }}
-                              variant="primary"
-                            >
-                              {claimBusy ? "Claiming..." : "Claim"}
-                            </ActionButton>
-                          ) : null}
-                          {row.filter === "Matches" && row.status === "Ready to settle" ? (
-                            <ActionButton
-                              disabled={settleBusy}
-                              onClick={() => {
-                                const match = activeMatches.find((candidate) => `match-${candidate.id}` === row.id);
-                                if (match) {
-                                  void settleMatch(match.id);
-                                }
-                              }}
-                              variant="secondary"
-                            >
-                              {settleBusy ? "Settling..." : "Settle"}
-                            </ActionButton>
-                          ) : null}
+                          <Link className="activity_link" href={transaction.explorerUrl} rel="noreferrer" target="_blank">
+                            View tx
+                          </Link>
                         </div>
                       </article>
                     ))}
                   </div>
                 )}
+
+                {canLoadMoreActivity ? (
+                  <div className="activity_load_more">
+                    <ActionButton onClick={() => setActivityVisibleCount((current) => current + 20)} variant="secondary">
+                      Load more
+                    </ActionButton>
+                  </div>
+                ) : null}
               </div>
             )}
           </SectionPanel>

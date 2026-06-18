@@ -145,6 +145,22 @@ export type ClaimableRewardsSummary = {
   hasClaimableRewards: boolean;
 };
 
+export type PalateActivityFilter = "All" | "Media" | "Push" | "Buff" | "Match" | "Claims" | "Balance" | "Failed" | "Admin";
+
+export type PalateActivityTransaction = {
+  amount?: string;
+  decodedId?: string;
+  explorerUrl: string;
+  filter: Exclude<PalateActivityFilter, "All" | "Failed">;
+  functionName: string;
+  hash: string;
+  id: string;
+  shortHash: string;
+  status: "Success" | "Failed";
+  timestamp: string | null;
+  title: string;
+};
+
 export type UserSummary = {
   walletAddress: string;
   claimableAmount: string;

@@ -21,6 +21,7 @@ import {
   getChainReadSnapshot,
   getClaimRecords as readClaimRecords,
   getCurrentAssignment as readCurrentAssignment,
+  getPalateTransactionLog,
   getPalateBalance,
   getReadablePalateError,
   getUserSummary as readUserSummary,
@@ -57,6 +58,7 @@ import type {
   MediaCategory,
   MediaFormat,
   MediaRecord,
+  PalateActivityTransaction,
   PalateBalance,
   UploadStep,
   UserSummary,
@@ -156,6 +158,7 @@ type PalateContextValue = {
   palateBalanceReadStatus: "idle" | "loading" | "ready" | "error";
   userSummaryReadStatus: "idle" | "loading" | "ready" | "error";
   activityReadStatus: "idle" | "loading" | "ready" | "error";
+  activityTransactions: PalateActivityTransaction[];
   claimableRewardsSummary: ClaimableRewardsSummary;
   clearFeedback: () => void;
   refreshClaims: () => Promise<void>;
@@ -434,6 +437,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [waitingPushes, setWaitingPushes] = useState<WaitingPush[]>([]);
   const [activeMatches, setActiveMatches] = useState<ActiveMatch[]>([]);
   const [claimRecords, setClaimRecords] = useState<ClaimRecord[]>([]);
+  const [activityTransactions, setActivityTransactions] = useState<PalateActivityTransaction[]>([]);
   const [userSummary, setUserSummary] = useState<UserSummary>({ ...loading_summary, walletAddress: walletAddress ?? "" });
   const [currentAssignment, setCurrentAssignment] = useState<BuffAssignment | null>(null);
   const [completedBuffSide, setCompletedBuffSide] = useState<BuffSide | null>(null);
@@ -662,13 +666,24 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function refreshActivityTransactionsForWallet(ownerAddress: string) {
+    setActivityReadStatus("loading");
+    try {
+      const nextTransactions = await getPalateTransactionLog(ownerAddress, { limit: 80 });
+      setActivityTransactions(nextTransactions);
+      setActivityReadStatus("ready");
+    } catch (error) {
+      console.error("[Activity transaction read failed]", error);
+      setActivityReadStatus("error");
+    }
+  }
+
   async function refreshDeferredWalletState(ownerAddress: string) {
     setUserSummary((current) => ({
       ...current,
       walletAddress: ownerAddress
     }));
     setMediaReadStatus("loading");
-    setActivityReadStatus("loading");
 
     const [nextSummary, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.allSettled([
       readUserSummary(ownerAddress),
@@ -722,9 +737,6 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     } else {
       console.error("[Assignment read failed]", nextAssignment.reason);
     }
-
-    const hadDeferredFailure = [nextSummary, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment].some((result) => result.status === "rejected");
-    setActivityReadStatus(hadDeferredFailure ? "error" : "ready");
   }
 
   async function refreshWalletGameState(ownerAddress: string) {
@@ -733,14 +745,11 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshProfileActivityForWallet(ownerAddress: string) {
-    await refreshPalateBalanceForWallet(ownerAddress);
-    await refreshUserSummaryForWallet(ownerAddress);
-    const [activityResult, claimsResult] = await Promise.allSettled([
-      refreshDeferredWalletState(ownerAddress),
-      refreshClaimsForWallet(ownerAddress)
+    const [transactionResult] = await Promise.allSettled([
+      refreshActivityTransactionsForWallet(ownerAddress)
     ]);
 
-    if (activityResult.status === "rejected" || claimsResult.status === "rejected") {
+    if (transactionResult.status === "rejected") {
       throw new Error("Profile activity refresh did not complete cleanly.");
     }
   }
@@ -761,11 +770,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           setActiveMatches([]);
           setCurrentAssignment(null);
           setClaimRecords([]);
+          setActivityTransactions([]);
           setMediaReadStatus("idle");
           setClaimReadStatus("idle");
           setPalateBalanceReadStatus("loading");
           setUserSummaryReadStatus("loading");
-          setActivityReadStatus("loading");
+          setActivityReadStatus("idle");
           setUserSummary({ ...loading_summary, walletAddress: ownerAddress });
           await refreshPalateBalanceForWallet(ownerAddress);
           await refreshUserSummaryForWallet(ownerAddress);
@@ -1780,6 +1790,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       completedBuffSide,
       noValidMatchAvailable,
       claimRecords: resolvedClaimRecords,
+      activityTransactions,
       userSummary: resolvedUserSummary,
       uploadStep,
       uploadRecovery,

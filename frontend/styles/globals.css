@@ -2377,24 +2377,19 @@ select.input_control option:checked,
 
 .activity_stack {
   display: grid;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .activity_header_bar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .activity_header_copy {
   display: grid;
-  gap: 4px;
-}
-
-.activity_header_copy p {
-  margin: 0;
-  color: var(--text-secondary);
+  gap: 0;
 }
 
 .activity_header_actions {
@@ -2402,23 +2397,23 @@ select.input_control option:checked,
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: var(--spacing-sm);
+  gap: 8px;
 }
 
 .activity_status {
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.035);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-secondary);
   font-size: var(--font-size-caption);
   font-weight: 800;
-  letter-spacing: 0.06em;
-  padding: 8px 12px;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0;
+  text-transform: none;
+  white-space: nowrap;
 }
 
 .activity_status_error {
-  border-color: var(--border-danger);
   color: #ffd7df;
 }
 
@@ -2445,10 +2440,18 @@ select.input_control option:checked,
   text-transform: uppercase;
 }
 
+.activity_filters_scroller {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  padding-bottom: 2px;
+}
+
 .activity_filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: max-content;
 }
 
 .activity_filter_button {
@@ -2459,8 +2462,10 @@ select.input_control option:checked,
   cursor: pointer;
   font: inherit;
   font-weight: 800;
-  padding: 8px 14px;
+  font-size: var(--font-size-caption);
+  padding: 6px 12px;
   transition: var(--transition-fast);
+  white-space: nowrap;
 }
 
 .activity_filter_button:hover,
@@ -4569,6 +4574,11 @@ select.input_control,
   .activity_row_actions {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .activity_header_actions {
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   .filter_bar {
