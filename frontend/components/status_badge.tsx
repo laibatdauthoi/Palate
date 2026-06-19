@@ -1,6 +1,6 @@
 import type { MediaStatus } from "@/types/palate";
 
-type StatusBadgeValue = MediaStatus | "open" | "claimable" | "pending" | "claimed" | "invalid_media_type" | "shelby_upload_failed" | "delete_pending" | "content_unavailable" | "shelby_cleanup_required" | "video_disabled";
+type StatusBadgeValue = MediaStatus | "open" | "claimable" | "pending" | "claimed" | "invalid_media_type" | "shelby_upload_failed" | "delete_pending" | "content_unavailable" | "shelby_cleanup_required" | "video_disabled" | "live" | "ended";
 
 const labels: Record<StatusBadgeValue, string> = {
   idle: "Idle",
@@ -17,6 +17,8 @@ const labels: Record<StatusBadgeValue, string> = {
   content_unavailable: "Content unavailable",
   shelby_cleanup_required: "Shelby cleanup required",
   video_disabled: "Video disabled in MVP",
+  live: "Live",
+  ended: "Ended",
   open: "Open",
   claimable: "Claimable",
   pending: "Pending",
