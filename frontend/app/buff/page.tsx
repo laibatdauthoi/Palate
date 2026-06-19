@@ -29,6 +29,7 @@ export default function BuffPage() {
     placeBuff,
     processingAction,
     publicGameReadStatus,
+    readLifecycle,
     refreshPublicGameState,
     settleMatch,
     skipMatch
@@ -59,7 +60,7 @@ export default function BuffPage() {
   const buffFeedback = feedback?.scope === "buff" ? feedback : null;
   const settleFeedback = feedback?.scope === "settle" ? feedback : null;
   const canFindMatch = walletReady && !buffBusy && !currentAssignment;
-  const buffPageLoading = publicGameReadStatus === "loading" && activeMatches.length === 0 && !assignedMatch;
+  const buffPageLoading = !readLifecycle.hasLoadedPublicGameState && publicGameReadStatus !== "error";
 
   useEffect(() => {
     logPageMount("Buff");

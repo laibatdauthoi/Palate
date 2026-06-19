@@ -88,6 +88,7 @@ function ProfilePageContent() {
     depositBalance,
     feedback,
     processingAction,
+    readLifecycle,
     refreshProfileActivity,
     userSummary,
     userSummaryReadStatus,
@@ -320,7 +321,7 @@ function ProfilePageContent() {
       {tab === "Stats" ? (
         <div className="stack">
           {statsReadMessage ? <p className={`feedback_text ${userSummaryReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{statsReadMessage}</p> : null}
-          {userSummaryReadStatus === "loading" && profile_stats.every((stat) => stat.value === "Loading") ? (
+          {!readLifecycle.hasLoadedUserSummary && userSummaryReadStatus !== "error" ? (
             <LoadingState
               label="Loading profile stats"
               copy="Your on-chain Palate summary is loading."
@@ -364,7 +365,7 @@ function ProfilePageContent() {
 
             {claimReadMessage ? <p className={`feedback_text ${claimReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{claimReadMessage}</p> : null}
 
-            {claimReadStatus === "loading" && claimRecords.length === 0 ? (
+            {!readLifecycle.hasLoadedClaims && claimReadStatus !== "error" ? (
               <LoadingState
                 label="Loading claim records"
                 copy="Real claim discovery records are loading from chain."
@@ -474,7 +475,7 @@ function ProfilePageContent() {
                 {activityReadMessage ? <p className={`feedback_text ${activityReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{activityReadMessage}</p> : null}
                 {activityFeedback ? <p className={`feedback_text feedback_${activityFeedback.type}`}>{activityFeedback.message}</p> : null}
 
-                {activityReadStatus === "loading" && filteredActivityTransactions.length === 0 ? (
+                {!readLifecycle.hasLoadedActivity && activityReadStatus !== "error" ? (
                   <LoadingState
                     label="Loading activity"
                     copy="Palate wallet activity is loading from chain."

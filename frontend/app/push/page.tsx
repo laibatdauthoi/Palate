@@ -37,7 +37,7 @@ export default function PushPage() {
 }
 
 function PushPageContent() {
-  const { activeMatches, balance, challengePush, chainRead, clearFeedback, createPush, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, clearFeedback, createPush, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -104,9 +104,9 @@ function PushPageContent() {
       ? "Not enough Palate Balance."
       : challengeAmountValidation.message;
   const canCreatePush = walletReady && !pushBusy && Boolean(createMediaId) && createAmountValidation.valid && createBalanceValid;
-  const createPushLoading = walletReady && (chainRead.status === "loading" || mediaReadStatus === "loading") && mediaRecords.length === 0;
-  const waitingSectionLoading = publicGameReadStatus === "loading" && openWaitingPushes.length === 0;
-  const activeMatchesSectionLoading = publicGameReadStatus === "loading" && activeMatches.length === 0;
+  const createPushLoading = walletReady && !readLifecycle.hasLoadedMedia && mediaReadStatus !== "error";
+  const waitingSectionLoading = !readLifecycle.hasLoadedPublicGameState && publicGameReadStatus !== "error";
+  const activeMatchesSectionLoading = !readLifecycle.hasLoadedPublicGameState && publicGameReadStatus !== "error";
   const idleMediaOptions: DropdownOption<string>[] = [
     { label: "Select idle media", value: "" },
     ...pushableMedia.map((media) => ({

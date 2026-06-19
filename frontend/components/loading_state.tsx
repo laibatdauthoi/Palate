@@ -6,9 +6,9 @@ export function LoadingState({
   copy?: string;
 }) {
   return (
-    <div className="state_card loading_state" aria-live="polite">
-      <div className="loading_bar">
-        <span />
+    <div className="state_card loading_state" aria-live="polite" role="status">
+      <div className="loading_spinner" aria-hidden="true">
+        <span className="loading_spinner_ring" />
       </div>
       <h3>{label}</h3>
       <p>{copy}</p>

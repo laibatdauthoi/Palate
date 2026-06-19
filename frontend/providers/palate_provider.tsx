@@ -66,6 +66,7 @@ import type {
   MediaRecord,
   PalateActivityTransaction,
   PalateBalance,
+  ReadLifecycleState,
   ReadStatus,
   UploadStep,
   UserSummary,
@@ -162,6 +163,7 @@ type PalateContextValue = {
   userSummaryReadStatus: "idle" | "loading" | "ready" | "error";
   activityReadStatus: "idle" | "loading" | "ready" | "error";
   publicGameReadStatus: ReadStatus;
+  readLifecycle: ReadLifecycleState;
   activityTransactions: PalateActivityTransaction[];
   claimableRewardsSummary: ClaimableRewardsSummary;
   clearFeedback: () => void;
@@ -224,6 +226,14 @@ const initial_chain_read_state: ChainReadState = {
   protocolConfig: null,
   warning: null,
   error: null
+};
+
+const initial_read_lifecycle_state: ReadLifecycleState = {
+  hasLoadedActivity: false,
+  hasLoadedClaims: false,
+  hasLoadedMedia: false,
+  hasLoadedPublicGameState: false,
+  hasLoadedUserSummary: false
 };
 
 const loading_balance: PalateBalance = {
@@ -463,6 +473,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [userSummaryReadStatus, setUserSummaryReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
   const [activityReadStatus, setActivityReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
   const [publicGameReadStatus, setPublicGameReadStatus] = useState<ReadStatus>("idle");
+  const [readLifecycle, setReadLifecycle] = useState<ReadLifecycleState>(initial_read_lifecycle_state);
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [chainRead, setChainRead] = useState<ChainReadState>(initial_chain_read_state);
@@ -654,8 +665,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         };
       }));
       setMediaReadStatus("ready");
+      setReadLifecycle((current) => ({ ...current, hasLoadedMedia: true }));
     } catch (error) {
       setMediaReadStatus("error");
+      setReadLifecycle((current) => ({ ...current, hasLoadedMedia: true }));
       setFeedback(createFeedback("general", "error", error instanceof Error ? error.message : "Unable to load My Media from chain."));
     }
   }
@@ -677,6 +690,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       }
       setClaimRecords(nextClaimRecords);
       setClaimReadStatus("ready");
+      setReadLifecycle((current) => ({ ...current, hasLoadedClaims: true }));
       const nextClaimableSummary = getClaimableRewardsSummary(nextClaimRecords);
       setUserSummary((current) => ({
         ...current,
@@ -689,6 +703,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("[Claim discovery read failed]", error);
       setClaimReadStatus("error");
+      setReadLifecycle((current) => ({ ...current, hasLoadedClaims: true }));
       finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     }
   }, []);
@@ -700,6 +715,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       const nextSummary = await readUserSummary(ownerAddress);
       setUserSummary(nextSummary);
       setUserSummaryReadStatus("ready");
+      setReadLifecycle((current) => ({ ...current, hasLoadedUserSummary: true }));
       finishPerf("success", {
         pushCount: nextSummary.pushCount,
         buffCount: nextSummary.buffCount
@@ -707,6 +723,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("[User summary read failed]", error);
       setUserSummaryReadStatus("error");
+      setReadLifecycle((current) => ({ ...current, hasLoadedUserSummary: true }));
       setUserSummary((current) => {
         const hasLoadingFields = Object.values(current).some((value) => value === "Loading");
         if (!current.walletAddress || hasLoadingFields) {
@@ -729,10 +746,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       const nextTransactions = await getPalateTransactionLog(ownerAddress, { limit: 80 });
       setActivityTransactions(nextTransactions);
       setActivityReadStatus("ready");
+      setReadLifecycle((current) => ({ ...current, hasLoadedActivity: true }));
       finishPerf("success", { count: nextTransactions.length });
     } catch (error) {
       console.error("[Activity transaction read failed]", error);
       setActivityReadStatus("error");
+      setReadLifecycle((current) => ({ ...current, hasLoadedActivity: true }));
       finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     }
   }, []);
@@ -778,26 +797,30 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (nextMedia.status === "fulfilled") {
       setMediaRecords(nextMedia.value);
       setMediaReadStatus("ready");
+      setReadLifecycle((current) => ({ ...current, hasLoadedMedia: true }));
     } else {
       console.error("[User media read failed]", nextMedia.reason);
       setMediaReadStatus("error");
+      setReadLifecycle((current) => ({ ...current, hasLoadedMedia: true }));
     }
 
     if (nextWaitingPushes.status === "fulfilled") {
       setWaitingPushes(nextWaitingPushes.value);
-      setPublicGameReadStatus("ready");
     } else {
       console.error("[Waiting pushes read failed]", nextWaitingPushes.reason);
     }
 
     if (nextActiveMatches.status === "fulfilled") {
       setActiveMatches(nextActiveMatches.value);
-      setPublicGameReadStatus("ready");
     } else {
       console.error("[Active matches read failed]", nextActiveMatches.reason);
     }
 
-    if (nextWaitingPushes.status === "rejected" && nextActiveMatches.status === "rejected") {
+    setReadLifecycle((current) => ({ ...current, hasLoadedPublicGameState: true }));
+
+    if (nextWaitingPushes.status === "fulfilled" && nextActiveMatches.status === "fulfilled") {
+      setPublicGameReadStatus("ready");
+    } else if (nextWaitingPushes.status === "rejected" && nextActiveMatches.status === "rejected") {
       setPublicGameReadStatus("error");
     }
 
@@ -929,6 +952,9 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
 
     if (hadError) {
+      if (shouldRefreshWaitingPushes || shouldRefreshActiveMatches) {
+        setReadLifecycle((current) => ({ ...current, hasLoadedPublicGameState: true }));
+      }
       if ((shouldRefreshWaitingPushes || shouldRefreshActiveMatches) && waitingPushes.length === 0 && activeMatches.length === 0) {
         setPublicGameReadStatus("error");
       }
@@ -940,6 +966,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
 
     if (shouldRefreshWaitingPushes || shouldRefreshActiveMatches) {
+      setReadLifecycle((current) => ({ ...current, hasLoadedPublicGameState: true }));
       setPublicGameReadStatus("ready");
     }
 
@@ -969,6 +996,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           setCurrentAssignment(null);
           setClaimRecords([]);
           setActivityTransactions([]);
+          setReadLifecycle(initial_read_lifecycle_state);
           setPublicGameReadStatus("loading");
           setMediaReadStatus("idle");
           setClaimReadStatus("idle");
@@ -2129,6 +2157,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       userSummaryReadStatus,
       activityReadStatus,
       publicGameReadStatus,
+      readLifecycle,
       claimableRewardsSummary,
       processingAction,
       feedback,

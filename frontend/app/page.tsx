@@ -24,7 +24,7 @@ const category_labels: Record<MediaCategory, string> = {
 };
 
 export default function HomePage() {
-  const { activeMatches, balance, challengePush, chainRead, clearFeedback, feedback, mediaRecords, processingAction, publicGameReadStatus, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, clearFeedback, feedback, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const [activityTab, setActivityTab] = useState<"waiting" | "matches">("waiting");
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
@@ -74,7 +74,7 @@ export default function HomePage() {
     { key: "waiting" as const, label: "Waiting Pushes", count: waitingCount },
     { key: "matches" as const, label: "Active Matches", count: activeCount }
   ]), [activeCount, waitingCount]);
-  const lobbyLoading = publicGameReadStatus === "loading" && waitingPushes.length === 0 && activeMatches.length === 0;
+  const lobbyLoading = !readLifecycle.hasLoadedPublicGameState && publicGameReadStatus !== "error";
 
   useEffect(() => {
     logPageMount("Home");

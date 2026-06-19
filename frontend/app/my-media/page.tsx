@@ -40,7 +40,7 @@ const category_values = {
 } as const satisfies Record<Exclude<(typeof categories)[number], "All Categories">, MediaCategory>;
 
 export default function MyMediaPage() {
-  const { clearPendingRegistration, deleteMedia, expireWaitingPush, feedback, mediaReadStatus, mediaRecords, processingAction, retryOnChainDelete, retryPalateRegistration } = usePalate();
+  const { clearPendingRegistration, deleteMedia, expireWaitingPush, feedback, mediaReadStatus, mediaRecords, processingAction, readLifecycle, retryOnChainDelete, retryPalateRegistration } = usePalate();
   const { canPlayMedia, currentTrackId, isPlaying, playMedia, setQueueFromMedia, togglePlayback } = useMediaPlayer();
   const { walletStatus } = usePalateWallet();
   const router = useRouter();
@@ -249,9 +249,9 @@ export default function MyMediaPage() {
         {cleanupFeedback ? <p className={`feedback_text feedback_${cleanupFeedback.type}`}>{cleanupFeedback.message}</p> : null}
       </SectionPanel>
 
-      {walletReady && mediaReadStatus === "loading" ? <LoadingState label="Loading on-chain media" /> : null}
+      {walletReady && !readLifecycle.hasLoadedMedia && mediaReadStatus !== "error" ? <LoadingState label="Loading on-chain media" /> : null}
       {walletReady && mediaReadStatus === "error" ? <ErrorState title="Media read failed" copy="Local inventory remains available while the chain read is retried later." /> : null}
-      {filteredMedia.length === 0 && mediaReadStatus !== "loading" ? (
+      {filteredMedia.length === 0 && !(!readLifecycle.hasLoadedMedia && mediaReadStatus !== "error") ? (
         <EmptyState title="No media found" copy="Upload and register media to start building your Palate inventory." actionLabel="Upload Media" actionHref="/my-media/upload" />
       ) : (
         <div className="media_grid">

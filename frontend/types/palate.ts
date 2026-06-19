@@ -160,6 +160,14 @@ export type ClaimableRewardsSummary = {
 
 export type ReadStatus = "idle" | "loading" | "ready" | "error";
 
+export type ReadLifecycleState = {
+  hasLoadedActivity: boolean;
+  hasLoadedClaims: boolean;
+  hasLoadedMedia: boolean;
+  hasLoadedPublicGameState: boolean;
+  hasLoadedUserSummary: boolean;
+};
+
 export type PalateActivityFilter = "All" | "Media" | "Push" | "Buff" | "Match" | "Claims" | "Balance" | "Failed" | "Admin";
 
 export type PalateActivityTransaction = {
