@@ -74,7 +74,7 @@ export default function HomePage() {
     { key: "waiting" as const, label: "Waiting Pushes", count: waitingCount },
     { key: "matches" as const, label: "Active Matches", count: activeCount }
   ]), [activeCount, waitingCount]);
-  const lobbyLoading = !readLifecycle.hasLoadedPublicGameState && publicGameReadStatus !== "error";
+  const lobbyLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
 
   useEffect(() => {
     logPageMount("Home");

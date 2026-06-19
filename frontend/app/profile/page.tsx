@@ -321,7 +321,7 @@ function ProfilePageContent() {
       {tab === "Stats" ? (
         <div className="stack">
           {statsReadMessage ? <p className={`feedback_text ${userSummaryReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{statsReadMessage}</p> : null}
-          {!readLifecycle.hasLoadedUserSummary && userSummaryReadStatus !== "error" ? (
+          {userSummaryReadStatus === "loading" && !readLifecycle.hasLoadedUserSummary ? (
             <LoadingState
               label="Loading profile stats"
               copy="Your on-chain Palate summary is loading."
@@ -365,7 +365,7 @@ function ProfilePageContent() {
 
             {claimReadMessage ? <p className={`feedback_text ${claimReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{claimReadMessage}</p> : null}
 
-            {!readLifecycle.hasLoadedClaims && claimReadStatus !== "error" ? (
+            {claimReadStatus === "loading" && !readLifecycle.hasLoadedClaims ? (
               <LoadingState
                 label="Loading claim records"
                 copy="Real claim discovery records are loading from chain."
@@ -475,7 +475,7 @@ function ProfilePageContent() {
                 {activityReadMessage ? <p className={`feedback_text ${activityReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{activityReadMessage}</p> : null}
                 {activityFeedback ? <p className={`feedback_text feedback_${activityFeedback.type}`}>{activityFeedback.message}</p> : null}
 
-                {!readLifecycle.hasLoadedActivity && activityReadStatus !== "error" ? (
+                {activityReadStatus === "loading" && !readLifecycle.hasLoadedActivity ? (
                   <LoadingState
                     label="Loading activity"
                     copy="Palate wallet activity is loading from chain."

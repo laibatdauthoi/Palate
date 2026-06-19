@@ -60,7 +60,7 @@ export default function BuffPage() {
   const buffFeedback = feedback?.scope === "buff" ? feedback : null;
   const settleFeedback = feedback?.scope === "settle" ? feedback : null;
   const canFindMatch = walletReady && !buffBusy && !currentAssignment;
-  const buffPageLoading = !readLifecycle.hasLoadedPublicGameState && publicGameReadStatus !== "error";
+  const buffPageLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
 
   useEffect(() => {
     logPageMount("Buff");

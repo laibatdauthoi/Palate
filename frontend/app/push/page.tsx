@@ -104,9 +104,9 @@ function PushPageContent() {
       ? "Not enough Palate Balance."
       : challengeAmountValidation.message;
   const canCreatePush = walletReady && !pushBusy && Boolean(createMediaId) && createAmountValidation.valid && createBalanceValid;
-  const createPushLoading = walletReady && !readLifecycle.hasLoadedMedia && mediaReadStatus !== "error";
-  const waitingSectionLoading = !readLifecycle.hasLoadedPublicGameState && publicGameReadStatus !== "error";
-  const activeMatchesSectionLoading = !readLifecycle.hasLoadedPublicGameState && publicGameReadStatus !== "error";
+  const createPushLoading = walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia;
+  const waitingSectionLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
+  const activeMatchesSectionLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
   const idleMediaOptions: DropdownOption<string>[] = [
     { label: "Select idle media", value: "" },
     ...pushableMedia.map((media) => ({

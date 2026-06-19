@@ -820,7 +820,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     if (nextWaitingPushes.status === "fulfilled" && nextActiveMatches.status === "fulfilled") {
       setPublicGameReadStatus("ready");
-    } else if (nextWaitingPushes.status === "rejected" && nextActiveMatches.status === "rejected") {
+    } else if (nextWaitingPushes.status === "rejected" || nextActiveMatches.status === "rejected") {
       setPublicGameReadStatus("error");
     }
 
@@ -954,8 +954,6 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (hadError) {
       if (shouldRefreshWaitingPushes || shouldRefreshActiveMatches) {
         setReadLifecycle((current) => ({ ...current, hasLoadedPublicGameState: true }));
-      }
-      if ((shouldRefreshWaitingPushes || shouldRefreshActiveMatches) && waitingPushes.length === 0 && activeMatches.length === 0) {
         setPublicGameReadStatus("error");
       }
       logUiPerf("liveRefresh:error", {
