@@ -15,7 +15,7 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
   const countdown = useLiveCountdown(Number(match.endTimeSeconds), { endedLabel: "Settlement available" });
   const isSettleEligible = match.status === "active" && countdown.isEnded;
   const displayStatus = isSettleEligible ? "ended" : "live";
-  const footerTimingLabel = isSettleEligible ? "Settlement available" : countdown.label;
+  const footerStatusText = isSettleEligible ? "Settlement available" : null;
 
   return (
     <article className="match_card">
@@ -36,12 +36,10 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
             <CategoryBadge category={match.category} />
             <StatusBadge status={displayStatus} />
           </div>
-          <span className={`countdown_timer ${isSettleEligible ? "match_card_settlement_state" : ""}`}>
-            {footerTimingLabel}
-          </span>
+          {footerStatusText ? <span className="match_card_status_text">{footerStatusText}</span> : null}
         </div>
-        {onSettle && isSettleEligible ? (
-          <div className="match_card_actions">
+        <div className="match_card_actions">
+          {isSettleEligible && onSettle ? (
             <button
               className="action_button action_button_primary"
               disabled={settleDisabled}
@@ -64,8 +62,10 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
             >
               Settle
             </button>
-          </div>
-        ) : null}
+          ) : (
+            <span className="countdown_timer match_card_countdown_slot">{countdown.label}</span>
+          )}
+        </div>
       </div>
     </article>
   );

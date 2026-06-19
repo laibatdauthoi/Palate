@@ -1865,6 +1865,7 @@ select.input_control option:checked,
 
 .match_card_body {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(7, 5, 10, 0.26));
+  gap: var(--spacing-sm);
 }
 
 .media_card h3,
@@ -2072,26 +2073,41 @@ select.input_control option:checked,
 .match_card_actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
+  justify-content: flex-start;
   gap: 8px;
 }
 
 .match_card_meta_row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-md);
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .match_card_meta_row .cluster {
   min-width: 0;
   flex-wrap: wrap;
+  gap: 10px;
 }
 
-.match_card_settlement_state {
+.match_card .badge {
+  padding: 7px 12px;
+  font-size: 11px;
+}
+
+.match_card_status_text {
   color: var(--success-color);
   font-weight: 800;
+}
+
+.match_card_countdown_slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 108px;
+  padding-inline: 10px;
+  font-size: var(--font-size-body-small);
 }
 
 .match_card {
@@ -2103,6 +2119,7 @@ select.input_control option:checked,
 
 .match_card .action_button {
   min-width: 132px;
+  width: auto;
 }
 
 .buff_panel {
