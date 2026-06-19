@@ -25,6 +25,7 @@ const category_labels: Record<MediaCategory, string> = {
   audio: "Audio",
   video: "Video"
 };
+const live_refresh_interval_ms = 18000;
 
 export default function PushPage() {
   return (
@@ -35,7 +36,7 @@ export default function PushPage() {
 }
 
 function PushPageContent() {
-  const { activeMatches, balance, challengePush, chainRead, createPush, feedback, mediaRecords, processingAction, settleMatch, waitingPushes } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, createPush, feedback, mediaRecords, processingAction, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,7 +74,9 @@ function PushPageContent() {
   const selectedPushCategoryLabel = selectedPush ? category_labels[selectedPush.media.category].toUpperCase() : "MEDIA";
   const hasEligibleChallengeMedia = Boolean(selectedPush && !selectedPushIsOwned && challengeOptions.length > 0);
   const showChallengeEmptyState = Boolean(selectedPush && !selectedPushIsOwned && challengeOptions.length === 0);
-  const challengeFeedback = isChallengeFeedback(feedback) ? feedback : null;
+  const pushFeedback = feedback?.scope === "push" ? feedback : null;
+  const challengeFeedback = feedback?.scope === "challenge" ? feedback : null;
+  const settleFeedback = feedback?.scope === "settle" ? feedback : null;
   const pushBusy = processingAction === "createPush" || processingAction === "challengePush";
   const walletReady = walletStatus === "connected";
   const minPushOctas = chainRead.protocolConfig?.minPushAmount ? BigInt(chainRead.protocolConfig.minPushAmount) : null;
@@ -127,6 +130,34 @@ function PushPageContent() {
   useEffect(() => {
     logPageMount("Push");
   }, []);
+
+  useEffect(() => {
+    function runRefresh(source: "interval" | "visible" | "mount") {
+      if (document.hidden) {
+        logUiPerf("liveRefresh:skippedHidden", { page: "push", source });
+        return;
+      }
+
+      void refreshPublicGameState({
+        waitingPushes: true,
+        source: `push:${source}`
+      });
+    }
+
+    runRefresh("mount");
+    const intervalId = window.setInterval(() => runRefresh("interval"), live_refresh_interval_ms);
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        runRefresh("visible");
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [refreshPublicGameState]);
 
   const replacePushQuery = useCallback((next: URLSearchParams) => {
     const query = next.toString();
@@ -378,8 +409,10 @@ function PushPageContent() {
         </div>
         {prefillReason ? <p className="feedback_text feedback_error">{prefillReason}</p> : null}
         {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to create or challenge Pushes on Aptos Testnet.</p> : null}
-        {feedback ? <p className={`feedback_text feedback_${feedback.type}`}>{feedback.message}</p> : null}
+        {pushFeedback ? <p className={`feedback_text feedback_${pushFeedback.type}`}>{pushFeedback.message}</p> : null}
       </SectionPanel>
+
+      {settleFeedback && tab === "Live Matches" ? <p className={`feedback_text feedback_${settleFeedback.type}`}>{settleFeedback.message}</p> : null}
 
       {tab === "Waiting" ? (
         <div className="compact_card_grid compact_card_grid_waiting">
@@ -497,11 +530,4 @@ function parseAmountOctas(value: string) {
   } catch {
     return null;
   }
-}
-
-function isChallengeFeedback(
-  feedback: { type: "success" | "error" | "info"; message: string } | null
-) {
-  if (!feedback) return false;
-  return /challenge/i.test(feedback.message);
 }

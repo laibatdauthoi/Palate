@@ -19,9 +19,11 @@ import {
   buildWithdrawBalancePayload,
   formatOctasToApt,
   getActiveMatches as readActiveMatches,
+  getAptosReadCooldownRemainingMs,
   getChainReadSnapshot,
   getClaimRecords as readClaimRecords,
   getCurrentAssignment as readCurrentAssignment,
+  isAptosReadRateLimited,
   getPalateTransactionLog,
   getPalateBalance,
   getReadablePalateError,
@@ -57,6 +59,8 @@ import type {
   ChainReadState,
   ClaimableRewardsSummary,
   ClaimRecord,
+  FeedbackMessage,
+  FeedbackScope,
   MediaCategory,
   MediaFormat,
   MediaRecord,
@@ -67,11 +71,7 @@ import type {
   WaitingPush,
   WalletStatus
 } from "@/types/palate";
-
-type Feedback = {
-  type: "success" | "error" | "info";
-  message: string;
-} | null;
+type Feedback = FeedbackMessage | null;
 
 type UploadMediaInput = {
   category: MediaCategory;
@@ -165,6 +165,7 @@ type PalateContextValue = {
   clearFeedback: () => void;
   refreshClaims: () => Promise<void>;
   refreshProfileActivity: () => Promise<void>;
+  refreshPublicGameState: (options: { waitingPushes?: boolean; activeMatches?: boolean; assignment?: boolean; ownerAddress?: string | null; source?: string }) => Promise<void>;
   connectMockWallet: () => void;
   disconnectMockWallet: () => void;
   simulateWrongNetwork: () => void;
@@ -291,6 +292,10 @@ function formatApt(value: number) {
 
 function normalizeAddress(address: string | null | undefined) {
   return address?.trim().toLowerCase() ?? null;
+}
+
+function createFeedback(scope: FeedbackScope, type: FeedbackMessage["type"], message: string): FeedbackMessage {
+  return { scope, type, message };
 }
 
 function delay(ms = 420) {
@@ -636,7 +641,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setMediaReadStatus("ready");
     } catch (error) {
       setMediaReadStatus("error");
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Unable to load My Media from chain." });
+      setFeedback(createFeedback("general", "error", error instanceof Error ? error.message : "Unable to load My Media from chain."));
     }
   }
 
@@ -821,6 +826,91 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }, [refreshActivityTransactionsForWallet]);
 
+  const refreshPublicGameState = useCallback(async (options: { waitingPushes?: boolean; activeMatches?: boolean; assignment?: boolean; ownerAddress?: string | null; source?: string }) => {
+    const {
+      waitingPushes: shouldRefreshWaitingPushes = false,
+      activeMatches: shouldRefreshActiveMatches = false,
+      assignment: shouldRefreshAssignment = false,
+      ownerAddress = walletAddress,
+      source = "unknown"
+    } = options;
+
+    if (!shouldRefreshWaitingPushes && !shouldRefreshActiveMatches && !shouldRefreshAssignment) {
+      return;
+    }
+
+    logUiPerf("liveRefresh:start", {
+      source,
+      waitingPushes: shouldRefreshWaitingPushes,
+      activeMatches: shouldRefreshActiveMatches,
+      assignment: shouldRefreshAssignment
+    });
+
+    const reads: Array<Promise<unknown>> = [];
+    const readKeys: string[] = [];
+
+    if (shouldRefreshWaitingPushes) {
+      readKeys.push("waitingPushes");
+      reads.push(readWaitingPushes());
+    }
+
+    if (shouldRefreshActiveMatches) {
+      readKeys.push("activeMatches");
+      reads.push(readActiveMatches());
+    }
+
+    if (shouldRefreshAssignment && ownerAddress) {
+      readKeys.push("assignment");
+      reads.push(readCurrentAssignment(ownerAddress));
+    }
+
+    const results = await Promise.allSettled(reads);
+    let hadError = false;
+    let rateLimited = false;
+
+    results.forEach((result, index) => {
+      const key = readKeys[index];
+      if (result.status === "fulfilled") {
+        if (key === "waitingPushes") {
+          setWaitingPushes(result.value as WaitingPush[]);
+        } else if (key === "activeMatches") {
+          setActiveMatches(result.value as ActiveMatch[]);
+        } else if (key === "assignment") {
+          setCurrentAssignment(result.value as BuffAssignment | null);
+        }
+        return;
+      }
+
+      hadError = true;
+      if (isAptosReadRateLimited(result.reason)) {
+        rateLimited = true;
+      }
+      console.error(`[Public game state refresh failed:${key}]`, result.reason);
+    });
+
+    if (rateLimited) {
+      logUiPerf("liveRefresh:rateLimited", {
+        source,
+        cooldownMs: getAptosReadCooldownRemainingMs()
+      });
+    }
+
+    if (hadError) {
+      logUiPerf("liveRefresh:error", {
+        source,
+        rateLimited
+      });
+      return;
+    }
+
+    logUiPerf("liveRefresh:success", {
+      source,
+      waitingPushes: shouldRefreshWaitingPushes ? waitingPushes.length : null,
+      activeMatches: shouldRefreshActiveMatches ? activeMatches.length : null,
+      assignment: shouldRefreshAssignment
+    });
+  }, [activeMatches.length, waitingPushes.length, walletAddress]);
+
   useEffect(() => {
     if (walletConnectionStatus !== "connected" || !walletAddress) return;
 
@@ -856,7 +946,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
             ]).then((results) => {
               if (cancelled) return;
               if (results.some((result) => result.status === "rejected")) {
-                setFeedback({ type: "info", message: "Using last read." });
+                setFeedback(createFeedback("general", "info", "Using last read."));
               }
               finishDeferredPerf("success", {
                 results: results.map((result) => result.status).join(",")
@@ -867,7 +957,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         if (!cancelled) {
-          setFeedback({ type: "error", message: "Some on-chain data is temporarily unavailable." });
+          setFeedback(createFeedback("general", "error", "Some on-chain data is temporarily unavailable."));
         }
         finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
       }
@@ -892,7 +982,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
   async function runBalanceTransaction(actionName: "deposit" | "withdraw", amount: string) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
-      setFeedback({ type: "error", message: "Connect wallet to manage Palate Balance." });
+      setFeedback(createFeedback("wallet", "error", "Connect wallet to manage Palate Balance."));
       return;
     }
 
@@ -905,23 +995,20 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       if (actionName === "withdraw") {
         const availableOctas = BigInt(parseAptToOctas(balance.availableBalance, { allowZero: true }));
         if (BigInt(amountOctas) > availableOctas) {
-          setFeedback({ type: "error", message: "Withdraw rejected: amount exceeds available Palate Balance." });
+          setFeedback(createFeedback("wallet", "error", "Withdraw rejected: amount exceeds available Palate Balance."));
           return;
         }
       }
 
       const data = actionName === "deposit" ? buildDepositBalancePayload(amountOctas) : buildWithdrawBalancePayload(amountOctas);
       const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Transaction submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("wallet", "info", `Transaction submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       await refreshPalateBalanceForWallet(walletAddress);
-      setFeedback({
-        type: "success",
-        message: `${actionName === "deposit" ? "Deposit" : "Withdraw"} confirmed ${shortenTransactionHash(transactionHash)}.`
-      });
+      setFeedback(createFeedback("wallet", "success", `${actionName === "deposit" ? "Deposit" : "Withdraw"} confirmed ${shortenTransactionHash(transactionHash)}.`));
     } catch (error) {
       console.error(`${actionName}Balance failed`, error);
-      setFeedback({ type: "error", message: getReadablePalateError(error, "Transaction failed.") });
+      setFeedback(createFeedback("wallet", "error", getReadablePalateError(error, "Transaction failed.")));
     } finally {
       setProcessingAction(null);
     }
@@ -985,7 +1072,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
 
     setUploadStep("shelby_uploaded");
-    setFeedback({ type: "success", message: "Shelby upload completed. Continue with Palate registration." });
+    setFeedback(createFeedback("general", "success", "Shelby upload completed. Continue with Palate registration."));
     setUploadStep("registering_palate_media");
 
     const data = buildRegisterMediaPayload({
@@ -1000,21 +1087,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     try {
       const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("general", "info", `Registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       await refreshUserMediaForWallet(walletAddress);
       setUploadStep("completed");
       setUploadRecovery(initial_upload_recovery_state);
-      setFeedback({ type: "success", message: `Media registered in Palate ${shortenTransactionHash(transactionHash)}.` });
+      setFeedback(createFeedback("general", "success", `Media registered in Palate ${shortenTransactionHash(transactionHash)}.`));
     } catch (error) {
       console.error("Palate registerMedia failed after Shelby upload", error);
       addPendingRegistrationMedia(draft, shelbyResult, error);
       setUploadStep("failed");
       setUploadRecovery(initial_upload_recovery_state);
-      setFeedback({
-        type: "error",
-        message: "Palate registration failed after Shelby upload. The item is saved in My Media for retry."
-      });
+      setFeedback(createFeedback("general", "error", "Palate registration failed after Shelby upload. The item is saved in My Media for retry."));
     }
   }
 
@@ -1025,7 +1109,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     const message = getShelbyUploadErrorMessage(error);
     setUploadStep("shelby_upload_failed");
-    setFeedback({ type: "info", message: "Shelby upload failed. Registering the failed media record in Palate." });
+    setFeedback(createFeedback("general", "info", "Shelby upload failed. Registering the failed media record in Palate."));
 
     const data = buildRegisterShelbyUploadFailedMediaPayload({
       category: draft.category,
@@ -1037,14 +1121,11 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       categoryConstants: chainRead.categories
     });
     const transactionHash = await signAndSubmitTransaction({ data });
-    setFeedback({ type: "info", message: `Failed media registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+    setFeedback(createFeedback("general", "info", `Failed media registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
     await waitForPalateTransaction(transactionHash);
     await refreshUserMediaForWallet(walletAddress);
     setUploadRecovery(initial_upload_recovery_state);
-    setFeedback({
-      type: "error",
-      message: `${message} A failed media item was saved in My Media and can be deleted.`
-    });
+    setFeedback(createFeedback("general", "error", `${message} A failed media item was saved in My Media and can be deleted.`));
   }
 
   async function uploadShelbyRpcThenRegisterPalate(draft: UploadRetryDraft) {
@@ -1066,14 +1147,14 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
       await runMockAction("findMatch", () => {
         if (currentAssignment) {
-          setFeedback({ type: "error", message: "Complete or skip the current assignment before finding another match." });
+          setFeedback(createFeedback("buff", "error", "Complete or skip the current assignment before finding another match."));
           return;
         }
         const validMatches = activeMatches.filter((match) => match.status === "active" && !usedMatchIds.includes(match.id));
         if (validMatches.length === 0) {
           setNoValidMatchAvailable(true);
           setCompletedBuffSide(null);
-          setFeedback({ type: "error", message: "No valid match is available." });
+          setFeedback(createFeedback("buff", "error", "No valid match is available."));
           return;
         }
         const nextMatch = validMatches[assignmentCursor % validMatches.length];
@@ -1086,13 +1167,13 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         });
         setCompletedBuffSide(null);
         setNoValidMatchAvailable(false);
-        setFeedback({ type: "success", message: "Match assigned. Choose Buff A or Buff B." });
+        setFeedback(createFeedback("buff", "success", "Match assigned. Choose Buff A or Buff B."));
       });
       return;
     }
 
     if (currentAssignment) {
-      setFeedback({ type: "error", message: "Complete or skip the current assignment before finding another match." });
+      setFeedback(createFeedback("buff", "error", "Complete or skip the current assignment before finding another match."));
       return;
     }
 
@@ -1102,15 +1183,15 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     try {
       const data = buildFindMatchPayload();
       const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Find Match submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("buff", "info", `Find Match submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
       setCompletedBuffSide(null);
       setNoValidMatchAvailable(false);
-      setFeedback({ type: "success", message: `Match assigned ${shortenTransactionHash(transactionHash)}.` });
+      setFeedback(createFeedback("buff", "success", `Match assigned ${shortenTransactionHash(transactionHash)}.`));
     } catch (error) {
       console.error("findMatch failed", error);
-      setFeedback({ type: "error", message: getReadablePalateError(error, "Find Match failed.") });
+      setFeedback(createFeedback("buff", "error", getReadablePalateError(error, "Find Match failed.")));
     } finally {
       setProcessingAction(null);
     }
@@ -1123,27 +1204,27 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         try {
           buffAmountOctas = parseAptToOctas(amount);
         } catch (error) {
-          setFeedback({ type: "error", message: error instanceof Error ? error.message : "Enter a valid Buff amount." });
+          setFeedback(createFeedback("buff", "error", error instanceof Error ? error.message : "Enter a valid Buff amount."));
           return;
         }
         const buffAmount = parseApt(amount);
         if (!currentAssignment) {
-          setFeedback({ type: "error", message: "Find Match before placing a Buff." });
+          setFeedback(createFeedback("buff", "error", "Find Match before placing a Buff."));
           return;
         }
         let minBuffAmount: bigint;
         try {
           minBuffAmount = getRequiredConfigAmount("minBuffAmount");
         } catch (error) {
-          setFeedback({ type: "error", message: error instanceof Error ? error.message : "Protocol config is still loading." });
+          setFeedback(createFeedback("buff", "error", error instanceof Error ? error.message : "Protocol config is still loading."));
           return;
         }
         if (BigInt(buffAmountOctas) < minBuffAmount) {
-          setFeedback({ type: "error", message: `Minimum Buff is ${formatOctasToApt(minBuffAmount)}.` });
+          setFeedback(createFeedback("buff", "error", `Minimum Buff is ${formatOctasToApt(minBuffAmount)}.`));
           return;
         }
         if (buffAmount > getAvailableBalanceNumber()) {
-          setFeedback({ type: "error", message: "Buff rejected: insufficient Palate Balance." });
+          setFeedback(createFeedback("buff", "error", "Buff rejected: insufficient Palate Balance."));
           return;
         }
         subtractAvailableBalance(buffAmount);
@@ -1151,13 +1232,13 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         setCompletedBuffSide(side);
         setCurrentAssignment(null);
         setNoValidMatchAvailable(false);
-        setFeedback({ type: "success", message: `Buff ${side} recorded. Result remains hidden until settlement.` });
+        setFeedback(createFeedback("buff", "success", `Buff ${side} recorded. Result remains hidden until settlement.`));
       });
       return;
     }
 
     if (!currentAssignment) {
-      setFeedback({ type: "error", message: "Find Match before placing a Buff." });
+      setFeedback(createFeedback("buff", "error", "Find Match before placing a Buff."));
       return;
     }
 
@@ -1165,7 +1246,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     try {
       buffAmountOctas = parseAptToOctas(amount);
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Enter a valid Buff amount." });
+      setFeedback(createFeedback("buff", "error", error instanceof Error ? error.message : "Enter a valid Buff amount."));
       return;
     }
 
@@ -1174,17 +1255,17 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     try {
       minBuffAmount = getRequiredConfigAmount("minBuffAmount");
     } catch (error) {
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Protocol config is still loading." });
+      setFeedback(createFeedback("buff", "error", error instanceof Error ? error.message : "Protocol config is still loading."));
       return;
     }
 
     if (BigInt(buffAmountOctas) < minBuffAmount) {
-      setFeedback({ type: "error", message: `Minimum Buff is ${formatOctasToApt(minBuffAmount)}.` });
+      setFeedback(createFeedback("buff", "error", `Minimum Buff is ${formatOctasToApt(minBuffAmount)}.`));
       return;
     }
 
     if (buffAmount > getAvailableBalanceNumber()) {
-      setFeedback({ type: "error", message: "Buff rejected: insufficient Palate Balance." });
+      setFeedback(createFeedback("buff", "error", "Buff rejected: insufficient Palate Balance."));
       return;
     }
 
@@ -1194,15 +1275,15 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     try {
       const data = buildPlaceBuffPayload(side, buffAmountOctas);
       const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Buff submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("buff", "info", `Buff submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
       setCompletedBuffSide(side);
       setNoValidMatchAvailable(false);
-      setFeedback({ type: "success", message: `Buff ${side} confirmed ${shortenTransactionHash(transactionHash)}.` });
+      setFeedback(createFeedback("buff", "success", `Buff ${side} confirmed ${shortenTransactionHash(transactionHash)}.`));
     } catch (error) {
       console.error("placeBuff failed", error);
-      setFeedback({ type: "error", message: getReadablePalateError(error, "Buff failed.") });
+      setFeedback(createFeedback("buff", "error", getReadablePalateError(error, "Buff failed.")));
     } finally {
       setProcessingAction(null);
     }
@@ -1212,20 +1293,20 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
       await runMockAction("skipMatch", () => {
         if (!currentAssignment) {
-          setFeedback({ type: "error", message: "There is no assignment to skip." });
+          setFeedback(createFeedback("buff", "error", "There is no assignment to skip."));
           return;
         }
         const penalty = parseApt(currentAssignment.skipPenaltyAmount);
         subtractAvailableBalance(Math.min(penalty, getAvailableBalanceNumber()));
         setCurrentAssignment(null);
         setCompletedBuffSide(null);
-        setFeedback({ type: "info", message: `Skip Match applied a ${formatApt(penalty)} penalty and cleared the assignment.` });
+        setFeedback(createFeedback("buff", "info", `Skip Match applied a ${formatApt(penalty)} penalty and cleared the assignment.`));
       });
       return;
     }
 
     if (!currentAssignment) {
-      setFeedback({ type: "error", message: "There is no assignment to skip." });
+      setFeedback(createFeedback("buff", "error", "There is no assignment to skip."));
       return;
     }
 
@@ -1235,15 +1316,15 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     try {
       const data = buildSkipMatchPayload();
       const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Skip Match submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("buff", "info", `Skip Match submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
       setCompletedBuffSide(null);
       setNoValidMatchAvailable(false);
-      setFeedback({ type: "success", message: `Skip Match confirmed ${shortenTransactionHash(transactionHash)}.` });
+      setFeedback(createFeedback("buff", "success", `Skip Match confirmed ${shortenTransactionHash(transactionHash)}.`));
     } catch (error) {
       console.error("skipMatch failed", error);
-      setFeedback({ type: "error", message: getReadablePalateError(error, "Skip Match failed.") });
+      setFeedback(createFeedback("buff", "error", getReadablePalateError(error, "Skip Match failed.")));
     } finally {
       setProcessingAction(null);
     }
@@ -1252,7 +1333,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   async function settleMatchOnChain(matchId: number) {
     const finishPerf = startUiPerf("settleMatchOnChain", { matchId });
     if (walletConnectionStatus !== "connected" || !walletAddress) {
-      setFeedback({ type: "error", message: "Connect wallet to settle the match." });
+      setFeedback(createFeedback("settle", "error", "Connect wallet to settle the match."));
       finishPerf("end", { skipped: true, reason: "wallet not connected" });
       return;
     }
@@ -1263,15 +1344,15 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     try {
       const data = buildSettleMatchPayload(matchId);
       const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Settle Match submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("settle", "info", `Settle Match submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
       await refreshClaimsForWallet(walletAddress);
-      setFeedback({ type: "success", message: `Match settled ${shortenTransactionHash(transactionHash)}. Check Profile Claims for rewards.` });
+      setFeedback(createFeedback("settle", "success", `Match settled ${shortenTransactionHash(transactionHash)}. Check Profile Claims for rewards.`));
       finishPerf("success", { transactionHash, refreshedClaims: true, refreshedGameState: true });
     } catch (error) {
       console.error("settleMatch failed", error);
-      setFeedback({ type: "error", message: getReadablePalateError(error, "Settle Match failed.") });
+      setFeedback(createFeedback("settle", "error", getReadablePalateError(error, "Settle Match failed.")));
       finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     } finally {
       setProcessingAction(null);
@@ -1281,18 +1362,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   async function claimRewardOnChain(claim: ClaimRecord) {
     const finishPerf = startUiPerf("claimRewardOnChain", { claimKey: claim.claimKey, claimType: claim.type });
     if (walletConnectionStatus !== "connected" || !walletAddress) {
-      setFeedback({ type: "error", message: "Connect wallet to claim rewards." });
+      setFeedback(createFeedback("claim", "error", "Connect wallet to claim rewards."));
       finishPerf("end", { skipped: true, reason: "wallet not connected" });
       return;
     }
 
     if (!claim.matchId) {
-      setFeedback({ type: "error", message: "Claim is not available." });
+      setFeedback(createFeedback("claim", "error", "Claim is not available."));
       finishPerf("end", { skipped: true, reason: "missing match id" });
       return;
     }
     if (!claim.settled || claim.claimed || !claim.claimable || BigInt(claim.claimableAmountOctas) <= BigInt(0)) {
-      setFeedback({ type: "error", message: "Claim is not available." });
+      setFeedback(createFeedback("claim", "error", "Claim is not available."));
       finishPerf("end", { skipped: true, reason: "claim unavailable" });
       return;
     }
@@ -1303,15 +1384,15 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     try {
       const data = buildClaimRewardPayload({ type: claim.type, matchId: claim.matchId });
       const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Claim submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("claim", "info", `Claim submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
       await refreshClaimsForWallet(walletAddress);
-      setFeedback({ type: "success", message: `${claim.type === "buff" ? "Buff" : "Push"} reward credited to Palate Balance ${shortenTransactionHash(transactionHash)}.` });
+      setFeedback(createFeedback("claim", "success", `${claim.type === "buff" ? "Buff" : "Push"} reward credited to Palate Balance ${shortenTransactionHash(transactionHash)}.`));
       finishPerf("success", { transactionHash, refreshedClaims: true, refreshedGameState: true });
     } catch (error) {
       console.error("claimReward failed", error);
-      setFeedback({ type: "error", message: getReadablePalateError(error, "Claim failed.") });
+      setFeedback(createFeedback("claim", "error", getReadablePalateError(error, "Claim failed.")));
       finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     } finally {
       setProcessingAction(null);
@@ -1321,32 +1402,32 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   async function registerMediaOnChain(input: UploadMediaInput) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
       setUploadStep("failed");
-      setFeedback({ type: "error", message: "Connect wallet to register media on chain." });
+      setFeedback(createFeedback("general", "error", "Connect wallet to register media on chain."));
       return;
     }
 
     if (!app_config.shelby.enabled) {
       setUploadStep("failed");
-      setFeedback({ type: "error", message: "Shelby API key is not configured." });
+      setFeedback(createFeedback("general", "error", "Shelby API key is not configured."));
       return;
     }
 
     if (!input.file) {
       setUploadStep("failed");
-      setFeedback({ type: "error", message: "Choose a media file before upload." });
+      setFeedback(createFeedback("general", "error", "Choose a media file before upload."));
       return;
     }
 
     if (!VIDEO_ENABLED && input.category === "video") {
       setUploadStep("failed");
-      setFeedback({ type: "error", message: "Video uploads are temporarily disabled for MVP." });
+      setFeedback(createFeedback("general", "error", "Video uploads are temporarily disabled for MVP."));
       return;
     }
 
     const detectedKind = detectMediaKindFromFile(input.file);
     if (!isCategoryCompatibleWithKind(input.category, detectedKind)) {
       setUploadStep("failed");
-      setFeedback({ type: "error", message: getFileCategoryMessage(input.file, input.category) ?? "Selected category does not match this file type." });
+      setFeedback(createFeedback("general", "error", getFileCategoryMessage(input.file, input.category) ?? "Selected category does not match this file type."));
       return;
     }
 
@@ -1404,7 +1485,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       await uploadShelbyRpcThenRegisterPalate(draft);
     } catch (error) {
       setUploadStep("failed");
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Media registration failed." });
+      setFeedback(createFeedback("general", "error", error instanceof Error ? error.message : "Media registration failed."));
     } finally {
       setProcessingAction(null);
     }
@@ -1412,18 +1493,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
   async function retryPalateRegistration(mediaId: number) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
-      setFeedback({ type: "error", message: "Connect wallet to retry Palate registration." });
+      setFeedback(createFeedback("general", "error", "Connect wallet to retry Palate registration."));
       return;
     }
 
     const pendingMedia = pendingRegistrationMedia.find((media) => media.id === mediaId);
     if (!pendingMedia || pendingMedia.source !== "palate_upload_recovery") {
-      setFeedback({ type: "error", message: "Registration retry item was not found." });
+      setFeedback(createFeedback("general", "error", "Registration retry item was not found."));
       return;
     }
 
     if (pendingMedia.ownerAddress && pendingMedia.ownerAddress.toLowerCase() !== walletAddress.toLowerCase()) {
-      setFeedback({ type: "error", message: "Connect the wallet that uploaded this media to retry registration." });
+      setFeedback(createFeedback("general", "error", "Connect the wallet that uploaded this media to retry registration."));
       return;
     }
 
@@ -1448,11 +1529,11 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         categoryConstants: chainRead.categories
       });
       const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("general", "info", `Registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       await refreshUserMediaForWallet(walletAddress);
       setPendingRegistrationMedia((records) => records.filter((record) => record.id !== mediaId));
-      setFeedback({ type: "success", message: `Media registered in Palate ${shortenTransactionHash(transactionHash)}.` });
+      setFeedback(createFeedback("general", "success", `Media registered in Palate ${shortenTransactionHash(transactionHash)}.`));
     } catch (error) {
       const message = getPalateRegistrationErrorMessage(error);
       setPendingRegistrationMedia((records) =>
@@ -1467,7 +1548,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
             : record
         )
       );
-      setFeedback({ type: "error", message: "Palate registration failed. You can retry from My Media." });
+      setFeedback(createFeedback("general", "error", "Palate registration failed. You can retry from My Media."));
     } finally {
       setProcessingAction(null);
     }
@@ -1475,7 +1556,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
   function clearPendingRegistration(mediaId: number) {
     setPendingRegistrationMedia((records) => records.filter((record) => record.id !== mediaId));
-    setFeedback({ type: "info", message: "Registration recovery item cleared from this browser." });
+    setFeedback(createFeedback("general", "info", "Registration recovery item cleared from this browser."));
   }
 
   const isDeletePendingMedia = useCallback((media: MediaRecord) => {
@@ -1545,52 +1626,52 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   async function submitPalateDelete(media: MediaRecord) {
     const data = buildDeleteMediaPayload(media.palateMediaId ?? media.id);
     const transactionHash = await signAndSubmitTransaction({ data });
-    setFeedback({ type: "info", message: `Palate delete submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+    setFeedback(createFeedback("cleanup", "info", `Palate delete submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
     await waitForPalateTransaction(transactionHash);
     return transactionHash;
   }
 
   async function submitShelbyDelete(media: MediaRecord) {
     if (media.storageStatus === "shelby_upload_failed") {
-      setFeedback({ type: "info", message: "Shelby upload did not complete. Deleting Palate record directly." });
+      setFeedback(createFeedback("cleanup", "info", "Shelby upload did not complete. Deleting Palate record directly."));
       clearShelbyCleanupRequired(media);
       return "confirmed_missing" as const;
     }
 
     if (!media.shelbyBlobRef?.trim() && !media.displayUrl?.trim()) {
-      setFeedback({ type: "info", message: "No Shelby blob reference was found. Continuing with Palate delete." });
+      setFeedback(createFeedback("cleanup", "info", "No Shelby blob reference was found. Continuing with Palate delete."));
       clearShelbyCleanupRequired(media);
       return "confirmed_missing" as const;
     }
 
     if (isDeletePendingMedia(media) || isContentUnavailableMedia(media) || media.deletePending || media.contentUnavailable) {
-      setFeedback({ type: "info", message: "Shelby content is already unavailable. Continuing with Palate delete." });
+      setFeedback(createFeedback("cleanup", "info", "Shelby content is already unavailable. Continuing with Palate delete."));
       clearShelbyCleanupRequired(media);
       return "confirmed_missing" as const;
     }
 
     const preflight = await preflightShelbyBlob(media);
     if (preflight === "missing") {
-      setFeedback({ type: "info", message: "Shelby content was already removed. Continuing with Palate delete." });
+      setFeedback(createFeedback("cleanup", "info", "Shelby content was already removed. Continuing with Palate delete."));
       clearShelbyCleanupRequired(media);
       return "confirmed_missing" as const;
     }
     if (preflight === "inconclusive") {
       markShelbyCleanupRequired(media);
-      setFeedback({ type: "error", message: "Shelby cleanup could not be confirmed. Retry Shelby delete before Palate delete." });
+      setFeedback(createFeedback("cleanup", "error", "Shelby cleanup could not be confirmed. Retry Shelby delete before Palate delete."));
       return "cleanup_required" as const;
     }
 
     try {
       const shelbyDeleteData = buildShelbyDeleteBlobPayload(media.ownerAddress, media.shelbyBlobRef);
       const shelbyDeleteHash = await signAndSubmitTransaction({ data: shelbyDeleteData });
-      setFeedback({ type: "info", message: `Shelby delete submitted ${shortenTransactionHash(shelbyDeleteHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("cleanup", "info", `Shelby delete submitted ${shortenTransactionHash(shelbyDeleteHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(shelbyDeleteHash);
       clearShelbyCleanupRequired(media);
       return "deleted" as const;
     } catch (error) {
       if (isShelbyBlobNotFoundError(error)) {
-        setFeedback({ type: "info", message: "Shelby content was already removed. Continuing with Palate delete." });
+        setFeedback(createFeedback("cleanup", "info", "Shelby content was already removed. Continuing with Palate delete."));
         clearShelbyCleanupRequired(media);
         return "confirmed_missing" as const;
       }
@@ -1602,7 +1683,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
   async function deleteMedia(mediaId: number) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
-      setFeedback({ type: "error", message: "Connect wallet to delete media." });
+      setFeedback(createFeedback("cleanup", "error", "Connect wallet to delete media."));
       return;
     }
 
@@ -1616,7 +1697,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     );
 
     if (!media) {
-      setFeedback({ type: "error", message: "Choose an idle or failed media item to delete." });
+      setFeedback(createFeedback("cleanup", "error", "Choose an idle or failed media item to delete."));
       return;
     }
 
@@ -1635,17 +1716,17 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("Palate delete failed after Shelby delete", error);
         markDeletePending(media);
-        setFeedback({ type: "error", message: `${getPalateDeleteErrorMessage(error)} Content was removed from Shelby, but on-chain delete did not complete.` });
+        setFeedback(createFeedback("cleanup", "error", `${getPalateDeleteErrorMessage(error)} Content was removed from Shelby, but on-chain delete did not complete.`));
         return;
       }
 
       await refreshUserMediaForWallet(walletAddress);
       setDeletePendingRecords((records) => records.filter((record) => record.mediaId !== (media.palateMediaId ?? media.id) || record.ownerAddress.toLowerCase() !== media.ownerAddress.toLowerCase()));
       setShelbyCleanupRequiredIds((ids) => ids.filter((id) => id !== (media.palateMediaId ?? media.id)));
-      setFeedback({ type: "success", message: `Media deleted ${shortenTransactionHash(palateDeleteHash)}.` });
+      setFeedback(createFeedback("cleanup", "success", `Media deleted ${shortenTransactionHash(palateDeleteHash)}.`));
     } catch (error) {
       console.error("deleteMedia failed", error);
-      setFeedback({ type: "error", message: getReadablePalateError(error, "Shelby delete failed. Retry Delete from My Media.") });
+      setFeedback(createFeedback("cleanup", "error", getReadablePalateError(error, "Shelby delete failed. Retry Delete from My Media.")));
     } finally {
       setProcessingAction(null);
     }
@@ -1653,7 +1734,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
   async function retryOnChainDelete(mediaId: number) {
     if (walletConnectionStatus !== "connected" || !walletAddress) {
-      setFeedback({ type: "error", message: "Connect wallet to retry on-chain delete." });
+      setFeedback(createFeedback("cleanup", "error", "Connect wallet to retry on-chain delete."));
       return;
     }
 
@@ -1666,7 +1747,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     );
 
     if (!media) {
-      setFeedback({ type: "error", message: "Choose a Delete pending media item." });
+      setFeedback(createFeedback("cleanup", "error", "Choose a Delete pending media item."));
       return;
     }
 
@@ -1677,10 +1758,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       const transactionHash = await submitPalateDelete(media);
       await refreshUserMediaForWallet(walletAddress);
       setDeletePendingRecords((records) => records.filter((record) => record.mediaId !== (media.palateMediaId ?? media.id) || record.ownerAddress.toLowerCase() !== media.ownerAddress.toLowerCase()));
-      setFeedback({ type: "success", message: `On-chain delete confirmed ${shortenTransactionHash(transactionHash)}.` });
+      setFeedback(createFeedback("cleanup", "success", `On-chain delete confirmed ${shortenTransactionHash(transactionHash)}.`));
     } catch (error) {
       console.error("retryOnChainDelete failed", error);
-      setFeedback({ type: "error", message: getPalateDeleteErrorMessage(error) });
+      setFeedback(createFeedback("cleanup", "error", getPalateDeleteErrorMessage(error)));
     } finally {
       setProcessingAction(null);
     }
@@ -1693,7 +1774,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   async function createPushOnChain(mediaId: number, amount: string) {
     const finishPerf = startUiPerf("createPushOnChain", { mediaId, amount });
     if (walletConnectionStatus !== "connected" || !walletAddress) {
-      setFeedback({ type: "error", message: "Connect wallet to create a Push." });
+      setFeedback(createFeedback("push", "error", "Connect wallet to create a Push."));
       logUiPerf("expiredWaitingCreatePushBlocked", { mediaId, reason: "wallet not connected" });
       finishPerf("end", { skipped: true, reason: "wallet not connected" });
       return;
@@ -1701,7 +1782,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     const media = mediaRecords.find((record) => record.id === mediaId);
     if (!media) {
-      setFeedback({ type: "error", message: "Choose registered idle or expired-waiting Palate media to create a Push." });
+      setFeedback(createFeedback("push", "error", "Choose registered idle or expired-waiting Palate media to create a Push."));
       logUiPerf("expiredWaitingCreatePushBlocked", { mediaId, reason: "media not found" });
       finishPerf("end", { skipped: true, reason: "media not found" });
       return;
@@ -1719,7 +1800,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           reason: eligibility.reason
         });
       }
-      setFeedback({ type: "error", message: eligibility.reason });
+      setFeedback(createFeedback("push", "error", eligibility.reason));
       logUiPerf("expiredWaitingCreatePushBlocked", {
         mediaId,
         waitingPushId: media.waitingPushId ?? null,
@@ -1734,7 +1815,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       const amountOctas = parseAptToOctas(amount);
       const minPushAmount = getRequiredConfigAmount("minPushAmount");
       if (BigInt(amountOctas) < minPushAmount) {
-        setFeedback({ type: "error", message: `Minimum push is ${formatOctasToApt(minPushAmount)}.` });
+        setFeedback(createFeedback("push", "error", `Minimum push is ${formatOctasToApt(minPushAmount)}.`));
         finishPerf("end", { skipped: true, reason: "amount below minimum" });
         return;
       }
@@ -1756,14 +1837,14 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
       const data = buildCreatePushPayload(media.palateMediaId ?? media.id, amountOctas);
       const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Create Push submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("push", "info", `Create Push submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
-      setFeedback({ type: "success", message: `Push created ${shortenTransactionHash(transactionHash)}.` });
+      setFeedback(createFeedback("push", "success", `Push created ${shortenTransactionHash(transactionHash)}.`));
       finishPerf("success", { transactionHash, refreshedGameState: true });
     } catch (error) {
       console.error("createPush failed", error);
-      setFeedback({ type: "error", message: getReadablePalateError(error, "Create Push failed.") });
+      setFeedback(createFeedback("push", "error", getReadablePalateError(error, "Create Push failed.")));
       if (media.status === "waiting" && media.waitingPushExpired === true && typeof media.waitingPushId === "number") {
         logUiPerf("expiredWaitingCreatePushError", {
           mediaId,
@@ -1780,7 +1861,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   async function challengePushOnChain(pushId: number, challengerMediaId: number, amount: string) {
     const finishPerf = startUiPerf("challengePushOnChain", { pushId, challengerMediaId, amount });
     if (walletConnectionStatus !== "connected" || !walletAddress) {
-      setFeedback({ type: "error", message: "Connect wallet to challenge a Push." });
+      setFeedback(createFeedback("challenge", "error", "Connect wallet to challenge a Push."));
       finishPerf("end", { skipped: true, reason: "wallet not connected" });
       return;
     }
@@ -1789,13 +1870,13 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     const challengerMedia = mediaRecords.find((record) => record.id === challengerMediaId);
 
     if (!selectedPush || !challengerMedia) {
-      setFeedback({ type: "error", message: "Select an open waiting push and registered idle challenger media." });
+      setFeedback(createFeedback("challenge", "error", "Select an open waiting push and registered idle challenger media."));
       finishPerf("end", { skipped: true, reason: "push or challenger media missing" });
       return;
     }
 
     if (normalizeAddress(selectedPush.pusherAddress) === normalizeAddress(walletAddress)) {
-      setFeedback({ type: "error", message: "You cannot challenge your own push." });
+      setFeedback(createFeedback("challenge", "error", "You cannot challenge your own push."));
       finishPerf("end", { skipped: true, reason: "self challenge blocked" });
       return;
     }
@@ -1812,7 +1893,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           reason: pushEligibility.reason
         });
       }
-      setFeedback({ type: "error", message: pushEligibility.reason });
+      setFeedback(createFeedback("challenge", "error", pushEligibility.reason));
       finishPerf("end", { skipped: true, reason: pushEligibility.reason });
       return;
     }
@@ -1829,13 +1910,13 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           reason: challengerEligibility.reason
         });
       }
-      setFeedback({ type: "error", message: challengerEligibility.reason });
+      setFeedback(createFeedback("challenge", "error", challengerEligibility.reason));
       finishPerf("end", { skipped: true, reason: challengerEligibility.reason });
       return;
     }
 
     if (challengerMedia.category !== selectedPush.media.category) {
-      setFeedback({ type: "error", message: "Challenge rejected: media categories must match." });
+      setFeedback(createFeedback("challenge", "error", "Challenge rejected: media categories must match."));
       finishPerf("end", { skipped: true, reason: "category mismatch" });
       return;
     }
@@ -1846,7 +1927,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       const requiredChallengeAmount = getMinimumChallengeAmountOctas(selectedPush);
       const requiredAmount = requiredChallengeAmount > minPushAmount ? requiredChallengeAmount : minPushAmount;
       if (BigInt(amountOctas) < requiredAmount) {
-        setFeedback({ type: "error", message: `Minimum challenge is ${formatOctasToApt(requiredAmount)}.` });
+        setFeedback(createFeedback("challenge", "error", `Minimum challenge is ${formatOctasToApt(requiredAmount)}.`));
         finishPerf("end", { skipped: true, reason: "amount below minimum" });
         return;
       }
@@ -1856,14 +1937,14 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
       const data = buildChallengePushPayload(pushId, challengerMedia.palateMediaId ?? challengerMedia.id, amountOctas);
       const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Challenge submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("challenge", "info", `Challenge submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
-      setFeedback({ type: "success", message: `Challenge accepted ${shortenTransactionHash(transactionHash)}.` });
+      setFeedback(createFeedback("challenge", "success", `Challenge accepted ${shortenTransactionHash(transactionHash)}.`));
       finishPerf("success", { transactionHash, refreshedGameState: true });
     } catch (error) {
       console.error("challengePush failed", error);
-      setFeedback({ type: "error", message: getReadablePalateError(error, "Challenge Push failed.") });
+      setFeedback(createFeedback("challenge", "error", getReadablePalateError(error, "Challenge Push failed.")));
       finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
     } finally {
       setProcessingAction(null);
@@ -1874,14 +1955,14 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     const finishPerf = startUiPerf("expireWaitingPushOnChain", { pushId });
     logUiPerf("cleanupExpiredPushClick", { pushId });
     if (walletConnectionStatus !== "connected" || !walletAddress) {
-      setFeedback({ type: "error", message: "Connect wallet to clean up an expired push." });
+      setFeedback(createFeedback("cleanup", "error", "Connect wallet to clean up an expired push."));
       logUiPerf("cleanupExpiredPushError", { pushId, reason: "wallet not connected" });
       finishPerf("end", { skipped: true, reason: "wallet not connected" });
       return;
     }
 
     if (!Number.isFinite(pushId) || pushId < 0) {
-      setFeedback({ type: "error", message: "Waiting push id unavailable." });
+      setFeedback(createFeedback("cleanup", "error", "Waiting push id unavailable."));
       logUiPerf("cleanupExpiredPushError", { pushId, reason: "invalid push id" });
       finishPerf("end", { skipped: true, reason: "invalid push id" });
       return;
@@ -1897,7 +1978,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     );
 
     if (!expiredMedia) {
-      setFeedback({ type: "error", message: "Choose your expired waiting push to clean up." });
+      setFeedback(createFeedback("cleanup", "error", "Choose your expired waiting push to clean up."));
       logUiPerf("cleanupExpiredPushError", { pushId, reason: "expired push not found" });
       finishPerf("end", { skipped: true, reason: "expired push not found" });
       return;
@@ -1914,16 +1995,16 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       });
       const data = buildExpireWaitingPushPayload(pushId);
       const transactionHash = await signAndSubmitTransaction({ data });
-      setFeedback({ type: "info", message: `Expired push cleanup submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.` });
+      setFeedback(createFeedback("cleanup", "info", `Expired push cleanup submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       await refreshWalletGameState(walletAddress);
       await Promise.allSettled([refreshProfileActivityForWallet(walletAddress)]);
-      setFeedback({ type: "success", message: `Expired waiting push cleaned up ${shortenTransactionHash(transactionHash)}.` });
+      setFeedback(createFeedback("cleanup", "success", `Expired waiting push cleaned up ${shortenTransactionHash(transactionHash)}.`));
       logUiPerf("cleanupExpiredPushSuccess", { pushId, transactionHash });
       finishPerf("success", { transactionHash, refreshedGameState: true });
     } catch (error) {
       console.error("expireWaitingPush failed", error);
-      setFeedback({ type: "error", message: getReadablePalateError(error, "Expired waiting push cleanup failed.") });
+      setFeedback(createFeedback("cleanup", "error", getReadablePalateError(error, "Expired waiting push cleanup failed.")));
       logUiPerf("cleanupExpiredPushError", {
         pushId,
         message: error instanceof Error ? error.message : String(error)
@@ -2013,24 +2094,25 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       clearFeedback: () => setFeedback(null),
       refreshClaims,
       refreshProfileActivity,
+      refreshPublicGameState,
       connectMockWallet: () => {
         setWalletStatus("connecting");
         window.setTimeout(() => {
           setWalletStatus("connected");
-          setFeedback({ type: "success", message: "Wallet connected." });
+          setFeedback(createFeedback("wallet", "success", "Wallet connected."));
         }, 420);
       },
       disconnectMockWallet: () => {
         setWalletStatus("disconnected");
-        setFeedback({ type: "info", message: "Wallet disconnected." });
+        setFeedback(createFeedback("wallet", "info", "Wallet disconnected."));
       },
       simulateWrongNetwork: () => {
         setWalletStatus("wrong_network");
-        setFeedback({ type: "error", message: "Wallet is on the wrong network. Use Aptos Testnet later." });
+        setFeedback(createFeedback("wallet", "error", "Wallet is on the wrong network. Use Aptos Testnet later."));
       },
       simulateWalletError: () => {
         setWalletStatus("error");
-        setFeedback({ type: "error", message: "Wallet error state." });
+        setFeedback(createFeedback("wallet", "error", "Wallet error state."));
       },
       depositBalance: async (amount) => runBalanceTransaction("deposit", amount),
       withdrawBalance: async (amount) => runBalanceTransaction("withdraw", amount),
@@ -2048,7 +2130,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       resetUploadFlow,
       uploadMockMedia: async (input) => {
         if (!VIDEO_ENABLED && input.category === "video") {
-          setFeedback({ type: "error", message: "Video uploads are temporarily disabled for MVP." });
+          setFeedback(createFeedback("general", "error", "Video uploads are temporarily disabled for MVP."));
           return;
         }
         setProcessingAction("upload");
@@ -2077,7 +2159,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           accent: getAccentForCategory(input.category)
         };
         setMediaRecords((records) => [nextMedia, ...records]);
-        setFeedback({ type: "success", message: "Upload completed and media was added to My Media." });
+        setFeedback(createFeedback("general", "success", "Upload completed and media was added to My Media."));
         setProcessingAction(null);
       },
       createPush: createPushOnChain,
@@ -2088,19 +2170,19 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           const media = mediaRecords.find((record) => record.id === mediaId);
           const pushAmount = parseApt(amount);
           if (!media || media.status !== "idle") {
-            setFeedback({ type: "error", message: "Choose an idle media item to create a push." });
+            setFeedback(createFeedback("push", "error", "Choose an idle media item to create a push."));
             return;
           }
           if (!VIDEO_ENABLED && media.category === "video") {
-            setFeedback({ type: "error", message: "Video media is disabled for MVP." });
+            setFeedback(createFeedback("push", "error", "Video media is disabled for MVP."));
             return;
           }
           if (pushAmount < 1) {
-            setFeedback({ type: "error", message: "Push rejected: minimum push is 1.000 APT." });
+            setFeedback(createFeedback("push", "error", "Push rejected: minimum push is 1.000 APT."));
             return;
           }
           if (pushAmount > getAvailableBalanceNumber()) {
-            setFeedback({ type: "error", message: "Push rejected: insufficient Palate Balance." });
+            setFeedback(createFeedback("push", "error", "Push rejected: insufficient Palate Balance."));
             return;
           }
           subtractAvailableBalance(pushAmount);
@@ -2117,7 +2199,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
             },
             ...pushes
           ]);
-          setFeedback({ type: "success", message: "Push created. It is now waiting for a challenger." });
+          setFeedback(createFeedback("push", "success", "Push created. It is now waiting for a challenger."));
         });
       },
       challengeMockPush: async (pushId, challengerMediaId, amount) => {
@@ -2126,27 +2208,27 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           const challenger = mediaRecords.find((media) => media.id === challengerMediaId);
           const challengeAmount = parseApt(amount);
           if (!push || !challenger) {
-            setFeedback({ type: "error", message: "Select a waiting push and challenger media." });
+            setFeedback(createFeedback("challenge", "error", "Select a waiting push and challenger media."));
             return;
           }
           if (challenger.status !== "idle") {
-            setFeedback({ type: "error", message: "Challenge rejected: challenger media must be idle." });
+            setFeedback(createFeedback("challenge", "error", "Challenge rejected: challenger media must be idle."));
             return;
           }
           if (!VIDEO_ENABLED && (challenger.category === "video" || push.media.category === "video")) {
-            setFeedback({ type: "error", message: "Video media is disabled for MVP." });
+            setFeedback(createFeedback("challenge", "error", "Video media is disabled for MVP."));
             return;
           }
           if (challenger.category !== push.media.category) {
-            setFeedback({ type: "error", message: "Challenge rejected: media categories must match." });
+            setFeedback(createFeedback("challenge", "error", "Challenge rejected: media categories must match."));
             return;
           }
           if (challengeAmount < parseApt(push.minChallengeAmount)) {
-            setFeedback({ type: "error", message: `Challenge rejected: minimum is ${push.minChallengeAmount}.` });
+            setFeedback(createFeedback("challenge", "error", `Challenge rejected: minimum is ${push.minChallengeAmount}.`));
             return;
           }
           if (challengeAmount > getAvailableBalanceNumber()) {
-            setFeedback({ type: "error", message: "Challenge rejected: insufficient Palate Balance." });
+            setFeedback(createFeedback("challenge", "error", "Challenge rejected: insufficient Palate Balance."));
             return;
           }
           subtractAvailableBalance(challengeAmount);
@@ -2176,7 +2258,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
             },
             ...matches
           ]);
-          setFeedback({ type: "success", message: "Challenge accepted. A live match was created." });
+          setFeedback(createFeedback("challenge", "success", "Challenge accepted. A live match was created."));
         });
       },
       claimReward: claimRewardOnChain,
@@ -2195,3 +2277,4 @@ export function usePalate() {
 
   return context;
 }
+

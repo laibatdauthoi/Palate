@@ -7,10 +7,12 @@ import { MatchCard } from "@/components/match_card";
 import { WaitingPushCard } from "@/components/waiting_push_card";
 import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
-import { logPageMount } from "@/utils/ui_perf";
+import { logPageMount, logUiPerf } from "@/utils/ui_perf";
+
+const live_refresh_interval_ms = 18000;
 
 export default function HomePage() {
-  const { activeMatches, settleMatch, waitingPushes } = usePalate();
+  const { activeMatches, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
   const [activityTab, setActivityTab] = useState<"waiting" | "matches">("waiting");
   const waitingCount = waitingPushes.length;
   const activeCount = activeMatches.length;
@@ -22,6 +24,35 @@ export default function HomePage() {
   useEffect(() => {
     logPageMount("Home");
   }, []);
+
+  useEffect(() => {
+    function runRefresh(source: "interval" | "visible" | "mount") {
+      if (document.hidden) {
+        logUiPerf("liveRefresh:skippedHidden", { page: "home", source });
+        return;
+      }
+
+      void refreshPublicGameState({
+        waitingPushes: true,
+        activeMatches: true,
+        source: `home:${source}`
+      });
+    }
+
+    runRefresh("mount");
+    const intervalId = window.setInterval(() => runRefresh("interval"), live_refresh_interval_ms);
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        runRefresh("visible");
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [refreshPublicGameState]);
 
   return (
     <div className="page_stack page_home">

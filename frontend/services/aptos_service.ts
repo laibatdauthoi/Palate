@@ -126,6 +126,14 @@ function isRateLimitError(error: unknown): error is ReadError {
   return typeof error === "object" && error !== null && (error as ReadError).isRateLimit === true;
 }
 
+export function isAptosReadRateLimited(error: unknown) {
+  return isRateLimitError(error) || extractErrorDetails(error).status === 429 || getErrorMessage(error).toLowerCase().includes("rate limit");
+}
+
+export function getAptosReadCooldownRemainingMs() {
+  return Math.max(0, read_cooldown_until - Date.now());
+}
+
 function withReadSlot<T>(task: () => Promise<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const run = () => {

@@ -31,22 +31,6 @@ function shortenAddress(address: string | null | undefined) {
   return `${address.slice(0, 8)}...${address.slice(-6)}`;
 }
 
-function classifyProfileFeedback(message: string) {
-  const normalized = message.toLowerCase();
-
-  if (normalized.includes("claim")) return "claim";
-  if (normalized.includes("reward credited")) return "claim";
-  if (normalized.includes("profile claims")) return "claim";
-  if (normalized.includes("transaction log")) return "activity";
-  if (normalized.includes("using last read")) return "activity";
-  if (normalized.includes("deposit")) return "balance";
-  if (normalized.includes("withdraw")) return "balance";
-  if (normalized.includes("available palate balance")) return "balance";
-  if (normalized.includes("connect wallet to manage palate balance")) return "balance";
-
-  return "other";
-}
-
 function parseProfileTab(value: string | null): ProfileTab {
   if (value === "Claims" || value === "Activity" || value === "Stats") {
     return value;
@@ -170,10 +154,9 @@ function ProfilePageContent() {
         ? "Unavailable"
         : totalClaimableAmount;
 
-  const profileFeedbackTarget = feedback ? classifyProfileFeedback(feedback.message) : null;
-  const balanceFeedback = profileFeedbackTarget === "balance" ? feedback : null;
-  const claimFeedback = profileFeedbackTarget === "claim" ? feedback : null;
-  const activityFeedback = profileFeedbackTarget === "activity" ? feedback : null;
+  const balanceFeedback = feedback?.scope === "wallet" ? feedback : null;
+  const claimFeedback = feedback?.scope === "claim" ? feedback : null;
+  const activityFeedback = feedback?.scope === "profile" ? feedback : null;
 
   const filteredActivityTransactions = useMemo(
     () =>

@@ -40,7 +40,7 @@ const category_values = {
 } as const satisfies Record<Exclude<(typeof categories)[number], "All Categories">, MediaCategory>;
 
 export default function MyMediaPage() {
-  const { clearPendingRegistration, deleteMedia, expireWaitingPush, mediaReadStatus, mediaRecords, processingAction, retryOnChainDelete, retryPalateRegistration } = usePalate();
+  const { clearPendingRegistration, deleteMedia, expireWaitingPush, feedback, mediaReadStatus, mediaRecords, processingAction, retryOnChainDelete, retryPalateRegistration } = usePalate();
   const { canPlayMedia, currentTrackId, isPlaying, playMedia, setQueueFromMedia, togglePlayback } = useMediaPlayer();
   const { walletStatus } = usePalateWallet();
   const router = useRouter();
@@ -49,6 +49,7 @@ export default function MyMediaPage() {
   const [deleteMediaId, setDeleteMediaId] = useState<number | null>(null);
   const categoryOptions: DropdownOption<CategoryFilter>[] = categories.map((item) => ({ label: item, value: item }));
   const walletReady = walletStatus === "connected";
+  const cleanupFeedback = feedback?.scope === "cleanup" ? feedback : null;
 
   const filteredMedia = useMemo(() => {
     return mediaRecords.filter((media) => {
@@ -245,6 +246,7 @@ export default function MyMediaPage() {
           <CustomDropdown label="Category" onChange={setCategory} options={categoryOptions} value={category} />
         </div>
         {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to load your on-chain media.</p> : null}
+        {cleanupFeedback ? <p className={`feedback_text feedback_${cleanupFeedback.type}`}>{cleanupFeedback.message}</p> : null}
       </SectionPanel>
 
       {walletReady && mediaReadStatus === "loading" ? <LoadingState label="Loading on-chain media" /> : null}

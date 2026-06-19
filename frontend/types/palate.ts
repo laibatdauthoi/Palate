@@ -19,6 +19,12 @@ export type UploadStep =
 export type WalletStatus = "disconnected" | "connecting" | "connected" | "wrong_network" | "error";
 export type BuffSide = "A" | "B";
 export type ChainReadStatus = "idle" | "loading" | "ready" | "error";
+export type FeedbackScope = "push" | "challenge" | "cleanup" | "claim" | "settle" | "buff" | "wallet" | "profile" | "general";
+export type FeedbackMessage = {
+  scope: FeedbackScope;
+  type: "success" | "error" | "info";
+  message: string;
+};
 
 export type ChainCategoryConstants = {
   meme: number;

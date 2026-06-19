@@ -13,7 +13,9 @@ import { useCountdownNow, getLiveCountdownState } from "@/hooks/use_live_countdo
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
-import { logPageMount } from "@/utils/ui_perf";
+import { logPageMount, logUiPerf } from "@/utils/ui_perf";
+
+const live_refresh_interval_ms = 18000;
 
 export default function BuffPage() {
   const {
@@ -27,10 +29,11 @@ export default function BuffPage() {
     noValidMatchAvailable,
     placeBuff,
     processingAction,
+    refreshPublicGameState,
     settleMatch,
     skipMatch
   } = usePalate();
-  const { walletStatus } = usePalateWallet();
+  const { walletAddress, walletStatus } = usePalateWallet();
   const [buffAmount, setBuffAmount] = useState("0.250");
   const nowMs = useCountdownNow();
   const assignedMatch = currentAssignment?.match;
@@ -53,10 +56,42 @@ export default function BuffPage() {
       ? "Palate Balance is too low for this Buff."
       : buffAmountValidation.message;
   const canBuff = walletReady && !buffBusy && buffAmountValidation.valid && buffBalanceValid;
+  const buffFeedback = feedback?.scope === "buff" ? feedback : null;
+  const settleFeedback = feedback?.scope === "settle" ? feedback : null;
 
   useEffect(() => {
     logPageMount("Buff");
   }, []);
+
+  useEffect(() => {
+    function runRefresh(source: "interval" | "visible" | "mount") {
+      if (document.hidden) {
+        logUiPerf("liveRefresh:skippedHidden", { page: "buff", source });
+        return;
+      }
+
+      void refreshPublicGameState({
+        activeMatches: true,
+        assignment: walletReady,
+        ownerAddress: walletAddress ?? null,
+        source: `buff:${source}`
+      });
+    }
+
+    runRefresh("mount");
+    const intervalId = window.setInterval(() => runRefresh("interval"), live_refresh_interval_ms);
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        runRefresh("visible");
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [refreshPublicGameState, walletAddress, walletReady]);
 
   return (
     <div className="page_stack page_buff">
@@ -67,7 +102,7 @@ export default function BuffPage() {
         actions={<ActionButton disabled={!walletReady || buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Match"}</ActionButton>}
       />
 
-      {feedback ? <div className={`state_card feedback_panel feedback_${feedback.type}`}><p>{feedback.message}</p></div> : null}
+      {buffFeedback ? <div className={`state_card feedback_panel feedback_${buffFeedback.type}`}><p>{buffFeedback.message}</p></div> : null}
 
       {assignedMatch ? (
         <BuffPanel
@@ -87,6 +122,7 @@ export default function BuffPage() {
       ) : null}
 
       <SectionPanel title="Settle eligible matches" copy="Only expired active matches can be settled. Hidden live score, pools, and odds remain hidden until settlement completes.">
+        {settleFeedback ? <p className={`feedback_text feedback_${settleFeedback.type}`}>{settleFeedback.message}</p> : null}
         {settleableMatches.length > 0 ? (
           <div className="compact_card_grid compact_card_grid_matches">
             {settleableMatches.map((match) => (
