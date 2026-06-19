@@ -95,7 +95,6 @@ function WalletBridge({ children }: { children: ReactNode }) {
       } catch (error) {
         if (cancelled) return;
         console.error("[Wallet balance read failed]", error);
-        setWalletBalance(null);
         setWalletBalanceStatus("error");
         setWalletBalanceError(error instanceof Error ? error.message : "Wallet balance unavailable.");
       }

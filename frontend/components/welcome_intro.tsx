@@ -23,6 +23,13 @@ export function WelcomeIntro() {
   useEffect(() => {
     if (!visible) return;
 
+    document.body.classList.add("welcome_intro_active");
+    if (leaving) {
+      document.body.classList.add("welcome_intro_leaving_active");
+    } else {
+      document.body.classList.remove("welcome_intro_leaving_active");
+    }
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         dismiss();
@@ -30,8 +37,12 @@ export function WelcomeIntro() {
     }
 
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [dismiss, visible]);
+    return () => {
+      document.body.classList.remove("welcome_intro_active");
+      document.body.classList.remove("welcome_intro_leaving_active");
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [dismiss, leaving, visible]);
 
   if (!visible) return null;
 

@@ -26,6 +26,10 @@ body {
   overflow-x: hidden;
 }
 
+body.welcome_intro_active {
+  overflow: hidden;
+}
+
 h1,
 h2,
 h3,
@@ -415,12 +419,23 @@ img {
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   min-height: 100dvh;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 320ms ease, transform 320ms ease, visibility 0s linear 0ms;
 }
 
 .main_content {
   width: min(100%, var(--app-max-width));
   margin: 0 auto;
   padding: var(--spacing-xl) var(--spacing-2xl) var(--spacing-3xl);
+}
+
+body.welcome_intro_active .app_shell {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
 }
 
 .page_stack {

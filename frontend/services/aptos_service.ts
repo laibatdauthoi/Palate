@@ -720,6 +720,17 @@ export async function getWalletAptBalance(walletAddress: string): Promise<string
   const readers: Array<() => Promise<number | string | bigint>> = [
     () =>
       readWithDiagnostics(
+        "wallet:getBalance",
+        () => aptos.getBalance({ accountAddress: walletAddress, asset: aptos_coin_type }),
+        {
+          endpoint: "accounts/getBalance",
+          retries: wallet_balance_retry_count,
+          delayMs: wallet_balance_retry_delay_ms,
+          dedupeKey: `wallet-balance:${walletAddress}`
+        }
+      ),
+    () =>
+      readWithDiagnostics(
         "wallet:getAccountResource:CoinStore",
         async () => {
           const resource = await fetchJsonWithDiagnostics<{ data: { coin?: { value?: string | number | bigint } } }>(
@@ -736,36 +747,34 @@ export async function getWalletAptBalance(walletAddress: string): Promise<string
           endpoint: `/accounts/${walletAddress}/resource/${aptos_coin_store_resource}`,
           retries: wallet_balance_retry_count,
           delayMs: wallet_balance_retry_delay_ms,
-          dedupeKey: `wallet-balance:${walletAddress}`
-        }
-      ),
-    () =>
-      readWithDiagnostics(
-        "wallet:getBalance",
-        () => aptos.getBalance({ accountAddress: walletAddress, asset: aptos_coin_type }),
-        {
-          endpoint: "accounts/getBalance",
-          retries: wallet_balance_retry_count,
-          delayMs: wallet_balance_retry_delay_ms,
           dedupeKey: `wallet-balance:${walletAddress}:fallback`
         }
       )
   ];
 
   let lastError: unknown;
+  let sawMissingCoinStore = false;
+  let sawNonCoinStoreFailure = false;
   for (const read of readers) {
     try {
       const amount = await read();
       return formatOctasToApt(amount);
     } catch (error) {
       if (isMissingAptosCoinStoreBalanceError(error)) {
-        return formatOctasToApt(0);
+        sawMissingCoinStore = true;
+        lastError = error;
+        continue;
       }
       lastError = error;
+      sawNonCoinStoreFailure = true;
       if (isRateLimitError(error) || extractErrorDetails(error).status === 429) {
         break;
       }
     }
+  }
+
+  if (sawMissingCoinStore && !sawNonCoinStoreFailure) {
+    return formatOctasToApt(0);
   }
 
   throw lastError instanceof Error ? lastError : new Error("Wallet balance unavailable.");
