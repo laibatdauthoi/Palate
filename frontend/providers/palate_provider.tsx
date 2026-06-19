@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { mock_balance, mock_matches, mock_media, mock_summary, mock_waiting_pushes } from "@/data/mock_data";
 import { VIDEO_ENABLED, app_config } from "@/config/app_config";
 import {
@@ -474,6 +474,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [activityReadStatus, setActivityReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
   const [publicGameReadStatus, setPublicGameReadStatus] = useState<ReadStatus>("idle");
   const [readLifecycle, setReadLifecycle] = useState<ReadLifecycleState>(initial_read_lifecycle_state);
+  const readLifecycleRef = useRef<ReadLifecycleState>(initial_read_lifecycle_state);
+  const isRefreshingMediaRef = useRef(false);
+  const isRefreshingClaimsRef = useRef(false);
+  const isRefreshingUserSummaryRef = useRef(false);
+  const isRefreshingActivityRef = useRef(false);
+  const isRefreshingPublicGameStateRef = useRef(false);
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [chainRead, setChainRead] = useState<ChainReadState>(initial_chain_read_state);
@@ -488,6 +494,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     return () => window.clearTimeout(timeoutId);
   }, [feedback]);
+
+  useEffect(() => {
+    readLifecycleRef.current = readLifecycle;
+  }, [readLifecycle]);
 
   useEffect(() => {
     try {
@@ -642,7 +652,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function refreshUserMediaForWallet(ownerAddress: string) {
-    setMediaReadStatus("loading");
+    const isInitialLoad = !readLifecycleRef.current.hasLoadedMedia;
+    if (isInitialLoad) {
+      setMediaReadStatus("loading");
+    } else {
+      isRefreshingMediaRef.current = true;
+    }
     try {
       const nextMedia = await getUserMedia(ownerAddress);
       setMediaRecords((current) => nextMedia.map((record) => {
@@ -670,12 +685,19 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setMediaReadStatus("error");
       setReadLifecycle((current) => ({ ...current, hasLoadedMedia: true }));
       setFeedback(createFeedback("general", "error", error instanceof Error ? error.message : "Unable to load My Media from chain."));
+    } finally {
+      isRefreshingMediaRef.current = false;
     }
   }
 
   const refreshClaimsForWallet = useCallback(async (ownerAddress: string) => {
     const finishPerf = startUiPerf("refreshClaimsForWallet", { ownerAddress });
-    setClaimReadStatus("loading");
+    const isInitialLoad = !readLifecycleRef.current.hasLoadedClaims;
+    if (isInitialLoad) {
+      setClaimReadStatus("loading");
+    } else {
+      isRefreshingClaimsRef.current = true;
+    }
     try {
       const nextClaimRecords = await readClaimRecords(ownerAddress);
       if (app_config.debugAptosReads) {
@@ -705,12 +727,19 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setClaimReadStatus("error");
       setReadLifecycle((current) => ({ ...current, hasLoadedClaims: true }));
       finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
+    } finally {
+      isRefreshingClaimsRef.current = false;
     }
   }, []);
 
   const refreshUserSummaryForWallet = useCallback(async (ownerAddress: string) => {
     const finishPerf = startUiPerf("refreshUserSummaryForWallet", { ownerAddress });
-    setUserSummaryReadStatus("loading");
+    const isInitialLoad = !readLifecycleRef.current.hasLoadedUserSummary;
+    if (isInitialLoad) {
+      setUserSummaryReadStatus("loading");
+    } else {
+      isRefreshingUserSummaryRef.current = true;
+    }
     try {
       const nextSummary = await readUserSummary(ownerAddress);
       setUserSummary(nextSummary);
@@ -736,12 +765,19 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         return current;
       });
       finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
+    } finally {
+      isRefreshingUserSummaryRef.current = false;
     }
   }, []);
 
   const refreshActivityTransactionsForWallet = useCallback(async (ownerAddress: string) => {
     const finishPerf = startUiPerf("refreshActivityTransactionsForWallet", { ownerAddress });
-    setActivityReadStatus("loading");
+    const isInitialLoad = !readLifecycleRef.current.hasLoadedActivity;
+    if (isInitialLoad) {
+      setActivityReadStatus("loading");
+    } else {
+      isRefreshingActivityRef.current = true;
+    }
     try {
       const nextTransactions = await getPalateTransactionLog(ownerAddress, { limit: 80 });
       setActivityTransactions(nextTransactions);
@@ -753,6 +789,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setActivityReadStatus("error");
       setReadLifecycle((current) => ({ ...current, hasLoadedActivity: true }));
       finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
+    } finally {
+      isRefreshingActivityRef.current = false;
     }
   }, []);
 
@@ -762,9 +800,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       ...current,
       walletAddress: ownerAddress
     }));
-    setMediaReadStatus("loading");
-    if (waitingPushes.length === 0 && activeMatches.length === 0) {
+    const initialMediaLoad = !readLifecycleRef.current.hasLoadedMedia;
+    const initialPublicGameLoad = !readLifecycleRef.current.hasLoadedPublicGameState;
+
+    if (initialMediaLoad) {
+      setMediaReadStatus("loading");
+    } else {
+      isRefreshingMediaRef.current = true;
+    }
+    if (initialPublicGameLoad) {
       setPublicGameReadStatus("loading");
+    } else {
+      isRefreshingPublicGameStateRef.current = true;
     }
 
     const [nextSummary, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.allSettled([
@@ -778,9 +825,11 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (nextSummary.status === "fulfilled") {
       setUserSummary(nextSummary.value);
       setUserSummaryReadStatus("ready");
+      setReadLifecycle((current) => ({ ...current, hasLoadedUserSummary: true }));
     } else {
       console.error("[User summary read failed]", nextSummary.reason);
       setUserSummaryReadStatus("error");
+      setReadLifecycle((current) => ({ ...current, hasLoadedUserSummary: true }));
       setUserSummary((current) => {
         const hasLoadingFields = Object.values(current).some((value) => value === "Loading");
         if (!current.walletAddress || hasLoadingFields) {
@@ -830,6 +879,9 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       console.error("[Assignment read failed]", nextAssignment.reason);
     }
 
+    isRefreshingMediaRef.current = false;
+    isRefreshingPublicGameStateRef.current = false;
+
     finishPerf("success", {
       summary: nextSummary.status,
       media: nextMedia.status,
@@ -840,7 +892,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       activeMatchCount: nextActiveMatches.status === "fulfilled" ? nextActiveMatches.value.length : 0,
       assignment: nextAssignment.status
     });
-  }, [activeMatches.length, waitingPushes.length]);
+  }, []);
 
   const refreshWalletGameState = useCallback(async (ownerAddress: string) => {
     const finishPerf = startUiPerf("refreshWalletGameState", { ownerAddress });
@@ -886,13 +938,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (
-      (shouldRefreshWaitingPushes || shouldRefreshActiveMatches)
-      && waitingPushes.length === 0
-      && activeMatches.length === 0
-      && publicGameReadStatus !== "ready"
-    ) {
+    const isInitialPublicGameLoad = !readLifecycleRef.current.hasLoadedPublicGameState;
+
+    if ((shouldRefreshWaitingPushes || shouldRefreshActiveMatches) && isInitialPublicGameLoad) {
       setPublicGameReadStatus("loading");
+    } else if (shouldRefreshWaitingPushes || shouldRefreshActiveMatches) {
+      isRefreshingPublicGameStateRef.current = true;
     }
 
     logUiPerf("liveRefresh:start", {
@@ -955,6 +1006,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       if (shouldRefreshWaitingPushes || shouldRefreshActiveMatches) {
         setReadLifecycle((current) => ({ ...current, hasLoadedPublicGameState: true }));
         setPublicGameReadStatus("error");
+        isRefreshingPublicGameStateRef.current = false;
       }
       logUiPerf("liveRefresh:error", {
         source,
@@ -966,15 +1018,26 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (shouldRefreshWaitingPushes || shouldRefreshActiveMatches) {
       setReadLifecycle((current) => ({ ...current, hasLoadedPublicGameState: true }));
       setPublicGameReadStatus("ready");
+      isRefreshingPublicGameStateRef.current = false;
     }
 
     logUiPerf("liveRefresh:success", {
       source,
-      waitingPushes: shouldRefreshWaitingPushes ? waitingPushes.length : null,
-      activeMatches: shouldRefreshActiveMatches ? activeMatches.length : null,
+      waitingPushes: shouldRefreshWaitingPushes
+        ? (() => {
+            const waitingResult = results[readKeys.indexOf("waitingPushes")];
+            return waitingResult?.status === "fulfilled" ? (waitingResult.value as WaitingPush[]).length : null;
+          })()
+        : null,
+      activeMatches: shouldRefreshActiveMatches
+        ? (() => {
+            const matchResult = results[readKeys.indexOf("activeMatches")];
+            return matchResult?.status === "fulfilled" ? (matchResult.value as ActiveMatch[]).length : null;
+          })()
+        : null,
       assignment: shouldRefreshAssignment
     });
-  }, [activeMatches.length, publicGameReadStatus, waitingPushes.length, walletAddress]);
+  }, [walletAddress]);
 
   useEffect(() => {
     if (walletConnectionStatus !== "connected" || !walletAddress) return;

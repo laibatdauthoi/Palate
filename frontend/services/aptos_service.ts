@@ -130,6 +130,12 @@ export function isAptosReadRateLimited(error: unknown) {
   return isRateLimitError(error) || extractErrorDetails(error).status === 429 || getErrorMessage(error).toLowerCase().includes("rate limit");
 }
 
+function isMissingAptosCoinStoreBalanceError(error: unknown) {
+  const message = getErrorMessage(error).toLowerCase();
+  return message.includes("resource_not_found")
+    && message.includes("0x1::coin::coinstore<0x1::aptos_coin::aptoscoin>");
+}
+
 export function getAptosReadCooldownRemainingMs() {
   return Math.max(0, read_cooldown_until - Date.now());
 }
@@ -752,6 +758,9 @@ export async function getWalletAptBalance(walletAddress: string): Promise<string
       const amount = await read();
       return formatOctasToApt(amount);
     } catch (error) {
+      if (isMissingAptosCoinStoreBalanceError(error)) {
+        return formatOctasToApt(0);
+      }
       lastError = error;
       if (isRateLimitError(error) || extractErrorDetails(error).status === 429) {
         break;
