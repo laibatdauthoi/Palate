@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
 import { EmptyState } from "@/components/empty_state";
+import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
 import { WaitingPushCard } from "@/components/waiting_push_card";
 import { SectionPanel } from "@/components/section_panel";
@@ -23,7 +24,7 @@ const category_labels: Record<MediaCategory, string> = {
 };
 
 export default function HomePage() {
-  const { activeMatches, balance, challengePush, chainRead, clearFeedback, feedback, mediaRecords, processingAction, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, clearFeedback, feedback, mediaRecords, processingAction, publicGameReadStatus, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const [activityTab, setActivityTab] = useState<"waiting" | "matches">("waiting");
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
@@ -73,6 +74,7 @@ export default function HomePage() {
     { key: "waiting" as const, label: "Waiting Pushes", count: waitingCount },
     { key: "matches" as const, label: "Active Matches", count: activeCount }
   ]), [activeCount, waitingCount]);
+  const lobbyLoading = publicGameReadStatus === "loading" && waitingPushes.length === 0 && activeMatches.length === 0;
 
   useEffect(() => {
     logPageMount("Home");
@@ -144,7 +146,12 @@ export default function HomePage() {
             </button>
           ))}
         </div>
-        {activityTab === "waiting" ? (
+        {lobbyLoading ? (
+          <LoadingState
+            label="Loading lobby activity"
+            copy="Waiting pushes and active matches are loading from chain."
+          />
+        ) : activityTab === "waiting" ? (
           waitingPushes.length > 0 ? (
             <div className="compact_card_grid compact_card_grid_waiting">
               {waitingPushes.map((push) => (

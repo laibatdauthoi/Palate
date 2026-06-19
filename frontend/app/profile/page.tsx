@@ -7,6 +7,7 @@ import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
 import { EmptyState } from "@/components/empty_state";
 import { ClaimCard } from "@/components/claim_card";
+import { LoadingState } from "@/components/loading_state";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { usePalate } from "@/providers/palate_provider";
@@ -319,16 +320,23 @@ function ProfilePageContent() {
       {tab === "Stats" ? (
         <div className="stack">
           {statsReadMessage ? <p className={`feedback_text ${userSummaryReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{statsReadMessage}</p> : null}
-          <div className="panel_grid">
-            {profile_stats.map((stat) => (
-              <SectionPanel key={stat.label}>
-                <div className="stat_card">
-                  <span>{stat.label}</span>
-                  {renderStatValue(stat.value)}
-                </div>
-              </SectionPanel>
-            ))}
-          </div>
+          {userSummaryReadStatus === "loading" && profile_stats.every((stat) => stat.value === "Loading") ? (
+            <LoadingState
+              label="Loading profile stats"
+              copy="Your on-chain Palate summary is loading."
+            />
+          ) : (
+            <div className="panel_grid">
+              {profile_stats.map((stat) => (
+                <SectionPanel key={stat.label}>
+                  <div className="stat_card">
+                    <span>{stat.label}</span>
+                    {renderStatValue(stat.value)}
+                  </div>
+                </SectionPanel>
+              ))}
+            </div>
+          )}
         </div>
       ) : tab === "Claims" ? (
         <div className="stack">
@@ -356,7 +364,12 @@ function ProfilePageContent() {
 
             {claimReadMessage ? <p className={`feedback_text ${claimReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{claimReadMessage}</p> : null}
 
-            {claimRecords.length === 0 && claimReadStatus !== "loading" ? (
+            {claimReadStatus === "loading" && claimRecords.length === 0 ? (
+              <LoadingState
+                label="Loading claim records"
+                copy="Real claim discovery records are loading from chain."
+              />
+            ) : claimRecords.length === 0 && claimReadStatus !== "loading" ? (
               <EmptyState title="No settled rewards yet." copy="Claimable and claimed rewards will appear here after settlement." />
             ) : (
               <div className="claim_center_stack">
@@ -461,7 +474,12 @@ function ProfilePageContent() {
                 {activityReadMessage ? <p className={`feedback_text ${activityReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{activityReadMessage}</p> : null}
                 {activityFeedback ? <p className={`feedback_text feedback_${activityFeedback.type}`}>{activityFeedback.message}</p> : null}
 
-                {filteredActivityTransactions.length === 0 && activityReadStatus !== "loading" ? (
+                {activityReadStatus === "loading" && filteredActivityTransactions.length === 0 ? (
+                  <LoadingState
+                    label="Loading activity"
+                    copy="Palate wallet activity is loading from chain."
+                  />
+                ) : filteredActivityTransactions.length === 0 && activityReadStatus !== "loading" ? (
                   <EmptyState title="No Palate activity yet." copy="Palate transaction history will appear here after the connected wallet sends Palate actions." />
                 ) : (
                   <div className="activity_rows">

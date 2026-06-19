@@ -66,6 +66,7 @@ import type {
   MediaRecord,
   PalateActivityTransaction,
   PalateBalance,
+  ReadStatus,
   UploadStep,
   UserSummary,
   WaitingPush,
@@ -160,6 +161,7 @@ type PalateContextValue = {
   palateBalanceReadStatus: "idle" | "loading" | "ready" | "error";
   userSummaryReadStatus: "idle" | "loading" | "ready" | "error";
   activityReadStatus: "idle" | "loading" | "ready" | "error";
+  publicGameReadStatus: ReadStatus;
   activityTransactions: PalateActivityTransaction[];
   claimableRewardsSummary: ClaimableRewardsSummary;
   clearFeedback: () => void;
@@ -460,6 +462,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [palateBalanceReadStatus, setPalateBalanceReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
   const [userSummaryReadStatus, setUserSummaryReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
   const [activityReadStatus, setActivityReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
+  const [publicGameReadStatus, setPublicGameReadStatus] = useState<ReadStatus>("idle");
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [chainRead, setChainRead] = useState<ChainReadState>(initial_chain_read_state);
@@ -741,6 +744,9 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       walletAddress: ownerAddress
     }));
     setMediaReadStatus("loading");
+    if (waitingPushes.length === 0 && activeMatches.length === 0) {
+      setPublicGameReadStatus("loading");
+    }
 
     const [nextSummary, nextMedia, nextWaitingPushes, nextActiveMatches, nextAssignment] = await Promise.allSettled([
       readUserSummary(ownerAddress),
@@ -779,14 +785,20 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     if (nextWaitingPushes.status === "fulfilled") {
       setWaitingPushes(nextWaitingPushes.value);
+      setPublicGameReadStatus("ready");
     } else {
       console.error("[Waiting pushes read failed]", nextWaitingPushes.reason);
     }
 
     if (nextActiveMatches.status === "fulfilled") {
       setActiveMatches(nextActiveMatches.value);
+      setPublicGameReadStatus("ready");
     } else {
       console.error("[Active matches read failed]", nextActiveMatches.reason);
+    }
+
+    if (nextWaitingPushes.status === "rejected" && nextActiveMatches.status === "rejected") {
+      setPublicGameReadStatus("error");
     }
 
     if (nextAssignment.status === "fulfilled") {
@@ -805,7 +817,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       activeMatchCount: nextActiveMatches.status === "fulfilled" ? nextActiveMatches.value.length : 0,
       assignment: nextAssignment.status
     });
-  }, []);
+  }, [activeMatches.length, waitingPushes.length]);
 
   const refreshWalletGameState = useCallback(async (ownerAddress: string) => {
     const finishPerf = startUiPerf("refreshWalletGameState", { ownerAddress });
@@ -849,6 +861,15 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     if (!shouldRefreshWaitingPushes && !shouldRefreshActiveMatches && !shouldRefreshAssignment) {
       return;
+    }
+
+    if (
+      (shouldRefreshWaitingPushes || shouldRefreshActiveMatches)
+      && waitingPushes.length === 0
+      && activeMatches.length === 0
+      && publicGameReadStatus !== "ready"
+    ) {
+      setPublicGameReadStatus("loading");
     }
 
     logUiPerf("liveRefresh:start", {
@@ -908,11 +929,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
 
     if (hadError) {
+      if ((shouldRefreshWaitingPushes || shouldRefreshActiveMatches) && waitingPushes.length === 0 && activeMatches.length === 0) {
+        setPublicGameReadStatus("error");
+      }
       logUiPerf("liveRefresh:error", {
         source,
         rateLimited
       });
       return;
+    }
+
+    if (shouldRefreshWaitingPushes || shouldRefreshActiveMatches) {
+      setPublicGameReadStatus("ready");
     }
 
     logUiPerf("liveRefresh:success", {
@@ -921,7 +949,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       activeMatches: shouldRefreshActiveMatches ? activeMatches.length : null,
       assignment: shouldRefreshAssignment
     });
-  }, [activeMatches.length, waitingPushes.length, walletAddress]);
+  }, [activeMatches.length, publicGameReadStatus, waitingPushes.length, walletAddress]);
 
   useEffect(() => {
     if (walletConnectionStatus !== "connected" || !walletAddress) return;
@@ -941,6 +969,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           setCurrentAssignment(null);
           setClaimRecords([]);
           setActivityTransactions([]);
+          setPublicGameReadStatus("loading");
           setMediaReadStatus("idle");
           setClaimReadStatus("idle");
           setPalateBalanceReadStatus("loading");
@@ -2099,6 +2128,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       palateBalanceReadStatus,
       userSummaryReadStatus,
       activityReadStatus,
+      publicGameReadStatus,
       claimableRewardsSummary,
       processingAction,
       feedback,

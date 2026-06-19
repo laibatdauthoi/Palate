@@ -37,31 +37,41 @@ export function WaitingPushCard({ push, onChallenge, challengeHref, challengeDis
           </div>
           <StatusBadge status={push.status === "open" ? "open" : push.status === "challenged" ? "active" : "disabled"} />
         </div>
-        <dl className="waiting_push_details">
-          <div>
-            <dt>Pusher</dt>
-            <dd>{shortenAddress(push.pusherAddress)}</dd>
-          </div>
-          <div>
-            <dt>Push amount</dt>
-            <dd>{push.pushAmount}</dd>
-          </div>
-          <div>
-            <dt>Minimum challenge</dt>
-            <dd>{push.minChallengeAmount}</dd>
-          </div>
-          <div>
-            <dt>Created</dt>
-            <dd>{push.createdTime}</dd>
-          </div>
-        </dl>
-        {challengeDisabledReason ? <p className="feedback_text feedback_error">{challengeDisabledReason}</p> : null}
-        <div className="waiting_push_actions">
-          {challengeHref && canChallenge ? (
-            <ActionButton href={challengeHref} variant="primary">Challenge</ActionButton>
-          ) : (
-            <ActionButton disabled={!canChallenge} onClick={canChallenge ? onChallenge : undefined} variant="primary">{push.status === "open" ? "Challenge" : "Closed"}</ActionButton>
-          )}
+        <div className="waiting_push_meta">
+          <dl className="waiting_push_stats">
+            <div className="waiting_push_stat">
+              <dt>Push amount</dt>
+              <dd>{push.pushAmount}</dd>
+            </div>
+            <div className="waiting_push_stat">
+              <dt>Min challenge</dt>
+              <dd>{push.minChallengeAmount}</dd>
+            </div>
+          </dl>
+          <dl className="waiting_push_details">
+            <div className="waiting_push_detail_row">
+              <div className="waiting_push_detail_stack">
+                <div className="waiting_push_detail_line">
+                  <dt>Pusher</dt>
+                  <dd>{shortenAddress(push.pusherAddress)}</dd>
+                </div>
+                <div className="waiting_push_detail_line">
+                  <dt>Created</dt>
+                  <dd>{push.createdTime}</dd>
+                </div>
+              </div>
+              <div className="waiting_push_action_stack">
+                <div className="waiting_push_actions">
+                  {challengeHref && canChallenge ? (
+                    <ActionButton href={challengeHref} variant="primary">Challenge</ActionButton>
+                  ) : (
+                    <ActionButton disabled={!canChallenge} onClick={canChallenge ? onChallenge : undefined} variant="primary">{push.status === "open" ? "Challenge" : "Closed"}</ActionButton>
+                  )}
+                </div>
+                {challengeDisabledReason ? <p className="waiting_push_reason">{challengeDisabledReason}</p> : null}
+              </div>
+            </div>
+          </dl>
         </div>
       </div>
     </article>

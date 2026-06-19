@@ -158,6 +158,8 @@ export type ClaimableRewardsSummary = {
   hasClaimableRewards: boolean;
 };
 
+export type ReadStatus = "idle" | "loading" | "ready" | "error";
+
 export type PalateActivityFilter = "All" | "Media" | "Push" | "Buff" | "Match" | "Claims" | "Balance" | "Failed" | "Admin";
 
 export type PalateActivityTransaction = {

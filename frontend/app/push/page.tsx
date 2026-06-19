@@ -7,6 +7,7 @@ import { AmountInput } from "@/components/amount_input";
 import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
 import { MatchCard } from "@/components/match_card";
+import { LoadingState } from "@/components/loading_state";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { WaitingPushCard } from "@/components/waiting_push_card";
@@ -36,7 +37,7 @@ export default function PushPage() {
 }
 
 function PushPageContent() {
-  const { activeMatches, balance, challengePush, chainRead, clearFeedback, createPush, feedback, mediaRecords, processingAction, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, clearFeedback, createPush, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -103,6 +104,9 @@ function PushPageContent() {
       ? "Not enough Palate Balance."
       : challengeAmountValidation.message;
   const canCreatePush = walletReady && !pushBusy && Boolean(createMediaId) && createAmountValidation.valid && createBalanceValid;
+  const createPushLoading = walletReady && (chainRead.status === "loading" || mediaReadStatus === "loading") && mediaRecords.length === 0;
+  const waitingSectionLoading = publicGameReadStatus === "loading" && openWaitingPushes.length === 0;
+  const activeMatchesSectionLoading = publicGameReadStatus === "loading" && activeMatches.length === 0;
   const idleMediaOptions: DropdownOption<string>[] = [
     { label: "Select idle media", value: "" },
     ...pushableMedia.map((media) => ({
@@ -381,18 +385,25 @@ function PushPageContent() {
       </SectionPanel>
 
       <SectionPanel title="Create push" copy="Use Palate Balance and mark selected idle media as waiting for a challenger.">
-        <div className="mock_form_grid">
-          <CustomDropdown label="Idle media" onChange={setCreateMediaId} options={idleMediaOptions} value={createMediaId} />
-          <div className="amount_field_stack">
-            <AmountInput label="Push amount" onChange={setCreateAmount} placeholder={`Minimum ${minPushLabel}`} value={createAmount} />
-            <p className={`amount_helper ${createAmountValidation.valid && createBalanceValid ? "" : "amount_helper_error"}`}>
-              {createAmountHelperText}
-            </p>
+        {createPushLoading ? (
+          <LoadingState
+            label="Loading push inventory"
+            copy="Idle media and protocol minimums are loading from chain."
+          />
+        ) : (
+          <div className="mock_form_grid">
+            <CustomDropdown label="Idle media" onChange={setCreateMediaId} options={idleMediaOptions} value={createMediaId} />
+            <div className="amount_field_stack">
+              <AmountInput label="Push amount" onChange={setCreateAmount} placeholder={`Minimum ${minPushLabel}`} value={createAmount} />
+              <p className={`amount_helper ${createAmountValidation.valid && createBalanceValid ? "" : "amount_helper_error"}`}>
+                {createAmountHelperText}
+              </p>
+            </div>
+            <ActionButton disabled={pushBusy || !canCreatePush} onClick={() => createPush(Number(createMediaId), createAmount)}>
+              {processingAction === "createPush" ? "Creating" : "Create Push"}
+            </ActionButton>
           </div>
-          <ActionButton disabled={pushBusy || !canCreatePush} onClick={() => createPush(Number(createMediaId), createAmount)}>
-            {processingAction === "createPush" ? "Creating" : "Create Push"}
-          </ActionButton>
-        </div>
+        )}
         {prefillReason ? <p className="feedback_text feedback_error">{prefillReason}</p> : null}
         {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to create or challenge Pushes on Aptos Testnet.</p> : null}
         {pushFeedback ? <p className={`feedback_text feedback_${pushFeedback.type}`}>{pushFeedback.message}</p> : null}
@@ -401,6 +412,12 @@ function PushPageContent() {
       {settleFeedback && tab === "Live Matches" ? <p className={`feedback_text feedback_${settleFeedback.type}`}>{settleFeedback.message}</p> : null}
 
       {tab === "Waiting" ? (
+        waitingSectionLoading ? (
+          <LoadingState
+            label="Loading waiting pushes"
+            copy="Open waiting pushes are loading from chain."
+          />
+        ) : (
         <div className="compact_card_grid compact_card_grid_waiting">
           {openWaitingPushes.map((push) => (
             <WaitingPushCard
@@ -415,6 +432,12 @@ function PushPageContent() {
             />
           ))}
         </div>
+        )
+      ) : activeMatchesSectionLoading ? (
+        <LoadingState
+          label="Loading live matches"
+          copy="Active matches are loading from chain."
+        />
       ) : (
         <div className="compact_card_grid compact_card_grid_matches">
           {activeMatches.map((match) => (
