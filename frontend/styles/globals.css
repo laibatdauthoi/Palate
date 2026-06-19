@@ -2096,9 +2096,34 @@ select.input_control option:checked,
   font-size: 11px;
 }
 
+.match_card .category_badge {
+  border-color: rgba(255, 47, 159, 0.34);
+  background: rgba(255, 47, 159, 0.14);
+  color: #ffb4dc;
+}
+
+.match_card .status_live {
+  border-color: rgba(86, 232, 214, 0.26);
+  background: rgba(86, 232, 214, 0.12);
+  color: #b8fff4;
+}
+
+.match_card .status_ended {
+  border-color: rgba(116, 218, 154, 0.24);
+  background: rgba(116, 218, 154, 0.12);
+  color: #d7ffe6;
+}
+
 .match_card_status_text {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(116, 218, 154, 0.18);
+  border-radius: 999px;
+  background: rgba(116, 218, 154, 0.08);
   color: var(--success-color);
   font-weight: 800;
+  line-height: 1;
+  padding: 7px 12px;
 }
 
 .match_card_countdown_slot {
@@ -2106,6 +2131,10 @@ select.input_control option:checked,
   align-items: center;
   justify-content: center;
   min-width: 108px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
   padding-inline: 10px;
   font-size: var(--font-size-body-small);
 }
