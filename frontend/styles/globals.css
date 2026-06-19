@@ -680,6 +680,7 @@ select.input_control option:checked,
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+  margin-top: -12px;
   padding-left: 24px;
   font-size: var(--font-size-heading-3);
   font-weight: 900;
@@ -705,6 +706,7 @@ select.input_control option:checked,
 
 .nav_links {
   display: grid;
+  margin-top: 10px;
   gap: var(--spacing-sm);
 }
 
