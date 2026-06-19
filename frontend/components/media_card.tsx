@@ -40,8 +40,11 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
   const isExpiredWaitingPush = media.waitingPushExpired === true && typeof media.waitingPushId === "number";
   const isDeleteAction = actionLabel === "Delete";
   const isPrimaryAction = actionLabel === "Push" || actionLabel === "Retry registration";
-  const actionVariant = isDeleteAction || isShelbyUploadFailed || isShelbyCleanupRequired
+  const isCautionAction = actionLabel === "Clean up expired push" || actionLabel === "Retry Shelby delete" || actionLabel === "Retry on-chain delete";
+  const actionVariant = isDeleteAction || isShelbyUploadFailed
     ? "danger"
+    : isCautionAction || isShelbyCleanupRequired
+      ? "caution"
     : isPrimaryAction
       ? "primary"
       : "secondary";
@@ -105,7 +108,7 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
           <span>{media.createdTime}</span>
           <div className="media_card_actions">
             {actionLabel ? <ActionButton disabled={actionDisabled || (isVideoDisabled && !isDeleteAction) || (isInvalidMediaType && !isDeleteAction && !isShelbyUploadFailed) || (isContentUnavailable && !isDeleteAction && !isDeletePending)} onClick={handleActionClick} variant={actionVariant}>{actionLabel}</ActionButton> : null}
-            {secondaryActionLabel ? <ActionButton onClick={onSecondaryAction} variant="ghost">{secondaryActionLabel}</ActionButton> : null}
+            {secondaryActionLabel ? <ActionButton onClick={onSecondaryAction} variant={secondaryActionLabel === "Clean up expired push" ? "caution" : secondaryActionLabel === "Delete" ? "danger" : "secondary"}>{secondaryActionLabel}</ActionButton> : null}
           </div>
         </div>
         {isInvalidMediaType ? (

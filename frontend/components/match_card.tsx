@@ -1,4 +1,5 @@
 import type { ActiveMatch } from "@/types/palate";
+import { ActionButton } from "./action_button";
 import { CategoryBadge } from "./category_badge";
 import { useLiveCountdown } from "@/hooks/use_live_countdown";
 import { MediaRenderer } from "./media_renderer";
@@ -40,8 +41,7 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
         </div>
         <div className="match_card_actions">
           {isSettleEligible && onSettle ? (
-            <button
-              className="action_button action_button_primary"
+            <ActionButton
               disabled={settleDisabled}
               onClick={() => {
                 const startedAt = uiPerfNow();
@@ -58,10 +58,9 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
                   syncDurationMs: Math.round(uiPerfNow() - startedAt)
                 });
               }}
-              type="button"
             >
               Settle
-            </button>
+            </ActionButton>
           ) : (
             <span className="countdown_timer match_card_countdown_slot">{countdown.label}</span>
           )}

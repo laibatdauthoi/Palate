@@ -1061,7 +1061,8 @@ select.input_control option:checked,
   box-shadow: 0 0 12px rgba(255, 47, 159, 0.24);
 }
 
-.action_button {
+.action_button,
+.app_action_button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1078,21 +1079,25 @@ select.input_control option:checked,
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
 }
 
-.action_button:hover {
+.action_button:hover,
+.app_action_button:hover {
   transform: translateY(-1px);
 }
 
-.action_button:active {
+.action_button:active,
+.app_action_button:active {
   transform: translateY(1px);
 }
 
-.action_button:focus-visible {
+.action_button:focus-visible,
+.app_action_button:focus-visible {
   outline: none;
   border-color: rgba(255, 143, 199, 0.5);
   box-shadow: 0 0 0 3px rgba(255, 47, 159, 0.2), 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
-.action_button_primary {
+.action_button_primary,
+.app_action_primary {
   background:
     linear-gradient(180deg, rgba(255, 240, 250, 0.34), rgba(255, 255, 255, 0.04) 42%, rgba(255, 47, 159, 0.12) 100%),
     linear-gradient(135deg, #ff4aa7 0%, #ff2f9f 48%, #d91f7f 100%);
@@ -1101,12 +1106,14 @@ select.input_control option:checked,
   box-shadow: 0 0 30px rgba(255, 47, 159, 0.24), 0 12px 24px rgba(0, 0, 0, 0.28);
 }
 
-.action_button_primary:hover {
+.action_button_primary:hover,
+.app_action_primary:hover {
   border-color: rgba(255, 214, 235, 0.52);
   box-shadow: 0 0 40px rgba(255, 47, 159, 0.36), 0 14px 28px rgba(0, 0, 0, 0.3);
 }
 
-.action_button_secondary {
+.action_button_secondary,
+.app_action_secondary {
   border-color: rgba(255, 255, 255, 0.16);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03) 45%, rgba(255, 47, 159, 0.02) 100%),
@@ -1114,7 +1121,8 @@ select.input_control option:checked,
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.action_button_secondary:hover {
+.action_button_secondary:hover,
+.app_action_secondary:hover {
   border-color: rgba(255, 143, 199, 0.34);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04) 45%, rgba(255, 47, 159, 0.08) 100%),
@@ -1135,6 +1143,25 @@ select.input_control option:checked,
   color: var(--text-primary);
 }
 
+.action_button_caution,
+.app_action_caution {
+  border-color: rgba(255, 196, 116, 0.34);
+  background:
+    linear-gradient(180deg, rgba(255, 243, 218, 0.16), rgba(255, 255, 255, 0.03) 48%, rgba(242, 184, 75, 0.1) 100%),
+    rgba(44, 31, 17, 0.94);
+  color: #ffe0aa;
+  box-shadow: 0 0 18px rgba(242, 184, 75, 0.12), 0 10px 20px rgba(0, 0, 0, 0.24);
+}
+
+.action_button_caution:hover,
+.app_action_caution:hover {
+  border-color: rgba(255, 214, 150, 0.48);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 226, 0.2), rgba(255, 255, 255, 0.04) 48%, rgba(242, 184, 75, 0.16) 100%),
+    rgba(50, 35, 18, 0.98);
+  box-shadow: 0 0 22px rgba(242, 184, 75, 0.18), 0 12px 22px rgba(0, 0, 0, 0.26);
+}
+
 .action_button_danger {
   border-color: rgba(255, 132, 154, 0.42);
   background:
@@ -1151,7 +1178,8 @@ select.input_control option:checked,
     rgba(66, 20, 33, 0.98);
 }
 
-.action_button:disabled {
+.action_button:disabled,
+.app_action_button:disabled {
   transform: none;
   border-color: rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.06);
@@ -1162,11 +1190,23 @@ select.input_control option:checked,
 }
 
 .action_button:disabled:hover,
-.action_button:disabled:active {
+.action_button:disabled:active,
+.app_action_button:disabled:hover,
+.app_action_button:disabled:active {
   transform: none;
   border-color: rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.06);
   box-shadow: none;
+}
+
+.app_action_compact {
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: 16px;
+}
+
+.app_action_full {
+  width: 100%;
 }
 
 .hero_primary_cta {

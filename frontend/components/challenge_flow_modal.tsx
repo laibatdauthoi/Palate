@@ -86,7 +86,7 @@ export function ChallengeFlowModal({
             <p>Upload or free an idle {selectedPushCategoryLabel} media item to challenge this push.</p>
             <div className="challenge_empty_actions">
               <ActionButton href="/my-media" variant="secondary">Go to My Media</ActionButton>
-              <ActionButton href="/my-media/upload" variant="ghost">Upload Media</ActionButton>
+              <ActionButton href="/my-media/upload" variant="secondary">Upload Media</ActionButton>
             </div>
           </div>
         ) : null}
@@ -146,7 +146,7 @@ export function ChallengeFlowModal({
             {challengeFeedback ? <p className={`feedback_text feedback_${challengeFeedback.type}`}>{challengeFeedback.message}</p> : null}
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to challenge Pushes on Aptos Testnet.</p> : null}
             <div className="challenge_step_actions">
-              <ActionButton onClick={onBackToMedia} variant="ghost">Choose Another Media</ActionButton>
+              <ActionButton onClick={onBackToMedia} variant="secondary">Choose Another Media</ActionButton>
               <ActionButton disabled={!canConfirm} onClick={onSubmit}>
                 {pushBusy ? "Challenging" : "Confirm Challenge"}
               </ActionButton>
