@@ -199,6 +199,7 @@ const mockWalletAddress = mock_summary.walletAddress;
 const pending_registration_storage_key = "palate_pending_registrations_v1";
 const delete_pending_storage_key = "palate_delete_pending_v1";
 const chain_read_cache_key = "palate_chain_read_snapshot_v1";
+const feedback_auto_dismiss_ms = 4000;
 
 const initial_upload_recovery_state: UploadRecoveryState = {
   canRetry: false,
@@ -462,6 +463,17 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [chainRead, setChainRead] = useState<ChainReadState>(initial_chain_read_state);
+
+  useEffect(() => {
+    if (!feedback) return;
+    if (feedback.type === "info") return;
+
+    const timeoutId = window.setTimeout(() => {
+      setFeedback((current) => (current === feedback ? null : current));
+    }, feedback_auto_dismiss_ms);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [feedback]);
 
   useEffect(() => {
     try {
