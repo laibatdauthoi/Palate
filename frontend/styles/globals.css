@@ -2819,6 +2819,94 @@ select.input_control option:checked,
   gap: var(--spacing-sm);
 }
 
+.challenge_media_picker_scroller {
+  max-height: min(46dvh, 440px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.challenge_media_picker_grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.challenge_media_option {
+  display: grid;
+  gap: var(--spacing-sm);
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-medium);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  padding: var(--spacing-sm);
+  text-align: left;
+  transition: var(--transition-fast);
+}
+
+.challenge_media_option:hover {
+  border-color: rgba(255, 143, 199, 0.34);
+  background: rgba(255, 47, 159, 0.08);
+  box-shadow: 0 0 18px rgba(255, 47, 159, 0.12);
+  transform: translateY(-1px);
+}
+
+.challenge_media_option_preview {
+  min-height: 0;
+  max-height: 120px;
+  padding: 6px;
+}
+
+.challenge_media_option_body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.challenge_media_option_body strong {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
+}
+
+.challenge_media_option_meta {
+  color: var(--text-muted);
+  font-size: var(--font-size-body-small);
+}
+
+.challenge_selected_media {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  align-items: stretch;
+}
+
+.challenge_selected_media_preview {
+  min-height: 0;
+  max-height: 120px;
+  padding: 6px;
+}
+
+.challenge_selected_media_body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.challenge_selected_media_body strong {
+  overflow-wrap: anywhere;
+}
+
+.challenge_step_actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+
 .home_hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.7fr);
@@ -4763,6 +4851,25 @@ select.input_control,
 
   .waiting_push_actions .action_button,
   .match_card .action_button {
+    width: 100%;
+  }
+
+  .challenge_modal_summary,
+  .challenge_selected_media {
+    grid-template-columns: 1fr;
+  }
+
+  .challenge_media_picker_grid {
+    grid-template-columns: 1fr;
+  }
+
+  .challenge_step_actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .challenge_step_actions .action_button,
+  .challenge_empty_actions .action_button {
     width: 100%;
   }
 

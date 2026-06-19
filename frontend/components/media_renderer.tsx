@@ -17,13 +17,14 @@ type MediaRendererProps = {
   mediaActive?: boolean;
   mediaPlaying?: boolean;
   onMediaToggle?: () => void;
+  disablePreview?: boolean;
 };
 
 function isHttpUrl(value: string) {
   return value.startsWith("http://") || value.startsWith("https://") || value.startsWith("blob:");
 }
 
-export function MediaRenderer({ media, compact = false, variant, mediaActive = false, mediaPlaying = false, onMediaToggle }: MediaRendererProps) {
+export function MediaRenderer({ media, compact = false, variant, mediaActive = false, mediaPlaying = false, onMediaToggle, disablePreview = false }: MediaRendererProps) {
   const [failed, setFailed] = useState(false);
   const { openMediaViewer } = useMediaViewer();
   const source = useMemo(() => resolveShelbyReadUrl(media), [media]);
@@ -52,10 +53,11 @@ export function MediaRenderer({ media, compact = false, variant, mediaActive = f
   if (mediaKind === "video" && !VIDEO_ENABLED) {
     return (
       <button
-        aria-label={`View details for ${displayTitle}`}
+        aria-label={disablePreview ? displayTitle : `View details for ${displayTitle}`}
         className={`media_renderer media_renderer_fallback media_renderer_video_disabled media_renderer_variant_${resolvedVariant}`}
-        onClick={() => openMediaViewer(media, "media_renderer:video_disabled")}
+        onClick={disablePreview ? undefined : () => openMediaViewer(media, "media_renderer:video_disabled")}
         type="button"
+        disabled={disablePreview}
       >
         <span>{displayTitle}</span>
         <small>Video disabled in MVP</small>
@@ -73,6 +75,19 @@ export function MediaRenderer({ media, compact = false, variant, mediaActive = f
   }
 
   if (mediaKind === "image") {
+    if (disablePreview) {
+      return (
+        <div className={`media_renderer media_renderer_variant_${resolvedVariant} media_renderer_static`}>
+          <img
+            alt={displayTitle}
+            className="media_renderer_image"
+            onError={handleUnavailable}
+            src={source}
+          />
+        </div>
+      );
+    }
+
     return (
       <button
         aria-label={`View ${displayTitle}`}
@@ -91,6 +106,24 @@ export function MediaRenderer({ media, compact = false, variant, mediaActive = f
   }
 
   if (mediaKind === "audio") {
+    if (disablePreview) {
+      return (
+        <div className={`media_renderer media_renderer_player media_renderer_audio_controlled media_renderer_variant_${resolvedVariant} media_renderer_static`}>
+          <div className="audio_preview_visual" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="audio_preview_meta">
+            <small>Audio track</small>
+            <span>Selectable media</span>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         className={`media_renderer media_renderer_player media_renderer_audio_controlled media_renderer_variant_${resolvedVariant} ${mediaActive ? "active" : ""}`}
@@ -132,6 +165,24 @@ export function MediaRenderer({ media, compact = false, variant, mediaActive = f
   }
 
   if (mediaKind === "video") {
+    if (disablePreview) {
+      return (
+        <div
+          aria-label={displayTitle}
+          className={`media_renderer media_renderer_video_frame media_renderer_variant_${resolvedVariant} media_renderer_static`}
+        >
+          <video
+            className="media_renderer_video"
+            muted
+            onError={handleUnavailable}
+            playsInline
+            preload="metadata"
+            src={source}
+          />
+        </div>
+      );
+    }
+
     return (
       <div
         aria-label={`View ${displayTitle}`}

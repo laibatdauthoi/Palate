@@ -4,9 +4,9 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
+import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
 import { MatchCard } from "@/components/match_card";
-import { ModalShell } from "@/components/modal_shell";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { WaitingPushCard } from "@/components/waiting_push_card";
@@ -36,7 +36,7 @@ export default function PushPage() {
 }
 
 function PushPageContent() {
-  const { activeMatches, balance, challengePush, chainRead, createPush, feedback, mediaRecords, processingAction, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, clearFeedback, createPush, feedback, mediaRecords, processingAction, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,10 +70,7 @@ function PushPageContent() {
       && getPushEligibility(media, { allowExpiredWaitingPush: true }).eligible
   );
   const challengeOptions = selectedPush ? pushableMedia.filter((media) => media.category === selectedPush.media.category) : pushableMedia;
-  const challengeMediaEmptyMessage = selectedPush && challengeOptions.length === 0 ? "No eligible same-category media." : null;
   const selectedPushCategoryLabel = selectedPush ? category_labels[selectedPush.media.category].toUpperCase() : "MEDIA";
-  const hasEligibleChallengeMedia = Boolean(selectedPush && !selectedPushIsOwned && challengeOptions.length > 0);
-  const showChallengeEmptyState = Boolean(selectedPush && !selectedPushIsOwned && challengeOptions.length === 0);
   const pushFeedback = feedback?.scope === "push" ? feedback : null;
   const challengeFeedback = feedback?.scope === "challenge" ? feedback : null;
   const settleFeedback = feedback?.scope === "settle" ? feedback : null;
@@ -113,20 +110,6 @@ function PushPageContent() {
       value: String(media.id)
     }))
   ];
-  const waitingPushOptions: DropdownOption<string>[] = openWaitingPushes.length > 0
-    ? openWaitingPushes.map((push) => ({
-        label: `${getMediaDisplayTitle(push.media)} - minimum ${push.minChallengeAmount}`,
-        value: String(push.id)
-      }))
-    : [{ label: "No waiting pushes", value: "" }];
-  const challengeMediaOptions: DropdownOption<string>[] = [
-    { label: "Select idle media", value: "" },
-    ...challengeOptions.map((media) => ({
-      label: `${getMediaDisplayTitle(media)} - ${category_labels[media.category]}`,
-      value: String(media.id)
-    }))
-  ];
-
   useEffect(() => {
     logPageMount("Push");
   }, []);
@@ -181,6 +164,7 @@ function PushPageContent() {
     setDismissedChallengeId(challengePushId);
     setChallengePushId(null);
     setChallengeMediaId("");
+    clearFeedback();
     clearChallengeQuery();
   }
 
@@ -277,10 +261,11 @@ function PushPageContent() {
     setChallengePushId(nextId);
     setChallengeAmount(push.minChallengeAmount.replace(" APT", ""));
     setChallengeMediaId("");
+    clearFeedback();
     setModalOpen(true);
     setTab("Waiting");
     setLastAppliedChallengeQuery(challengePushQuery);
-  }, [challengePushQuery, clearChallengeQuery, dismissedChallengeId, lastAppliedChallengeQuery, openWaitingPushes]);
+  }, [challengePushQuery, clearChallengeQuery, clearFeedback, dismissedChallengeId, lastAppliedChallengeQuery, openWaitingPushes]);
 
   useEffect(() => {
     if (challengePushId === null || selectedPush || !modalOpen) {
@@ -292,7 +277,7 @@ function PushPageContent() {
     setChallengeMediaId("");
     setModalOpen(false);
     clearChallengeQuery();
-  }, [challengePushId, clearChallengeQuery, modalOpen, selectedPush]);
+  }, [challengePushId, clearChallengeQuery, clearFeedback, modalOpen, selectedPush]);
 
   function openChallenge(pushId: number) {
     const startedAt = uiPerfNow();
@@ -330,6 +315,7 @@ function PushPageContent() {
     setChallengePushId(pushId);
     setChallengeAmount(push?.minChallengeAmount.replace(" APT", "") ?? "1.000");
     setChallengeMediaId("");
+    clearFeedback();
     setModalOpen(true);
     setTab("Waiting");
     logUiPerf("challengeModalOpen", {
@@ -433,7 +419,6 @@ function PushPageContent() {
         <div className="compact_card_grid compact_card_grid_matches">
           {activeMatches.map((match) => (
             <MatchCard
-              actionHref="/buff"
               key={match.id}
               match={match}
               onSettle={match.status === "active" ? () => settleMatch(match.id) : undefined}
@@ -442,61 +427,36 @@ function PushPageContent() {
         </div>
       )}
 
-      <ModalShell title="Challenge Push" open={modalOpen} onClose={closeChallengeModal}>
-        <div className="stack challenge_modal_content">
-          {selectedPush ? (
-            <div className="challenge_modal_summary">
-              <div>
-                <span className="state_mark">Waiting push</span>
-                <strong>{getMediaDisplayTitle(selectedPush.media)}</strong>
-              </div>
-              <div>
-                <span className="state_mark">Minimum</span>
-                <strong>{requiredChallengeLabel}</strong>
-              </div>
-            </div>
-          ) : null}
-          {selfChallengeReason ? <p className="feedback_text feedback_error">{selfChallengeReason}</p> : null}
-          {showChallengeEmptyState ? (
-            <div className="challenge_empty_state">
-              <strong>{challengeMediaEmptyMessage}</strong>
-              <p>Upload or free an idle {selectedPushCategoryLabel} media item to challenge this push.</p>
-              <div className="challenge_empty_actions">
-                <ActionButton href="/my-media" variant="secondary">Go to My Media</ActionButton>
-                <ActionButton href="/my-media/upload" variant="ghost">Upload Media</ActionButton>
-              </div>
-            </div>
-          ) : null}
-          {selectedPush && !selfChallengeReason && hasEligibleChallengeMedia ? (
-            <>
-              <p className="secondary_text challenge_modal_intro">Select same-category idle media and enter a push amount at or above the required minimum.</p>
-              <CustomDropdown
-                label="Waiting push"
-                onChange={(nextValue) => setChallengePushId(nextValue ? Number(nextValue) : null)}
-                options={waitingPushOptions}
-                value={selectedPush ? String(selectedPush.id) : ""}
-              />
-              <CustomDropdown label="Idle media" onChange={setChallengeMediaId} options={challengeMediaOptions} value={challengeMediaId} />
-              <div className="amount_field_stack">
-                <AmountInput label="Challenge amount" onChange={setChallengeAmount} placeholder={`Minimum ${requiredChallengeLabel}`} value={challengeAmount} />
-                <p className={`amount_helper ${challengeAmountValidation.valid && challengeBalanceValid ? "" : "amount_helper_error"}`}>
-                  {challengeAmountHelperText}
-                </p>
-              </div>
-              {challengeFeedback ? <p className={`feedback_text feedback_${challengeFeedback.type}`}>{challengeFeedback.message}</p> : null}
-              <ActionButton
-                disabled={pushBusy || !walletReady || !selectedPush || selectedPushIsOwned || !challengeMediaId || !challengeAmountValidation.valid || !challengeBalanceValid}
-                onClick={() => {
-                  if (!selectedPush || selectedPushIsOwned) return;
-                  challengePush(selectedPush.id, Number(challengeMediaId), challengeAmount);
-                }}
-              >
-                {processingAction === "challengePush" ? "Challenging" : "Confirm Challenge"}
-              </ActionButton>
-            </>
-          ) : null}
-        </div>
-      </ModalShell>
+      <ChallengeFlowModal
+        challengeAmount={challengeAmount}
+        challengeAmountHelperText={challengeAmountHelperText}
+        challengeAmountValid={challengeAmountValidation.valid}
+        challengeBalanceValid={challengeBalanceValid}
+        challengeFeedback={challengeFeedback}
+        challengeOptions={challengeOptions}
+        onBackToMedia={() => {
+          setChallengeMediaId("");
+          clearFeedback();
+        }}
+        onChallengeAmountChange={setChallengeAmount}
+        onClose={closeChallengeModal}
+        onSelectMedia={(mediaId) => {
+          setChallengeMediaId(mediaId);
+          clearFeedback();
+        }}
+        onSubmit={() => {
+          if (!selectedPush || selectedPushIsOwned) return;
+          challengePush(selectedPush.id, Number(challengeMediaId), challengeAmount);
+        }}
+        open={modalOpen}
+        pushBusy={pushBusy}
+        requiredChallengeLabel={requiredChallengeLabel}
+        selectedMediaId={challengeMediaId}
+        selectedPush={selectedPush}
+        selectedPushCategoryLabel={selectedPushCategoryLabel}
+        selfChallengeReason={selfChallengeReason}
+        walletReady={walletReady}
+      />
     </div>
   );
 }

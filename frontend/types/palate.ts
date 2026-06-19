@@ -25,6 +25,7 @@ export type FeedbackMessage = {
   type: "success" | "error" | "info";
   message: string;
 };
+export type ChallengeFlowStep = "media" | "amount";
 
 export type ChainCategoryConstants = {
   meme: number;
