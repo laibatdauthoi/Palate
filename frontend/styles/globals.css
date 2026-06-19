@@ -665,6 +665,7 @@ select.input_control option:checked,
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+  padding-left: 24px;
   font-size: var(--font-size-heading-3);
   font-weight: 900;
   letter-spacing: -0.02em;
@@ -1092,42 +1093,42 @@ select.input_control option:checked,
 .action_button:focus-visible,
 .app_action_button:focus-visible {
   outline: none;
-  border-color: rgba(255, 143, 199, 0.5);
-  box-shadow: 0 0 0 3px rgba(255, 47, 159, 0.2), 0 10px 24px rgba(0, 0, 0, 0.28);
+  border-color: rgba(181, 84, 124, 0.44);
+  box-shadow: 0 0 0 3px rgba(181, 84, 124, 0.14), 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
 .action_button_primary,
 .app_action_primary {
   background:
-    linear-gradient(180deg, rgba(255, 240, 250, 0.34), rgba(255, 255, 255, 0.04) 42%, rgba(255, 47, 159, 0.12) 100%),
-    linear-gradient(135deg, #ff4aa7 0%, #ff2f9f 48%, #d91f7f 100%);
-  border-color: rgba(255, 194, 223, 0.34);
+    linear-gradient(180deg, rgba(255, 245, 249, 0.14), rgba(255, 255, 255, 0.02) 42%, rgba(113, 28, 66, 0.08) 100%),
+    linear-gradient(135deg, #8c2f57 0%, #7a294c 56%, #67213f 100%);
+  border-color: rgba(204, 151, 177, 0.22);
   color: #fff9fc;
-  box-shadow: 0 0 30px rgba(255, 47, 159, 0.24), 0 12px 24px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), 0 0 12px rgba(122, 41, 76, 0.1);
 }
 
 .action_button_primary:hover,
 .app_action_primary:hover {
-  border-color: rgba(255, 214, 235, 0.52);
-  box-shadow: 0 0 40px rgba(255, 47, 159, 0.36), 0 14px 28px rgba(0, 0, 0, 0.3);
+  border-color: rgba(218, 176, 198, 0.3);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), 0 0 14px rgba(122, 41, 76, 0.12);
 }
 
 .action_button_secondary,
 .app_action_secondary {
   border-color: rgba(255, 255, 255, 0.16);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03) 45%, rgba(255, 47, 159, 0.02) 100%),
-    rgba(23, 16, 27, 0.94);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.018) 45%, rgba(140, 47, 87, 0.015) 100%),
+    rgba(22, 18, 24, 0.94);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .action_button_secondary:hover,
 .app_action_secondary:hover {
-  border-color: rgba(255, 143, 199, 0.34);
+  border-color: rgba(140, 47, 87, 0.2);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04) 45%, rgba(255, 47, 159, 0.08) 100%),
-    rgba(28, 19, 33, 0.98);
-  box-shadow: 0 0 20px rgba(255, 47, 159, 0.14), 0 10px 22px rgba(0, 0, 0, 0.28);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.025) 45%, rgba(140, 47, 87, 0.035) 100%),
+    rgba(24, 19, 28, 0.98);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), 0 0 10px rgba(122, 41, 76, 0.08);
 }
 
 .action_button_ghost {
@@ -1138,28 +1139,28 @@ select.input_control option:checked,
 }
 
 .action_button_ghost:hover {
-  border-color: rgba(255, 143, 199, 0.26);
-  background: rgba(255, 47, 159, 0.08);
+  border-color: rgba(181, 84, 124, 0.22);
+  background: rgba(140, 47, 87, 0.06);
   color: var(--text-primary);
 }
 
 .action_button_caution,
 .app_action_caution {
-  border-color: rgba(255, 196, 116, 0.34);
+  border-color: rgba(207, 173, 125, 0.24);
   background:
-    linear-gradient(180deg, rgba(255, 243, 218, 0.16), rgba(255, 255, 255, 0.03) 48%, rgba(242, 184, 75, 0.1) 100%),
-    rgba(44, 31, 17, 0.94);
-  color: #ffe0aa;
-  box-shadow: 0 0 18px rgba(242, 184, 75, 0.12), 0 10px 20px rgba(0, 0, 0, 0.24);
+    linear-gradient(180deg, rgba(255, 244, 222, 0.1), rgba(255, 255, 255, 0.018) 48%, rgba(168, 124, 55, 0.065) 100%),
+    rgba(42, 31, 20, 0.94);
+  color: #f4ddb0;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24), 0 0 10px rgba(168, 124, 55, 0.07);
 }
 
 .action_button_caution:hover,
 .app_action_caution:hover {
-  border-color: rgba(255, 214, 150, 0.48);
+  border-color: rgba(217, 188, 143, 0.3);
   background:
-    linear-gradient(180deg, rgba(255, 247, 226, 0.2), rgba(255, 255, 255, 0.04) 48%, rgba(242, 184, 75, 0.16) 100%),
-    rgba(50, 35, 18, 0.98);
-  box-shadow: 0 0 22px rgba(242, 184, 75, 0.18), 0 12px 22px rgba(0, 0, 0, 0.26);
+    linear-gradient(180deg, rgba(255, 248, 230, 0.13), rgba(255, 255, 255, 0.025) 48%, rgba(168, 124, 55, 0.095) 100%),
+    rgba(46, 34, 21, 0.98);
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.26), 0 0 12px rgba(168, 124, 55, 0.08);
 }
 
 .action_button_danger {
@@ -1209,10 +1210,50 @@ select.input_control option:checked,
   width: 100%;
 }
 
+.buff_find_match_cta {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28), 0 0 20px rgba(185, 61, 116, 0.14);
+}
+
 .hero_primary_cta {
   min-height: 54px;
   padding-inline: 24px;
   font-size: var(--font-size-body-large);
+}
+
+.page_buff .page_header h1 {
+  font-size: clamp(24px, 3.6vw, 36px);
+  max-width: 660px;
+}
+
+.page_buff .page_header p {
+  max-width: 620px;
+}
+
+.buff_cta_row {
+  display: flex;
+  align-items: stretch;
+}
+
+.buff_find_match_cta_wide {
+  width: min(100%, 420px);
+  min-height: 54px;
+  padding-inline: 22px;
+  font-size: var(--font-size-body-large);
+}
+
+.buff_cta_block {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.buff_status_stack {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.buff_status_stack .feedback_text,
+.buff_status_stack .secondary_text {
+  margin: 0;
 }
 
 .badge {

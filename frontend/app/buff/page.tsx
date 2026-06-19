@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { BuffPanel } from "@/components/buff_panel";
 import { EmptyState } from "@/components/empty_state";
-import { ErrorState } from "@/components/error_state";
-import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
@@ -58,6 +56,7 @@ export default function BuffPage() {
   const canBuff = walletReady && !buffBusy && buffAmountValidation.valid && buffBalanceValid;
   const buffFeedback = feedback?.scope === "buff" ? feedback : null;
   const settleFeedback = feedback?.scope === "settle" ? feedback : null;
+  const canFindMatch = walletReady && !buffBusy && !currentAssignment;
 
   useEffect(() => {
     logPageMount("Buff");
@@ -97,12 +96,28 @@ export default function BuffPage() {
     <div className="page_stack page_buff">
       <PageHeader
         eyebrow="Buff"
-        title="Receive one random match. Choose with conviction."
-        copy="Users cannot manually choose a match to Buff. Existing assignments must be completed or skipped before finding another match."
-        actions={<ActionButton disabled={!walletReady || buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Match"}</ActionButton>}
+        title="Find one random match and Buff the side you believe in."
+        copy="Manual match selection stays disabled. Finish or skip your current assignment before finding the next one."
       />
 
-      {buffFeedback ? <div className={`state_card feedback_panel feedback_${buffFeedback.type}`}><p>{buffFeedback.message}</p></div> : null}
+      <div className="buff_cta_block">
+        <div className="buff_status_stack">
+          <div className="buff_cta_row">
+            <ActionButton
+              className="buff_find_match_cta buff_find_match_cta_wide"
+              disabled={!canFindMatch}
+              onClick={findMatch}
+            >
+              {processingAction === "findMatch" ? "Finding" : "Find Match"}
+            </ActionButton>
+          </div>
+          {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to find a match and place Buffs.</p> : null}
+          {currentAssignment ? <p className="secondary_text">Assignment active. Buff or skip it before finding another match.</p> : null}
+          {completedBuffSide ? <p className="feedback_text feedback_success">Buff {completedBuffSide} recorded. Find the next match when you are ready.</p> : null}
+          {noValidMatchAvailable ? <p className="feedback_text feedback_error">No valid match available right now.</p> : null}
+          {buffFeedback ? <p className={`feedback_text feedback_${buffFeedback.type}`}>{buffFeedback.message}</p> : null}
+        </div>
+      </div>
 
       {assignedMatch ? (
         <BuffPanel
@@ -121,7 +136,7 @@ export default function BuffPage() {
         />
       ) : null}
 
-      <SectionPanel title="Settle eligible matches" copy="Only expired active matches can be settled. Hidden live score, pools, and odds remain hidden until settlement completes.">
+      <SectionPanel title="Settle eligible matches">
         {settleFeedback ? <p className={`feedback_text feedback_${settleFeedback.type}`}>{settleFeedback.message}</p> : null}
         {settleableMatches.length > 0 ? (
           <div className="compact_card_grid compact_card_grid_matches">
@@ -138,40 +153,6 @@ export default function BuffPage() {
           <EmptyState title="No match ready to settle" copy="Settling becomes available after the match end time passes." />
         )}
       </SectionPanel>
-
-      <div className="panel_grid">
-        <SectionPanel title="No assigned match">
-          <div className="stack">
-            <p className="secondary_text">Find Match assigns one active valid match. Manual match selection is not available.</p>
-            <ActionButton disabled={!walletReady || buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Match"}</ActionButton>
-          </div>
-        </SectionPanel>
-        <SectionPanel title="Buff completed">
-          <div className="stack">
-            <p className="secondary_text">
-              {completedBuffSide ? `Buff ${completedBuffSide} is recorded. The result remains pending until the match settles.` : "After a Buff, the completed state appears here."}
-            </p>
-            <ActionButton disabled={!walletReady || buffBusy || Boolean(currentAssignment)} onClick={findMatch}>{processingAction === "findMatch" ? "Finding" : "Find Next Match"}</ActionButton>
-          </div>
-        </SectionPanel>
-        {noValidMatchAvailable ? (
-          <EmptyState
-            title="No active match available right now."
-            copy="Try again later or push your own media into a match."
-            actionLabel="Go to Push"
-            actionHref="/push"
-          />
-        ) : (
-          <SectionPanel title="No valid match state">
-            <p className="secondary_text">Use Find Match after all matches have been Buffed to reach this state.</p>
-          </SectionPanel>
-        )}
-      </div>
-
-      <div className="wide_two_column">
-        <LoadingState label="Finding match" />
-        <ErrorState title="No valid match available" copy="Every active match is expired, already Buffed, or not valid for this wallet." />
-      </div>
     </div>
   );
 }
