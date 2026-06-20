@@ -3476,14 +3476,18 @@ select.input_control option:checked,
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   align-content: start;
+  align-items: start;
   overflow-x: hidden;
 }
 
 .challenge_pick_card {
   display: grid;
-  grid-template-rows: 160px minmax(0, 1fr);
+  grid-template-rows: 160px auto;
   gap: 0;
   width: 100%;
+  height: auto;
+  min-height: unset;
+  align-self: start;
   box-sizing: border-box;
   min-width: 0;
   appearance: none;
@@ -3598,7 +3602,7 @@ select.input_control option:checked,
   margin: auto;
 }
 
-.challenge_thumb_audio {
+.challenge_thumb_frame > .challenge_thumb_audio {
   display: grid;
   place-items: center;
   width: 100%;
@@ -3615,9 +3619,10 @@ select.input_control option:checked,
 
 .challenge_pick_body {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
-  padding: 12px 14px 14px;
+  align-content: start;
+  padding: 8px 12px 6px;
 }
 
 .challenge_pick_title {
@@ -5774,7 +5779,7 @@ select.input_control,
   }
 
   .challenge_pick_card {
-    grid-template-rows: 160px minmax(0, 1fr);
+    grid-template-rows: 160px auto;
   }
 
   .challenge_selected_thumb {
