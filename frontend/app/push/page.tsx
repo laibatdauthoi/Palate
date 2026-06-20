@@ -97,6 +97,7 @@ function PushPageContent() {
       : createAmountValidation.message;
   const canCreatePush = walletReady && !pushBusy && Boolean(createMediaId) && createAmountValidation.valid && createBalanceValid;
   const createPushLoading = walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia;
+  const isLoadingEligibleMedia = walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia;
   const waitingSectionLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
   const activeMatchesSectionLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
   const idleMediaOptions: DropdownOption<string>[] = [
@@ -444,6 +445,7 @@ function PushPageContent() {
         challengeBalanceValid={challengeBalanceValid}
         challengeFeedback={challengeFeedback}
         challengeOptions={challengeOptions}
+        isLoadingEligibleMedia={isLoadingEligibleMedia}
         onBackToMedia={() => {
           setChallengeMediaId("");
           clearFeedback();

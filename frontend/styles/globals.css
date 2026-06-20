@@ -3653,6 +3653,14 @@ select.input_control option:checked,
   font-size: var(--font-size-body-small);
 }
 
+.challenge_loading_state .loading_state {
+  padding: 18px;
+}
+
+.challenge_loading_state .loading_state h3 {
+  font-size: var(--font-size-body-large);
+}
+
 .challenge_selected_panel {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

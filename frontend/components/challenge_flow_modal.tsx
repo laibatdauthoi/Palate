@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ActionButton } from "./action_button";
 import { CategoryBadge } from "./category_badge";
 import { FormatBadge } from "./format_badge";
+import { LoadingState } from "./loading_state";
 import { ModalShell } from "./modal_shell";
 import { useMediaViewer } from "@/providers/media_viewer_provider";
 import { resolveShelbyReadUrl } from "@/services/shelby_service";
@@ -14,6 +15,7 @@ type ChallengeFlowModalProps = {
   selectedPush: WaitingPush | null;
   selectedPushCategoryLabel: string;
   challengeOptions: MediaRecord[];
+  isLoadingEligibleMedia: boolean;
   selectedMediaId: string;
   challengeBalanceValid: boolean;
   requiredChallengeLabel: string;
@@ -114,6 +116,7 @@ export function ChallengeFlowModal({
   selectedPush,
   selectedPushCategoryLabel,
   challengeOptions,
+  isLoadingEligibleMedia,
   selectedMediaId,
   challengeBalanceValid,
   requiredChallengeLabel,
@@ -128,7 +131,12 @@ export function ChallengeFlowModal({
 }: ChallengeFlowModalProps) {
   const { openMediaViewer } = useMediaViewer();
   const selectedMedia = challengeOptions.find((media) => String(media.id) === selectedMediaId) ?? null;
-  const showEmptyState = Boolean(selectedPush && !selfChallengeReason && challengeOptions.length === 0);
+  const showEmptyState = Boolean(
+    selectedPush
+      && !selfChallengeReason
+      && !isLoadingEligibleMedia
+      && challengeOptions.length === 0
+  );
   const modalSubtitle = selectedPush
     ? selectedMedia
       ? <span className="challenge_modal_subtitle">Review the selected media and confirm.</span>
@@ -232,6 +240,15 @@ export function ChallengeFlowModal({
 
         {selfChallengeReason ? <p className="feedback_text feedback_error">{selfChallengeReason}</p> : null}
 
+        {isLoadingEligibleMedia ? (
+          <div className="challenge_loading_state">
+            <LoadingState
+              label="Loading eligible media..."
+              copy="Checking your same-category idle media."
+            />
+          </div>
+        ) : null}
+
         {showEmptyState ? (
           <div className="challenge_empty_state">
             <strong>No eligible same-category media.</strong>
@@ -243,7 +260,7 @@ export function ChallengeFlowModal({
           </div>
         ) : null}
 
-        {selectedPush && !selfChallengeReason && challengeOptions.length > 0 && !selectedMedia ? (
+        {selectedPush && !selfChallengeReason && !isLoadingEligibleMedia && challengeOptions.length > 0 && !selectedMedia ? (
           <>
             <div className="challenge_media_picker_scroller">
               <div className="challenge_pick_grid">

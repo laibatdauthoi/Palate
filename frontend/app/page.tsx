@@ -24,7 +24,7 @@ const category_labels: Record<MediaCategory, string> = {
 };
 
 export default function HomePage() {
-  const { activeMatches, balance, challengePush, chainRead, clearFeedback, feedback, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, clearFeedback, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const [activityTab, setActivityTab] = useState<"waiting" | "matches">("waiting");
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
@@ -62,6 +62,7 @@ export default function HomePage() {
   const challengeBalanceValid = effectiveChallengeOctas !== null && availableBalanceOctas !== null && effectiveChallengeOctas <= availableBalanceOctas;
   const challengeFeedback = feedback?.scope === "challenge" ? feedback : null;
   const pushBusy = processingAction === "challengePush";
+  const isLoadingEligibleMedia = walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia;
   const activityTabs = useMemo(() => ([
     { key: "waiting" as const, label: "Waiting Pushes", count: waitingCount },
     { key: "matches" as const, label: "Active Matches", count: activeCount }
@@ -185,6 +186,7 @@ export default function HomePage() {
         challengeBalanceValid={challengeBalanceValid}
         challengeFeedback={challengeFeedback}
         challengeOptions={challengeOptions}
+        isLoadingEligibleMedia={isLoadingEligibleMedia}
         onBackToMedia={() => {
           setChallengeMediaId("");
           clearFeedback();
