@@ -9,9 +9,10 @@ type BuffDecisionCardProps = {
   media: MediaRecord;
   selected?: boolean;
   onSelect?: () => void;
+  disabledSelection?: boolean;
 };
 
-export function BuffDecisionCard({ side, media, selected = false, onSelect }: BuffDecisionCardProps) {
+export function BuffDecisionCard({ side, media, selected = false, onSelect, disabledSelection = false }: BuffDecisionCardProps) {
   const { openMediaViewer } = useMediaViewer();
   const displayTitle = getMediaDisplayTitle(media);
   return (
@@ -31,7 +32,7 @@ export function BuffDecisionCard({ side, media, selected = false, onSelect }: Bu
       <div className="buff_decision_meta">
         <h3>{displayTitle}</h3>
       </div>
-      <ActionButton className="buff_choose_button" onClick={onSelect} variant={selected ? "primary" : "secondary"}>
+      <ActionButton className="buff_choose_button" disabled={disabledSelection} onClick={onSelect} variant={selected ? "primary" : "secondary"}>
         {selected ? `Selected ${side}` : `Choose ${side}`}
       </ActionButton>
     </article>

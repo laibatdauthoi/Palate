@@ -2725,6 +2725,34 @@ select.input_control option:checked,
   box-shadow: var(--shadow-bevel);
 }
 
+.buff_ended_state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.buff_ended_copy {
+  display: grid;
+  gap: 4px;
+}
+
+.buff_ended_copy strong,
+.buff_ended_copy p {
+  margin: 0;
+}
+
+.buff_ended_copy strong {
+  color: #f7feff;
+  font-size: var(--font-size-body);
+}
+
+.buff_ended_copy p {
+  color: rgba(214, 234, 239, 0.84);
+  font-size: var(--font-size-body-small);
+  line-height: 1.45;
+}
+
 .buff_action_row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -5379,6 +5407,11 @@ select.input_control,
     align-items: stretch;
   }
 
+  .buff_ended_state {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .mock_form_grid {
     grid-template-columns: 1fr;
   }
@@ -5586,6 +5619,10 @@ select.input_control,
     width: 100%;
     grid-template-columns: 1fr;
     justify-items: stretch;
+  }
+
+  .buff_ended_state .action_button {
+    width: 100%;
   }
 
   .buff_amount_label_block {

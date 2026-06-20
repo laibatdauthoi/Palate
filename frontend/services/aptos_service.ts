@@ -1099,6 +1099,9 @@ export async function getCurrentAssignment(walletAddress: string): Promise<BuffA
     viewOne("getCurrentAssignmentAssignedTime", [walletAddress])
   ]);
   const match = await getActiveMatchById(asString(matchId));
+  if (match.status === "settled") {
+    return null;
+  }
 
   return {
     match,

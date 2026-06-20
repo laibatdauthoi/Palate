@@ -826,9 +826,10 @@ module palate::palate {
 
         let user = signer::address_of(account);
         let state = borrow_global_mut<PalateState>(@palate);
+        let current_time = timestamp::now_seconds();
+        clearResolvedAssignmentForUser(state, user, current_time);
         assert!(!hasActiveAssignment(state, user), E_ASSIGNMENT_EXISTS);
 
-        let current_time = timestamp::now_seconds();
         let assignment_nonce = state.assignment_nonce;
         let match_index = findValidAssignmentMatchIndex(state, user, current_time, assignment_nonce);
         let active_match = vector::borrow(&state.active_matches, match_index);
@@ -971,6 +972,7 @@ module palate::palate {
         moveSettlementFeesToTreasury(state, match_index);
         markLosingPushLockedAmountLost(state, match_index);
         markLosingBuffLockedAmountsLost(state, match_id, winner_side);
+        clearResolvedAssignmentsForMatch(state, match_id, current_time);
 
         let media_a_index = findMediaIndex(state, media_a_id);
         let media_b_index = findMediaIndex(state, media_b_id);
@@ -2729,17 +2731,26 @@ module palate::palate {
     }
 
     fun findAssignmentIndex(state: &PalateState, user: address): u64 {
+        let (has_assignment, index) = findAssignmentIndexMaybe(state, user);
+        if (has_assignment) {
+            return index
+        };
+
+        abort E_ASSIGNMENT_NOT_FOUND
+    }
+
+    fun findAssignmentIndexMaybe(state: &PalateState, user: address): (bool, u64) {
         let length = vector::length(&state.user_assignments);
         let index = 0;
         while (index < length) {
             let assignment = vector::borrow(&state.user_assignments, index);
             if (assignment.user == user) {
-                return index
+                return (true, index)
             };
             index = index + 1;
         };
 
-        abort E_ASSIGNMENT_NOT_FOUND
+        (false, 0)
     }
 
     fun findBuffRecordIndex(state: &PalateState, user: address, match_id: u64): u64 {
@@ -2777,6 +2788,52 @@ module palate::palate {
         };
 
         false
+    }
+
+    fun clearResolvedAssignmentForUser(state: &mut PalateState, user: address, current_time: u64) {
+        let (has_assignment, assignment_index) = findAssignmentIndexMaybe(state, user);
+        if (!has_assignment) {
+            return
+        };
+
+        let assignment = *vector::borrow(&state.user_assignments, assignment_index);
+        let match_index = findActiveMatchIndex(state, assignment.match_id);
+        let can_still_buff = {
+            let active_match = vector::borrow(&state.active_matches, match_index);
+            active_match.status == MATCH_STATUS_ACTIVE && current_time < active_match.end_time
+        };
+        if (can_still_buff) {
+            return
+        };
+
+        refundCommitmentToAvailable(state, assignment.user, assignment.commitment_amount);
+        vector::swap_remove(&mut state.user_assignments, assignment_index);
+    }
+
+    fun clearResolvedAssignmentsForMatch(state: &mut PalateState, match_id: u64, current_time: u64) {
+        let length = vector::length(&state.user_assignments);
+        let index = 0;
+        while (index < length) {
+            let assignment = *vector::borrow(&state.user_assignments, index);
+            if (assignment.match_id != match_id) {
+                index = index + 1;
+                continue
+            };
+
+            let match_index = findActiveMatchIndex(state, assignment.match_id);
+            let can_still_buff = {
+                let active_match = vector::borrow(&state.active_matches, match_index);
+                active_match.status == MATCH_STATUS_ACTIVE && current_time < active_match.end_time
+            };
+            if (can_still_buff) {
+                index = index + 1;
+                continue
+            };
+
+            refundCommitmentToAvailable(state, assignment.user, assignment.commitment_amount);
+            vector::swap_remove(&mut state.user_assignments, index);
+            length = length - 1;
+        };
     }
 
     fun getCurrentAssignment(user: address): UserAssignment acquires PalateState {

@@ -42,9 +42,16 @@ export default function BuffPage() {
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
   const nowMs = useCountdownNow();
   const assignedMatch = currentAssignment?.match;
+  const assignedMatchCountdown = assignedMatch
+    ? getLiveCountdownState(Number(assignedMatch.endTimeSeconds), nowMs, { endedLabel: "Ended" })
+    : null;
+  const assignedMatchEnded = assignedMatch
+    ? assignedMatch.status === "settled" || assignedMatchCountdown?.isEnded === true
+    : false;
   const buffBusy = processingAction === "findMatch" || processingAction === "placeBuff" || processingAction === "skipMatch";
   const isPlacingBuff = processingAction === "placeBuff";
   const isSkippingMatch = processingAction === "skipMatch";
+  const isSettlingMatch = processingAction === "settleMatch";
   const walletReady = walletStatus === "connected";
   const settleableMatches = activeMatches.filter((match) =>
     match.status === "active" && getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ready to settle" }).isEnded
@@ -73,6 +80,8 @@ export default function BuffPage() {
             : `Confirm Buff ${selectedSide}`;
   const confirmDisabledReason = !walletReady
     ? "Connect wallet to place a Buff."
+    : assignedMatchEnded
+      ? "Match ended."
     : !selectedSide
       ? "Select a side."
       : palateBalanceReadStatus === "loading"
@@ -208,17 +217,23 @@ export default function BuffPage() {
               confirmDisabled={!canBuff}
               confirmLoading={isPlacingBuff}
               confirmTooltip={confirmDisabledReason}
+              ended={assignedMatchEnded}
+              endedLabel={assignedMatch?.status === "settled" ? "Match settled" : "Match ended"}
               match={assignedMatch}
               minBuffAmountLabel={minBuffAmountLabel}
               disableSkip={!walletReady}
               onBuffAmountChange={setBuffAmount}
               onConfirmBuff={() => {
+                if (assignedMatchEnded) return;
                 if (!selectedSide) return;
                 placeBuff(selectedSide, buffAmount);
               }}
+              onSettle={assignedMatch.status === "settled" ? undefined : () => settleMatch(assignedMatch.id)}
               onSkip={skipMatch}
               onSelectSide={setSelectedSide}
               selectedSide={selectedSide}
+              settleDisabled={!walletReady || isSettlingMatch || assignedMatch.status === "settled"}
+              settleLoading={isSettlingMatch}
               skipPenalty={currentAssignment.skipPenaltyAmount}
               skipLoading={isSkippingMatch}
             />

@@ -1469,6 +1469,69 @@ module palate::palate_tests {
         assert!(!palate::hasCurrentAssignment(signer::address_of(&user)), 0);
     }
 
+    #[test(admin = @palate, framework = @0x1, pusher = @0x3231, challenger = @0x3232, user = @0x3233)]
+    fun settleMatchClearsAssignmentAndRefundsCommitment(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
+
+        let user_address = signer::address_of(&user);
+        let available_before = palate::getAvailableBalance(user_address);
+        let commitment = palate::getBuffCommitmentAmount();
+
+        palate::findMatch(&user);
+        assert!(palate::hasCurrentAssignment(user_address), 0);
+        assert!(palate::getLockedCommitmentAmount(user_address) == commitment, 1);
+
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        palate::settleMatch(&pusher, 0);
+
+        assert!(!palate::hasCurrentAssignment(user_address), 2);
+        assert!(palate::getAvailableBalance(user_address) == available_before, 3);
+        assert!(palate::getLockedCommitmentAmount(user_address) == 0, 4);
+        assert!(palate::getCommitmentEscrowBalance() == 0, 5);
+    }
+
+    #[test(
+        admin = @palate,
+        framework = @0x1,
+        pusher_one = @0x3234,
+        challenger_one = @0x3235,
+        pusher_two = @0x3236,
+        challenger_two = @0x3237,
+        user = @0x3238
+    )]
+    fun findMatchClearsResolvedAssignmentAndAssignsNextValidMatch(
+        admin: signer,
+        framework: signer,
+        pusher_one: signer,
+        challenger_one: signer,
+        pusher_two: signer,
+        challenger_two: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        palate::updateMatchConfig(&admin, palate::getMatchDurationSeconds(), 2);
+        createImageMatch(&framework, &pusher_one, &challenger_one);
+        fundPalateBalance(&framework, &user);
+        palate::findMatch(&user);
+
+        timestamp::fast_forward_seconds(palate::getMatchDurationSeconds());
+        createImageMatchWithIds(&framework, &pusher_two, &challenger_two, 2, 3, 1);
+
+        palate::findMatch(&user);
+
+        let user_address = signer::address_of(&user);
+        assert!(palate::hasCurrentAssignment(user_address), 0);
+        assert!(palate::getCurrentAssignmentMatchId(user_address) == 1, 1);
+    }
+
     #[test(admin = @palate, framework = @0x1, user = @0x326)]
     #[expected_failure(abort_code = 18, location = palate::palate)]
     fun skipMatchRejectsWhenUserHasNoAssignment(admin: signer, framework: signer, user: signer) {
