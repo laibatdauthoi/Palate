@@ -1,11 +1,15 @@
+/* eslint-disable @next/next/no-img-element */
+
+import { useMemo, useState } from "react";
 import { ActionButton } from "./action_button";
 import { CategoryBadge } from "./category_badge";
 import { FormatBadge } from "./format_badge";
-import { MediaRenderer } from "./media_renderer";
 import { ModalShell } from "./modal_shell";
 import { useMediaViewer } from "@/providers/media_viewer_provider";
+import { resolveShelbyReadUrl } from "@/services/shelby_service";
 import type { FeedbackMessage, MediaRecord, WaitingPush } from "@/types/palate";
 import { getMediaDisplayTitle } from "@/utils/media_display";
+import { detectMediaKindFromMetadata } from "@/utils/media_file_validation";
 
 type ChallengeFlowModalProps = {
   open: boolean;
@@ -24,6 +28,88 @@ type ChallengeFlowModalProps = {
   onBackToMedia: () => void;
   onSubmit: () => void;
 };
+
+function ChallengeThumbnail({
+  interactive = false,
+  media,
+  onOpen
+}: {
+  media: MediaRecord;
+  interactive?: boolean;
+  onOpen?: () => void;
+}) {
+  const [failed, setFailed] = useState(false);
+  const displayTitle = getMediaDisplayTitle(media);
+  const source = useMemo(() => resolveShelbyReadUrl(media), [media]);
+  const mediaKind = useMemo(
+    () => detectMediaKindFromMetadata(media.mimeType, media.originalFileName),
+    [media.mimeType, media.originalFileName]
+  );
+  const hasSource = Boolean(source && !failed);
+
+  function handleUnavailable() {
+    setFailed(true);
+  }
+
+  const content = (() => {
+    if (mediaKind === "image" && hasSource) {
+      return (
+        <img
+          alt={displayTitle}
+          className="challenge_thumb_media"
+          onError={handleUnavailable}
+          src={source}
+        />
+      );
+    }
+
+    if (mediaKind === "video" && hasSource) {
+      return (
+        <video
+          className="challenge_thumb_media"
+          muted
+          onError={handleUnavailable}
+          playsInline
+          preload="metadata"
+          src={source}
+        />
+      );
+    }
+
+    return (
+      <div className="challenge_thumb_audio" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 13a8 8 0 0 1 16 0" />
+          <path d="M6 13v5a2 2 0 0 0 2 2h1v-7H8a2 2 0 0 0-2 2Z" />
+          <path d="M18 13a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2Z" />
+        </svg>
+      </div>
+    );
+  })();
+
+  if (interactive) {
+    return (
+      <button
+        aria-label={`View ${displayTitle}`}
+        className="challenge_selected_thumb"
+        onClick={onOpen}
+        type="button"
+      >
+        <div className={`challenge_thumb_frame challenge_thumb_frame_${media.accent}`}>{content}</div>
+        <span aria-hidden="true" className="challenge_selected_media_overlay">
+          <span className="challenge_selected_media_overlay_icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+          </span>
+        </span>
+      </button>
+    );
+  }
+
+  return <div className={`challenge_thumb_frame challenge_thumb_frame_${media.accent}`}>{content}</div>;
+}
 
 export function ChallengeFlowModal({
   open,
@@ -66,6 +152,58 @@ export function ChallengeFlowModal({
       && !selfChallengeReason
   );
 
+  function renderChallengeCard(media: MediaRecord, options?: { selected?: boolean; onClick?: () => void }) {
+    const { selected = false, onClick } = options ?? {};
+    const displayTitle = getMediaDisplayTitle(media);
+
+    return (
+      <button
+        aria-pressed={selected}
+        className={`challenge_pick_card ${selected ? "selected" : ""}`}
+        key={media.id}
+        onClick={onClick}
+        type="button"
+      >
+        <ChallengeThumbnail media={media} />
+        <div className="challenge_pick_body">
+          <h3 className="challenge_pick_title">{displayTitle}</h3>
+          <div className="cluster">
+            <CategoryBadge category={media.category} />
+            <FormatBadge format={media.format} />
+          </div>
+          <div className="challenge_pick_meta">
+            <span>{media.createdTime}</span>
+          </div>
+        </div>
+      </button>
+    );
+  }
+
+  function renderSelectedMediaPanel(media: MediaRecord) {
+    const displayTitle = getMediaDisplayTitle(media);
+
+    return (
+      <div className="challenge_selected_panel">
+        <ChallengeThumbnail
+          interactive
+          media={media}
+          onOpen={() => openMediaViewer(media, "challenge_flow_modal:selected_media")}
+        />
+        <div className="challenge_selected_media_details">
+          <strong>{displayTitle}</strong>
+          <div className="cluster">
+            <CategoryBadge category={media.category} />
+            <FormatBadge format={media.format} />
+          </div>
+          <div className="challenge_pick_meta">
+            <span>{media.createdTime}</span>
+          </div>
+        </div>
+      </div>
+    );
+
+  }
+
   return (
     <ModalShell title="Challenge Push" subtitle={modalSubtitle} open={open} onClose={onClose}>
       <div className="stack challenge_modal_content">
@@ -98,26 +236,12 @@ export function ChallengeFlowModal({
         {selectedPush && !selfChallengeReason && challengeOptions.length > 0 && !selectedMedia ? (
           <>
             <div className="challenge_media_picker_scroller">
-              <div className="challenge_media_picker_grid">
+              <div className="challenge_pick_grid">
                 {challengeOptions.map((media) => (
-                  <button
-                    className={`challenge_media_option ${selectedMediaId === String(media.id) ? "selected" : ""}`}
-                    key={media.id}
-                    onClick={() => onSelectMedia(String(media.id))}
-                    type="button"
-                  >
-                    <div className={`challenge_media_option_preview media_preview_${media.accent}`}>
-                      <MediaRenderer disablePreview media={media} variant="selector" />
-                    </div>
-                    <div className="challenge_media_option_body">
-                      <strong>{getMediaDisplayTitle(media)}</strong>
-                      <div className="cluster">
-                        <CategoryBadge category={media.category} />
-                        <FormatBadge format={media.format} />
-                      </div>
-                      <span className="challenge_media_option_meta">{media.createdTime}</span>
-                    </div>
-                  </button>
+                  renderChallengeCard(media, {
+                    onClick: () => onSelectMedia(String(media.id)),
+                    selected: selectedMediaId === String(media.id)
+                  })
                 ))}
               </div>
             </div>
@@ -126,32 +250,7 @@ export function ChallengeFlowModal({
 
         {selectedPush && selectedMedia ? (
           <>
-            <div className="challenge_selected_media">
-              <button
-                aria-label={`View ${getMediaDisplayTitle(selectedMedia)}`}
-                className={`challenge_selected_media_preview media_preview_${selectedMedia.accent}`}
-                onClick={() => openMediaViewer(selectedMedia, "challenge_flow_modal:selected_media")}
-                type="button"
-              >
-                <MediaRenderer disablePreview media={selectedMedia} variant="selector" />
-                <span aria-hidden="true" className="challenge_selected_media_overlay">
-                  <span className="challenge_selected_media_overlay_icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="m20 20-3.5-3.5" />
-                    </svg>
-                  </span>
-                </span>
-              </button>
-              <div className="challenge_selected_media_body">
-                <span className="state_mark">Selected media</span>
-                <strong>{getMediaDisplayTitle(selectedMedia)}</strong>
-                <div className="cluster">
-                  <CategoryBadge category={selectedMedia.category} />
-                  <FormatBadge format={selectedMedia.format} />
-                </div>
-              </div>
-            </div>
+            {renderSelectedMediaPanel(selectedMedia)}
             {challengeFeedback ? <p className={`feedback_text feedback_${challengeFeedback.type}`}>{challengeFeedback.message}</p> : null}
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to challenge Pushes on Aptos Testnet.</p> : null}
             <div className="challenge_action_row">
