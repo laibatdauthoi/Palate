@@ -2110,7 +2110,7 @@ select.input_control option:checked,
 }
 
 .compact_card_grid_waiting {
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   justify-items: center;
 }
 
@@ -2245,6 +2245,59 @@ select.input_control option:checked,
   display: grid;
   gap: 7px;
   min-height: 0;
+}
+
+.waiting_push_card_compact {
+  max-width: 320px;
+}
+
+.waiting_push_card_compact .waiting_push_body {
+  grid-template-rows: auto auto;
+  gap: 6px;
+  padding: 10px;
+}
+
+.waiting_push_card_compact .waiting_push_title_group {
+  gap: 3px;
+}
+
+.waiting_push_card_compact .waiting_push_title_group h3 {
+  display: block;
+  min-height: 0;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: 1;
+  white-space: nowrap;
+}
+
+.waiting_push_card_compact .waiting_push_header {
+  gap: 10px;
+}
+
+.waiting_push_meta_compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.waiting_push_stats_compact {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.waiting_push_card_compact .waiting_push_stat {
+  gap: 2px;
+  padding: 7px 9px;
+}
+
+.waiting_push_card_compact .waiting_push_stat dt {
+  font-size: 10px;
+}
+
+.waiting_push_action_stack_compact {
+  justify-items: stretch;
+}
+
+.waiting_push_card_compact .waiting_push_actions .action_button {
+  min-width: 118px;
 }
 
 .waiting_push_stats {
@@ -3640,10 +3693,9 @@ select.input_control option:checked,
 .challenge_pick_title {
   margin: 0;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  word-break: break-word;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
   font-size: 14px;
   line-height: 1.35;
 }
@@ -5778,6 +5830,17 @@ select.input_control,
 
   .waiting_push_actions {
     justify-content: stretch;
+  }
+
+  .waiting_push_card_compact .waiting_push_meta_compact {
+    grid-template-columns: 1fr;
+  }
+
+  .waiting_push_card_compact .waiting_push_action_stack_compact,
+  .waiting_push_card_compact .waiting_push_actions,
+  .waiting_push_card_compact .waiting_push_actions .action_button {
+    width: 100%;
+    justify-items: stretch;
   }
 
   .waiting_push_actions .action_button,

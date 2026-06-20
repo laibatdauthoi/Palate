@@ -12,6 +12,7 @@ type WaitingPushCardProps = {
   onChallenge?: () => void;
   challengeHref?: string;
   challengeDisabledReason?: string | null;
+  variant?: "default" | "compact";
 };
 
 function shortenAddress(address: string) {
@@ -104,14 +105,23 @@ function WaitingAudioPreview({
   );
 }
 
-export function WaitingPushCard({ push, onChallenge, challengeHref, challengeDisabledReason }: WaitingPushCardProps) {
+export function WaitingPushCard({
+  push,
+  onChallenge,
+  challengeHref,
+  challengeDisabledReason,
+  variant = "default"
+}: WaitingPushCardProps) {
   const { canPlayMedia, currentTrackId, isPlaying, playMedia, togglePlayback } = useMediaPlayer();
   const displayTitle = getMediaDisplayTitle(push.media);
   const canChallenge = push.status === "open" && !challengeDisabledReason && Boolean(challengeHref || onChallenge);
   const canPlayAudioPreview = push.media.category === "audio" && canPlayMedia(push.media);
   const audioPreviewActive = canPlayAudioPreview && currentTrackId === push.media.id;
+  const isCompact = variant === "compact";
+  const cardStatus = push.status === "open" ? "open" : push.status === "challenged" ? "active" : "disabled";
+  const actionLabel = push.status === "open" ? "Challenge" : "Closed";
   return (
-    <article className={`waiting_push_card waiting_push_card_${push.media.category}`}>
+    <article className={`waiting_push_card waiting_push_card_${push.media.category} ${isCompact ? "waiting_push_card_compact" : ""}`}>
       <div className={`waiting_media media_preview_${push.media.accent}`}>
         {push.media.category === "audio" ? (
           <WaitingAudioPreview
@@ -143,52 +153,81 @@ export function WaitingPushCard({ push, onChallenge, challengeHref, challengeDis
               <FormatBadge format={push.media.format} />
             </div>
           </div>
-          <StatusBadge status={push.status === "open" ? "open" : push.status === "challenged" ? "active" : "disabled"} />
+          <StatusBadge status={cardStatus} />
         </div>
-        <div className="waiting_push_meta">
-          <dl className="waiting_push_stats">
-            <div className="waiting_push_stat">
-              <dt>Push amount</dt>
-              <dd>{push.pushAmount}</dd>
-            </div>
-            <div className="waiting_push_stat">
-              <dt>Min challenge</dt>
-              <dd>{push.minChallengeAmount}</dd>
-            </div>
-          </dl>
-          <dl className="waiting_push_details">
-            <div className="waiting_push_detail_row">
-              <div className="waiting_push_detail_stack">
-                <div className="waiting_push_detail_line">
-                  <dt>Pusher</dt>
-                  <dd>{shortenAddress(push.pusherAddress)}</dd>
-                </div>
-                <div className="waiting_push_detail_line">
-                  <dt>Created</dt>
-                  <dd>{push.createdTime}</dd>
-                </div>
+        {isCompact ? (
+          <div className="waiting_push_meta waiting_push_meta_compact">
+            <dl className="waiting_push_stats waiting_push_stats_compact">
+              <div className="waiting_push_stat">
+                <dt>Required Amount</dt>
+                <dd>{push.minChallengeAmount}</dd>
               </div>
-              <div className="waiting_push_action_stack">
-                <div className="waiting_push_actions">
-                  {challengeHref && canChallenge ? (
-                    <ActionButton href={challengeHref} variant="primary">Challenge</ActionButton>
-                  ) : challengeDisabledReason ? (
-                    <span
-                      aria-label={challengeDisabledReason}
-                      className="waiting_push_tooltip_anchor"
-                      data-tooltip={challengeDisabledReason}
-                      tabIndex={0}
-                    >
-                      <ActionButton disabled onClick={undefined} variant="primary">{push.status === "open" ? "Challenge" : "Closed"}</ActionButton>
-                    </span>
-                  ) : (
-                    <ActionButton disabled={!canChallenge} onClick={canChallenge ? onChallenge : undefined} variant="primary">{push.status === "open" ? "Challenge" : "Closed"}</ActionButton>
-                  )}
-                </div>
+            </dl>
+            <div className="waiting_push_action_stack waiting_push_action_stack_compact">
+              <div className="waiting_push_actions">
+                {challengeHref && canChallenge ? (
+                  <ActionButton href={challengeHref} variant="primary">Challenge</ActionButton>
+                ) : challengeDisabledReason ? (
+                  <span
+                    aria-label={challengeDisabledReason}
+                    className="waiting_push_tooltip_anchor"
+                    data-tooltip={challengeDisabledReason}
+                    tabIndex={0}
+                  >
+                    <ActionButton disabled onClick={undefined} variant="primary">{actionLabel}</ActionButton>
+                  </span>
+                ) : (
+                  <ActionButton disabled={!canChallenge} onClick={canChallenge ? onChallenge : undefined} variant="primary">{actionLabel}</ActionButton>
+                )}
               </div>
             </div>
-          </dl>
-        </div>
+          </div>
+        ) : (
+          <div className="waiting_push_meta">
+            <dl className="waiting_push_stats">
+              <div className="waiting_push_stat">
+                <dt>Push amount</dt>
+                <dd>{push.pushAmount}</dd>
+              </div>
+              <div className="waiting_push_stat">
+                <dt>Min challenge</dt>
+                <dd>{push.minChallengeAmount}</dd>
+              </div>
+            </dl>
+            <dl className="waiting_push_details">
+              <div className="waiting_push_detail_row">
+                <div className="waiting_push_detail_stack">
+                  <div className="waiting_push_detail_line">
+                    <dt>Pusher</dt>
+                    <dd>{shortenAddress(push.pusherAddress)}</dd>
+                  </div>
+                  <div className="waiting_push_detail_line">
+                    <dt>Created</dt>
+                    <dd>{push.createdTime}</dd>
+                  </div>
+                </div>
+                <div className="waiting_push_action_stack">
+                  <div className="waiting_push_actions">
+                    {challengeHref && canChallenge ? (
+                      <ActionButton href={challengeHref} variant="primary">Challenge</ActionButton>
+                    ) : challengeDisabledReason ? (
+                      <span
+                        aria-label={challengeDisabledReason}
+                        className="waiting_push_tooltip_anchor"
+                        data-tooltip={challengeDisabledReason}
+                        tabIndex={0}
+                      >
+                        <ActionButton disabled onClick={undefined} variant="primary">{actionLabel}</ActionButton>
+                      </span>
+                    ) : (
+                      <ActionButton disabled={!canChallenge} onClick={canChallenge ? onChallenge : undefined} variant="primary">{actionLabel}</ActionButton>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </dl>
+          </div>
+        )}
       </div>
     </article>
   );

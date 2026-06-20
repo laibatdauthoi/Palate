@@ -168,6 +168,7 @@ export function ChallengeFlowModal({
 
   function renderChallengeCard(media: MediaRecord, options?: { selected?: boolean; onClick?: () => void }) {
     const { selected = false, onClick } = options ?? {};
+    const displayTitle = getMediaDisplayTitle(media);
 
     return (
       <button
@@ -179,6 +180,7 @@ export function ChallengeFlowModal({
       >
         <ChallengeThumbnail media={media} />
         <div className="challenge_pick_body">
+          <h3 className="challenge_pick_title">{displayTitle}</h3>
           <div className="cluster">
             <CategoryBadge category={media.category} />
             <FormatBadge format={media.format} />

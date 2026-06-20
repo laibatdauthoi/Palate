@@ -161,6 +161,7 @@ export default function HomePage() {
                     clearFeedback();
                   }}
                   push={push}
+                  variant="compact"
                 />
               ))}
             </div>
