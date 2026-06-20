@@ -134,13 +134,21 @@ export function ChallengeFlowModal({
       ? <span className="challenge_modal_subtitle">Review the selected media and confirm.</span>
       : <span className="challenge_modal_subtitle">Choose same-category idle media to challenge this push.</span>
     : undefined;
+  const challengeFeedbackMessage = challengeFeedback?.message?.trim().toLowerCase() ?? "";
+  const isChallengeRejected = challengeFeedback?.type === "error"
+    && challengeFeedbackMessage.includes("reject");
+  const hasChallengeFailure = challengeFeedback?.type === "error" && !isChallengeRejected;
   const confirmLabel = pushBusy
     ? "Submitting"
-    : !walletReady
-      ? "Balance unavailable"
-      : !challengeBalanceValid
-        ? "Insufficient Balance"
-        : "Confirm Challenge";
+    : isChallengeRejected
+      ? "Request rejected"
+      : hasChallengeFailure
+        ? "Failed"
+        : !walletReady
+          ? "Balance unavailable"
+          : !challengeBalanceValid
+            ? "Insufficient Balance"
+            : "Confirm Challenge";
   const canConfirm = Boolean(
     walletReady
       && selectedPush
@@ -152,7 +160,6 @@ export function ChallengeFlowModal({
 
   function renderChallengeCard(media: MediaRecord, options?: { selected?: boolean; onClick?: () => void }) {
     const { selected = false, onClick } = options ?? {};
-    const displayTitle = getMediaDisplayTitle(media);
 
     return (
       <button
@@ -164,7 +171,6 @@ export function ChallengeFlowModal({
       >
         <ChallengeThumbnail media={media} />
         <div className="challenge_pick_body">
-          <h3 className="challenge_pick_title">{displayTitle}</h3>
           <div className="cluster">
             <CategoryBadge category={media.category} />
             <FormatBadge format={media.format} />
@@ -196,6 +202,12 @@ export function ChallengeFlowModal({
           <div className="challenge_pick_meta">
             <span>{media.createdTime}</span>
           </div>
+        </div>
+        <div className="challenge_selected_actions">
+          <ActionButton className="challenge_row_button challenge_row_button_secondary" onClick={onBackToMedia} variant="secondary">Choose Another Media</ActionButton>
+          <ActionButton className="challenge_row_button challenge_row_button_primary" disabled={!canConfirm} onClick={onSubmit}>
+            {confirmLabel}
+          </ActionButton>
         </div>
       </div>
     );
@@ -249,14 +261,7 @@ export function ChallengeFlowModal({
         {selectedPush && selectedMedia ? (
           <>
             {renderSelectedMediaPanel(selectedMedia)}
-            {challengeFeedback ? <p className={`feedback_text feedback_${challengeFeedback.type}`}>{challengeFeedback.message}</p> : null}
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to challenge Pushes on Aptos Testnet.</p> : null}
-            <div className="challenge_action_row">
-              <ActionButton className="challenge_row_button challenge_row_button_secondary" onClick={onBackToMedia} variant="secondary">Choose Another Media</ActionButton>
-              <ActionButton className="challenge_row_button challenge_row_button_primary" disabled={!canConfirm} onClick={onSubmit}>
-                {confirmLabel}
-              </ActionButton>
-            </div>
           </>
         ) : null}
       </div>

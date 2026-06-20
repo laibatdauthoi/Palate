@@ -3655,8 +3655,8 @@ select.input_control option:checked,
 
 .challenge_selected_panel {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--spacing-sm);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 20px;
   align-items: center;
   padding: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -3728,6 +3728,13 @@ select.input_control option:checked,
 .challenge_selected_media_details strong {
   overflow-wrap: anywhere;
   font-size: var(--font-size-body-large);
+}
+
+.challenge_selected_actions {
+  display: grid;
+  gap: 12px;
+  align-content: center;
+  justify-items: stretch;
 }
 
 @media (max-width: 1100px) {
@@ -5810,6 +5817,11 @@ select.input_control,
     flex-direction: column;
   }
 
+  .challenge_selected_actions {
+    justify-items: stretch;
+  }
+
+  .challenge_selected_actions .action_button,
   .challenge_action_row .action_button,
   .challenge_empty_actions .action_button {
     width: 100%;
