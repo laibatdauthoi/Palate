@@ -1,6 +1,5 @@
 import type { ActiveMatch } from "@/types/palate";
 import { ActionButton } from "./action_button";
-import { AmountInput } from "./amount_input";
 import { BuffDecisionCard } from "./buff_decision_card";
 import { CategoryBadge } from "./category_badge";
 import { CountdownTimer } from "./countdown_timer";
@@ -9,14 +8,18 @@ type BuffPanelProps = {
   match: ActiveMatch;
   skipPenalty: string;
   buffAmount: string;
+  selectedSide: "A" | "B" | null;
   minBuffAmountLabel?: string;
-  buffHelperText?: string;
-  disableBuffActions?: boolean;
   onBuffAmountChange: (value: string) => void;
-  onBuffA: () => void;
-  onBuffB: () => void;
+  onSelectSide: (side: "A" | "B") => void;
+  onConfirmBuff: () => void;
   onSkip: () => void;
-  loading?: boolean;
+  confirmLabel?: string;
+  confirmDisabled?: boolean;
+  confirmTooltip?: string | null;
+  confirmLoading?: boolean;
+  skipTooltip?: string | null;
+  skipLoading?: boolean;
   disableSkip?: boolean;
 };
 
@@ -24,47 +27,67 @@ export function BuffPanel({
   match,
   skipPenalty,
   buffAmount,
+  selectedSide,
   minBuffAmountLabel = "0.1 APT",
-  buffHelperText,
-  disableBuffActions = false,
   onBuffAmountChange,
-  onBuffA,
-  onBuffB,
+  onSelectSide,
+  onConfirmBuff,
   onSkip,
-  loading = false,
+  confirmLabel,
+  confirmDisabled = false,
+  confirmTooltip = null,
+  confirmLoading = false,
+  skipTooltip = null,
+  skipLoading = false,
   disableSkip = false
 }: BuffPanelProps) {
+  const resolvedSkipTooltip = skipTooltip ?? `Skip penalty: ${skipPenalty}`;
+  const resolvedConfirmLabel = confirmLabel ?? (confirmLoading
+    ? "Submitting"
+    : selectedSide
+      ? `Confirm Buff ${selectedSide}`
+      : "Select a side");
+
   return (
     <section className="buff_panel">
-      <div className="buff_panel_top">
-        <div>
-          <span className="eyebrow">Assigned Match</span>
-          <h2>Choose the side that deserves to win.</h2>
-        </div>
-        <div className="cluster">
-          <CategoryBadge category={match.category} />
-          <CountdownTimer endedLabel="Ready to settle" targetTimestamp={match.endTimeSeconds} />
-        </div>
-      </div>
       <div className="buff_vs_layout">
-        <BuffDecisionCard side="A" media={match.mediaA} />
+        <BuffDecisionCard media={match.mediaA} onSelect={() => onSelectSide("A")} selected={selectedSide === "A"} side="A" />
         <div className="buff_vs_core">
-          <span>VS</span>
-          <p>Live score and Buff direction are hidden until settlement.</p>
+          <CategoryBadge category={match.category} />
+          <span className="buff_vs_token">VS</span>
+          <CountdownTimer endedLabel="Ended" targetTimestamp={match.endTimeSeconds} />
         </div>
-        <BuffDecisionCard side="B" media={match.mediaB} />
+        <BuffDecisionCard media={match.mediaB} onSelect={() => onSelectSide("B")} selected={selectedSide === "B"} side="B" />
       </div>
       <div className="buff_action_bar">
-        <div className="amount_field_stack">
-          <AmountInput label="Buff amount" onChange={onBuffAmountChange} placeholder={`Minimum ${minBuffAmountLabel}`} value={buffAmount} />
-          {buffHelperText ? <p className={`amount_helper ${disableBuffActions ? "amount_helper_error" : ""}`}>{buffHelperText}</p> : null}
+        <div className="buff_action_row">
+          <div className="buff_amount_input_wrap">
+            <input
+              className="input_control buff_amount_input"
+              aria-label="Buff amount"
+              id="buff_amount_input"
+              inputMode="decimal"
+              onChange={(event) => onBuffAmountChange(event.target.value)}
+              placeholder={minBuffAmountLabel}
+              value={buffAmount}
+            />
+            <span aria-hidden="true" className="buff_amount_suffix">APT</span>
+          </div>
+          <span
+            className="buff_tooltip_anchor"
+            data-tooltip={confirmTooltip ?? undefined}
+            tabIndex={confirmTooltip ? 0 : -1}
+          >
+            <ActionButton className="buff_confirm_button" disabled={confirmDisabled} onClick={onConfirmBuff}>
+              {resolvedConfirmLabel}
+            </ActionButton>
+          </span>
+          <span className="buff_tooltip_anchor buff_skip_stack" data-tooltip={resolvedSkipTooltip}>
+            <ActionButton className="skip_match_button" disabled={skipLoading || disableSkip} onClick={onSkip} variant="caution">
+              {skipLoading ? "Skipping" : "Skip Match"}
+            </ActionButton>
+          </span>
         </div>
-        <div className="buff_action_buttons">
-          <ActionButton className="buff_choice_button" disabled={loading || disableBuffActions} onClick={onBuffA}>{loading ? "Submitting" : "Buff A"}</ActionButton>
-          <ActionButton className="buff_choice_button" disabled={loading || disableBuffActions} onClick={onBuffB}>{loading ? "Submitting" : "Buff B"}</ActionButton>
-          <ActionButton className="skip_match_button" disabled={loading || disableSkip} onClick={onSkip} variant="danger">{loading ? "Skipping" : "Skip Match"}</ActionButton>
-        </div>
-        <p className="danger_note">Skip Match penalty: {skipPenalty}. Skipping clears this assignment.</p>
       </div>
     </section>
   );

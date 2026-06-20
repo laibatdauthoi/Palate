@@ -4,12 +4,13 @@ import { ActionButton } from "./action_button";
 
 type ModalShellProps = {
   title: string;
+  subtitle?: ReactNode;
   children: ReactNode;
   open: boolean;
   onClose: () => void;
 };
 
-export function ModalShell({ title, children, open, onClose }: ModalShellProps) {
+export function ModalShell({ title, subtitle, children, open, onClose }: ModalShellProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -36,8 +37,11 @@ export function ModalShell({ title, children, open, onClose }: ModalShellProps) 
   const modal = (
     <div className="modal_backdrop" onMouseDown={onClose} role="presentation">
       <section className="modal_shell" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="modal_title">
-        <div className="modal_shell_header spread">
-          <h2 id="modal_title">{title}</h2>
+        <div className="modal_shell_header">
+          <div className="modal_shell_header_text">
+            <h2 id="modal_title">{title}</h2>
+            {subtitle ? <p className="modal_shell_subtitle">{subtitle}</p> : null}
+          </div>
           <ActionButton variant="ghost" onClick={onClose}>Close</ActionButton>
         </div>
         <div className="modal_shell_body">{children}</div>

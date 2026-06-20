@@ -52,6 +52,7 @@ export function ChallengeFlowModal({
 }: ChallengeFlowModalProps) {
   const selectedMedia = challengeOptions.find((media) => String(media.id) === selectedMediaId) ?? null;
   const showEmptyState = Boolean(selectedPush && !selfChallengeReason && challengeOptions.length === 0);
+  const showAmountHelper = !challengeAmountValid || !challengeBalanceValid;
   const canConfirm = Boolean(
     walletReady
       && selectedPush
@@ -72,7 +73,7 @@ export function ChallengeFlowModal({
               <strong>{getMediaDisplayTitle(selectedPush.media)}</strong>
             </div>
             <div>
-              <span className="state_mark">Minimum</span>
+              <span className="state_mark">Required</span>
               <strong>{requiredChallengeLabel}</strong>
             </div>
           </div>
@@ -138,10 +139,12 @@ export function ChallengeFlowModal({
               </div>
             </div>
             <div className="amount_field_stack">
-              <AmountInput label="Challenge amount" onChange={onChallengeAmountChange} placeholder={`Minimum ${requiredChallengeLabel}`} value={challengeAmount} />
-              <p className={`amount_helper ${challengeAmountValid && challengeBalanceValid ? "" : "amount_helper_error"}`}>
-                {challengeAmountHelperText}
-              </p>
+              <AmountInput label="Challenge amount" onChange={onChallengeAmountChange} placeholder={requiredChallengeLabel} value={challengeAmount} />
+              {showAmountHelper ? (
+                <p className="amount_helper amount_helper_error">
+                  {challengeAmountHelperText}
+                </p>
+              ) : null}
             </div>
             {challengeFeedback ? <p className={`feedback_text feedback_${challengeFeedback.type}`}>{challengeFeedback.message}</p> : null}
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to challenge Pushes on Aptos Testnet.</p> : null}

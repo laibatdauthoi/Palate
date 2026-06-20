@@ -6,6 +6,7 @@ import { BuffPanel } from "@/components/buff_panel";
 import { EmptyState } from "@/components/empty_state";
 import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
+import { ModalShell } from "@/components/modal_shell";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
 import { useCountdownNow, getLiveCountdownState } from "@/hooks/use_live_countdown";
@@ -26,6 +27,7 @@ export default function BuffPage() {
     feedback,
     findMatch,
     noValidMatchAvailable,
+    palateBalanceReadStatus,
     placeBuff,
     processingAction,
     publicGameReadStatus,
@@ -36,9 +38,13 @@ export default function BuffPage() {
   } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const [buffAmount, setBuffAmount] = useState("0.250");
+  const [selectedSide, setSelectedSide] = useState<"A" | "B" | null>(null);
+  const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
   const nowMs = useCountdownNow();
   const assignedMatch = currentAssignment?.match;
   const buffBusy = processingAction === "findMatch" || processingAction === "placeBuff" || processingAction === "skipMatch";
+  const isPlacingBuff = processingAction === "placeBuff";
+  const isSkippingMatch = processingAction === "skipMatch";
   const walletReady = walletStatus === "connected";
   const settleableMatches = activeMatches.filter((match) =>
     match.status === "active" && getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ready to settle" }).isEnded
@@ -48,15 +54,41 @@ export default function BuffPage() {
   const buffAmountValidation = validateBuffAmount(buffAmount, minBuffOctas);
   const availableBalanceOctas = parseAmountOctas(balance.availableBalance);
   const buffAmountOctas = parseAmountOctas(buffAmount);
+  const isAmountBelowMinimum = !buffAmountValidation.valid;
+  const isBalanceUnavailable = palateBalanceReadStatus === "loading" || palateBalanceReadStatus === "error";
   const buffBalanceValid = buffAmountValidation.valid && buffAmountOctas !== null && availableBalanceOctas !== null
     ? buffAmountOctas <= availableBalanceOctas
     : false;
-  const buffHelperText = !buffAmountValidation.valid
-    ? buffAmountValidation.message
-    : !buffBalanceValid
-      ? "Palate Balance is too low for this Buff."
-      : buffAmountValidation.message;
-  const canBuff = walletReady && !buffBusy && buffAmountValidation.valid && buffBalanceValid;
+  const isInsufficientBalance = buffAmountValidation.valid && !isBalanceUnavailable && !buffBalanceValid;
+  const confirmButtonLabel = isPlacingBuff
+    ? "Submitting"
+    : !selectedSide
+      ? "Select a side"
+      : isAmountBelowMinimum
+        ? "Amount too low"
+        : isBalanceUnavailable
+          ? "Balance unavailable"
+          : isInsufficientBalance
+            ? "Insufficient Balance"
+            : `Confirm Buff ${selectedSide}`;
+  const confirmDisabledReason = !walletReady
+    ? "Connect wallet to place a Buff."
+    : !selectedSide
+      ? "Select a side."
+      : palateBalanceReadStatus === "loading"
+        ? "Palate balance is still loading."
+        : palateBalanceReadStatus === "error"
+          ? "Palate balance unavailable."
+          : !buffAmountValidation.valid
+            ? `Minimum Buff: ${minBuffAmountLabel}`
+            : !buffBalanceValid
+              ? "Insufficient Palate balance for this Buff."
+              : isPlacingBuff
+                ? "Buff submission in progress."
+                : isSkippingMatch
+                  ? "Skip Match in progress."
+                  : null;
+  const canBuff = confirmDisabledReason === null;
   const buffFeedback = feedback?.scope === "buff" ? feedback : null;
   const settleFeedback = feedback?.scope === "settle" ? feedback : null;
   const canFindMatch = walletReady && !buffBusy && !currentAssignment;
@@ -65,6 +97,19 @@ export default function BuffPage() {
   useEffect(() => {
     logPageMount("Buff");
   }, []);
+
+  useEffect(() => {
+    setSelectedSide(null);
+  }, [assignedMatch?.id]);
+
+  useEffect(() => {
+    if (assignedMatch) {
+      setAssignmentModalOpen(true);
+      return;
+    }
+
+    setAssignmentModalOpen(false);
+  }, [assignedMatch]);
 
   useEffect(() => {
     function runRefresh(source: "interval" | "visible" | "mount") {
@@ -101,7 +146,7 @@ export default function BuffPage() {
       <PageHeader
         eyebrow="Buff"
         title="Find one random match and Buff the side you believe in."
-        copy="Manual match selection stays disabled. Finish or skip your current assignment before finding the next one."
+        copy="Choose one side, enter your Buff amount, and confirm before finding another match."
       />
 
       {buffPageLoading ? (
@@ -109,6 +154,20 @@ export default function BuffPage() {
           label="Loading Buff state"
           copy="Active matches and your current assignment are loading from chain."
         />
+      ) : assignedMatch ? (
+        <div className="buff_assignment_banner">
+          <p className="secondary_text">Assignment active. Open it to Buff or Skip before finding another match.</p>
+          <div className="buff_assignment_banner_actions">
+            <ActionButton className="buff_assignment_reopen_button" onClick={() => setAssignmentModalOpen(true)}>
+              Open Assignment
+            </ActionButton>
+            <ActionButton className="buff_assignment_find_button" onClick={() => setAssignmentModalOpen(true)} variant="secondary">
+              Find Match
+            </ActionButton>
+          </div>
+          {completedBuffSide ? <p className="feedback_text feedback_success">Buff {completedBuffSide} recorded. Find the next match when you are ready.</p> : null}
+          {buffFeedback ? <p className={`feedback_text feedback_${buffFeedback.type}`}>{buffFeedback.message}</p> : null}
+        </div>
       ) : (
         <div className="buff_cta_block">
           <div className="buff_status_stack">
@@ -116,13 +175,18 @@ export default function BuffPage() {
               <ActionButton
                 className="buff_find_match_cta buff_find_match_cta_wide"
                 disabled={!canFindMatch}
-                onClick={findMatch}
+                onClick={() => {
+                  if (assignedMatch) {
+                    setAssignmentModalOpen(true);
+                    return;
+                  }
+                  findMatch();
+                }}
               >
                 {processingAction === "findMatch" ? "Finding" : "Find Match"}
               </ActionButton>
             </div>
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to find a match and place Buffs.</p> : null}
-            {currentAssignment ? <p className="secondary_text">Assignment active. Buff or skip it before finding another match.</p> : null}
             {completedBuffSide ? <p className="feedback_text feedback_success">Buff {completedBuffSide} recorded. Find the next match when you are ready.</p> : null}
             {noValidMatchAvailable ? <p className="feedback_text feedback_error">No valid match available right now.</p> : null}
             {buffFeedback ? <p className={`feedback_text feedback_${buffFeedback.type}`}>{buffFeedback.message}</p> : null}
@@ -131,20 +195,35 @@ export default function BuffPage() {
       )}
 
       {assignedMatch ? (
-        <BuffPanel
-          buffAmount={buffAmount}
-          buffHelperText={buffHelperText}
-          disableBuffActions={!canBuff}
-          loading={buffBusy}
-          match={assignedMatch}
-          minBuffAmountLabel={minBuffAmountLabel}
-          disableSkip={!walletReady}
-          onBuffA={() => placeBuff("A", buffAmount)}
-          onBuffAmountChange={setBuffAmount}
-          onBuffB={() => placeBuff("B", buffAmount)}
-          onSkip={skipMatch}
-          skipPenalty={currentAssignment.skipPenaltyAmount}
-        />
+        <ModalShell
+          onClose={() => setAssignmentModalOpen(false)}
+          open={assignmentModalOpen}
+          subtitle="Live score and Buff direction stay hidden until settlement."
+          title="Assigned Match"
+        >
+          <div className="buff_assignment_modal_content">
+            <BuffPanel
+              buffAmount={buffAmount}
+              confirmLabel={confirmButtonLabel}
+              confirmDisabled={!canBuff}
+              confirmLoading={isPlacingBuff}
+              confirmTooltip={confirmDisabledReason}
+              match={assignedMatch}
+              minBuffAmountLabel={minBuffAmountLabel}
+              disableSkip={!walletReady}
+              onBuffAmountChange={setBuffAmount}
+              onConfirmBuff={() => {
+                if (!selectedSide) return;
+                placeBuff(selectedSide, buffAmount);
+              }}
+              onSkip={skipMatch}
+              onSelectSide={setSelectedSide}
+              selectedSide={selectedSide}
+              skipPenalty={currentAssignment.skipPenaltyAmount}
+              skipLoading={isSkippingMatch}
+            />
+          </div>
+        </ModalShell>
       ) : null}
 
       <SectionPanel title="Settle eligible matches">
