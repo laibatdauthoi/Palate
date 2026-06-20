@@ -167,9 +167,9 @@ If there is no challenger yet, the UI shows the media as waiting for challenger.
 
 Another user can view waiting pushes, inspect the waiting media, select one of their own idle media, and call `challengePush`.
 
-The challenger must push more than the original pusher because the challenger has already seen the original media and can choose a counter media. The minimum required amount is based on `protocol_config.min_push_increment_bps`.
+The challenger must commit the required challenge amount because the challenger has already seen the original media and can choose a counter media. The amount required to challenge this waiting push is derived from the waiting push amount and `protocol_config.min_push_increment_bps`.
 
-Example: if media A is waiting with 10 APT and the minimum increment is 5 percent, then media B must push at least 10.5 APT to challenge.
+Example: if media A is waiting with 10 APT and the configured increment is 5 percent, then the Required Amount for media B is 10.5 APT. This value is computed from live waiting-push data and protocol config; it is not a fixed constant.
 
 When `challengePush` succeeds, the waiting push becomes an active match. Media A is always the original waiting push media. Media B is always the challenger media.
 

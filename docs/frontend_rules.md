@@ -338,7 +338,7 @@ Live Matches tab shows active matches but hides live score and pools.
 
 Challenge must require same-category media.
 
-Challenge modal should show the minimum required amount based on the original push and protocol config.
+Challenge modal should show the Required Amount for the selected waiting push, computed from the original push amount and protocol config.
 
 ## 17. Profile Implementation Rule
 

@@ -404,7 +404,7 @@ category
 format label
 pusher address shortened
 push amount
-minimum challenge amount
+Required Amount
 created time
 Challenge button
 
@@ -412,8 +412,8 @@ Challenge flow:
 
 User clicks Challenge.
 User selects one idle media from the same category.
-User enters push amount.
-UI shows required minimum amount.
+UI shows the amount required to challenge this waiting push.
+The Challenge modal displays and submits the Required Amount automatically.
 User confirms transaction.
 
 Challenge must not allow different categories to enter the same match.
