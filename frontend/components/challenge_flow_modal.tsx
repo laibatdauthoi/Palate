@@ -1,9 +1,9 @@
 import { ActionButton } from "./action_button";
-import { AmountInput } from "./amount_input";
 import { CategoryBadge } from "./category_badge";
 import { FormatBadge } from "./format_badge";
 import { MediaRenderer } from "./media_renderer";
 import { ModalShell } from "./modal_shell";
+import { useMediaViewer } from "@/providers/media_viewer_provider";
 import type { FeedbackMessage, MediaRecord, WaitingPush } from "@/types/palate";
 import { getMediaDisplayTitle } from "@/utils/media_display";
 
@@ -13,9 +13,6 @@ type ChallengeFlowModalProps = {
   selectedPushCategoryLabel: string;
   challengeOptions: MediaRecord[];
   selectedMediaId: string;
-  challengeAmount: string;
-  challengeAmountHelperText: string;
-  challengeAmountValid: boolean;
   challengeBalanceValid: boolean;
   requiredChallengeLabel: string;
   walletReady: boolean;
@@ -24,7 +21,6 @@ type ChallengeFlowModalProps = {
   selfChallengeReason?: string | null;
   onClose: () => void;
   onSelectMedia: (mediaId: string) => void;
-  onChallengeAmountChange: (value: string) => void;
   onBackToMedia: () => void;
   onSubmit: () => void;
 };
@@ -35,9 +31,6 @@ export function ChallengeFlowModal({
   selectedPushCategoryLabel,
   challengeOptions,
   selectedMediaId,
-  challengeAmount,
-  challengeAmountHelperText,
-  challengeAmountValid,
   challengeBalanceValid,
   requiredChallengeLabel,
   walletReady,
@@ -46,25 +39,35 @@ export function ChallengeFlowModal({
   selfChallengeReason,
   onClose,
   onSelectMedia,
-  onChallengeAmountChange,
   onBackToMedia,
   onSubmit
 }: ChallengeFlowModalProps) {
+  const { openMediaViewer } = useMediaViewer();
   const selectedMedia = challengeOptions.find((media) => String(media.id) === selectedMediaId) ?? null;
   const showEmptyState = Boolean(selectedPush && !selfChallengeReason && challengeOptions.length === 0);
-  const showAmountHelper = !challengeAmountValid || !challengeBalanceValid;
+  const modalSubtitle = selectedPush
+    ? selectedMedia
+      ? <span className="challenge_modal_subtitle">Review the selected media and confirm.</span>
+      : <span className="challenge_modal_subtitle">Choose same-category idle media to challenge this push.</span>
+    : undefined;
+  const confirmLabel = pushBusy
+    ? "Submitting"
+    : !walletReady
+      ? "Balance unavailable"
+      : !challengeBalanceValid
+        ? "Insufficient Balance"
+        : "Confirm Challenge";
   const canConfirm = Boolean(
     walletReady
       && selectedPush
       && selectedMedia
-      && challengeAmountValid
       && challengeBalanceValid
       && !pushBusy
       && !selfChallengeReason
   );
 
   return (
-    <ModalShell title="Challenge Push" open={open} onClose={onClose}>
+    <ModalShell title="Challenge Push" subtitle={modalSubtitle} open={open} onClose={onClose}>
       <div className="stack challenge_modal_content">
         {selectedPush ? (
           <div className="challenge_modal_summary">
@@ -94,7 +97,6 @@ export function ChallengeFlowModal({
 
         {selectedPush && !selfChallengeReason && challengeOptions.length > 0 && !selectedMedia ? (
           <>
-            <p className="secondary_text challenge_modal_intro">Step 1: choose same-category idle media to challenge this push.</p>
             <div className="challenge_media_picker_scroller">
               <div className="challenge_media_picker_grid">
                 {challengeOptions.map((media) => (
@@ -124,11 +126,23 @@ export function ChallengeFlowModal({
 
         {selectedPush && selectedMedia ? (
           <>
-            <p className="secondary_text challenge_modal_intro">Step 2: enter a challenge amount and confirm.</p>
             <div className="challenge_selected_media">
-              <div className={`challenge_selected_media_preview media_preview_${selectedMedia.accent}`}>
+              <button
+                aria-label={`View ${getMediaDisplayTitle(selectedMedia)}`}
+                className={`challenge_selected_media_preview media_preview_${selectedMedia.accent}`}
+                onClick={() => openMediaViewer(selectedMedia, "challenge_flow_modal:selected_media")}
+                type="button"
+              >
                 <MediaRenderer disablePreview media={selectedMedia} variant="selector" />
-              </div>
+                <span aria-hidden="true" className="challenge_selected_media_overlay">
+                  <span className="challenge_selected_media_overlay_icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="m20 20-3.5-3.5" />
+                    </svg>
+                  </span>
+                </span>
+              </button>
               <div className="challenge_selected_media_body">
                 <span className="state_mark">Selected media</span>
                 <strong>{getMediaDisplayTitle(selectedMedia)}</strong>
@@ -138,20 +152,12 @@ export function ChallengeFlowModal({
                 </div>
               </div>
             </div>
-            <div className="amount_field_stack">
-              <AmountInput label="Challenge amount" onChange={onChallengeAmountChange} placeholder={requiredChallengeLabel} value={challengeAmount} />
-              {showAmountHelper ? (
-                <p className="amount_helper amount_helper_error">
-                  {challengeAmountHelperText}
-                </p>
-              ) : null}
-            </div>
             {challengeFeedback ? <p className={`feedback_text feedback_${challengeFeedback.type}`}>{challengeFeedback.message}</p> : null}
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to challenge Pushes on Aptos Testnet.</p> : null}
-            <div className="challenge_step_actions">
-              <ActionButton onClick={onBackToMedia} variant="secondary">Choose Another Media</ActionButton>
-              <ActionButton disabled={!canConfirm} onClick={onSubmit}>
-                {pushBusy ? "Challenging" : "Confirm Challenge"}
+            <div className="challenge_action_row">
+              <ActionButton className="challenge_row_button challenge_row_button_secondary" onClick={onBackToMedia} variant="secondary">Choose Another Media</ActionButton>
+              <ActionButton className="challenge_row_button challenge_row_button_primary" disabled={!canConfirm} onClick={onSubmit}>
+                {confirmLabel}
               </ActionButton>
             </div>
           </>

@@ -47,7 +47,6 @@ function PushPageContent() {
   const [createAmount, setCreateAmount] = useState("1.000");
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
   const [challengeMediaId, setChallengeMediaId] = useState("");
-  const [challengeAmount, setChallengeAmount] = useState("6.510");
   const [prefillReason, setPrefillReason] = useState<string | null>(null);
   const [dismissedChallengeId, setDismissedChallengeId] = useState<number | null>(null);
   const [lastAppliedCreateMediaQuery, setLastAppliedCreateMediaQuery] = useState<string | null>(null);
@@ -87,22 +86,15 @@ function PushPageContent() {
     : null;
   const requiredChallengeLabel = effectiveChallengeOctas !== null ? formatOctasToApt(effectiveChallengeOctas) : minPushLabel;
   const createAmountValidation = validateAmount(createAmount, minPushOctas, "Minimum Push");
-  const challengeAmountValidation = validateAmount(challengeAmount, effectiveChallengeOctas, "Minimum challenge");
   const availableBalanceOctas = parseAmountOctas(balance.availableBalance);
   const createAmountOctas = parseAmountOctas(createAmount);
-  const challengeAmountOctas = parseAmountOctas(challengeAmount);
   const createBalanceValid = createAmountOctas !== null && availableBalanceOctas !== null && createAmountOctas <= availableBalanceOctas;
-  const challengeBalanceValid = challengeAmountOctas !== null && availableBalanceOctas !== null && challengeAmountOctas <= availableBalanceOctas;
+  const challengeBalanceValid = effectiveChallengeOctas !== null && availableBalanceOctas !== null && effectiveChallengeOctas <= availableBalanceOctas;
   const createAmountHelperText = !createAmountValidation.valid
     ? createAmountValidation.message
     : !createBalanceValid
       ? "Not enough Palate Balance."
       : createAmountValidation.message;
-  const challengeAmountHelperText = !challengeAmountValidation.valid
-    ? challengeAmountValidation.message
-    : !challengeBalanceValid
-      ? "Not enough Palate Balance."
-      : challengeAmountValidation.message;
   const canCreatePush = walletReady && !pushBusy && Boolean(createMediaId) && createAmountValidation.valid && createBalanceValid;
   const createPushLoading = walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia;
   const waitingSectionLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
@@ -263,7 +255,6 @@ function PushPageContent() {
     }
 
     setChallengePushId(nextId);
-    setChallengeAmount(push.minChallengeAmount.replace(" APT", ""));
     setChallengeMediaId("");
     clearFeedback();
     setModalOpen(true);
@@ -317,7 +308,6 @@ function PushPageContent() {
     setPrefillReason(null);
     setLastAppliedChallengeQuery(String(pushId));
     setChallengePushId(pushId);
-    setChallengeAmount(push?.minChallengeAmount.replace(" APT", "") ?? "1.000");
     setChallengeMediaId("");
     clearFeedback();
     setModalOpen(true);
@@ -451,9 +441,6 @@ function PushPageContent() {
       )}
 
       <ChallengeFlowModal
-        challengeAmount={challengeAmount}
-        challengeAmountHelperText={challengeAmountHelperText}
-        challengeAmountValid={challengeAmountValidation.valid}
         challengeBalanceValid={challengeBalanceValid}
         challengeFeedback={challengeFeedback}
         challengeOptions={challengeOptions}
@@ -461,7 +448,6 @@ function PushPageContent() {
           setChallengeMediaId("");
           clearFeedback();
         }}
-        onChallengeAmountChange={setChallengeAmount}
         onClose={closeChallengeModal}
         onSelectMedia={(mediaId) => {
           setChallengeMediaId(mediaId);
@@ -469,7 +455,7 @@ function PushPageContent() {
         }}
         onSubmit={() => {
           if (!selectedPush || selectedPushIsOwned) return;
-          challengePush(selectedPush.id, Number(challengeMediaId), challengeAmount);
+          challengePush(selectedPush.id, Number(challengeMediaId), requiredChallengeLabel);
         }}
         open={modalOpen}
         pushBusy={pushBusy}

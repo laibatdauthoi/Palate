@@ -29,7 +29,6 @@ export default function HomePage() {
   const [activityTab, setActivityTab] = useState<"waiting" | "matches">("waiting");
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
   const [challengeMediaId, setChallengeMediaId] = useState("");
-  const [challengeAmount, setChallengeAmount] = useState("1.000");
   const waitingCount = waitingPushes.length;
   const activeCount = activeMatches.length;
   const walletReady = walletStatus === "connected";
@@ -59,15 +58,8 @@ export default function HomePage() {
     ? (requiredChallengeOctas > minPushOctas ? requiredChallengeOctas : minPushOctas)
     : null;
   const requiredChallengeLabel = effectiveChallengeOctas !== null ? formatOctasToApt(effectiveChallengeOctas) : "loading";
-  const challengeAmountValidation = validateAmount(challengeAmount, effectiveChallengeOctas, "Minimum challenge");
   const availableBalanceOctas = parseAmountOctas(balance.availableBalance);
-  const challengeAmountOctas = parseAmountOctas(challengeAmount);
-  const challengeBalanceValid = challengeAmountOctas !== null && availableBalanceOctas !== null && challengeAmountOctas <= availableBalanceOctas;
-  const challengeAmountHelperText = !challengeAmountValidation.valid
-    ? challengeAmountValidation.message
-    : !challengeBalanceValid
-      ? "Not enough Palate Balance."
-      : challengeAmountValidation.message;
+  const challengeBalanceValid = effectiveChallengeOctas !== null && availableBalanceOctas !== null && effectiveChallengeOctas <= availableBalanceOctas;
   const challengeFeedback = feedback?.scope === "challenge" ? feedback : null;
   const pushBusy = processingAction === "challengePush";
   const activityTabs = useMemo(() => ([
@@ -165,7 +157,6 @@ export default function HomePage() {
                   onChallenge={() => {
                     setChallengePushId(push.id);
                     setChallengeMediaId("");
-                    setChallengeAmount(push.minChallengeAmount.replace(" APT", ""));
                     clearFeedback();
                   }}
                   push={push}
@@ -191,9 +182,6 @@ export default function HomePage() {
       </SectionPanel>
 
       <ChallengeFlowModal
-        challengeAmount={challengeAmount}
-        challengeAmountHelperText={challengeAmountHelperText}
-        challengeAmountValid={challengeAmountValidation.valid}
         challengeBalanceValid={challengeBalanceValid}
         challengeFeedback={challengeFeedback}
         challengeOptions={challengeOptions}
@@ -201,7 +189,6 @@ export default function HomePage() {
           setChallengeMediaId("");
           clearFeedback();
         }}
-        onChallengeAmountChange={setChallengeAmount}
         onClose={() => {
           setChallengePushId(null);
           setChallengeMediaId("");
@@ -213,7 +200,7 @@ export default function HomePage() {
         }}
         onSubmit={() => {
           if (!selectedPush || selectedPushIsOwned) return;
-          challengePush(selectedPush.id, Number(challengeMediaId), challengeAmount);
+          challengePush(selectedPush.id, Number(challengeMediaId), requiredChallengeLabel);
         }}
         open={challengePushId !== null}
         pushBusy={pushBusy}
@@ -230,25 +217,6 @@ export default function HomePage() {
 
 function normalizeAddress(address: string | null | undefined) {
   return address?.trim().toLowerCase() ?? null;
-}
-
-function validateAmount(value: string, minimumOctas: bigint | null, label: string) {
-  if (minimumOctas === null) {
-    return { valid: false, message: `${label}: loading` };
-  }
-
-  const minimumText = formatOctasToApt(minimumOctas);
-
-  try {
-    const parsed = BigInt(parseAptToOctas(value));
-    if (parsed < minimumOctas) {
-      return { valid: false, message: `${label} is ${minimumText}` };
-    }
-
-    return { valid: true, message: `${label}: ${minimumText}` };
-  } catch {
-    return { valid: false, message: `${label} is ${minimumText}` };
-  }
 }
 
 function parseAmountOctas(value: string) {

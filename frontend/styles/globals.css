@@ -3417,8 +3417,11 @@ select.input_control option:checked,
   gap: var(--spacing-sm);
 }
 
-.challenge_modal_intro {
-  margin: 0;
+.challenge_modal_subtitle {
+  display: inline-block;
+  color: rgba(224, 243, 248, 0.96);
+  font-size: 15px;
+  line-height: 1.45;
 }
 
 .challenge_modal_summary {
@@ -3464,13 +3467,15 @@ select.input_control option:checked,
 .challenge_media_picker_scroller {
   max-height: min(46dvh, 440px);
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 8px 4px 2px 2px;
+  margin-top: -2px;
 }
 
 .challenge_media_picker_grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--spacing-sm);
+  align-content: start;
 }
 
 .challenge_media_option {
@@ -3511,9 +3516,35 @@ select.input_control option:checked,
 }
 
 .challenge_media_option_preview {
+  display: grid;
+  place-items: center;
   min-height: 0;
   max-height: 120px;
   padding: 6px;
+}
+
+.challenge_media_option_preview .media_renderer,
+.challenge_selected_media_preview .media_renderer {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  justify-items: center;
+}
+
+.challenge_media_option_preview .media_renderer_image,
+.challenge_media_option_preview .media_renderer_video,
+.challenge_selected_media_preview .media_renderer_image,
+.challenge_selected_media_preview .media_renderer_video {
+  margin: auto;
+}
+
+.challenge_media_option_preview .media_renderer_player,
+.challenge_selected_media_preview .media_renderer_player {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
 }
 
 .media_renderer_static,
@@ -3542,15 +3573,61 @@ select.input_control option:checked,
 
 .challenge_selected_media {
   display: grid;
-  grid-template-columns: minmax(120px, 160px) minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   gap: var(--spacing-sm);
-  align-items: stretch;
+  align-items: center;
 }
 
 .challenge_selected_media_preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: clamp(116px, 22vw, 144px);
+  aspect-ratio: 1 / 1;
   min-height: 0;
-  max-height: 120px;
   padding: 6px;
+  border: 0;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+
+.challenge_selected_media_preview:focus-visible {
+  outline: 2px solid rgba(0, 213, 247, 0.72);
+  outline-offset: 2px;
+}
+
+.challenge_selected_media_overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(9, 18, 23, 0.08), rgba(9, 18, 23, 0.46));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.challenge_selected_media_preview:hover .challenge_selected_media_overlay,
+.challenge_selected_media_preview:focus-visible .challenge_selected_media_overlay {
+  opacity: 1;
+}
+
+.challenge_selected_media_overlay_icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(9, 18, 23, 0.62);
+  color: rgba(240, 252, 255, 0.96);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.challenge_selected_media_overlay_icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .challenge_selected_media_body {
@@ -3563,11 +3640,27 @@ select.input_control option:checked,
   overflow-wrap: anywhere;
 }
 
-.challenge_step_actions {
+.challenge_action_row {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--spacing-sm);
+  overflow: visible;
+}
+
+.challenge_row_button {
+  min-height: 48px;
+  padding: 10px 14px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.challenge_row_button_secondary {
+  min-width: 0;
+}
+
+.challenge_row_button_primary {
+  min-width: 164px;
 }
 
 .home_hero {
@@ -5591,16 +5684,20 @@ select.input_control,
     grid-template-columns: 1fr;
   }
 
+  .challenge_selected_media_preview {
+    width: min(100%, 160px);
+  }
+
   .challenge_media_picker_grid {
     grid-template-columns: 1fr;
   }
 
-  .challenge_step_actions {
+  .challenge_action_row {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .challenge_step_actions .action_button,
+  .challenge_action_row .action_button,
   .challenge_empty_actions .action_button {
     width: 100%;
   }
