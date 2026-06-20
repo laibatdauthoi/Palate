@@ -3488,6 +3488,7 @@ select.input_control option:checked,
   height: auto;
   min-height: unset;
   align-self: start;
+  align-content: start;
   box-sizing: border-box;
   min-width: 0;
   appearance: none;
@@ -3495,7 +3496,7 @@ select.input_control option:checked,
   border-radius: var(--radius-medium);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-primary);
-  padding: 14px 8px;
+  padding: 14px 8px 8px;
   text-align: left;
   transition: var(--transition-fast);
   cursor: pointer;
@@ -3589,6 +3590,16 @@ select.input_control option:checked,
     linear-gradient(135deg, rgba(255, 47, 159, 0.22), rgba(9, 13, 26, 0.98));
 }
 
+.challenge_thumb_frame > .challenge_thumb_media_bg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
 .challenge_thumb_frame > .challenge_thumb_media {
   position: relative;
   z-index: 1;
@@ -3619,10 +3630,11 @@ select.input_control option:checked,
 
 .challenge_pick_body {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
   align-content: start;
-  padding: 8px 12px 6px;
+  align-self: start;
+  padding: 8px 12px 2px;
 }
 
 .challenge_pick_title {

@@ -1,5 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
-
 import { useMemo, useState } from "react";
 import { ActionButton } from "./action_button";
 import { CategoryBadge } from "./category_badge";
@@ -45,7 +43,7 @@ function ChallengeThumbnail({
     () => detectMediaKindFromMetadata(media.mimeType, media.originalFileName),
     [media.mimeType, media.originalFileName]
   );
-  const hasSource = Boolean(source && !failed);
+  const hasSource = Boolean(source && !(failed && mediaKind === "video"));
 
   function handleUnavailable() {
     setFailed(true);
@@ -54,11 +52,11 @@ function ChallengeThumbnail({
   const content = (() => {
     if (mediaKind === "image" && hasSource) {
       return (
-        <img
-          alt={displayTitle}
-          className="challenge_thumb_media"
-          onError={handleUnavailable}
-          src={source}
+        <div
+          aria-label={displayTitle}
+          className="challenge_thumb_media_bg"
+          role="img"
+          style={{ backgroundImage: `url("${source}")` }}
         />
       );
     }
