@@ -1309,12 +1309,12 @@ select.input_control option:checked,
   font-size: var(--font-size-body-large);
 }
 
-.page_buff .page_header h1 {
+.page_buff .page_header .page_header_title {
   font-size: clamp(24px, 3.6vw, 36px);
   max-width: 660px;
 }
 
-.page_buff .page_header p {
+.page_buff .page_header .page_header_copy {
   max-width: 620px;
 }
 
@@ -1487,22 +1487,37 @@ select.input_control option:checked,
 }
 
 .page_header_floating .eyebrow,
-.page_header_floating h1,
-.page_header_floating p {
+.page_header_floating .eyebrow,
+.page_header_floating .page_header_title,
+.page_header_floating .page_header_copy {
   text-shadow:
     0 1px 0 rgba(255, 255, 255, 0.05),
     0 10px 28px rgba(0, 0, 0, 0.34),
     0 0 26px rgba(255, 47, 159, 0.08);
 }
 
-.page_header h1 {
+.home_page_header {
+  margin-top: calc(var(--spacing-lg) * -0.65);
+}
+
+.home_page_header .page_header_content {
+  gap: 6px;
+}
+
+.home_page_header .page_header_title {
+  font-size: clamp(18px, 2.4vw, 28px);
+  line-height: 1.12;
+  max-width: 760px;
+}
+
+.page_header .page_header_title {
   max-width: 780px;
   margin: 0;
   font-size: clamp(30px, 5vw, var(--font-size-display-medium));
   line-height: 1;
 }
 
-.page_header p,
+.page_header .page_header_copy,
 .section_panel_header p {
   max-width: 720px;
   margin: 0;
