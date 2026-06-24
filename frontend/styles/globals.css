@@ -3913,6 +3913,11 @@ select.input_control option:checked,
   justify-items: start;
 }
 
+.waiting_grid {
+  width: min(100%, calc(296px * 3 + var(--spacing-md) * 2));
+  margin-inline: auto;
+}
+
 .waiting_grid .waiting_push_card_compact {
   max-width: 296px;
 }
@@ -3986,13 +3991,13 @@ select.input_control option:checked,
 }
 
 .filter_bar_surface {
-  border: 1px solid rgba(255, 255, 255, 0.095);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-large);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), transparent 24%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012)),
-    rgba(19, 22, 30, 0.78);
-  box-shadow: var(--shadow-bevel);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 22%, transparent 100%),
+    linear-gradient(145deg, rgba(30, 35, 46, 0.96), rgba(21, 24, 33, 0.94)),
+    rgba(20, 23, 31, 0.95);
+  box-shadow: var(--shadow-panel), var(--shadow-bevel);
   padding: 10px 12px;
 }
 
