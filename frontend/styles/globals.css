@@ -1119,21 +1119,23 @@ select.input_control option:checked,
   line-height: 1.1;
   text-decoration: none;
   transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+  transform-origin: center;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     inset 0 -1px 0 rgba(0, 0, 0, 0.16),
     0 10px 22px rgba(0, 0, 0, 0.24);
   cursor: pointer;
+  will-change: transform;
 }
 
 .action_button:hover,
 .app_action_button:hover {
-  transform: translateY(-2px) scale(1.018);
+  transform: scale(1.018);
 }
 
 .action_button:active,
 .app_action_button:active {
-  transform: translateY(1px) scale(0.992);
+  transform: scale(0.988);
 }
 
 .action_button:focus-visible,
@@ -1158,7 +1160,7 @@ select.input_control option:checked,
 
 .action_button_primary:hover,
 .app_action_primary:hover {
-  transform: translateY(-2px) scale(1.025);
+  transform: scale(1.03);
   background-color: rgba(10, 74, 90, 1);
   border-color: rgba(156, 243, 255, 0.68);
   box-shadow:
@@ -1171,7 +1173,7 @@ select.input_control option:checked,
 
 .action_button_primary:active,
 .app_action_primary:active {
-  transform: translateY(1px) scale(0.992);
+  transform: scale(0.988);
   background-color: rgba(6, 45, 54, 0.98);
   border-color: rgba(83, 225, 248, 0.42);
   box-shadow:
@@ -1193,6 +1195,7 @@ select.input_control option:checked,
 
 .action_button_secondary:hover,
 .app_action_secondary:hover {
+  transform: scale(1.02);
   border-color: rgba(0, 213, 247, 0.4);
   background-color: rgba(22, 31, 39, 0.99);
   box-shadow:
@@ -1227,6 +1230,7 @@ select.input_control option:checked,
 
 .action_button_caution:hover,
 .app_action_caution:hover {
+  transform: scale(1.018);
   border-color: rgba(217, 188, 143, 0.3);
   background-color: rgba(61, 45, 27, 0.98);
   box-shadow:
@@ -1244,6 +1248,7 @@ select.input_control option:checked,
 }
 
 .action_button_danger:hover {
+  transform: scale(1.018);
   border-color: rgba(255, 166, 182, 0.54);
   background-color: rgba(66, 20, 33, 0.98);
   box-shadow:
@@ -1572,7 +1577,9 @@ select.input_control option:checked,
     var(--surface-primary);
   box-shadow: var(--shadow-panel), var(--shadow-bevel);
   overflow: hidden;
+  transform-origin: center;
   transition: var(--transition-medium);
+  will-change: transform;
 }
 
 .media_card,
@@ -1591,7 +1598,7 @@ select.input_control option:checked,
 .media_card:hover,
 .match_card:hover,
 .waiting_push_card:hover {
-  transform: translateY(-2px);
+  transform: scale(1.012);
   border-color: var(--border-medium);
   box-shadow: var(--shadow-card-hover), var(--shadow-bevel), 0 0 28px rgba(255, 47, 159, 0.1);
 }
@@ -2564,7 +2571,7 @@ select.input_control option:checked,
   box-shadow:
     0 0 28px rgba(0, 213, 247, 0.2),
     inset 0 0 18px rgba(255, 255, 255, 0.08);
-  transform: translateY(-1px);
+  transform: scale(1.03);
 }
 
 .waiting_audio_preview_button:focus-visible {
@@ -2733,7 +2740,7 @@ select.input_control option:checked,
 
 .buff_decision_card:hover {
   border-color: var(--border-focus);
-  transform: translateY(-3px);
+  transform: scale(1.014);
   box-shadow: var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
@@ -3000,7 +3007,7 @@ select.input_control option:checked,
 
 .claim_card:hover {
   border-color: var(--border-medium);
-  transform: translateY(-1px);
+  transform: scale(1.01);
 }
 
 .claim_card p {
@@ -3643,7 +3650,7 @@ select.input_control option:checked,
   border-color: rgba(0, 213, 247, 0.34);
   background: rgba(0, 213, 247, 0.06);
   box-shadow: 0 0 18px rgba(0, 213, 247, 0.12);
-  transform: translateY(-1px);
+  transform: scale(1.012);
 }
 
 .challenge_pick_card:focus-visible {
@@ -4956,7 +4963,7 @@ select.input_control option:checked,
 .page_header_actions .action_button.action_button_primary:hover,
 .action_button_primary:hover,
 .app_action_primary:hover {
-  transform: translateY(-2px) scale(1.025);
+  transform: scale(1.03);
   border-color: rgba(136, 241, 255, 0.54);
   background-color: rgba(10, 67, 80, 0.98);
   color: #f7feff;
@@ -4971,7 +4978,7 @@ select.input_control option:checked,
 .page_header_actions .action_button.action_button_primary:active,
 .action_button_primary:active,
 .app_action_primary:active {
-  transform: translateY(1px) scale(0.992);
+  transform: scale(0.988);
   border-color: rgba(83, 225, 248, 0.42);
   background-color: rgba(6, 45, 54, 0.98);
   color: #e8fcff;
@@ -6564,5 +6571,34 @@ select.input_control,
 
   .loading_spinner_ring {
     animation: none !important;
+  }
+
+  .action_button,
+  .app_action_button,
+  .media_card,
+  .match_card,
+  .waiting_push_card,
+  .claim_card,
+  .state_card,
+  .buff_decision_card,
+  .challenge_pick_card,
+  .tab_button {
+    transition: none !important;
+    will-change: auto !important;
+  }
+
+  .action_button:hover,
+  .action_button:active,
+  .app_action_button:hover,
+  .app_action_button:active,
+  .media_card:hover,
+  .match_card:hover,
+  .waiting_push_card:hover,
+  .claim_card:hover,
+  .buff_decision_card:hover,
+  .challenge_pick_card:hover,
+  .tab_button:hover,
+  .tab_button:active {
+    transform: none !important;
   }
 }
