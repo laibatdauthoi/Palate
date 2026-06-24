@@ -6,8 +6,8 @@ import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
 import { EmptyState } from "@/components/empty_state";
 import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
+import { PageHeader } from "@/components/page_header";
 import { WaitingPushCard } from "@/components/waiting_push_card";
-import { SectionPanel } from "@/components/section_panel";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { usePalate } from "@/providers/palate_provider";
 import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
@@ -111,42 +111,49 @@ export default function HomePage() {
 
   return (
     <div className="page_stack page_home">
-      <section className="home_hero home_hero_compact">
-        <div className="stack home_hero_stack">
-          <span className="eyebrow">Palate Lobby</span>
-          <h1 className="home_hero_title">Upload media, push it into a duel, Buff live matches, and claim rewards when your side wins.</h1>
-          <div className="home_hero_actions">
+      <PageHeader
+        eyebrow="Palate Lobby"
+        title="Upload media, push it into a duel, Buff live matches, and claim rewards when your side wins."
+        className="page_header_floating page_header_stacked"
+        actions={
+          <>
             <ActionButton className="home_cta_button hero_primary_cta" href="/buff">Buff Random Match</ActionButton>
             <ActionButton className="home_cta_button" href="/my-media/upload" variant="secondary">Upload Media</ActionButton>
             <ActionButton className="home_cta_button" href="/push" variant="secondary">Push Media</ActionButton>
+          </>
+        }
+      />
+
+      <div aria-label="Lobby Activity" className="filter_bar filter_bar_surface">
+        <div className="filter_bar_inner">
+          <div aria-label="Home activity tabs" className="tabs" role="tablist">
+            {activityTabs.map((tab) => (
+              <button
+                aria-selected={activityTab === tab.key}
+                className={`tab_button ${activityTab === tab.key ? "active" : ""}`}
+                key={tab.key}
+                onClick={() => setActivityTab(tab.key)}
+                role="tab"
+                type="button"
+              >
+                <span>{tab.label}</span>
+                <span className="tab_badge">{tab.count}</span>
+              </button>
+            ))}
           </div>
         </div>
-      </section>
+      </div>
 
-      <SectionPanel className="home_activity_panel" title="Lobby Activity">
-        <div className="home_activity_tabs" aria-label="Home activity tabs" role="tablist">
-          {activityTabs.map((tab) => (
-            <button
-              aria-selected={activityTab === tab.key}
-              className={`home_activity_tab ${activityTab === tab.key ? "active" : ""}`}
-              key={tab.key}
-              onClick={() => setActivityTab(tab.key)}
-              role="tab"
-              type="button"
-            >
-              <span>{tab.label}</span>
-              <span className="home_activity_count">{tab.count}</span>
-            </button>
-          ))}
-        </div>
+      <div className="home_activity_content" aria-live="polite">
         {lobbyLoading ? (
           <LoadingState
+            className="home_lobby_state"
             label="Loading lobby activity"
             copy="Waiting pushes and active matches are loading from chain."
           />
         ) : activityTab === "waiting" ? (
           waitingPushes.length > 0 ? (
-            <div className="compact_card_grid compact_card_grid_waiting">
+            <div className="compact_card_grid compact_card_grid_waiting waiting_grid">
               {waitingPushes.map((push) => (
                 <WaitingPushCard
                   challengeDisabledReason={
@@ -166,10 +173,10 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <EmptyState title="No waiting pushes." copy="" actionLabel="Go to Push" actionHref="/push" />
+            <EmptyState className="home_lobby_state" title="No waiting pushes." copy="" actionLabel="Go to Push" actionHref="/push" />
           )
         ) : activeMatches.length > 0 ? (
-            <div className="compact_card_grid compact_card_grid_matches">
+            <div className="compact_card_grid compact_card_grid_matches matches_grid">
               {activeMatches.map((match) => (
                 <MatchCard
                   key={match.id}
@@ -179,9 +186,9 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          <EmptyState title="No active matches." copy="" actionLabel="Go to Buff" actionHref="/buff" />
+          <EmptyState className="home_lobby_state" title="No active matches." copy="" actionLabel="Go to Buff" actionHref="/buff" />
         )}
-      </SectionPanel>
+      </div>
 
       <ChallengeFlowModal
         challengeBalanceValid={challengeBalanceValid}
