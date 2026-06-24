@@ -1504,17 +1504,17 @@ select.input_control option:checked,
   gap: 6px;
 }
 
-.home_page_header .page_header_title {
-  font-size: clamp(18px, 2.4vw, 28px);
-  line-height: 1.12;
-  max-width: 760px;
-}
-
 .page_header .page_header_title {
   max-width: 780px;
   margin: 0;
   font-size: clamp(30px, 5vw, var(--font-size-display-medium));
   line-height: 1;
+}
+
+.page_header.home_page_header .page_header_title {
+  max-width: 760px;
+  font-size: clamp(20px, 2.6vw, 30px);
+  line-height: 1.12;
 }
 
 .page_header .page_header_copy,
