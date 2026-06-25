@@ -30,7 +30,7 @@ export function BuffDecisionCard({ side, media, selected = false, onSelect, disa
         <MediaRenderer disablePreview media={media} variant="selector" />
       </button>
       <div className="buff_decision_meta card_body">
-        <h3>{displayTitle}</h3>
+        <h3 title={displayTitle}>{displayTitle}</h3>
       </div>
       <ActionButton className="buff_choose_button" disabled={disabledSelection} onClick={onSelect} variant={selected ? "primary" : "secondary"}>
         {selected ? `Selected ${side}` : `Choose ${side}`}

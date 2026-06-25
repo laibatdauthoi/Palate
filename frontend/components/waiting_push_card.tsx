@@ -148,7 +148,7 @@ export function WaitingPushCard({
         {isCompact ? (
           <>
             <div className="spread waiting_push_compact_title_row card_title_row">
-              <h3>{displayTitle}</h3>
+              <h3 title={displayTitle}>{displayTitle}</h3>
               <StatusBadge status={cardStatus} />
             </div>
             <div className="cluster waiting_push_compact_chip_row card_chip_row">
@@ -159,7 +159,7 @@ export function WaitingPushCard({
         ) : (
           <div className="waiting_push_header">
             <div className="waiting_push_title_group">
-              <h3>{displayTitle}</h3>
+              <h3 title={displayTitle}>{displayTitle}</h3>
               <div className="cluster">
                 <CategoryBadge category={push.media.category} />
                 <FormatBadge format={push.media.format} />

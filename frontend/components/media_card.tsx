@@ -97,7 +97,7 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
       </div>
       <div className="media_card_body card_body">
         <div className="spread card_title_row">
-          <h3>{displayTitle}</h3>
+          <h3 title={displayTitle}>{displayTitle}</h3>
           <StatusBadge status={isShelbyCleanupRequired ? "shelby_cleanup_required" : isDeletePending ? "delete_pending" : isContentUnavailable ? "content_unavailable" : isShelbyUploadFailed ? "shelby_upload_failed" : isVideoDisabled ? "video_disabled" : isInvalidMediaType ? "invalid_media_type" : media.status} />
         </div>
         <div className="cluster card_chip_row">

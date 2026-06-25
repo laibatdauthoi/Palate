@@ -180,7 +180,7 @@ export function ChallengeFlowModal({
       >
         <ChallengeThumbnail media={media} />
         <div className="challenge_pick_body">
-          <h3 className="challenge_pick_title">{displayTitle}</h3>
+          <h3 className="challenge_pick_title" title={displayTitle}>{displayTitle}</h3>
           <div className="cluster">
             <CategoryBadge category={media.category} />
             <FormatBadge format={media.format} />
@@ -204,7 +204,7 @@ export function ChallengeFlowModal({
           onOpen={() => openMediaViewer(media, "challenge_flow_modal:selected_media")}
         />
         <div className="challenge_selected_media_details">
-          <strong>{displayTitle}</strong>
+          <strong title={displayTitle}>{displayTitle}</strong>
           <div className="cluster">
             <CategoryBadge category={media.category} />
             <FormatBadge format={media.format} />

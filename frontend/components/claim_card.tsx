@@ -24,7 +24,7 @@ export function ClaimCard({ claim, onClaim, loading, actionDisabled }: { claim: 
       <div className="claim_row_main">
         <div className="claim_row_identity">
           <span className="eyebrow">{rewardLabel}</span>
-          <h3>{shortMatchId}</h3>
+          <h3 title={typeof claim.matchId === "number" ? `#${claim.matchId}` : claim.matchRef}>{shortMatchId}</h3>
         </div>
         <p>{claim.settledTime}</p>
       </div>
