@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
 import { EmptyState } from "@/components/empty_state";
+import { ErrorState } from "@/components/error_state";
 import { FilterBar } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
@@ -30,6 +31,7 @@ export default function HomePage() {
   const [activityTab, setActivityTab] = useState<"waiting" | "matches">("waiting");
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
   const [challengeMediaId, setChallengeMediaId] = useState("");
+  const [homePublicGameResolvedSinceMount, setHomePublicGameResolvedSinceMount] = useState(false);
   const waitingCount = waitingPushes.length;
   const activeCount = activeMatches.length;
   const walletReady = walletStatus === "connected";
@@ -68,7 +70,12 @@ export default function HomePage() {
     { key: "waiting" as const, label: "Waiting Pushes", count: waitingCount },
     { key: "matches" as const, label: "Active Matches", count: activeCount }
   ]), [activeCount, waitingCount]);
-  const lobbyLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
+  const homePublicGameErrored = homePublicGameResolvedSinceMount && publicGameReadStatus === "error";
+  const lobbyLoading = !homePublicGameResolvedSinceMount || publicGameReadStatus === "idle";
+  const showWaitingError = activityTab === "waiting" && homePublicGameErrored && waitingPushes.length === 0;
+  const showMatchesError = activityTab === "matches" && homePublicGameErrored && activeMatches.length === 0;
+  const showWaitingEmpty = activityTab === "waiting" && homePublicGameResolvedSinceMount && publicGameReadStatus === "ready" && waitingPushes.length === 0;
+  const showMatchesEmpty = activityTab === "matches" && homePublicGameResolvedSinceMount && publicGameReadStatus === "ready" && activeMatches.length === 0;
 
   useEffect(() => {
     logPageMount("Home");
@@ -82,29 +89,37 @@ export default function HomePage() {
   }, [challengePushId, clearFeedback, selectedPush]);
 
   useEffect(() => {
-    function runRefresh(source: "interval" | "visible" | "mount") {
+    let cancelled = false;
+
+    async function runRefresh(source: "interval" | "visible" | "mount") {
       if (document.hidden) {
         logUiPerf("liveRefresh:skippedHidden", { page: "home", source });
         return;
       }
 
-      void refreshPublicGameState({
+      await refreshPublicGameState({
         waitingPushes: true,
         activeMatches: true,
         source: `home:${source}`
       });
     }
 
-    runRefresh("mount");
+    setHomePublicGameResolvedSinceMount(false);
+    void runRefresh("mount").finally(() => {
+      if (!cancelled) {
+        setHomePublicGameResolvedSinceMount(true);
+      }
+    });
     const intervalId = window.setInterval(() => runRefresh("interval"), live_refresh_interval_ms);
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        runRefresh("visible");
+        void runRefresh("visible");
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
+      cancelled = true;
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -131,14 +146,20 @@ export default function HomePage() {
       <FilterBar activeKey={activityTab} ariaLabel="Home activity tabs" items={activityTabs} onChange={setActivityTab} tablist />
 
       <div className="home_activity_content" aria-live="polite">
-        {lobbyLoading ? (
+        {showWaitingError || showMatchesError ? (
+          <ErrorState
+            variant="section"
+            title="Lobby activity unavailable"
+            copy="Waiting pushes and active matches are temporarily unavailable while the chain read is retried."
+          />
+        ) : lobbyLoading ? (
           <LoadingState
             variant="section"
             label="Loading lobby activity"
             copy="Waiting pushes and active matches are loading from chain."
           />
         ) : activityTab === "waiting" ? (
-          waitingPushes.length > 0 ? (
+          !showWaitingEmpty ? (
             <div className="compact_card_grid compact_card_grid_waiting waiting_grid">
               {waitingPushes.map((push) => (
                 <WaitingPushCard
@@ -161,7 +182,7 @@ export default function HomePage() {
           ) : (
             <EmptyState variant="section" title="No waiting pushes." copy="" actionLabel="Go to Push" actionHref="/push" />
           )
-        ) : activeMatches.length > 0 ? (
+        ) : !showMatchesEmpty ? (
             <div className="compact_card_grid compact_card_grid_matches matches_grid">
               {activeMatches.map((match) => (
                 <MatchCard

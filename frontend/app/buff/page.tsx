@@ -36,7 +36,6 @@ export default function BuffPage() {
     placeBuff,
     processingAction,
     publicGameReadStatus,
-    readLifecycle,
     refreshPublicGameState,
     settleMatch,
     skipMatch
@@ -46,6 +45,8 @@ export default function BuffPage() {
   const [selectedSide, setSelectedSide] = useState<"A" | "B" | null>(null);
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
   const [myBuffFilter, setMyBuffFilter] = useState<MyBuffFilter>("all");
+  const [buffPublicGameResolvedSinceMount, setBuffPublicGameResolvedSinceMount] = useState(false);
+  const [showLocalNoValidMatchFeedback, setShowLocalNoValidMatchFeedback] = useState(false);
   const nowMs = useCountdownNow();
   const assignedMatch = currentAssignment?.match;
   const assignedMatchCountdown = assignedMatch
@@ -104,13 +105,29 @@ export default function BuffPage() {
   const buffFeedback = feedback?.scope === "buff" ? feedback : null;
   const settleFeedback = feedback?.scope === "settle" ? feedback : null;
   const findMatchFeedback = buffFeedback && isFindMatchFeedbackMessage(buffFeedback.message) ? buffFeedback : null;
-  const buffPageLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
-  const canFindMatch = walletReady && !buffBusy && !buffPageLoading;
+  const isAssignmentZoneUnresolved = !buffPublicGameResolvedSinceMount || publicGameReadStatus === "idle";
+  const canFindMatch = walletReady && !buffBusy && !isAssignmentZoneUnresolved;
+  const hasEligibleMatchCandidate = activeMatches.some((match) => (
+    match.status === "active"
+    && !getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ended" }).isEnded
+  ));
+  const showNoValidMatchStatus = !assignedMatch
+    && !isAssignmentZoneUnresolved
+    && !hasEligibleMatchCandidate
+    && (showLocalNoValidMatchFeedback || noValidMatchAvailable || findMatchFeedback?.message.toLowerCase().includes("no valid match") === true);
   const findMatchLabel = processingAction === "findMatch"
     ? "Finding"
+    : isAssignmentZoneUnresolved
+      ? "Loading matches"
+      : showNoValidMatchStatus
+        ? "No valid match available"
     : findMatchFeedback?.message ?? "Find Match";
   const findMatchLabelStateClassName = processingAction === "findMatch"
     ? "buff_find_match_label_loading"
+    : isAssignmentZoneUnresolved
+      ? "buff_find_match_label_loading"
+      : showNoValidMatchStatus
+        ? "buff_find_match_label_error"
     : findMatchFeedback
       ? `buff_find_match_label_${findMatchFeedback.type}`
       : "";
@@ -154,11 +171,17 @@ export default function BuffPage() {
 
     return myBuffEntries;
   }, [myBuffEntries, myBuffFilter]);
-  const myBuffsLoading = walletReady && (
-    (claimReadStatus === "loading" && !readLifecycle.hasLoadedClaims)
-    || (publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState)
-  );
-  const myBuffsError = walletReady && claimReadStatus === "error" && myBuffEntries.length === 0 && !myBuffsLoading;
+  const isMyBuffClaimsResolved = !walletReady || claimReadStatus === "ready" || claimReadStatus === "error";
+  const isMyBuffClaimsUnresolved = walletReady && !isMyBuffClaimsResolved;
+  const isMyBuffPublicStateUnresolved = !buffPublicGameResolvedSinceMount || publicGameReadStatus === "idle";
+  const isMyBuffsDataUnresolved = isMyBuffClaimsUnresolved || isMyBuffPublicStateUnresolved;
+  const isMyBuffsLoading = isMyBuffsDataUnresolved;
+  const isMyBuffsError = walletReady
+    && !isMyBuffsLoading
+    && (claimReadStatus === "error" || publicGameReadStatus === "error")
+    && myBuffEntries.length === 0;
+  const hasMyBuffRecords = filteredMyBuffEntries.length > 0;
+  const canShowMyBuffsEmpty = !isMyBuffsLoading && !isMyBuffsError && !hasMyBuffRecords;
   const myBuffFilterItems = useMemo(() => ([
     { key: "all" as const, label: "All", count: myBuffCounts.all },
     { key: "pending" as const, label: "Pending Result", count: myBuffCounts.pending },
@@ -178,6 +201,7 @@ export default function BuffPage() {
 
   useEffect(() => {
     if (assignedMatch) {
+      setShowLocalNoValidMatchFeedback(false);
       setAssignmentModalOpen(true);
       return;
     }
@@ -186,13 +210,21 @@ export default function BuffPage() {
   }, [assignedMatch]);
 
   useEffect(() => {
-    function runRefresh(source: "interval" | "visible" | "mount") {
+    if (hasEligibleMatchCandidate || isAssignmentZoneUnresolved || assignedMatch) {
+      setShowLocalNoValidMatchFeedback(false);
+    }
+  }, [assignedMatch, hasEligibleMatchCandidate, isAssignmentZoneUnresolved]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function runRefresh(source: "interval" | "visible" | "mount") {
       if (document.hidden) {
         logUiPerf("liveRefresh:skippedHidden", { page: "buff", source });
         return;
       }
 
-      void refreshPublicGameState({
+      await refreshPublicGameState({
         activeMatches: true,
         assignment: walletReady,
         ownerAddress: walletAddress ?? null,
@@ -200,16 +232,22 @@ export default function BuffPage() {
       });
     }
 
-    runRefresh("mount");
+    setBuffPublicGameResolvedSinceMount(false);
+    void runRefresh("mount").finally(() => {
+      if (!cancelled) {
+        setBuffPublicGameResolvedSinceMount(true);
+      }
+    });
     const intervalId = window.setInterval(() => runRefresh("interval"), live_refresh_interval_ms);
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        runRefresh("visible");
+        void runRefresh("visible");
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
+      cancelled = true;
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -221,14 +259,6 @@ export default function BuffPage() {
         <span className="eyebrow">My Buffs</span>
       </div>
 
-      {buffPageLoading ? (
-        <LoadingState
-          variant="section"
-          label="Loading Buff state"
-          copy="Active matches and your current assignment are loading from chain."
-        />
-      ) : null}
-
       <div className="buff_cta_block">
         <div className="buff_status_stack">
           <div className="buff_cta_row">
@@ -238,10 +268,22 @@ export default function BuffPage() {
                 className="buff_find_match_search_button"
                 disabled={!canFindMatch}
                 onClick={() => {
+                  if (buffBusy) {
+                    return;
+                  }
                   if (assignedMatch) {
+                    setShowLocalNoValidMatchFeedback(false);
                     setAssignmentModalOpen(true);
                     return;
                   }
+                  if (isAssignmentZoneUnresolved) {
+                    return;
+                  }
+                  if (!hasEligibleMatchCandidate) {
+                    setShowLocalNoValidMatchFeedback(true);
+                    return;
+                  }
+                  setShowLocalNoValidMatchFeedback(false);
                   findMatch();
                 }}
                 title="Find Match"
@@ -259,7 +301,6 @@ export default function BuffPage() {
           </div>
           {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to find a match and place Buffs.</p> : null}
           {completedBuffSide ? <p className="feedback_text feedback_success">Buff {completedBuffSide} recorded. Find the next match when you are ready.</p> : null}
-          {noValidMatchAvailable ? <ErrorState variant="section" title="No valid match available right now." copy="Try again after more live matches become eligible for Buff." /> : null}
         </div>
       </div>
 
@@ -321,19 +362,19 @@ export default function BuffPage() {
           items={myBuffFilterItems}
           onChange={setMyBuffFilter}
         />
-        {myBuffsLoading ? (
-          <LoadingState
-            variant="section"
-            label="Loading My Buffs"
-            copy="Your Buff records and live match settlement state are loading from chain."
-          />
-        ) : myBuffsError ? (
+        {isMyBuffsError ? (
           <ErrorState
             variant="section"
             title="My Buffs unavailable"
             copy="Buff records are temporarily unavailable while the chain read is retried."
           />
-        ) : filteredMyBuffEntries.length > 0 ? (
+        ) : isMyBuffsLoading ? (
+          <LoadingState
+            variant="section"
+            label="Loading My Buffs"
+            copy="Checking your Buff records."
+          />
+        ) : hasMyBuffRecords ? (
           <div className="buff_results_stack">
             {filteredMyBuffEntries.some((entry) => entry.match) ? (
               <div className="compact_card_grid compact_card_grid_matches buff_matches_grid">
@@ -366,7 +407,7 @@ export default function BuffPage() {
               </div>
             ) : null}
           </div>
-        ) : (
+        ) : canShowMyBuffsEmpty ? (
           <EmptyState
             variant="section"
             title={
@@ -384,7 +425,7 @@ export default function BuffPage() {
               : "Find a match and Buff one side to start tracking it here."
             }
           />
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -395,6 +436,7 @@ function isFindMatchFeedbackMessage(message: string) {
   return normalized.includes("find match")
     || normalized.includes("match assigned")
     || normalized.includes("complete or skip")
+    || normalized.includes("no valid match")
     || normalized.includes("request rejected")
     || normalized.includes("rejected the request");
 }
