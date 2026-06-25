@@ -6,6 +6,7 @@ import { ActionButton } from "@/components/action_button";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
 import { EmptyState } from "@/components/empty_state";
 import { ErrorState } from "@/components/error_state";
+import { FilterBar, FilterTabs } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
 import { MediaCard } from "@/components/media_card";
 import { ModalShell } from "@/components/modal_shell";
@@ -234,23 +235,20 @@ export default function MyMediaPage() {
         className="page_header_floating page_header_stacked"
       />
 
-      <div className="filter_bar filter_bar_surface" aria-label="Media filters">
-        <div className="filter_bar_inner">
-          <div className="tabs" aria-label="Status filters">
-            {statuses.map((item) => (
-              <button className={`tab_button ${status === item ? "active" : ""}`} key={item} onClick={() => setStatus(item)}>
-                {item}
-              </button>
-            ))}
-          </div>
+      <FilterBar ariaLabel="Media filters">
+        <FilterTabs
+          activeKey={status}
+          ariaLabel="Status filters"
+          items={statuses.map((item) => ({ key: item, label: item }))}
+          onChange={setStatus}
+        />
           <CustomDropdown label="Category" onChange={setCategory} options={categoryOptions} value={category} />
-        </div>
-      </div>
+      </FilterBar>
       {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to load your on-chain media.</p> : null}
       {cleanupFeedback ? <p className={`feedback_text feedback_${cleanupFeedback.type}`}>{cleanupFeedback.message}</p> : null}
 
       {walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia ? <LoadingState className="full_width_state" label="Loading on-chain media" /> : null}
-      {walletReady && mediaReadStatus === "error" ? <ErrorState title="Media read failed" copy="Local inventory remains available while the chain read is retried later." /> : null}
+      {walletReady && mediaReadStatus === "error" ? <ErrorState className="full_width_state" title="Media read failed" copy="Local inventory remains available while the chain read is retried later." /> : null}
       {filteredMedia.length === 0 && !(mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia) ? (
         <EmptyState className="full_width_state" title="No media found" copy="Upload and register media to start building your Palate inventory." actionLabel="Upload Media" actionHref="/my-media/upload" />
       ) : (

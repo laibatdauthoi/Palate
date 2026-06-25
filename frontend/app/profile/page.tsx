@@ -7,6 +7,7 @@ import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
 import { EmptyState } from "@/components/empty_state";
 import { ClaimCard } from "@/components/claim_card";
+import { FilterBar, FilterTabs } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
@@ -304,22 +305,18 @@ function ProfilePageContent() {
         {balanceFeedback ? <p className={`feedback_text feedback_${balanceFeedback.type}`}>{balanceFeedback.message}</p> : null}
       </SectionPanel>
 
-      <div className="filter_bar filter_bar_surface" aria-label="Profile views">
-        <div className="filter_bar_inner">
-          <div className="tabs">
-          {(["Stats", "Claims", "Activity"] as const).map((item) => (
-            <button
-              className={`tab_button ${tab === item ? "active" : ""} ${item === "Claims" && claimableRewardsSummary.hasClaimableRewards ? "tab_button_attention" : ""}`}
-              key={item}
-              onClick={() => handleTabChange(item)}
-            >
-              {item}
-              {item === "Claims" && claimableRewardsSummary.hasClaimableRewards ? <span className="tab_badge">{claimableRewardsSummary.claimableCount}</span> : null}
-            </button>
-          ))}
-          </div>
-        </div>
-      </div>
+      <FilterBar ariaLabel="Profile views">
+        <FilterTabs
+          activeKey={tab}
+          ariaLabel="Profile views"
+          items={[
+            { key: "Stats", label: "Stats" },
+            { key: "Claims", label: "Claims", count: claimableRewardsSummary.hasClaimableRewards ? claimableRewardsSummary.claimableCount : undefined, attention: claimableRewardsSummary.hasClaimableRewards },
+            { key: "Activity", label: "Activity" }
+          ]}
+          onChange={handleTabChange}
+        />
+      </FilterBar>
 
       {tab === "Stats" ? (
         <div className="stack">
@@ -452,32 +449,26 @@ function ProfilePageContent() {
               <EmptyState className="full_width_state" title="Connect wallet to view activity." copy="Activity only appears for the connected wallet." />
             ) : (
               <div className="activity_stack">
-                <div className="filter_bar filter_bar_surface activity_filters_bar">
-                  <div className="filter_bar_inner activity_filters_scroller">
-                    <div className="tabs activity_filters" aria-label="Activity filters">
-                    {activity_filters.map((filter) => (
-                      <button
-                        className={`tab_button activity_filter_button ${activityFilter === filter ? "active" : ""}`}
-                        key={filter}
-                        onClick={() => {
-                          const startedAt = uiPerfNow();
-                          setActivityFilter(filter);
-                          logUiPerf("activityFilterClick", {
-                            filter,
-                            localStateUpdatedImmediately: true,
-                            routerAction: "none",
-                            providerRefreshTriggered: false,
-                            syncDurationMs: Math.round(uiPerfNow() - startedAt)
-                          });
-                        }}
-                        type="button"
-                      >
-                        {filter}
-                      </button>
-                    ))}
-                    </div>
-                  </div>
-                </div>
+                <FilterBar ariaLabel="Activity filters" className="activity_filters_bar" innerClassName="activity_filters_scroller">
+                  <FilterTabs
+                    activeKey={activityFilter}
+                    ariaLabel="Activity filters"
+                    className="activity_filters"
+                    getItemClassName={() => "activity_filter_button"}
+                    items={activity_filters.map((filter) => ({ key: filter, label: filter }))}
+                    onChange={(filter) => {
+                      const startedAt = uiPerfNow();
+                      setActivityFilter(filter);
+                      logUiPerf("activityFilterClick", {
+                        filter,
+                        localStateUpdatedImmediately: true,
+                        routerAction: "none",
+                        providerRefreshTriggered: false,
+                        syncDurationMs: Math.round(uiPerfNow() - startedAt)
+                      });
+                    }}
+                  />
+                </FilterBar>
 
                 {activityReadMessage ? <p className={`feedback_text ${activityReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{activityReadMessage}</p> : null}
                 {activityFeedback ? <p className={`feedback_text feedback_${activityFeedback.type}`}>{activityFeedback.message}</p> : null}

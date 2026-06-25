@@ -6,6 +6,7 @@ import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
 import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
+import { FilterBar, FilterTabs } from "@/components/filter_bar";
 import { MatchCard } from "@/components/match_card";
 import { LoadingState } from "@/components/loading_state";
 import { PageHeader } from "@/components/page_header";
@@ -352,31 +353,24 @@ function PushPageContent() {
         className="page_header_floating page_header_stacked"
       />
 
-      <div className="filter_bar filter_bar_surface" aria-label="Push views">
-        <div className="filter_bar_inner">
-          <div className="tabs">
-          {(["Waiting", "Live Matches"] as const).map((item) => (
-            <button
-              className={`tab_button ${tab === item ? "active" : ""}`}
-              key={item}
-              onClick={() => {
-                const startedAt = uiPerfNow();
-                setTab(item);
-                logUiPerf("pushPageTabClick", {
-                  tab: item,
-                  localStateUpdatedImmediately: true,
-                  routerAction: "none",
-                  providerRefreshTriggered: false,
-                  syncDurationMs: Math.round(uiPerfNow() - startedAt)
-                });
-              }}
-            >
-              {item}
-            </button>
-          ))}
-          </div>
-        </div>
-      </div>
+      <FilterBar ariaLabel="Push views">
+        <FilterTabs
+          activeKey={tab}
+          ariaLabel="Push views"
+          items={[{ key: "Waiting", label: "Waiting" }, { key: "Live Matches", label: "Live Matches" }]}
+          onChange={(item) => {
+            const startedAt = uiPerfNow();
+            setTab(item);
+            logUiPerf("pushPageTabClick", {
+              tab: item,
+              localStateUpdatedImmediately: true,
+              routerAction: "none",
+              providerRefreshTriggered: false,
+              syncDurationMs: Math.round(uiPerfNow() - startedAt)
+            });
+          }}
+        />
+      </FilterBar>
 
       <SectionPanel title="Create push" copy="Use Palate Balance and mark selected idle media as waiting for a challenger.">
         {createPushLoading ? (

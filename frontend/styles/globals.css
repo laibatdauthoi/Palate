@@ -443,6 +443,7 @@ body.welcome_intro_active .app_shell {
   gap: var(--spacing-xl);
 }
 
+.card_grid_panel,
 .panel_grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -466,6 +467,7 @@ body.welcome_intro_active .app_shell {
   gap: var(--spacing-xl);
 }
 
+.card_grid_media,
 .media_grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2190,6 +2192,7 @@ select.input_control option:checked,
   justify-items: center;
 }
 
+.card_grid_compact,
 .compact_card_grid {
   display: grid;
   gap: var(--spacing-md);
@@ -3993,13 +3996,6 @@ select.input_control option:checked,
   }
 }
 
-.home_lobby_state {
-  width: 100%;
-  max-width: none;
-  justify-self: stretch;
-  grid-column: 1 / -1;
-}
-
 .stat_card {
   display: grid;
   gap: var(--spacing-xs);
@@ -4072,6 +4068,7 @@ select.input_control option:checked,
   width: 100%;
   max-width: none;
   justify-self: stretch;
+  grid-column: 1 / -1;
 }
 
 .filter_bar_inner {
