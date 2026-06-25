@@ -17,6 +17,7 @@ import type {
   MediaStorageStatus,
   MediaStatus,
   PalateBalance,
+  UserBuffRecord,
   UserSummary,
   WaitingPush
 } from "@/types/palate";
@@ -1181,6 +1182,50 @@ export async function getClaimRecords(walletAddress: string): Promise<ClaimRecor
       } satisfies ClaimRecord;
     })
     .sort((a, b) => b.id - a.id);
+}
+
+function buffSideToFrontend(value: number): UserBuffRecord["side"] {
+  return value === 2 ? "B" : "A";
+}
+
+export async function getUserBuffRecords(walletAddress: string): Promise<UserBuffRecord[]> {
+  const normalizedWalletAddress = walletAddress.trim().toLowerCase();
+  const total = asNumber(await viewOne("getBuffRecordCount"));
+  if (total <= 0) {
+    return [];
+  }
+
+  const records = await Promise.all(
+    Array.from({ length: total }, async (_, index) => {
+      const [matchId, userAddress, side, amount, score, claimed] = await Promise.all([
+        viewOne("getBuffRecordMatchId", [index]),
+        viewOne("getBuffRecordUser", [index]),
+        viewOne("getBuffRecordSide", [index]),
+        viewOne("getBuffRecordAmount", [index]),
+        viewOne("getBuffRecordScore", [index]),
+        viewOne("getBuffRecordClaimed", [index])
+      ]);
+
+      const normalizedUserAddress = asString(userAddress).trim().toLowerCase();
+      if (normalizedUserAddress !== normalizedWalletAddress) {
+        return null;
+      }
+
+      return {
+        matchId: Number(asString(matchId)),
+        userAddress: asString(userAddress),
+        side: buffSideToFrontend(asNumber(side)),
+        amount: formatOctasToApt(asString(amount)),
+        amountOctas: asString(amount),
+        score: asString(score),
+        claimed: Boolean(claimed)
+      } satisfies UserBuffRecord;
+    })
+  );
+
+  return records
+    .filter((record): record is UserBuffRecord => record !== null)
+    .sort((a, b) => b.matchId - a.matchId);
 }
 
 type AccountTransactionPayload = {

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { BuffPanel } from "@/components/buff_panel";
-import { ClaimCard } from "@/components/claim_card";
 import { EmptyState } from "@/components/empty_state";
 import { ErrorState } from "@/components/error_state";
 import { FilterBar } from "@/components/filter_bar";
@@ -21,13 +20,9 @@ type MyBuffFilter = "all" | "pending" | "ready";
 
 export default function BuffPage() {
   const {
-    completedBuffSide,
     balance,
     activeMatches,
     chainRead,
-    claimReadStatus,
-    claimReward,
-    claimRecords,
     currentAssignment,
     feedback,
     findMatch,
@@ -38,7 +33,9 @@ export default function BuffPage() {
     publicGameReadStatus,
     refreshPublicGameState,
     settleMatch,
-    skipMatch
+    skipMatch,
+    userBuffReadStatus,
+    userBuffRecords
   } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const [buffAmount, setBuffAmount] = useState("0.250");
@@ -48,6 +45,7 @@ export default function BuffPage() {
   const [buffPublicGameResolvedSinceMount, setBuffPublicGameResolvedSinceMount] = useState(false);
   const [showLocalNoValidMatchFeedback, setShowLocalNoValidMatchFeedback] = useState(false);
   const nowMs = useCountdownNow();
+  const normalizedWalletAddress = normalizeAddress(walletAddress);
   const assignedMatch = currentAssignment?.match;
   const assignedMatchCountdown = assignedMatch
     ? getLiveCountdownState(Number(assignedMatch.endTimeSeconds), nowMs, { endedLabel: "Ended" })
@@ -107,13 +105,31 @@ export default function BuffPage() {
   const findMatchFeedback = buffFeedback && isFindMatchFeedbackMessage(buffFeedback.message) ? buffFeedback : null;
   const isAssignmentZoneUnresolved = !buffPublicGameResolvedSinceMount || publicGameReadStatus === "idle";
   const canFindMatch = walletReady && !buffBusy && !isAssignmentZoneUnresolved;
-  const hasEligibleMatchCandidate = activeMatches.some((match) => (
-    match.status === "active"
-    && !getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ended" }).isEnded
-  ));
+  const hasEligibleMatchForCurrentWallet = activeMatches.some((match) => {
+    if (match.status !== "active") {
+      return false;
+    }
+
+    if (getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ended" }).isEnded) {
+      return false;
+    }
+
+    if (!normalizedWalletAddress) {
+      return true;
+    }
+
+    const excludedAddresses = [
+      match.pusherA,
+      match.pusherB,
+      match.mediaA.ownerAddress,
+      match.mediaB.ownerAddress
+    ].map((address) => normalizeAddress(address));
+
+    return !excludedAddresses.some((address) => address !== null && address === normalizedWalletAddress);
+  });
   const showNoValidMatchStatus = !assignedMatch
     && !isAssignmentZoneUnresolved
-    && !hasEligibleMatchCandidate
+    && !hasEligibleMatchForCurrentWallet
     && (showLocalNoValidMatchFeedback || noValidMatchAvailable || findMatchFeedback?.message.toLowerCase().includes("no valid match") === true);
   const findMatchLabel = processingAction === "findMatch"
     ? "Finding"
@@ -133,53 +149,65 @@ export default function BuffPage() {
       : "";
   const assignmentFeedback = buffFeedback && !findMatchFeedback ? buffFeedback : null;
   const activeMatchesById = useMemo(() => new Map(activeMatches.map((match) => [match.id, match])), [activeMatches]);
-  const myBuffEntries = useMemo(() => {
-    return claimRecords
-      .filter((claim) => claim.type === "buff" && !claim.claimed)
-      .map((claim) => {
-        const match = typeof claim.matchId === "number" ? activeMatchesById.get(claim.matchId) ?? null : null;
-        const readyByCountdown = match
+  const activeUserBuffEntries = useMemo(() => {
+    return userBuffRecords
+      .filter((record) => !record.claimed)
+      .map((record) => {
+        const match = activeMatchesById.get(record.matchId) ?? null;
+        const matchStatus = match?.status ?? null;
+        const endedByCountdown = match
           ? getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ready to settle" }).isEnded
           : false;
-        const readyToSettle = claim.settled || claim.claimable || readyByCountdown;
+        const isReadyToSettle = matchStatus !== null && endedByCountdown && matchStatus !== "settled";
+        const isPendingResult = matchStatus === "active" && !endedByCountdown;
 
         return {
-          claim,
+          record,
           match,
-          readyToSettle
+          isPendingResult,
+          isReadyToSettle
         };
-      });
-  }, [activeMatchesById, claimRecords, nowMs]);
+      })
+      .filter((entry) => entry.isPendingResult || entry.isReadyToSettle);
+  }, [activeMatchesById, nowMs, userBuffRecords]);
+  const pendingBuffEntries = useMemo(
+    () => activeUserBuffEntries.filter((entry) => entry.isPendingResult),
+    [activeUserBuffEntries]
+  );
+  const readyToSettleBuffEntries = useMemo(
+    () => activeUserBuffEntries.filter((entry) => entry.isReadyToSettle),
+    [activeUserBuffEntries]
+  );
   const myBuffCounts = useMemo(() => {
-    const pending = myBuffEntries.filter((entry) => !entry.readyToSettle).length;
-    const ready = myBuffEntries.filter((entry) => entry.readyToSettle).length;
+    const pending = pendingBuffEntries.length;
+    const ready = readyToSettleBuffEntries.length;
 
     return {
-      all: myBuffEntries.length,
+      all: pending + ready,
       pending,
       ready
     };
-  }, [myBuffEntries]);
+  }, [pendingBuffEntries.length, readyToSettleBuffEntries.length]);
   const filteredMyBuffEntries = useMemo(() => {
     if (myBuffFilter === "pending") {
-      return myBuffEntries.filter((entry) => !entry.readyToSettle);
+      return pendingBuffEntries;
     }
 
     if (myBuffFilter === "ready") {
-      return myBuffEntries.filter((entry) => entry.readyToSettle);
+      return readyToSettleBuffEntries;
     }
 
-    return myBuffEntries;
-  }, [myBuffEntries, myBuffFilter]);
-  const isMyBuffClaimsResolved = !walletReady || claimReadStatus === "ready" || claimReadStatus === "error";
-  const isMyBuffClaimsUnresolved = walletReady && !isMyBuffClaimsResolved;
+    return activeUserBuffEntries;
+  }, [activeUserBuffEntries, myBuffFilter, pendingBuffEntries, readyToSettleBuffEntries]);
+  const isUserBuffsResolved = !walletReady || userBuffReadStatus === "ready" || userBuffReadStatus === "error";
+  const isUserBuffsUnresolved = walletReady && !isUserBuffsResolved;
   const isMyBuffPublicStateUnresolved = !buffPublicGameResolvedSinceMount || publicGameReadStatus === "idle";
-  const isMyBuffsDataUnresolved = isMyBuffClaimsUnresolved || isMyBuffPublicStateUnresolved;
+  const isMyBuffsDataUnresolved = isUserBuffsUnresolved || isMyBuffPublicStateUnresolved;
   const isMyBuffsLoading = isMyBuffsDataUnresolved;
   const isMyBuffsError = walletReady
     && !isMyBuffsLoading
-    && (claimReadStatus === "error" || publicGameReadStatus === "error")
-    && myBuffEntries.length === 0;
+    && (userBuffReadStatus === "error" || publicGameReadStatus === "error")
+    && activeUserBuffEntries.length === 0;
   const hasMyBuffRecords = filteredMyBuffEntries.length > 0;
   const canShowMyBuffsEmpty = !isMyBuffsLoading && !isMyBuffsError && !hasMyBuffRecords;
   const myBuffFilterItems = useMemo(() => ([
@@ -210,10 +238,10 @@ export default function BuffPage() {
   }, [assignedMatch]);
 
   useEffect(() => {
-    if (hasEligibleMatchCandidate || isAssignmentZoneUnresolved || assignedMatch) {
+    if (hasEligibleMatchForCurrentWallet || isAssignmentZoneUnresolved || assignedMatch) {
       setShowLocalNoValidMatchFeedback(false);
     }
-  }, [assignedMatch, hasEligibleMatchCandidate, isAssignmentZoneUnresolved]);
+  }, [assignedMatch, hasEligibleMatchForCurrentWallet, isAssignmentZoneUnresolved]);
 
   useEffect(() => {
     let cancelled = false;
@@ -279,7 +307,7 @@ export default function BuffPage() {
                   if (isAssignmentZoneUnresolved) {
                     return;
                   }
-                  if (!hasEligibleMatchCandidate) {
+                  if (!hasEligibleMatchForCurrentWallet) {
                     setShowLocalNoValidMatchFeedback(true);
                     return;
                   }
@@ -300,7 +328,6 @@ export default function BuffPage() {
             </div>
           </div>
           {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to find a match and place Buffs.</p> : null}
-          {completedBuffSide ? <p className="feedback_text feedback_success">Buff {completedBuffSide} recorded. Find the next match when you are ready.</p> : null}
         </div>
       </div>
 
@@ -382,26 +409,10 @@ export default function BuffPage() {
                   .filter((entry) => entry.match)
                   .map((entry) => (
                     <MatchCard
-                      key={`match-${entry.claim.claimKey}`}
+                      key={`match-${entry.record.matchId}-${entry.record.side}`}
                       match={entry.match!}
-                      settleDisabled={!walletReady || processingAction === "settleMatch" || !entry.readyToSettle}
-                      onSettle={entry.readyToSettle ? () => settleMatch(entry.match!.id) : undefined}
-                    />
-                  ))}
-              </div>
-            ) : null}
-
-            {filteredMyBuffEntries.some((entry) => !entry.match) ? (
-              <div className="claim_rows buff_claim_rows">
-                {filteredMyBuffEntries
-                  .filter((entry) => !entry.match)
-                  .map((entry) => (
-                    <ClaimCard
-                      actionDisabled={!walletReady}
-                      claim={entry.claim}
-                      key={`claim-${entry.claim.claimKey}`}
-                      loading={processingAction === "claimReward"}
-                      onClaim={entry.claim.claimable ? () => claimReward(entry.claim) : undefined}
+                      settleDisabled={!walletReady || processingAction === "settleMatch" || !entry.isReadyToSettle}
+                      onSettle={entry.isReadyToSettle ? () => settleMatch(entry.match!.id) : undefined}
                     />
                   ))}
               </div>
@@ -466,4 +477,17 @@ function parseAmountOctas(value: string) {
   } catch {
     return null;
   }
+}
+
+function normalizeAddress(address: string | null | undefined) {
+  if (!address) {
+    return null;
+  }
+
+  const normalized = address.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized.startsWith("0x") ? normalized : `0x${normalized}`;
 }

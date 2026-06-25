@@ -152,6 +152,16 @@ export type ClaimRecord = {
   settled: boolean;
 };
 
+export type UserBuffRecord = {
+  matchId: number;
+  userAddress: string;
+  side: BuffSide;
+  amount: string;
+  amountOctas: string;
+  score: string;
+  claimed: boolean;
+};
+
 export type ClaimableRewardsSummary = {
   claimableCount: number;
   claimableTotalOctas: string;
@@ -163,6 +173,7 @@ export type ReadStatus = "idle" | "loading" | "ready" | "error";
 export type ReadLifecycleState = {
   hasLoadedActivity: boolean;
   hasLoadedClaims: boolean;
+  hasLoadedUserBuffs: boolean;
   hasLoadedMedia: boolean;
   hasLoadedPublicGameState: boolean;
   hasLoadedUserSummary: boolean;
