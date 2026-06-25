@@ -10,7 +10,6 @@ import { FilterBar } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
 import { ModalShell } from "@/components/modal_shell";
-import { PageHeader } from "@/components/page_header";
 import { useCountdownNow, getLiveCountdownState } from "@/hooks/use_live_countdown";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
@@ -218,15 +217,9 @@ export default function BuffPage() {
 
   return (
     <div className="page_stack page_buff">
-      <PageHeader
-        eyebrow="Buff"
-        title="My Buffs"
-        copy="Find a random match, reopen your current assignment, and track Buffs that are waiting for result or ready to settle."
-        variant="floating"
-        density="compact"
-        stacked
-        lifted
-      />
+      <div className="buff_page_label page_label_lifted">
+        <span className="eyebrow">My Buffs</span>
+      </div>
 
       {buffPageLoading ? (
         <LoadingState
@@ -330,14 +323,12 @@ export default function BuffPage() {
         />
         {myBuffsLoading ? (
           <LoadingState
-            className="buff_my_buffs_state"
             variant="section"
             label="Loading My Buffs"
             copy="Your Buff records and live match settlement state are loading from chain."
           />
         ) : myBuffsError ? (
           <ErrorState
-            className="buff_my_buffs_state"
             variant="section"
             title="My Buffs unavailable"
             copy="Buff records are temporarily unavailable while the chain read is retried."
@@ -377,7 +368,6 @@ export default function BuffPage() {
           </div>
         ) : (
           <EmptyState
-            className="buff_my_buffs_state"
             variant="section"
             title={
               myBuffFilter === "pending"

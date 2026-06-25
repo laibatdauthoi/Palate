@@ -1574,9 +1574,17 @@ select.input_control option:checked,
   gap: var(--spacing-lg);
 }
 
-.buff_my_buffs_state {
-  max-width: min(100%, 720px);
-  justify-self: stretch;
+.buff_page_label {
+  display: grid;
+  justify-items: start;
+  gap: 0;
+}
+
+.page_label_lifted .eyebrow {
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05),
+    0 10px 28px rgba(0, 0, 0, 0.34),
+    0 0 26px rgba(255, 47, 159, 0.08);
 }
 
 .badge {
@@ -1714,6 +1722,11 @@ select.input_control option:checked,
 
 .page_header_lifted {
   margin-top: calc(var(--spacing-lg) * -0.65);
+}
+
+.page_label_lifted {
+  margin-top: calc(var(--spacing-lg) * -0.65);
+  padding: 4px 0;
 }
 
 .page_header .page_header_title {
