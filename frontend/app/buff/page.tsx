@@ -156,10 +156,12 @@ export default function BuffPage() {
         eyebrow="Buff"
         title="Find one random match and Buff the side you believe in."
         copy="Choose one side, enter your Buff amount, and confirm before finding another match."
+        className="page_header_floating page_header_stacked"
       />
 
       {buffPageLoading ? (
         <LoadingState
+          className="full_width_state"
           label="Loading Buff state"
           copy="Active matches and your current assignment are loading from chain."
         />
@@ -245,6 +247,7 @@ export default function BuffPage() {
         {settleFeedback ? <p className={`feedback_text feedback_${settleFeedback.type}`}>{settleFeedback.message}</p> : null}
         {buffPageLoading ? (
           <LoadingState
+            className="full_width_state"
             label="Loading settleable matches"
             copy="Match settlement eligibility is loading from chain."
           />
@@ -260,7 +263,7 @@ export default function BuffPage() {
             ))}
           </div>
         ) : (
-          <EmptyState title="No match ready to settle" copy="Settling becomes available after the match end time passes." />
+          <EmptyState className="full_width_state" title="No match ready to settle" copy="Settling becomes available after the match end time passes." />
         )}
       </SectionPanel>
     </div>

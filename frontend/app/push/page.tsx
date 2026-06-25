@@ -349,10 +349,12 @@ function PushPageContent() {
         title="Challenge the board without exposing live match direction."
         copy="Waiting pushes can be challenged by same-category idle media. Live match cards hide score, Buff pool, leading side, odds, and win probability."
         actions={<ActionButton href="/my-media">Choose Media To Push</ActionButton>}
+        className="page_header_floating page_header_stacked"
       />
 
-      <SectionPanel>
-        <div className="tabs">
+      <div className="filter_bar filter_bar_surface" aria-label="Push views">
+        <div className="filter_bar_inner">
+          <div className="tabs">
           {(["Waiting", "Live Matches"] as const).map((item) => (
             <button
               className={`tab_button ${tab === item ? "active" : ""}`}
@@ -372,12 +374,14 @@ function PushPageContent() {
               {item}
             </button>
           ))}
+          </div>
         </div>
-      </SectionPanel>
+      </div>
 
       <SectionPanel title="Create push" copy="Use Palate Balance and mark selected idle media as waiting for a challenger.">
         {createPushLoading ? (
           <LoadingState
+            className="full_width_state"
             label="Loading push inventory"
             copy="Idle media and protocol minimums are loading from chain."
           />
@@ -405,6 +409,7 @@ function PushPageContent() {
       {tab === "Waiting" ? (
         waitingSectionLoading ? (
           <LoadingState
+            className="full_width_state"
             label="Loading waiting pushes"
             copy="Open waiting pushes are loading from chain."
           />
@@ -426,6 +431,7 @@ function PushPageContent() {
         )
       ) : activeMatchesSectionLoading ? (
         <LoadingState
+          className="full_width_state"
           label="Loading live matches"
           copy="Active matches are loading from chain."
         />

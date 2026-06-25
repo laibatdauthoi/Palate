@@ -10,7 +10,6 @@ import { LoadingState } from "@/components/loading_state";
 import { MediaCard } from "@/components/media_card";
 import { ModalShell } from "@/components/modal_shell";
 import { PageHeader } from "@/components/page_header";
-import { SectionPanel } from "@/components/section_panel";
 import { useMediaPlayer } from "@/providers/media_player_provider";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
@@ -232,10 +231,11 @@ export default function MyMediaPage() {
         title="My Media"
         copy="Registered media appears here after Shelby upload and on-chain registration."
         actions={<ActionButton href="/my-media/upload">Upload Media</ActionButton>}
+        className="page_header_floating page_header_stacked"
       />
 
-      <SectionPanel>
-        <div className="filter_bar">
+      <div className="filter_bar filter_bar_surface" aria-label="Media filters">
+        <div className="filter_bar_inner">
           <div className="tabs" aria-label="Status filters">
             {statuses.map((item) => (
               <button className={`tab_button ${status === item ? "active" : ""}`} key={item} onClick={() => setStatus(item)}>
@@ -245,14 +245,14 @@ export default function MyMediaPage() {
           </div>
           <CustomDropdown label="Category" onChange={setCategory} options={categoryOptions} value={category} />
         </div>
-        {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to load your on-chain media.</p> : null}
-        {cleanupFeedback ? <p className={`feedback_text feedback_${cleanupFeedback.type}`}>{cleanupFeedback.message}</p> : null}
-      </SectionPanel>
+      </div>
+      {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to load your on-chain media.</p> : null}
+      {cleanupFeedback ? <p className={`feedback_text feedback_${cleanupFeedback.type}`}>{cleanupFeedback.message}</p> : null}
 
-      {walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia ? <LoadingState label="Loading on-chain media" /> : null}
+      {walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia ? <LoadingState className="full_width_state" label="Loading on-chain media" /> : null}
       {walletReady && mediaReadStatus === "error" ? <ErrorState title="Media read failed" copy="Local inventory remains available while the chain read is retried later." /> : null}
       {filteredMedia.length === 0 && !(mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia) ? (
-        <EmptyState title="No media found" copy="Upload and register media to start building your Palate inventory." actionLabel="Upload Media" actionHref="/my-media/upload" />
+        <EmptyState className="full_width_state" title="No media found" copy="Upload and register media to start building your Palate inventory." actionLabel="Upload Media" actionHref="/my-media/upload" />
       ) : (
         <div className="media_grid">
           {filteredMedia.map((media) => renderMediaCard(media))}

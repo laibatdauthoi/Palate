@@ -1503,6 +1503,10 @@ select.input_control option:checked,
   padding: 4px 0;
 }
 
+.page_header_floating .page_header_content {
+  gap: var(--spacing-sm);
+}
+
 .page_header_floating .eyebrow,
 .page_header_floating .eyebrow,
 .page_header_floating .page_header_title,
@@ -3281,24 +3285,11 @@ select.input_control option:checked,
 }
 
 .activity_filter_button {
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 800;
-  font-size: var(--font-size-caption);
-  padding: 6px 12px;
-  transition: var(--transition-fast);
   white-space: nowrap;
 }
 
-.activity_filter_button:hover,
-.activity_filter_button.active {
-  border-color: rgba(255, 47, 159, 0.34);
-  background: linear-gradient(135deg, rgba(255, 47, 159, 0.18), rgba(143, 85, 255, 0.05));
-  color: var(--text-primary);
+.activity_filters_bar {
+  width: 100%;
 }
 
 .activity_rows {
@@ -4075,6 +4066,12 @@ select.input_control option:checked,
     rgba(20, 23, 31, 0.95);
   box-shadow: var(--shadow-panel), var(--shadow-bevel);
   padding: 4px 6px;
+}
+
+.full_width_state {
+  width: 100%;
+  max-width: none;
+  justify-self: stretch;
 }
 
 .filter_bar_inner {

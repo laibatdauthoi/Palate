@@ -266,6 +266,7 @@ function ProfilePageContent() {
         eyebrow="Profile"
         title="Balance, stats, and Buff Rewards."
         copy="Claims credit Palate Balance first. Wallet withdrawal is a separate action after available balance updates."
+        className="page_header_floating page_header_stacked"
       />
 
       <div className="profile_summary_grid">
@@ -303,8 +304,9 @@ function ProfilePageContent() {
         {balanceFeedback ? <p className={`feedback_text feedback_${balanceFeedback.type}`}>{balanceFeedback.message}</p> : null}
       </SectionPanel>
 
-      <SectionPanel>
-        <div className="tabs">
+      <div className="filter_bar filter_bar_surface" aria-label="Profile views">
+        <div className="filter_bar_inner">
+          <div className="tabs">
           {(["Stats", "Claims", "Activity"] as const).map((item) => (
             <button
               className={`tab_button ${tab === item ? "active" : ""} ${item === "Claims" && claimableRewardsSummary.hasClaimableRewards ? "tab_button_attention" : ""}`}
@@ -315,14 +317,16 @@ function ProfilePageContent() {
               {item === "Claims" && claimableRewardsSummary.hasClaimableRewards ? <span className="tab_badge">{claimableRewardsSummary.claimableCount}</span> : null}
             </button>
           ))}
+          </div>
         </div>
-      </SectionPanel>
+      </div>
 
       {tab === "Stats" ? (
         <div className="stack">
           {statsReadMessage ? <p className={`feedback_text ${userSummaryReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{statsReadMessage}</p> : null}
           {userSummaryReadStatus === "loading" && !readLifecycle.hasLoadedUserSummary ? (
             <LoadingState
+              className="full_width_state"
               label="Loading profile stats"
               copy="Your on-chain Palate summary is loading."
             />
@@ -367,11 +371,12 @@ function ProfilePageContent() {
 
             {claimReadStatus === "loading" && !readLifecycle.hasLoadedClaims ? (
               <LoadingState
+                className="full_width_state"
                 label="Loading claim records"
                 copy="Real claim discovery records are loading from chain."
               />
             ) : claimRecords.length === 0 && claimReadStatus !== "loading" ? (
-              <EmptyState title="No settled rewards yet." copy="Claimable and claimed rewards will appear here after settlement." />
+              <EmptyState className="full_width_state" title="No settled rewards yet." copy="Claimable and claimed rewards will appear here after settlement." />
             ) : (
               <div className="claim_center_stack">
                 <div className="claim_section_header">
@@ -444,14 +449,15 @@ function ProfilePageContent() {
             </div>
 
             {!walletReady ? (
-              <EmptyState title="Connect wallet to view activity." copy="Activity only appears for the connected wallet." />
+              <EmptyState className="full_width_state" title="Connect wallet to view activity." copy="Activity only appears for the connected wallet." />
             ) : (
               <div className="activity_stack">
-                <div className="activity_filters_scroller">
-                  <div className="activity_filters">
+                <div className="filter_bar filter_bar_surface activity_filters_bar">
+                  <div className="filter_bar_inner activity_filters_scroller">
+                    <div className="tabs activity_filters" aria-label="Activity filters">
                     {activity_filters.map((filter) => (
                       <button
-                        className={`activity_filter_button ${activityFilter === filter ? "active" : ""}`}
+                        className={`tab_button activity_filter_button ${activityFilter === filter ? "active" : ""}`}
                         key={filter}
                         onClick={() => {
                           const startedAt = uiPerfNow();
@@ -469,6 +475,7 @@ function ProfilePageContent() {
                         {filter}
                       </button>
                     ))}
+                    </div>
                   </div>
                 </div>
 
@@ -477,11 +484,12 @@ function ProfilePageContent() {
 
                 {activityReadStatus === "loading" && !readLifecycle.hasLoadedActivity ? (
                   <LoadingState
+                    className="full_width_state"
                     label="Loading activity"
                     copy="Palate wallet activity is loading from chain."
                   />
                 ) : filteredActivityTransactions.length === 0 && activityReadStatus !== "loading" ? (
-                  <EmptyState title="No Palate activity yet." copy="Palate transaction history will appear here after the connected wallet sends Palate actions." />
+                  <EmptyState className="full_width_state" title="No Palate activity yet." copy="Palate transaction history will appear here after the connected wallet sends Palate actions." />
                 ) : (
                   <div className="activity_rows">
                     {visibleActivityTransactions.map((transaction) => (
