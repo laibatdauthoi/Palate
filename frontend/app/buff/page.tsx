@@ -103,6 +103,14 @@ export default function BuffPage() {
   const settleFeedback = feedback?.scope === "settle" ? feedback : null;
   const canFindMatch = walletReady && !buffBusy && !currentAssignment;
   const buffPageLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
+  const findMatchLabel = processingAction === "findMatch"
+    ? "Finding"
+    : buffFeedback?.message ?? "Find Match";
+  const findMatchLabelStateClassName = processingAction === "findMatch"
+    ? "buff_find_match_label_loading"
+    : buffFeedback
+      ? `buff_find_match_label_${buffFeedback.type}`
+      : "";
 
   useEffect(() => {
     logPageMount("Buff");
@@ -207,15 +215,14 @@ export default function BuffPage() {
                     <path d="m20 20-3.5-3.5" />
                   </svg>
                 </button>
-                <span className="buff_find_match_label" aria-live="polite">
-                  {processingAction === "findMatch" ? "Finding" : "Find Match"}
+                <span className={`buff_find_match_label ${findMatchLabelStateClassName}`.trim()} aria-live="polite">
+                  {findMatchLabel}
                 </span>
               </div>
             </div>
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to find a match and place Buffs.</p> : null}
             {completedBuffSide ? <p className="feedback_text feedback_success">Buff {completedBuffSide} recorded. Find the next match when you are ready.</p> : null}
             {noValidMatchAvailable ? <ErrorState variant="section" title="No valid match available right now." copy="Try again after more live matches become eligible for Buff." /> : null}
-            {buffFeedback ? <p className={`feedback_text feedback_${buffFeedback.type}`}>{buffFeedback.message}</p> : null}
           </div>
         </div>
       )}
