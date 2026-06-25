@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { BuffPanel } from "@/components/buff_panel";
 import { EmptyState } from "@/components/empty_state";
+import { ErrorState } from "@/components/error_state";
 import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
 import { ModalShell } from "@/components/modal_shell";
@@ -156,19 +157,22 @@ export default function BuffPage() {
         eyebrow="Buff"
         title="Find one random match and Buff the side you believe in."
         copy="Choose one side, enter your Buff amount, and confirm before finding another match."
-        className="page_header_floating page_header_stacked"
+        variant="floating"
+        density="compact"
+        stacked
+        lifted
       />
 
       {buffPageLoading ? (
         <LoadingState
-          className="full_width_state"
+          variant="section"
           label="Loading Buff state"
           copy="Active matches and your current assignment are loading from chain."
         />
       ) : assignedMatch ? (
-        <div className="buff_assignment_banner">
+        <div className="buff_assignment_banner surface_card card_shell">
           <p className="secondary_text">Assignment active. Open it to Buff or Skip before finding another match.</p>
-          <div className="buff_assignment_banner_actions">
+          <div className="buff_assignment_banner_actions card_actions">
             <ActionButton className="buff_assignment_reopen_button" onClick={() => setAssignmentModalOpen(true)}>
               Open Assignment
             </ActionButton>
@@ -194,12 +198,16 @@ export default function BuffPage() {
                   findMatch();
                 }}
               >
+                <svg aria-hidden="true" className="action_button_icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
                 {processingAction === "findMatch" ? "Finding" : "Find Match"}
               </ActionButton>
             </div>
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to find a match and place Buffs.</p> : null}
             {completedBuffSide ? <p className="feedback_text feedback_success">Buff {completedBuffSide} recorded. Find the next match when you are ready.</p> : null}
-            {noValidMatchAvailable ? <p className="feedback_text feedback_error">No valid match available right now.</p> : null}
+            {noValidMatchAvailable ? <ErrorState variant="section" title="No valid match available right now." copy="Try again after more live matches become eligible for Buff." /> : null}
             {buffFeedback ? <p className={`feedback_text feedback_${buffFeedback.type}`}>{buffFeedback.message}</p> : null}
           </div>
         </div>
@@ -247,7 +255,7 @@ export default function BuffPage() {
         {settleFeedback ? <p className={`feedback_text feedback_${settleFeedback.type}`}>{settleFeedback.message}</p> : null}
         {buffPageLoading ? (
           <LoadingState
-            className="full_width_state"
+            variant="section"
             label="Loading settleable matches"
             copy="Match settlement eligibility is loading from chain."
           />
@@ -263,7 +271,7 @@ export default function BuffPage() {
             ))}
           </div>
         ) : (
-          <EmptyState className="full_width_state" title="No match ready to settle" copy="Settling becomes available after the match end time passes." />
+          <EmptyState variant="section" title="No match ready to settle" copy="Settling becomes available after the match end time passes." />
         )}
       </SectionPanel>
     </div>

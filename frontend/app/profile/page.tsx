@@ -7,7 +7,7 @@ import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
 import { EmptyState } from "@/components/empty_state";
 import { ClaimCard } from "@/components/claim_card";
-import { FilterBar, FilterTabs } from "@/components/filter_bar";
+import { FilterBar } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
@@ -267,7 +267,10 @@ function ProfilePageContent() {
         eyebrow="Profile"
         title="Balance, stats, and Buff Rewards."
         copy="Claims credit Palate Balance first. Wallet withdrawal is a separate action after available balance updates."
-        className="page_header_floating page_header_stacked"
+        variant="floating"
+        density="compact"
+        stacked
+        lifted
       />
 
       <div className="profile_summary_grid">
@@ -305,25 +308,23 @@ function ProfilePageContent() {
         {balanceFeedback ? <p className={`feedback_text feedback_${balanceFeedback.type}`}>{balanceFeedback.message}</p> : null}
       </SectionPanel>
 
-      <FilterBar ariaLabel="Profile views">
-        <FilterTabs
-          activeKey={tab}
-          ariaLabel="Profile views"
-          items={[
-            { key: "Stats", label: "Stats" },
-            { key: "Claims", label: "Claims", count: claimableRewardsSummary.hasClaimableRewards ? claimableRewardsSummary.claimableCount : undefined, attention: claimableRewardsSummary.hasClaimableRewards },
-            { key: "Activity", label: "Activity" }
-          ]}
-          onChange={handleTabChange}
-        />
-      </FilterBar>
+      <FilterBar
+        activeKey={tab}
+        ariaLabel="Profile views"
+        items={[
+          { key: "Stats", label: "Stats" },
+          { key: "Claims", label: "Claims", count: claimableRewardsSummary.hasClaimableRewards ? claimableRewardsSummary.claimableCount : undefined, attention: claimableRewardsSummary.hasClaimableRewards },
+          { key: "Activity", label: "Activity" }
+        ]}
+        onChange={handleTabChange}
+      />
 
       {tab === "Stats" ? (
         <div className="stack">
           {statsReadMessage ? <p className={`feedback_text ${userSummaryReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{statsReadMessage}</p> : null}
           {userSummaryReadStatus === "loading" && !readLifecycle.hasLoadedUserSummary ? (
             <LoadingState
-              className="full_width_state"
+              variant="section"
               label="Loading profile stats"
               copy="Your on-chain Palate summary is loading."
             />
@@ -368,12 +369,12 @@ function ProfilePageContent() {
 
             {claimReadStatus === "loading" && !readLifecycle.hasLoadedClaims ? (
               <LoadingState
-                className="full_width_state"
+                variant="section"
                 label="Loading claim records"
                 copy="Real claim discovery records are loading from chain."
               />
             ) : claimRecords.length === 0 && claimReadStatus !== "loading" ? (
-              <EmptyState className="full_width_state" title="No settled rewards yet." copy="Claimable and claimed rewards will appear here after settlement." />
+              <EmptyState variant="section" title="No settled rewards yet." copy="Claimable and claimed rewards will appear here after settlement." />
             ) : (
               <div className="claim_center_stack">
                 <div className="claim_section_header">
@@ -446,41 +447,41 @@ function ProfilePageContent() {
             </div>
 
             {!walletReady ? (
-              <EmptyState className="full_width_state" title="Connect wallet to view activity." copy="Activity only appears for the connected wallet." />
+              <EmptyState variant="section" title="Connect wallet to view activity." copy="Activity only appears for the connected wallet." />
             ) : (
               <div className="activity_stack">
-                <FilterBar ariaLabel="Activity filters" className="activity_filters_bar" innerClassName="activity_filters_scroller">
-                  <FilterTabs
-                    activeKey={activityFilter}
-                    ariaLabel="Activity filters"
-                    className="activity_filters"
-                    getItemClassName={() => "activity_filter_button"}
-                    items={activity_filters.map((filter) => ({ key: filter, label: filter }))}
-                    onChange={(filter) => {
-                      const startedAt = uiPerfNow();
-                      setActivityFilter(filter);
-                      logUiPerf("activityFilterClick", {
-                        filter,
-                        localStateUpdatedImmediately: true,
-                        routerAction: "none",
-                        providerRefreshTriggered: false,
-                        syncDurationMs: Math.round(uiPerfNow() - startedAt)
-                      });
-                    }}
-                  />
-                </FilterBar>
+                <FilterBar
+                  activeKey={activityFilter}
+                  ariaLabel="Activity filters"
+                  className="activity_filters_bar"
+                  getItemClassName={() => "activity_filter_button"}
+                  innerClassName="activity_filters_scroller"
+                  items={activity_filters.map((filter) => ({ key: filter, label: filter }))}
+                  onChange={(filter) => {
+                    const startedAt = uiPerfNow();
+                    setActivityFilter(filter);
+                    logUiPerf("activityFilterClick", {
+                      filter,
+                      localStateUpdatedImmediately: true,
+                      routerAction: "none",
+                      providerRefreshTriggered: false,
+                      syncDurationMs: Math.round(uiPerfNow() - startedAt)
+                    });
+                  }}
+                  tabsClassName="activity_filters"
+                />
 
                 {activityReadMessage ? <p className={`feedback_text ${activityReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{activityReadMessage}</p> : null}
                 {activityFeedback ? <p className={`feedback_text feedback_${activityFeedback.type}`}>{activityFeedback.message}</p> : null}
 
                 {activityReadStatus === "loading" && !readLifecycle.hasLoadedActivity ? (
                   <LoadingState
-                    className="full_width_state"
+                    variant="section"
                     label="Loading activity"
                     copy="Palate wallet activity is loading from chain."
                   />
                 ) : filteredActivityTransactions.length === 0 && activityReadStatus !== "loading" ? (
-                  <EmptyState className="full_width_state" title="No Palate activity yet." copy="Palate transaction history will appear here after the connected wallet sends Palate actions." />
+                  <EmptyState variant="section" title="No Palate activity yet." copy="Palate transaction history will appear here after the connected wallet sends Palate actions." />
                 ) : (
                   <div className="activity_rows">
                     {visibleActivityTransactions.map((transaction) => (

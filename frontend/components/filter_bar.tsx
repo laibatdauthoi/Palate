@@ -1,18 +1,24 @@
 import type { ReactNode } from "react";
 
-type FilterBarProps = {
-  ariaLabel?: string;
-  children: ReactNode;
-  className?: string;
-  innerClassName?: string;
-};
-
 export type FilterTabItem<T extends string = string> = {
   key: T;
   label: string;
   count?: number;
   attention?: boolean;
   disabled?: boolean;
+};
+
+type FilterBarProps<T extends string = string> = {
+  ariaLabel?: string;
+  children?: ReactNode;
+  className?: string;
+  innerClassName?: string;
+  items?: readonly FilterTabItem<T>[];
+  activeKey?: T;
+  onChange?: (key: T) => void;
+  tablist?: boolean;
+  tabsClassName?: string;
+  getItemClassName?: (item: FilterTabItem<T>) => string | undefined;
 };
 
 type FilterTabsProps<T extends string = string> = {
@@ -25,10 +31,34 @@ type FilterTabsProps<T extends string = string> = {
   getItemClassName?: (item: FilterTabItem<T>) => string | undefined;
 };
 
-export function FilterBar({ ariaLabel, children, className = "", innerClassName = "" }: FilterBarProps) {
+export function FilterBar<T extends string>({
+  ariaLabel,
+  children,
+  className = "",
+  innerClassName = "",
+  items,
+  activeKey,
+  onChange,
+  tablist = false,
+  tabsClassName = "",
+  getItemClassName
+}: FilterBarProps<T>) {
   return (
     <div aria-label={ariaLabel} className={`filter_bar filter_bar_surface ${className}`.trim()}>
-      <div className={`filter_bar_inner ${innerClassName}`.trim()}>{children}</div>
+      <div className={`filter_bar_inner ${innerClassName}`.trim()}>
+        {items && activeKey !== undefined && onChange ? (
+          <FilterTabs
+            activeKey={activeKey}
+            ariaLabel={ariaLabel}
+            className={tabsClassName}
+            getItemClassName={getItemClassName}
+            items={items}
+            onChange={onChange}
+            tablist={tablist}
+          />
+        ) : null}
+        {children}
+      </div>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
 import { EmptyState } from "@/components/empty_state";
-import { FilterBar, FilterTabs } from "@/components/filter_bar";
+import { FilterBar } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
 import { PageHeader } from "@/components/page_header";
@@ -115,7 +115,10 @@ export default function HomePage() {
       <PageHeader
         eyebrow="Palate Lobby"
         title="Upload media, push it into a duel, Buff live matches, and claim rewards when your side wins."
-        className="page_header_floating page_header_stacked home_page_header"
+        variant="floating"
+        density="compact"
+        stacked
+        lifted
         actions={
           <>
             <ActionButton className="home_cta_button hero_primary_cta" href="/buff">Buff Random Match</ActionButton>
@@ -125,14 +128,12 @@ export default function HomePage() {
         }
       />
 
-      <FilterBar ariaLabel="Lobby Activity">
-        <FilterTabs activeKey={activityTab} ariaLabel="Home activity tabs" items={activityTabs} onChange={setActivityTab} tablist />
-      </FilterBar>
+      <FilterBar activeKey={activityTab} ariaLabel="Home activity tabs" items={activityTabs} onChange={setActivityTab} tablist />
 
       <div className="home_activity_content" aria-live="polite">
         {lobbyLoading ? (
           <LoadingState
-            className="full_width_state"
+            variant="section"
             label="Loading lobby activity"
             copy="Waiting pushes and active matches are loading from chain."
           />
@@ -158,7 +159,7 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <EmptyState className="full_width_state" title="No waiting pushes." copy="" actionLabel="Go to Push" actionHref="/push" />
+            <EmptyState variant="section" title="No waiting pushes." copy="" actionLabel="Go to Push" actionHref="/push" />
           )
         ) : activeMatches.length > 0 ? (
             <div className="compact_card_grid compact_card_grid_matches matches_grid">
@@ -171,7 +172,7 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          <EmptyState className="full_width_state" title="No active matches." copy="" actionLabel="Go to Buff" actionHref="/buff" />
+          <EmptyState variant="section" title="No active matches." copy="" actionLabel="Go to Buff" actionHref="/buff" />
         )}
       </div>
 

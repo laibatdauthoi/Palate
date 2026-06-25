@@ -6,7 +6,7 @@ import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
 import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
-import { FilterBar, FilterTabs } from "@/components/filter_bar";
+import { FilterBar } from "@/components/filter_bar";
 import { MatchCard } from "@/components/match_card";
 import { LoadingState } from "@/components/loading_state";
 import { PageHeader } from "@/components/page_header";
@@ -350,32 +350,33 @@ function PushPageContent() {
         title="Challenge the board without exposing live match direction."
         copy="Waiting pushes can be challenged by same-category idle media. Live match cards hide score, Buff pool, leading side, odds, and win probability."
         actions={<ActionButton href="/my-media">Choose Media To Push</ActionButton>}
-        className="page_header_floating page_header_stacked"
+        variant="floating"
+        density="compact"
+        stacked
+        lifted
       />
 
-      <FilterBar ariaLabel="Push views">
-        <FilterTabs
-          activeKey={tab}
-          ariaLabel="Push views"
-          items={[{ key: "Waiting", label: "Waiting" }, { key: "Live Matches", label: "Live Matches" }]}
-          onChange={(item) => {
-            const startedAt = uiPerfNow();
-            setTab(item);
-            logUiPerf("pushPageTabClick", {
-              tab: item,
-              localStateUpdatedImmediately: true,
-              routerAction: "none",
-              providerRefreshTriggered: false,
-              syncDurationMs: Math.round(uiPerfNow() - startedAt)
-            });
-          }}
-        />
-      </FilterBar>
+      <FilterBar
+        activeKey={tab}
+        ariaLabel="Push views"
+        items={[{ key: "Waiting", label: "Waiting" }, { key: "Live Matches", label: "Live Matches" }]}
+        onChange={(item) => {
+          const startedAt = uiPerfNow();
+          setTab(item);
+          logUiPerf("pushPageTabClick", {
+            tab: item,
+            localStateUpdatedImmediately: true,
+            routerAction: "none",
+            providerRefreshTriggered: false,
+            syncDurationMs: Math.round(uiPerfNow() - startedAt)
+          });
+        }}
+      />
 
       <SectionPanel title="Create push" copy="Use Palate Balance and mark selected idle media as waiting for a challenger.">
         {createPushLoading ? (
           <LoadingState
-            className="full_width_state"
+            variant="section"
             label="Loading push inventory"
             copy="Idle media and protocol minimums are loading from chain."
           />
@@ -403,7 +404,7 @@ function PushPageContent() {
       {tab === "Waiting" ? (
         waitingSectionLoading ? (
           <LoadingState
-            className="full_width_state"
+            variant="section"
             label="Loading waiting pushes"
             copy="Open waiting pushes are loading from chain."
           />
@@ -425,7 +426,7 @@ function PushPageContent() {
         )
       ) : activeMatchesSectionLoading ? (
         <LoadingState
-          className="full_width_state"
+          variant="section"
           label="Loading live matches"
           copy="Active matches are loading from chain."
         />

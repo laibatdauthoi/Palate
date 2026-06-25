@@ -1,12 +1,23 @@
 export function LoadingState({
   label,
-  copy = "Real on-chain data is loading."
+  copy = "Real on-chain data is loading.",
+  variant = "card",
+  className = ""
 }: {
   label: string;
   copy?: string;
+  variant?: "card" | "section";
+  className?: string;
 }) {
+  const stateClassName = [
+    "state_card",
+    "loading_state",
+    variant === "section" ? "full_width_state" : "",
+    className
+  ].filter(Boolean).join(" ");
+
   return (
-    <div className="state_card loading_state" aria-live="polite" role="status">
+    <div className={stateClassName} aria-live="polite" role="status">
       <div className="loading_spinner" aria-hidden="true">
         <span className="loading_spinner_ring" />
       </div>
