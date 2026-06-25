@@ -3980,8 +3980,9 @@ select.input_control option:checked,
 }
 
 .waiting_grid {
-  width: min(100%, calc(296px * 3 + var(--spacing-md) * 2));
-  margin-inline: auto;
+  width: 100%;
+  margin-inline: 0;
+  row-gap: var(--spacing-xl);
 }
 
 .waiting_grid .waiting_push_card_compact {
@@ -3990,6 +3991,15 @@ select.input_control option:checked,
 
 .matches_grid .match_card {
   justify-self: start;
+}
+
+@media (min-width: 1200px) {
+  .waiting_grid {
+    grid-template-columns: repeat(3, 296px);
+    justify-content: space-between;
+    justify-items: start;
+    column-gap: var(--spacing-xl);
+  }
 }
 
 .home_lobby_state {
