@@ -443,6 +443,45 @@ body.welcome_intro_active .app_shell {
   gap: var(--spacing-xl);
 }
 
+.surface_panel,
+.surface_card,
+.surface_control {
+  border: 1px solid rgba(255, 255, 255, 0.095);
+}
+
+.surface_panel,
+.surface_card {
+  border-radius: var(--radius-large);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), transparent 22%),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.01)),
+    var(--surface-primary);
+}
+
+.surface_panel {
+  box-shadow: var(--shadow-panel), var(--shadow-bevel);
+}
+
+.surface_card {
+  box-shadow: var(--shadow-card), var(--shadow-bevel);
+}
+
+.surface_control {
+  border-radius: var(--radius-pill);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 22%, transparent 100%),
+    linear-gradient(145deg, rgba(30, 35, 46, 0.96), rgba(21, 24, 33, 0.94)),
+    rgba(20, 23, 31, 0.95);
+  box-shadow: var(--shadow-panel), var(--shadow-bevel);
+}
+
+.surface_metal {
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.12), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 38%, rgba(0, 0, 0, 0.08) 100%),
+    linear-gradient(145deg, rgba(48, 52, 64, 0.94), rgba(20, 23, 31, 0.96) 58%, rgba(14, 16, 23, 0.98));
+}
+
 .card_grid_panel,
 .panel_grid {
   display: grid;
@@ -478,6 +517,14 @@ body.welcome_intro_active .app_shell {
 .stack {
   display: grid;
   gap: var(--spacing-lg);
+}
+
+.grid_full_width_state,
+.full_width_state {
+  width: 100%;
+  max-width: none;
+  justify-self: stretch;
+  grid-column: 1 / -1;
 }
 
 .stack_sm {
@@ -1558,6 +1605,7 @@ select.input_control option:checked,
   justify-content: flex-start;
 }
 
+.surface_panel,
 .section_panel {
   position: relative;
   border: 2px solid rgba(255, 255, 255, 0.095);
@@ -1571,6 +1619,8 @@ select.input_control option:checked,
   overflow: hidden;
 }
 
+.surface_panel::before,
+.card_shell::before,
 .section_panel::before,
 .media_card::before,
 .match_card::before,
@@ -1601,6 +1651,7 @@ select.input_control option:checked,
   margin: 0;
 }
 
+.card_shell,
 .media_card,
 .match_card,
 .waiting_push_card,
@@ -1615,6 +1666,14 @@ select.input_control option:checked,
     var(--surface-primary);
   box-shadow: var(--shadow-panel), var(--shadow-bevel);
   overflow: hidden;
+}
+
+.card_shell_interactive,
+.media_card,
+.match_card,
+.waiting_push_card,
+.claim_card,
+.state_card {
   transform-origin: center;
   transition: var(--transition-medium);
   will-change: transform;
@@ -1633,6 +1692,7 @@ select.input_control option:checked,
   min-height: 100%;
 }
 
+.card_shell_interactive:hover,
 .media_card:hover,
 .match_card:hover,
 .waiting_push_card:hover {
@@ -1646,6 +1706,7 @@ select.input_control option:checked,
   box-shadow: var(--shadow-card-hover), var(--shadow-bevel), 0 0 34px rgba(255, 47, 159, 0.24);
 }
 
+.card_preview,
 .media_preview,
 .waiting_media,
 .buff_media_stage,
@@ -1701,6 +1762,7 @@ select.input_control option:checked,
     linear-gradient(135deg, rgba(255, 47, 159, 0.22), rgba(9, 13, 26, 0.98));
 }
 
+.card_preview::before,
 .media_preview::before,
 .waiting_media::before,
 .buff_media_stage::before,
@@ -1714,6 +1776,7 @@ select.input_control option:checked,
   transform: rotate(-8deg);
 }
 
+.card_preview::after,
 .media_preview::after,
 .waiting_media::after,
 .buff_media_stage::after,
@@ -2105,12 +2168,36 @@ select.input_control option:checked,
   padding: var(--spacing-lg);
 }
 
+.card_body,
 .media_card_body,
 .match_card_body,
 .waiting_push_body {
   display: grid;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
+}
+
+.card_title_row {
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.card_title {
+  min-width: 0;
+}
+
+.card_status {
+  color: var(--text-muted);
+  font-size: var(--font-size-body-small);
+}
+
+.card_chip_row {
+  min-width: 0;
+}
+
+.card_footer {
+  align-items: center;
+  gap: var(--spacing-md);
 }
 
 .match_card_body {
@@ -2134,6 +2221,7 @@ select.input_control option:checked,
   word-break: break-word;
 }
 
+.card_actions,
 .media_card_actions {
   display: flex;
   align-items: center;
@@ -3042,11 +3130,6 @@ select.input_control option:checked,
   align-items: center;
   gap: var(--spacing-lg);
   padding: var(--spacing-lg);
-}
-
-.claim_card:hover {
-  border-color: var(--border-medium);
-  transform: scale(1.01);
 }
 
 .claim_card p {
@@ -4062,13 +4145,6 @@ select.input_control option:checked,
     rgba(20, 23, 31, 0.95);
   box-shadow: var(--shadow-panel), var(--shadow-bevel);
   padding: 4px 6px;
-}
-
-.full_width_state {
-  width: 100%;
-  max-width: none;
-  justify-self: stretch;
-  grid-column: 1 / -1;
 }
 
 .filter_bar_inner {

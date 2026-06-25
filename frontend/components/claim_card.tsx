@@ -20,7 +20,7 @@ export function ClaimCard({ claim, onClaim, loading, actionDisabled }: { claim: 
   const status = claim.claimed ? "claimed" : claim.claimable ? "claimable" : "pending";
 
   return (
-    <article className="claim_card">
+    <article className="claim_card card_shell card_shell_interactive">
       <div className="claim_row_main">
         <div className="claim_row_identity">
           <span className="eyebrow">{rewardLabel}</span>
@@ -32,7 +32,7 @@ export function ClaimCard({ claim, onClaim, loading, actionDisabled }: { claim: 
         <strong>{claim.amount}</strong>
         <StatusBadge status={status} />
       </div>
-      <div className="claim_row_actions">
+      <div className="claim_row_actions card_actions">
         <button
           className="claim_detail_toggle"
           onClick={() => setDetailsOpen((current) => !current)}

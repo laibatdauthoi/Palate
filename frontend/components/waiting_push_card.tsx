@@ -121,8 +121,8 @@ export function WaitingPushCard({
   const cardStatus = push.status === "open" ? "open" : push.status === "challenged" ? "active" : "disabled";
   const actionLabel = push.status === "open" ? "Challenge" : "Closed";
   return (
-    <article className={`waiting_push_card waiting_push_card_${push.media.category} ${isCompact ? "waiting_push_card_compact" : ""}`}>
-      <div className={`waiting_media media_preview_${push.media.accent}`}>
+    <article className={`waiting_push_card card_shell card_shell_interactive waiting_push_card_${push.media.category} ${isCompact ? "waiting_push_card_compact" : ""}`}>
+      <div className={`waiting_media card_preview media_preview_${push.media.accent}`}>
         {push.media.category === "audio" ? (
           <WaitingAudioPreview
             interactive={canPlayAudioPreview}
@@ -141,30 +141,41 @@ export function WaitingPushCard({
             title={displayTitle}
           />
         ) : (
-          <MediaRenderer media={push.media} variant="compact" />
+          <MediaRenderer media={push.media} variant={isCompact ? "card" : "compact"} />
         )}
       </div>
-      <div className="waiting_push_body">
-        <div className="waiting_push_header">
-          <div className="waiting_push_title_group">
-            <h3>{displayTitle}</h3>
-            <div className="cluster">
+      <div className="waiting_push_body card_body">
+        {isCompact ? (
+          <>
+            <div className="spread waiting_push_compact_title_row card_title_row">
+              <h3>{displayTitle}</h3>
+              <StatusBadge status={cardStatus} />
+            </div>
+            <div className="cluster waiting_push_compact_chip_row card_chip_row">
               <CategoryBadge category={push.media.category} />
               <FormatBadge format={push.media.format} />
             </div>
-          </div>
-          <StatusBadge status={cardStatus} />
-        </div>
-        {isCompact ? (
-          <div className="waiting_push_meta waiting_push_meta_compact">
-            <dl className="waiting_push_stats waiting_push_stats_compact">
-              <div className="waiting_push_stat">
-                <dt>Required Amount</dt>
-                <dd>{push.minChallengeAmount}</dd>
+          </>
+        ) : (
+          <div className="waiting_push_header">
+            <div className="waiting_push_title_group">
+              <h3>{displayTitle}</h3>
+              <div className="cluster">
+                <CategoryBadge category={push.media.category} />
+                <FormatBadge format={push.media.format} />
               </div>
-            </dl>
-            <div className="waiting_push_action_stack waiting_push_action_stack_compact">
-              <div className="waiting_push_actions">
+            </div>
+            <StatusBadge status={cardStatus} />
+          </div>
+        )}
+        {isCompact ? (
+          <div className="spread media_meta waiting_push_meta_compact card_footer">
+            <div className="waiting_push_required_meta">
+              <span>Required Amount</span>
+              <strong>{push.minChallengeAmount}</strong>
+            </div>
+            <div className="media_card_actions waiting_push_action_stack_compact card_actions">
+              <div className="waiting_push_actions card_actions">
                 {challengeHref && canChallenge ? (
                   <ActionButton href={challengeHref} variant="primary">Challenge</ActionButton>
                 ) : challengeDisabledReason ? (
@@ -183,7 +194,7 @@ export function WaitingPushCard({
             </div>
           </div>
         ) : (
-          <div className="waiting_push_meta">
+          <div className="waiting_push_meta card_footer">
             <dl className="waiting_push_stats">
               <div className="waiting_push_stat">
                 <dt>Push amount</dt>
@@ -207,7 +218,7 @@ export function WaitingPushCard({
                   </div>
                 </div>
                 <div className="waiting_push_action_stack">
-                  <div className="waiting_push_actions">
+                  <div className="waiting_push_actions card_actions">
                     {challengeHref && canChallenge ? (
                       <ActionButton href={challengeHref} variant="primary">Challenge</ActionButton>
                     ) : challengeDisabledReason ? (

@@ -83,8 +83,8 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
   }
 
   return (
-    <article className={`media_card ${mediaActive ? "media_card_audio_active" : ""}`} onClick={handleCardClick}>
-      <div className={`media_preview media_preview_${media.accent}`} aria-label={displayTitle}>
+    <article className={`media_card card_shell card_shell_interactive ${mediaActive ? "media_card_audio_active" : ""}`} onClick={handleCardClick}>
+      <div className={`media_preview card_preview media_preview_${media.accent}`} aria-label={displayTitle}>
         <div className="media_preview_inner">
           <MediaRenderer
             media={media}
@@ -95,18 +95,18 @@ export function MediaCard({ media, actionLabel, onAction, onPushAction, secondar
           />
         </div>
       </div>
-      <div className="media_card_body">
-        <div className="spread">
+      <div className="media_card_body card_body">
+        <div className="spread card_title_row">
           <h3>{displayTitle}</h3>
           <StatusBadge status={isShelbyCleanupRequired ? "shelby_cleanup_required" : isDeletePending ? "delete_pending" : isContentUnavailable ? "content_unavailable" : isShelbyUploadFailed ? "shelby_upload_failed" : isVideoDisabled ? "video_disabled" : isInvalidMediaType ? "invalid_media_type" : media.status} />
         </div>
-        <div className="cluster">
+        <div className="cluster card_chip_row">
           <CategoryBadge category={media.category} />
           <FormatBadge format={media.format} />
         </div>
-        <div className="spread media_meta">
-          <span>{media.createdTime}</span>
-          <div className="media_card_actions">
+        <div className="spread media_meta card_footer">
+          <span className="card_status">{media.createdTime}</span>
+          <div className="media_card_actions card_actions">
             {actionLabel ? <ActionButton disabled={actionDisabled || (isVideoDisabled && !isDeleteAction) || (isInvalidMediaType && !isDeleteAction && !isShelbyUploadFailed) || (isContentUnavailable && !isDeleteAction && !isDeletePending)} onClick={handleActionClick} variant={actionVariant}>{actionLabel}</ActionButton> : null}
             {secondaryActionLabel ? <ActionButton onClick={onSecondaryAction} variant={secondaryActionLabel === "Clean up expired push" ? "caution" : secondaryActionLabel === "Delete" ? "danger" : "secondary"}>{secondaryActionLabel}</ActionButton> : null}
           </div>

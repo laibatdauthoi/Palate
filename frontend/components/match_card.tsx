@@ -19,27 +19,27 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
   const footerStatusText = isSettleEligible ? "Settlement available" : null;
 
   return (
-    <article className="match_card">
+    <article className="match_card card_shell card_shell_interactive">
       <div className="match_media_pair">
-        <div className={`mini_media media_preview_${match.mediaA.accent}`}>
+        <div className={`mini_media card_preview media_preview_${match.mediaA.accent}`}>
           <span className="mini_side_label">Media A</span>
           <MediaRenderer compact media={match.mediaA} variant="match" />
         </div>
         <div className="vs_marker">VS</div>
-        <div className={`mini_media media_preview_${match.mediaB.accent}`}>
+        <div className={`mini_media card_preview media_preview_${match.mediaB.accent}`}>
           <span className="mini_side_label">Media B</span>
           <MediaRenderer compact media={match.mediaB} variant="match" />
         </div>
       </div>
-      <div className="match_card_body">
-        <div className="match_card_meta_row">
+      <div className="match_card_body card_body">
+        <div className="match_card_meta_row card_footer">
           <div className="cluster">
             <CategoryBadge category={match.category} />
             <StatusBadge status={displayStatus} />
           </div>
           {footerStatusText ? <span className="match_card_status_text">{footerStatusText}</span> : null}
         </div>
-        <div className="match_card_actions">
+        <div className="match_card_actions card_actions">
           {isSettleEligible && onSettle ? (
             <ActionButton
               disabled={settleDisabled}

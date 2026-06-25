@@ -18,18 +18,18 @@ export function BuffDecisionCard({ side, media, selected = false, onSelect, disa
   return (
     <article
       aria-label={`Buff candidate side ${side}`}
-      className={`buff_decision_card buff_side_${side.toLowerCase()} ${selected ? "selected" : ""}`}
+      className={`buff_decision_card card_shell buff_side_${side.toLowerCase()} ${selected ? "selected" : ""}`}
     >
       <div className="buff_side_label">Media {side}</div>
       <button
         aria-label={`View media for side ${side}`}
-        className={`buff_media_stage buff_media_stage_button media_preview_${media.accent}`}
+        className={`buff_media_stage card_preview buff_media_stage_button media_preview_${media.accent}`}
         onClick={() => openMediaViewer(media, "buff_decision_card")}
         type="button"
       >
         <MediaRenderer disablePreview media={media} variant="selector" />
       </button>
-      <div className="buff_decision_meta">
+      <div className="buff_decision_meta card_body">
         <h3>{displayTitle}</h3>
       </div>
       <ActionButton className="buff_choose_button" disabled={disabledSelection} onClick={onSelect} variant={selected ? "primary" : "secondary"}>
