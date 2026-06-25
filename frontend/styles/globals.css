@@ -1175,6 +1175,7 @@ select.input_control option:checked,
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   min-height: 48px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
@@ -1192,6 +1193,12 @@ select.input_control option:checked,
     0 10px 22px rgba(0, 0, 0, 0.24);
   cursor: pointer;
   will-change: transform;
+}
+
+.action_button_icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
 }
 
 .action_button:hover,
@@ -1566,7 +1573,7 @@ select.input_control option:checked,
     0 0 26px rgba(255, 47, 159, 0.08);
 }
 
-.home_page_header {
+.page_header_lifted {
   margin-top: calc(var(--spacing-lg) * -0.65);
 }
 
