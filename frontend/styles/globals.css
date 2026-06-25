@@ -1560,6 +1560,25 @@ select.input_control option:checked,
   margin: 0;
 }
 
+.buff_results_stack {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+.buff_claim_rows {
+  gap: var(--spacing-md);
+}
+
+.buff_my_buffs_stack {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+.buff_my_buffs_state {
+  max-width: min(100%, 720px);
+  justify-self: stretch;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

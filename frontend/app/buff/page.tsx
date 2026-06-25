@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/components/action_button";
 import { BuffPanel } from "@/components/buff_panel";
+import { ClaimCard } from "@/components/claim_card";
 import { EmptyState } from "@/components/empty_state";
 import { ErrorState } from "@/components/error_state";
+import { FilterBar } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
 import { ModalShell } from "@/components/modal_shell";
 import { PageHeader } from "@/components/page_header";
-import { SectionPanel } from "@/components/section_panel";
 import { useCountdownNow, getLiveCountdownState } from "@/hooks/use_live_countdown";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
@@ -17,6 +18,7 @@ import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
 import { logPageMount, logUiPerf } from "@/utils/ui_perf";
 
 const live_refresh_interval_ms = 18000;
+type MyBuffFilter = "all" | "pending" | "ready";
 
 export default function BuffPage() {
   const {
@@ -24,6 +26,9 @@ export default function BuffPage() {
     balance,
     activeMatches,
     chainRead,
+    claimReadStatus,
+    claimReward,
+    claimRecords,
     currentAssignment,
     feedback,
     findMatch,
@@ -41,6 +46,7 @@ export default function BuffPage() {
   const [buffAmount, setBuffAmount] = useState("0.250");
   const [selectedSide, setSelectedSide] = useState<"A" | "B" | null>(null);
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
+  const [myBuffFilter, setMyBuffFilter] = useState<MyBuffFilter>("all");
   const nowMs = useCountdownNow();
   const assignedMatch = currentAssignment?.match;
   const assignedMatchCountdown = assignedMatch
@@ -54,9 +60,6 @@ export default function BuffPage() {
   const isSkippingMatch = processingAction === "skipMatch";
   const isSettlingMatch = processingAction === "settleMatch";
   const walletReady = walletStatus === "connected";
-  const settleableMatches = activeMatches.filter((match) =>
-    match.status === "active" && getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ready to settle" }).isEnded
-  );
   const minBuffOctas = chainRead.protocolConfig?.minBuffAmount ? BigInt(chainRead.protocolConfig.minBuffAmount) : null;
   const minBuffAmountLabel = minBuffOctas !== null ? formatOctasToApt(minBuffOctas) : "loading";
   const buffAmountValidation = validateBuffAmount(buffAmount, minBuffOctas);
@@ -101,16 +104,70 @@ export default function BuffPage() {
   const canBuff = confirmDisabledReason === null;
   const buffFeedback = feedback?.scope === "buff" ? feedback : null;
   const settleFeedback = feedback?.scope === "settle" ? feedback : null;
-  const canFindMatch = walletReady && !buffBusy && !currentAssignment;
+  const findMatchFeedback = buffFeedback && isFindMatchFeedbackMessage(buffFeedback.message) ? buffFeedback : null;
   const buffPageLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
+  const canFindMatch = walletReady && !buffBusy && !buffPageLoading;
   const findMatchLabel = processingAction === "findMatch"
     ? "Finding"
-    : buffFeedback?.message ?? "Find Match";
+    : findMatchFeedback?.message ?? "Find Match";
   const findMatchLabelStateClassName = processingAction === "findMatch"
     ? "buff_find_match_label_loading"
-    : buffFeedback
-      ? `buff_find_match_label_${buffFeedback.type}`
+    : findMatchFeedback
+      ? `buff_find_match_label_${findMatchFeedback.type}`
       : "";
+  const assignmentFeedback = buffFeedback && !findMatchFeedback ? buffFeedback : null;
+  const activeMatchesById = useMemo(() => new Map(activeMatches.map((match) => [match.id, match])), [activeMatches]);
+  const myBuffEntries = useMemo(() => {
+    return claimRecords
+      .filter((claim) => claim.type === "buff" && !claim.claimed)
+      .map((claim) => {
+        const match = typeof claim.matchId === "number" ? activeMatchesById.get(claim.matchId) ?? null : null;
+        const readyByCountdown = match
+          ? getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ready to settle" }).isEnded
+          : false;
+        const readyToSettle = claim.settled || claim.claimable || readyByCountdown;
+
+        return {
+          claim,
+          match,
+          readyToSettle
+        };
+      });
+  }, [activeMatchesById, claimRecords, nowMs]);
+  const myBuffCounts = useMemo(() => {
+    const pending = myBuffEntries.filter((entry) => !entry.readyToSettle).length;
+    const ready = myBuffEntries.filter((entry) => entry.readyToSettle).length;
+
+    return {
+      all: myBuffEntries.length,
+      pending,
+      ready
+    };
+  }, [myBuffEntries]);
+  const filteredMyBuffEntries = useMemo(() => {
+    if (myBuffFilter === "pending") {
+      return myBuffEntries.filter((entry) => !entry.readyToSettle);
+    }
+
+    if (myBuffFilter === "ready") {
+      return myBuffEntries.filter((entry) => entry.readyToSettle);
+    }
+
+    return myBuffEntries;
+  }, [myBuffEntries, myBuffFilter]);
+  const myBuffsLoading = walletReady && (
+    (claimReadStatus === "loading" && !readLifecycle.hasLoadedClaims)
+    || (publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState)
+  );
+  const myBuffsError = walletReady && claimReadStatus === "error" && myBuffEntries.length === 0 && !myBuffsLoading;
+  const myBuffFilterItems = useMemo(() => ([
+    { key: "all" as const, label: "All", count: myBuffCounts.all },
+    { key: "pending" as const, label: "Pending Result", count: myBuffCounts.pending },
+    { key: "ready" as const, label: "Ready to Settle", count: myBuffCounts.ready }
+  ]), [myBuffCounts]);
+  const assignmentBannerCopy = assignedMatchEnded
+    ? "Assignment ended. Open it to settle or clear it before finding another match."
+    : "Assignment active. Open it to Buff or Skip before finding another match.";
 
   useEffect(() => {
     logPageMount("Buff");
@@ -163,8 +220,8 @@ export default function BuffPage() {
     <div className="page_stack page_buff">
       <PageHeader
         eyebrow="Buff"
-        title="Find one random match and Buff the side you believe in."
-        copy="Choose one side, enter your Buff amount, and confirm before finding another match."
+        title="My Buffs"
+        copy="Find a random match, reopen your current assignment, and track Buffs that are waiting for result or ready to settle."
         variant="floating"
         density="compact"
         stacked
@@ -177,55 +234,53 @@ export default function BuffPage() {
           label="Loading Buff state"
           copy="Active matches and your current assignment are loading from chain."
         />
-      ) : assignedMatch ? (
+      ) : null}
+
+      <div className="buff_cta_block">
+        <div className="buff_status_stack">
+          <div className="buff_cta_row">
+            <div className="buff_find_match_control">
+              <button
+                aria-label="Find Match"
+                className="buff_find_match_search_button"
+                disabled={!canFindMatch}
+                onClick={() => {
+                  if (assignedMatch) {
+                    setAssignmentModalOpen(true);
+                    return;
+                  }
+                  findMatch();
+                }}
+                title="Find Match"
+                type="button"
+              >
+                <svg aria-hidden="true" className="buff_find_match_search_icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+              </button>
+              <span className={`buff_find_match_label ${findMatchLabelStateClassName}`.trim()} aria-live="polite">
+                {findMatchLabel}
+              </span>
+            </div>
+          </div>
+          {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to find a match and place Buffs.</p> : null}
+          {completedBuffSide ? <p className="feedback_text feedback_success">Buff {completedBuffSide} recorded. Find the next match when you are ready.</p> : null}
+          {noValidMatchAvailable ? <ErrorState variant="section" title="No valid match available right now." copy="Try again after more live matches become eligible for Buff." /> : null}
+        </div>
+      </div>
+
+      {assignedMatch ? (
         <div className="buff_assignment_banner surface_card card_shell">
-          <p className="secondary_text">Assignment active. Open it to Buff or Skip before finding another match.</p>
+          <p className="secondary_text">{assignmentBannerCopy}</p>
           <div className="buff_assignment_banner_actions card_actions">
             <ActionButton className="buff_assignment_reopen_button" onClick={() => setAssignmentModalOpen(true)}>
               Open Assignment
             </ActionButton>
-            <ActionButton className="buff_assignment_find_button" onClick={() => setAssignmentModalOpen(true)} variant="secondary">
-              Find Match
-            </ActionButton>
           </div>
-          {completedBuffSide ? <p className="feedback_text feedback_success">Buff {completedBuffSide} recorded. Find the next match when you are ready.</p> : null}
-          {buffFeedback ? <p className={`feedback_text feedback_${buffFeedback.type}`}>{buffFeedback.message}</p> : null}
+          {assignmentFeedback ? <p className={`feedback_text feedback_${assignmentFeedback.type}`}>{assignmentFeedback.message}</p> : null}
         </div>
-      ) : (
-        <div className="buff_cta_block">
-          <div className="buff_status_stack">
-            <div className="buff_cta_row">
-              <div className="buff_find_match_control">
-                <button
-                  aria-label="Find Match"
-                  className="buff_find_match_search_button"
-                  disabled={!canFindMatch}
-                  onClick={() => {
-                    if (assignedMatch) {
-                      setAssignmentModalOpen(true);
-                      return;
-                    }
-                    findMatch();
-                  }}
-                  title="Find Match"
-                  type="button"
-                >
-                  <svg aria-hidden="true" className="buff_find_match_search_icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m20 20-3.5-3.5" />
-                  </svg>
-                </button>
-                <span className={`buff_find_match_label ${findMatchLabelStateClassName}`.trim()} aria-live="polite">
-                  {findMatchLabel}
-                </span>
-              </div>
-            </div>
-            {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to find a match and place Buffs.</p> : null}
-            {completedBuffSide ? <p className="feedback_text feedback_success">Buff {completedBuffSide} recorded. Find the next match when you are ready.</p> : null}
-            {noValidMatchAvailable ? <ErrorState variant="section" title="No valid match available right now." copy="Try again after more live matches become eligible for Buff." /> : null}
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {assignedMatch ? (
         <ModalShell
@@ -265,31 +320,93 @@ export default function BuffPage() {
         </ModalShell>
       ) : null}
 
-      <SectionPanel title="Settle eligible matches">
+      <div className="buff_my_buffs_stack">
         {settleFeedback ? <p className={`feedback_text feedback_${settleFeedback.type}`}>{settleFeedback.message}</p> : null}
-        {buffPageLoading ? (
+        <FilterBar
+          activeKey={myBuffFilter}
+          ariaLabel="My Buffs filters"
+          items={myBuffFilterItems}
+          onChange={setMyBuffFilter}
+        />
+        {myBuffsLoading ? (
           <LoadingState
+            className="buff_my_buffs_state"
             variant="section"
-            label="Loading settleable matches"
-            copy="Match settlement eligibility is loading from chain."
+            label="Loading My Buffs"
+            copy="Your Buff records and live match settlement state are loading from chain."
           />
-        ) : settleableMatches.length > 0 ? (
-          <div className="compact_card_grid compact_card_grid_matches">
-            {settleableMatches.map((match) => (
-              <MatchCard
-                key={match.id}
-                match={match}
-                settleDisabled={!walletReady || processingAction === "settleMatch"}
-                onSettle={() => settleMatch(match.id)}
-              />
-            ))}
+        ) : myBuffsError ? (
+          <ErrorState
+            className="buff_my_buffs_state"
+            variant="section"
+            title="My Buffs unavailable"
+            copy="Buff records are temporarily unavailable while the chain read is retried."
+          />
+        ) : filteredMyBuffEntries.length > 0 ? (
+          <div className="buff_results_stack">
+            {filteredMyBuffEntries.some((entry) => entry.match) ? (
+              <div className="compact_card_grid compact_card_grid_matches buff_matches_grid">
+                {filteredMyBuffEntries
+                  .filter((entry) => entry.match)
+                  .map((entry) => (
+                    <MatchCard
+                      key={`match-${entry.claim.claimKey}`}
+                      match={entry.match!}
+                      settleDisabled={!walletReady || processingAction === "settleMatch" || !entry.readyToSettle}
+                      onSettle={entry.readyToSettle ? () => settleMatch(entry.match!.id) : undefined}
+                    />
+                  ))}
+              </div>
+            ) : null}
+
+            {filteredMyBuffEntries.some((entry) => !entry.match) ? (
+              <div className="claim_rows buff_claim_rows">
+                {filteredMyBuffEntries
+                  .filter((entry) => !entry.match)
+                  .map((entry) => (
+                    <ClaimCard
+                      actionDisabled={!walletReady}
+                      claim={entry.claim}
+                      key={`claim-${entry.claim.claimKey}`}
+                      loading={processingAction === "claimReward"}
+                      onClaim={entry.claim.claimable ? () => claimReward(entry.claim) : undefined}
+                    />
+                  ))}
+              </div>
+            ) : null}
           </div>
         ) : (
-          <EmptyState variant="section" title="No match ready to settle" copy="Settling becomes available after the match end time passes." />
+          <EmptyState
+            className="buff_my_buffs_state"
+            variant="section"
+            title={
+              myBuffFilter === "pending"
+                ? "No pending results"
+                : myBuffFilter === "ready"
+                  ? "No matches ready to settle"
+                  : "No Buffs yet"
+            }
+            copy={
+              myBuffFilter === "pending"
+                ? "Matches you have Buffed will stay here until the result is ready."
+                : myBuffFilter === "ready"
+                  ? "Matches become ready to settle after the end time passes."
+              : "Find a match and Buff one side to start tracking it here."
+            }
+          />
         )}
-      </SectionPanel>
+      </div>
     </div>
   );
+}
+
+function isFindMatchFeedbackMessage(message: string) {
+  const normalized = message.trim().toLowerCase();
+  return normalized.includes("find match")
+    || normalized.includes("match assigned")
+    || normalized.includes("complete or skip")
+    || normalized.includes("request rejected")
+    || normalized.includes("rejected the request");
 }
 
 function validateBuffAmount(value: string, minimumOctas: bigint | null) {
