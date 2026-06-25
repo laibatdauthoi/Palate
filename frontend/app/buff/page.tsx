@@ -187,23 +187,30 @@ export default function BuffPage() {
         <div className="buff_cta_block">
           <div className="buff_status_stack">
             <div className="buff_cta_row">
-              <ActionButton
-                className="buff_find_match_cta buff_find_match_cta_wide"
-                disabled={!canFindMatch}
-                onClick={() => {
-                  if (assignedMatch) {
-                    setAssignmentModalOpen(true);
-                    return;
-                  }
-                  findMatch();
-                }}
-              >
-                <svg aria-hidden="true" className="action_button_icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m20 20-3.5-3.5" />
-                </svg>
-                {processingAction === "findMatch" ? "Finding" : "Find Match"}
-              </ActionButton>
+              <div className="buff_find_match_control">
+                <button
+                  aria-label="Find Match"
+                  className="buff_find_match_search_button"
+                  disabled={!canFindMatch}
+                  onClick={() => {
+                    if (assignedMatch) {
+                      setAssignmentModalOpen(true);
+                      return;
+                    }
+                    findMatch();
+                  }}
+                  title="Find Match"
+                  type="button"
+                >
+                  <svg aria-hidden="true" className="buff_find_match_search_icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m20 20-3.5-3.5" />
+                  </svg>
+                </button>
+                <span className="buff_find_match_label" aria-live="polite">
+                  {processingAction === "findMatch" ? "Finding" : "Find Match"}
+                </span>
+              </div>
             </div>
             {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to find a match and place Buffs.</p> : null}
             {completedBuffSide ? <p className="feedback_text feedback_success">Buff {completedBuffSide} recorded. Find the next match when you are ready.</p> : null}
