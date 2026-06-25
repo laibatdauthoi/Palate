@@ -519,7 +519,6 @@ body.welcome_intro_active .app_shell {
   gap: var(--spacing-lg);
 }
 
-.grid_full_width_state,
 .full_width_state {
   width: 100%;
   max-width: none;
@@ -1551,7 +1550,6 @@ select.input_control option:checked,
   gap: var(--spacing-sm);
 }
 
-.page_header_floating .eyebrow,
 .page_header_floating .eyebrow,
 .page_header_floating .page_header_title,
 .page_header_floating .page_header_copy {

@@ -63,7 +63,7 @@ export function FilterBar<T extends string>({
   );
 }
 
-export function FilterTabs<T extends string>({
+function FilterTabs<T extends string>({
   activeKey,
   ariaLabel,
   className = "",
