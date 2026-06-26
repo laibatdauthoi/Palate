@@ -106,6 +106,47 @@ export function MediaRenderer({ media, compact = false, variant, mediaActive = f
   }
 
   if (mediaKind === "audio") {
+    if (resolvedVariant === "match") {
+      if (disablePreview) {
+        return (
+          <div className="media_renderer media_renderer_audio_match media_renderer_variant_match media_renderer_static">
+            <div className="audio_preview_visual" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+            <div className="audio_preview_meta">
+              <small>Audio track</small>
+              <span>View media</span>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <button
+          aria-label={`View ${displayTitle}`}
+          className="media_renderer media_renderer_audio_match media_renderer_button media_renderer_variant_match"
+          onClick={() => openMediaViewer(media, "media_renderer:audio_match")}
+          type="button"
+        >
+          <div className="audio_preview_visual" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="audio_preview_meta">
+            <small>Audio track</small>
+            <span>View media</span>
+          </div>
+        </button>
+      );
+    }
+
     if (disablePreview) {
       return (
         <div className={`media_renderer media_renderer_player media_renderer_audio_controlled media_renderer_variant_${resolvedVariant} media_renderer_static`}>

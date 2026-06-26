@@ -13,10 +13,9 @@ type MatchCardProps = {
 };
 
 export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
-  const countdown = useLiveCountdown(Number(match.endTimeSeconds), { endedLabel: "Settlement available" });
+  const countdown = useLiveCountdown(Number(match.endTimeSeconds), { endedLabel: "Ended" });
   const isSettleEligible = match.status === "active" && countdown.isEnded;
   const displayStatus = isSettleEligible ? "ended" : "live";
-  const footerStatusText = isSettleEligible ? "Settlement available" : null;
 
   return (
     <article className="match_card card_shell card_shell_interactive">
@@ -37,11 +36,9 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
             <CategoryBadge category={match.category} />
             <StatusBadge status={displayStatus} />
           </div>
-          {footerStatusText ? <span className="match_card_status_text">{footerStatusText}</span> : null}
-        </div>
-        <div className="match_card_actions card_actions">
           {isSettleEligible && onSettle ? (
             <ActionButton
+              className="match_card_settle_button"
               disabled={settleDisabled}
               onClick={() => {
                 const startedAt = uiPerfNow();
@@ -62,7 +59,7 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
               Settle
             </ActionButton>
           ) : (
-            <span className="countdown_timer match_card_countdown_slot">{countdown.label}</span>
+            <span className="countdown_timer match_card_countdown_slot" aria-label={`Time remaining ${countdown.label}`}>{countdown.label}</span>
           )}
         </div>
       </div>
