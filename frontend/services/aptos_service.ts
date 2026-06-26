@@ -1,4 +1,4 @@
-import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
+import { AccountAddress, Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import type { InputGenerateTransactionPayloadData, SimpleEntryFunctionArgumentTypes } from "@aptos-labs/ts-sdk";
 import { app_config } from "@/config/app_config";
 import { logUiPerf, startUiPerf } from "@/utils/ui_perf";
@@ -47,6 +47,22 @@ const module_id = `${app_config.moduleAddress}::${app_config.moduleName}`;
 
 function notImplemented(functionName: string): never {
   throw new Error(`${functionName} is not implemented. Future work should use Aptos ${app_config.networkLabel} view calls or signed entry-function transactions.`);
+}
+
+export function canonicalizeAptosAddress(address: string | null | undefined) {
+  if (!address) {
+    return null;
+  }
+
+  try {
+    return AccountAddress.fromString(address).toString().toLowerCase();
+  } catch {
+    const normalized = address.trim().toLowerCase();
+    if (!normalized) {
+      return null;
+    }
+    return normalized.startsWith("0x") ? normalized : `0x${normalized}`;
+  }
 }
 
 function viewFunction(functionName: string) {
@@ -1188,8 +1204,40 @@ function buffSideToFrontend(value: number): UserBuffRecord["side"] {
   return value === 2 ? "B" : "A";
 }
 
-export async function getUserBuffRecords(walletAddress: string): Promise<UserBuffRecord[]> {
-  const normalizedWalletAddress = walletAddress.trim().toLowerCase();
+type ChainBuffRecord = {
+  match_id: string | number;
+  user: string;
+  side: string | number;
+  buff_amount: string | number;
+  score: string | number;
+  claimed: boolean;
+};
+
+function chainBuffRecordToFrontend(record: ChainBuffRecord): UserBuffRecord {
+  return {
+    matchId: Number(asString(record.match_id)),
+    userAddress: asString(record.user),
+    side: buffSideToFrontend(asNumber(record.side)),
+    amount: formatOctasToApt(asString(record.buff_amount)),
+    amountOctas: asString(record.buff_amount),
+    score: asString(record.score),
+    claimed: Boolean(record.claimed)
+  } satisfies UserBuffRecord;
+}
+
+function isMissingViewFunctionError(error: unknown, functionName: string) {
+  const normalized = getErrorMessage(error).toLowerCase();
+  const normalizedFunctionName = functionName.toLowerCase();
+  return normalized.includes(normalizedFunctionName) && (
+    normalized.includes("could not find")
+    || normalized.includes("not found")
+    || normalized.includes("unknown function")
+    || normalized.includes("invalid entry function")
+    || normalized.includes("function resolution failed")
+  );
+}
+
+async function getUserBuffRecordsLegacy(normalizedWalletAddress: string): Promise<UserBuffRecord[]> {
   const total = asNumber(await viewOne("getBuffRecordCount"));
   if (total <= 0) {
     return [];
@@ -1206,7 +1254,7 @@ export async function getUserBuffRecords(walletAddress: string): Promise<UserBuf
         viewOne("getBuffRecordClaimed", [index])
       ]);
 
-      const normalizedUserAddress = asString(userAddress).trim().toLowerCase();
+      const normalizedUserAddress = canonicalizeAptosAddress(asString(userAddress));
       if (normalizedUserAddress !== normalizedWalletAddress) {
         return null;
       }
@@ -1226,6 +1274,30 @@ export async function getUserBuffRecords(walletAddress: string): Promise<UserBuf
   return records
     .filter((record): record is UserBuffRecord => record !== null)
     .sort((a, b) => b.matchId - a.matchId);
+}
+
+export async function getUserBuffRecords(walletAddress: string): Promise<UserBuffRecord[]> {
+  const normalizedWalletAddress = canonicalizeAptosAddress(walletAddress);
+  if (!normalizedWalletAddress) {
+    return [];
+  }
+
+  try {
+    const records = await viewOne<ChainBuffRecord[]>("getUserBuffRecords", [normalizedWalletAddress]);
+    if (!Array.isArray(records) || records.length === 0) {
+      return [];
+    }
+
+    return records
+      .map(chainBuffRecordToFrontend)
+      .sort((a, b) => b.matchId - a.matchId);
+  } catch (error) {
+    if (!isMissingViewFunctionError(error, "getUserBuffRecords")) {
+      throw error;
+    }
+  }
+
+  return getUserBuffRecordsLegacy(normalizedWalletAddress);
 }
 
 type AccountTransactionPayload = {

@@ -12,7 +12,8 @@ import { ModalShell } from "@/components/modal_shell";
 import { useCountdownNow, getLiveCountdownState } from "@/hooks/use_live_countdown";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
-import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
+import { canonicalizeAptosAddress, formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
+import type { ActiveMatch, UserBuffRecord } from "@/types/palate";
 import { logPageMount, logUiPerf } from "@/utils/ui_perf";
 
 const live_refresh_interval_ms = 18000;
@@ -105,31 +106,38 @@ export default function BuffPage() {
   const findMatchFeedback = buffFeedback && isFindMatchFeedbackMessage(buffFeedback.message) ? buffFeedback : null;
   const isAssignmentZoneUnresolved = !buffPublicGameResolvedSinceMount || publicGameReadStatus === "idle";
   const canFindMatch = walletReady && !buffBusy && !isAssignmentZoneUnresolved;
-  const hasEligibleMatchForCurrentWallet = activeMatches.some((match) => {
-    if (match.status !== "active") {
-      return false;
-    }
+  const activeMatchesById = useMemo(() => new Map(activeMatches.map((match) => [normalizeMatchId(match.id), match])), [activeMatches]);
+  const myBuffEntries = useMemo(() => {
+    return userBuffRecords
+      .filter((record) => !record.claimed)
+      .map((record) => {
+        const normalizedMatchId = normalizeMatchId(record.matchId);
+        const match = activeMatchesById.get(normalizedMatchId) ?? null;
+        const status = classifyBuffEntry(record, match, nowMs);
 
-    if (getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ended" }).isEnded) {
-      return false;
-    }
-
-    if (!normalizedWalletAddress) {
-      return true;
-    }
-
-    const excludedAddresses = [
-      match.pusherA,
-      match.pusherB,
-      match.mediaA.ownerAddress,
-      match.mediaB.ownerAddress
-    ].map((address) => normalizeAddress(address));
-
-    return !excludedAddresses.some((address) => address !== null && address === normalizedWalletAddress);
-  });
+        return {
+          matchId: normalizedMatchId,
+          buffRecord: record,
+          match,
+          status
+        };
+      });
+  }, [activeMatchesById, nowMs, userBuffRecords]);
+  const buffedMatchIds = useMemo(
+    () => new Set(myBuffEntries.map((entry) => entry.matchId)),
+    [myBuffEntries]
+  );
+  const eligibleMatchCandidates = useMemo(
+    () => activeMatches.filter((match) => getFindMatchBlockReason(match, {
+      buffedMatchIds,
+      normalizedWalletAddress,
+      nowMs
+    }) === null),
+    [activeMatches, buffedMatchIds, normalizedWalletAddress, nowMs]
+  );
   const showNoValidMatchStatus = !assignedMatch
     && !isAssignmentZoneUnresolved
-    && !hasEligibleMatchForCurrentWallet
+    && eligibleMatchCandidates.length === 0
     && (showLocalNoValidMatchFeedback || noValidMatchAvailable || findMatchFeedback?.message.toLowerCase().includes("no valid match") === true);
   const findMatchLabel = processingAction === "findMatch"
     ? "Finding"
@@ -148,35 +156,13 @@ export default function BuffPage() {
       ? `buff_find_match_label_${findMatchFeedback.type}`
       : "";
   const assignmentFeedback = buffFeedback && !findMatchFeedback ? buffFeedback : null;
-  const activeMatchesById = useMemo(() => new Map(activeMatches.map((match) => [match.id, match])), [activeMatches]);
-  const activeUserBuffEntries = useMemo(() => {
-    return userBuffRecords
-      .filter((record) => !record.claimed)
-      .map((record) => {
-        const match = activeMatchesById.get(record.matchId) ?? null;
-        const matchStatus = match?.status ?? null;
-        const endedByCountdown = match
-          ? getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ready to settle" }).isEnded
-          : false;
-        const isReadyToSettle = matchStatus !== null && endedByCountdown && matchStatus !== "settled";
-        const isPendingResult = matchStatus === "active" && !endedByCountdown;
-
-        return {
-          record,
-          match,
-          isPendingResult,
-          isReadyToSettle
-        };
-      })
-      .filter((entry) => entry.isPendingResult || entry.isReadyToSettle);
-  }, [activeMatchesById, nowMs, userBuffRecords]);
   const pendingBuffEntries = useMemo(
-    () => activeUserBuffEntries.filter((entry) => entry.isPendingResult),
-    [activeUserBuffEntries]
+    () => myBuffEntries.filter((entry) => entry.status === "pending_result"),
+    [myBuffEntries]
   );
   const readyToSettleBuffEntries = useMemo(
-    () => activeUserBuffEntries.filter((entry) => entry.isReadyToSettle),
-    [activeUserBuffEntries]
+    () => myBuffEntries.filter((entry) => entry.status === "ready_to_settle"),
+    [myBuffEntries]
   );
   const myBuffCounts = useMemo(() => {
     const pending = pendingBuffEntries.length;
@@ -197,8 +183,8 @@ export default function BuffPage() {
       return readyToSettleBuffEntries;
     }
 
-    return activeUserBuffEntries;
-  }, [activeUserBuffEntries, myBuffFilter, pendingBuffEntries, readyToSettleBuffEntries]);
+    return myBuffEntries.filter((entry) => entry.status === "pending_result" || entry.status === "ready_to_settle");
+  }, [myBuffEntries, myBuffFilter, pendingBuffEntries, readyToSettleBuffEntries]);
   const isUserBuffsResolved = !walletReady || userBuffReadStatus === "ready" || userBuffReadStatus === "error";
   const isUserBuffsUnresolved = walletReady && !isUserBuffsResolved;
   const isMyBuffPublicStateUnresolved = !buffPublicGameResolvedSinceMount || publicGameReadStatus === "idle";
@@ -207,7 +193,7 @@ export default function BuffPage() {
   const isMyBuffsError = walletReady
     && !isMyBuffsLoading
     && (userBuffReadStatus === "error" || publicGameReadStatus === "error")
-    && activeUserBuffEntries.length === 0;
+    && myBuffEntries.length === 0;
   const hasMyBuffRecords = filteredMyBuffEntries.length > 0;
   const canShowMyBuffsEmpty = !isMyBuffsLoading && !isMyBuffsError && !hasMyBuffRecords;
   const myBuffFilterItems = useMemo(() => ([
@@ -238,10 +224,10 @@ export default function BuffPage() {
   }, [assignedMatch]);
 
   useEffect(() => {
-    if (hasEligibleMatchForCurrentWallet || isAssignmentZoneUnresolved || assignedMatch) {
+    if (eligibleMatchCandidates.length > 0 || isAssignmentZoneUnresolved || assignedMatch) {
       setShowLocalNoValidMatchFeedback(false);
     }
-  }, [assignedMatch, hasEligibleMatchForCurrentWallet, isAssignmentZoneUnresolved]);
+  }, [assignedMatch, eligibleMatchCandidates.length, isAssignmentZoneUnresolved]);
 
   useEffect(() => {
     let cancelled = false;
@@ -307,7 +293,7 @@ export default function BuffPage() {
                   if (isAssignmentZoneUnresolved) {
                     return;
                   }
-                  if (!hasEligibleMatchForCurrentWallet) {
+                  if (eligibleMatchCandidates.length === 0) {
                     setShowLocalNoValidMatchFeedback(true);
                     return;
                   }
@@ -409,10 +395,10 @@ export default function BuffPage() {
                   .filter((entry) => entry.match)
                   .map((entry) => (
                     <MatchCard
-                      key={`match-${entry.record.matchId}-${entry.record.side}`}
+                      key={`match-${entry.buffRecord.matchId}-${entry.buffRecord.side}`}
                       match={entry.match!}
-                      settleDisabled={!walletReady || processingAction === "settleMatch" || !entry.isReadyToSettle}
-                      onSettle={entry.isReadyToSettle ? () => settleMatch(entry.match!.id) : undefined}
+                      settleDisabled={!walletReady || processingAction === "settleMatch" || entry.status !== "ready_to_settle"}
+                      onSettle={entry.status === "ready_to_settle" ? () => settleMatch(entry.match!.id) : undefined}
                     />
                   ))}
               </div>
@@ -479,15 +465,72 @@ function parseAmountOctas(value: string) {
   }
 }
 
+function normalizeMatchId(matchId: number | string) {
+  return String(matchId);
+}
+
 function normalizeAddress(address: string | null | undefined) {
-  if (!address) {
+  return canonicalizeAptosAddress(address);
+}
+
+function isMatchEnded(match: ActiveMatch, nowMs: number) {
+  return getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ended" }).isEnded;
+}
+
+function isMatchSettled(match: ActiveMatch) {
+  return match.status === "settled";
+}
+
+function isSameAptosAddress(a: string | null | undefined, b: string | null | undefined) {
+  const normalizedA = normalizeAddress(a);
+  const normalizedB = normalizeAddress(b);
+  return normalizedA !== null && normalizedB !== null && normalizedA === normalizedB;
+}
+
+function classifyBuffEntry(record: UserBuffRecord, match: ActiveMatch | null, nowMs: number) {
+  if (record.claimed || match === null || isMatchSettled(match)) {
+    return "claimable_or_settled_excluded" as const;
+  }
+
+  if (isMatchEnded(match, nowMs)) {
+    return "ready_to_settle" as const;
+  }
+
+  return "pending_result" as const;
+}
+
+function getFindMatchBlockReason(
+  match: ActiveMatch,
+  input: {
+    buffedMatchIds: Set<string>;
+    normalizedWalletAddress: string | null;
+    nowMs: number;
+  }
+) {
+  if (match.status !== "active") {
+    return "match_not_active";
+  }
+
+  if (isMatchEnded(match, input.nowMs) || isMatchSettled(match)) {
+    return "match_unavailable";
+  }
+
+  if (input.buffedMatchIds.has(normalizeMatchId(match.id))) {
+    return "already_buffed";
+  }
+
+  if (!input.normalizedWalletAddress) {
     return null;
   }
 
-  const normalized = address.trim().toLowerCase();
-  if (!normalized) {
-    return null;
+  if (
+    isSameAptosAddress(match.pusherA, input.normalizedWalletAddress)
+    || isSameAptosAddress(match.pusherB, input.normalizedWalletAddress)
+    || isSameAptosAddress(match.mediaA.ownerAddress, input.normalizedWalletAddress)
+    || isSameAptosAddress(match.mediaB.ownerAddress, input.normalizedWalletAddress)
+  ) {
+    return "self_owned_match";
   }
 
-  return normalized.startsWith("0x") ? normalized : `0x${normalized}`;
+  return null;
 }

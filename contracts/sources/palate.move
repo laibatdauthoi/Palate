@@ -1602,6 +1602,25 @@ module palate::palate {
     }
 
     #[view]
+    public fun getUserBuffRecords(user: address): vector<BuffRecord> acquires PalateState {
+        assertInitialized();
+
+        let state = borrow_global<PalateState>(@palate);
+        let records = vector::empty<BuffRecord>();
+        let index = 0;
+        let length = vector::length(&state.buff_records);
+        while (index < length) {
+            let buff_record = vector::borrow(&state.buff_records, index);
+            if (buff_record.user == user) {
+                vector::push_back(&mut records, *buff_record);
+            };
+            index = index + 1;
+        };
+
+        records
+    }
+
+    #[view]
     public fun getBuffRecordMatchId(index: u64): u64 acquires PalateState {
         vector::borrow(&borrow_global<PalateState>(@palate).buff_records, index).match_id
     }

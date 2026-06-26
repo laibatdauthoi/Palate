@@ -1740,6 +1740,29 @@ module palate::palate_tests {
         assert!(!palate::getBuffRecordClaimed(0), 6);
     }
 
+    #[test(admin = @palate, framework = @0x1, pusher = @0x34a, challenger = @0x34b, first_user = @0x34c, second_user = @0x34d)]
+    fun getUserBuffRecordsReturnsOnlyMatchingWallet(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        first_user: signer,
+        second_user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+
+        fundPalateBalance(&framework, &first_user);
+        palate::findMatch(&first_user);
+        palate::placeBuff(&first_user, palate::sideA(), palate::getMinBuffAmount());
+
+        let records = palate::getUserBuffRecords(signer::address_of(&first_user));
+        assert!(vector::length(&records) == 1, 0);
+
+        let second_user_records = palate::getUserBuffRecords(signer::address_of(&second_user));
+        assert!(vector::length(&second_user_records) == 0, 1);
+    }
+
     #[test(admin = @palate, framework = @0x1, pusher = @0x352, challenger = @0x353, user = @0x354)]
     fun placeBuffClearsAssignmentAfterSuccess(
         admin: signer,
