@@ -251,7 +251,7 @@ export default function MyMediaPage() {
 
       {walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia ? <LoadingState variant="section" label="Loading on-chain media" /> : null}
       {walletReady && mediaReadStatus === "error" ? <ErrorState variant="section" title="Media read failed" copy="Local inventory remains available while the chain read is retried later." /> : null}
-      {filteredMedia.length === 0 && !(mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia) ? (
+      {filteredMedia.length === 0 && !(mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia) && mediaReadStatus !== "error" ? (
         <EmptyState variant="section" title="No media found" copy="Upload and register media to start building your Palate inventory." actionLabel="Upload Media" actionHref="/my-media/upload" />
       ) : (
         <div className="media_grid">

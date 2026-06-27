@@ -9,6 +9,7 @@ import { FilterBar } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
 import { PageHeader } from "@/components/page_header";
+import { TypewriterHeadline } from "@/components/typewriter_headline";
 import { WaitingPushCard } from "@/components/waiting_push_card";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { usePalate } from "@/providers/palate_provider";
@@ -31,7 +32,6 @@ export default function HomePage() {
   const [activityTab, setActivityTab] = useState<"waiting" | "matches">("waiting");
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
   const [challengeMediaId, setChallengeMediaId] = useState("");
-  const [homePublicGameResolvedSinceMount, setHomePublicGameResolvedSinceMount] = useState(false);
   const waitingCount = waitingPushes.length;
   const activeCount = activeMatches.length;
   const walletReady = walletStatus === "connected";
@@ -70,12 +70,13 @@ export default function HomePage() {
     { key: "waiting" as const, label: "Waiting Pushes", count: waitingCount },
     { key: "matches" as const, label: "Matches", count: activeCount }
   ]), [activeCount, waitingCount]);
-  const homePublicGameErrored = homePublicGameResolvedSinceMount && publicGameReadStatus === "error";
-  const lobbyLoading = !homePublicGameResolvedSinceMount || publicGameReadStatus === "idle";
+  const isPublicGameInitialLoad = !readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading");
+  const homePublicGameErrored = readLifecycle.hasLoadedPublicGameState && publicGameReadStatus === "error";
+  const lobbyLoading = isPublicGameInitialLoad;
   const showWaitingError = activityTab === "waiting" && homePublicGameErrored && waitingPushes.length === 0;
   const showMatchesError = activityTab === "matches" && homePublicGameErrored && activeMatches.length === 0;
-  const showWaitingEmpty = activityTab === "waiting" && homePublicGameResolvedSinceMount && publicGameReadStatus === "ready" && waitingPushes.length === 0;
-  const showMatchesEmpty = activityTab === "matches" && homePublicGameResolvedSinceMount && publicGameReadStatus === "ready" && activeMatches.length === 0;
+  const showWaitingEmpty = activityTab === "waiting" && readLifecycle.hasLoadedPublicGameState && publicGameReadStatus === "ready" && waitingPushes.length === 0;
+  const showMatchesEmpty = activityTab === "matches" && readLifecycle.hasLoadedPublicGameState && publicGameReadStatus === "ready" && activeMatches.length === 0;
 
   useEffect(() => {
     logPageMount("Home");
@@ -89,8 +90,6 @@ export default function HomePage() {
   }, [challengePushId, clearFeedback, selectedPush]);
 
   useEffect(() => {
-    let cancelled = false;
-
     async function runRefresh(source: "interval" | "visible" | "mount") {
       if (document.hidden) {
         logUiPerf("liveRefresh:skippedHidden", { page: "home", source });
@@ -104,12 +103,9 @@ export default function HomePage() {
       });
     }
 
-    setHomePublicGameResolvedSinceMount(false);
-    void runRefresh("mount").finally(() => {
-      if (!cancelled) {
-        setHomePublicGameResolvedSinceMount(true);
-      }
-    });
+    if (!readLifecycle.hasLoadedPublicGameState || publicGameReadStatus === "idle") {
+      void runRefresh("mount");
+    }
     const intervalId = window.setInterval(() => runRefresh("interval"), live_refresh_interval_ms);
     const handleVisibilityChange = () => {
       if (!document.hidden) {
@@ -119,17 +115,16 @@ export default function HomePage() {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      cancelled = true;
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [refreshPublicGameState]);
+  }, [publicGameReadStatus, readLifecycle.hasLoadedPublicGameState, refreshPublicGameState]);
 
   return (
     <div className="page_stack page_home">
       <PageHeader
         eyebrow="Palate Lobby"
-        title="Upload media, push it into a duel, Buff live matches, and claim rewards when your side wins."
+        title={<TypewriterHeadline className="home_typewriter_headline" text="Upload media, push it into a duel, Buff live matches, and claim rewards when your side wins." />}
         variant="floating"
         density="compact"
         stacked

@@ -32,6 +32,7 @@ export default function BuffPage() {
     placeBuff,
     processingAction,
     publicGameReadStatus,
+    readLifecycle,
     refreshPublicGameState,
     settleMatch,
     skipMatch,
@@ -43,7 +44,6 @@ export default function BuffPage() {
   const [selectedSide, setSelectedSide] = useState<"A" | "B" | null>(null);
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
   const [myBuffFilter, setMyBuffFilter] = useState<MyBuffFilter>("all");
-  const [buffPublicGameResolvedSinceMount, setBuffPublicGameResolvedSinceMount] = useState(false);
   const [showLocalNoValidMatchFeedback, setShowLocalNoValidMatchFeedback] = useState(false);
   const nowMs = useCountdownNow();
   const normalizedWalletAddress = normalizeAddress(walletAddress);
@@ -104,7 +104,7 @@ export default function BuffPage() {
   const buffFeedback = feedback?.scope === "buff" ? feedback : null;
   const settleFeedback = feedback?.scope === "settle" ? feedback : null;
   const findMatchFeedback = buffFeedback && isFindMatchFeedbackMessage(buffFeedback.message) ? buffFeedback : null;
-  const isAssignmentZoneUnresolved = !buffPublicGameResolvedSinceMount || publicGameReadStatus === "idle";
+  const isAssignmentZoneUnresolved = !readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading");
   const canFindMatch = walletReady && !buffBusy && !isAssignmentZoneUnresolved;
   const activeMatchesById = useMemo(() => new Map(activeMatches.map((match) => [normalizeMatchId(match.id), match])), [activeMatches]);
   const myBuffEntries = useMemo(() => {
@@ -185,9 +185,9 @@ export default function BuffPage() {
 
     return myBuffEntries.filter((entry) => entry.status === "pending_result" || entry.status === "ready_to_settle");
   }, [myBuffEntries, myBuffFilter, pendingBuffEntries, readyToSettleBuffEntries]);
-  const isUserBuffsResolved = !walletReady || userBuffReadStatus === "ready" || userBuffReadStatus === "error";
+  const isUserBuffsResolved = !walletReady || (userBuffReadStatus !== "idle" && userBuffReadStatus !== "loading");
   const isUserBuffsUnresolved = walletReady && !isUserBuffsResolved;
-  const isMyBuffPublicStateUnresolved = !buffPublicGameResolvedSinceMount || publicGameReadStatus === "idle";
+  const isMyBuffPublicStateUnresolved = !readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading");
   const isMyBuffsDataUnresolved = isUserBuffsUnresolved || isMyBuffPublicStateUnresolved;
   const isMyBuffsLoading = isMyBuffsDataUnresolved;
   const isMyBuffsError = walletReady
@@ -230,8 +230,6 @@ export default function BuffPage() {
   }, [assignedMatch, eligibleMatchCandidates.length, isAssignmentZoneUnresolved]);
 
   useEffect(() => {
-    let cancelled = false;
-
     async function runRefresh(source: "interval" | "visible" | "mount") {
       if (document.hidden) {
         logUiPerf("liveRefresh:skippedHidden", { page: "buff", source });
@@ -246,12 +244,9 @@ export default function BuffPage() {
       });
     }
 
-    setBuffPublicGameResolvedSinceMount(false);
-    void runRefresh("mount").finally(() => {
-      if (!cancelled) {
-        setBuffPublicGameResolvedSinceMount(true);
-      }
-    });
+    if (!readLifecycle.hasLoadedPublicGameState || publicGameReadStatus === "idle") {
+      void runRefresh("mount");
+    }
     const intervalId = window.setInterval(() => runRefresh("interval"), live_refresh_interval_ms);
     const handleVisibilityChange = () => {
       if (!document.hidden) {
@@ -261,11 +256,10 @@ export default function BuffPage() {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      cancelled = true;
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [refreshPublicGameState, walletAddress, walletReady]);
+  }, [publicGameReadStatus, readLifecycle.hasLoadedPublicGameState, refreshPublicGameState, walletAddress, walletReady]);
 
   return (
     <div className="page_stack page_buff">

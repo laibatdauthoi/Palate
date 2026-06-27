@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
 import { EmptyState } from "@/components/empty_state";
+import { ErrorState } from "@/components/error_state";
 import { ClaimCard } from "@/components/claim_card";
 import { FilterBar } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
@@ -373,7 +374,9 @@ function ProfilePageContent() {
                 label="Loading claim records"
                 copy="Real claim discovery records are loading from chain."
               />
-            ) : claimRecords.length === 0 && claimReadStatus !== "loading" ? (
+            ) : claimReadStatus === "error" && claimRecords.length === 0 ? (
+              <ErrorState variant="section" title="Claim records unavailable" copy="Claims could not be loaded from chain right now." />
+            ) : claimRecords.length === 0 && claimReadStatus !== "loading" && claimReadStatus !== "refreshing" ? (
               <EmptyState variant="section" title="No settled rewards yet." copy="Claimable and claimed rewards will appear here after settlement." />
             ) : (
               <div className="claim_center_stack">
@@ -480,7 +483,9 @@ function ProfilePageContent() {
                     label="Loading activity"
                     copy="Palate wallet activity is loading from chain."
                   />
-                ) : filteredActivityTransactions.length === 0 && activityReadStatus !== "loading" ? (
+                ) : activityReadStatus === "error" && filteredActivityTransactions.length === 0 ? (
+                  <ErrorState variant="section" title="Activity unavailable" copy="Palate wallet activity could not be loaded from chain right now." />
+                ) : filteredActivityTransactions.length === 0 && activityReadStatus !== "loading" && activityReadStatus !== "refreshing" ? (
                   <EmptyState variant="section" title="No Palate activity yet." copy="Palate transaction history will appear here after the connected wallet sends Palate actions." />
                 ) : (
                   <div className="activity_rows">

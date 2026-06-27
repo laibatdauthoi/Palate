@@ -168,7 +168,7 @@ export type ClaimableRewardsSummary = {
   hasClaimableRewards: boolean;
 };
 
-export type ReadStatus = "idle" | "loading" | "ready" | "error";
+export type ReadStatus = "idle" | "loading" | "refreshing" | "ready" | "error";
 
 export type ReadLifecycleState = {
   hasLoadedActivity: boolean;

@@ -366,6 +366,7 @@ export function MediaViewerProvider({ children }: { children: ReactNode }) {
           <div className="media_viewer_overlay" role="presentation" onMouseDown={closeMediaViewer}>
             <div className="media_viewer_overlay_inner" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="media_viewer_title">
               <div className="media_viewer_overlay_header">
+                <span aria-hidden="true" className="media_viewer_header_spacer" />
                 <div className="media_viewer_header_text">
                   <strong id="media_viewer_title">{viewerTitle}</strong>
                 </div>

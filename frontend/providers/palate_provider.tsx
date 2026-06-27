@@ -157,15 +157,15 @@ type PalateContextValue = {
   userSummary: UserSummary;
   uploadStep: UploadStep | null;
   uploadRecovery: UploadRecoveryState;
-  mediaReadStatus: "idle" | "loading" | "ready" | "error";
-  userBuffReadStatus: "idle" | "loading" | "ready" | "error";
+  mediaReadStatus: ReadStatus;
+  userBuffReadStatus: ReadStatus;
   processingAction: string | null;
   feedback: Feedback;
   chainRead: ChainReadState;
-  claimReadStatus: "idle" | "loading" | "ready" | "error";
-  palateBalanceReadStatus: "idle" | "loading" | "ready" | "error";
-  userSummaryReadStatus: "idle" | "loading" | "ready" | "error";
-  activityReadStatus: "idle" | "loading" | "ready" | "error";
+  claimReadStatus: ReadStatus;
+  palateBalanceReadStatus: ReadStatus;
+  userSummaryReadStatus: ReadStatus;
+  activityReadStatus: ReadStatus;
   publicGameReadStatus: ReadStatus;
   readLifecycle: ReadLifecycleState;
   activityTransactions: PalateActivityTransaction[];
@@ -473,12 +473,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
   const [assignmentCursor, setAssignmentCursor] = useState(0);
   const [uploadStep, setUploadStep] = useState<UploadStep | null>(null);
   const [uploadRecovery, setUploadRecovery] = useState<UploadRecoveryState>(initial_upload_recovery_state);
-  const [mediaReadStatus, setMediaReadStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [claimReadStatus, setClaimReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "idle" : "ready");
-  const [userBuffReadStatus, setUserBuffReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "idle" : "ready");
-  const [palateBalanceReadStatus, setPalateBalanceReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
-  const [userSummaryReadStatus, setUserSummaryReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
-  const [activityReadStatus, setActivityReadStatus] = useState<"idle" | "loading" | "ready" | "error">(connectedWalletReady ? "loading" : "idle");
+  const [mediaReadStatus, setMediaReadStatus] = useState<ReadStatus>("idle");
+  const [claimReadStatus, setClaimReadStatus] = useState<ReadStatus>(connectedWalletReady ? "idle" : "ready");
+  const [userBuffReadStatus, setUserBuffReadStatus] = useState<ReadStatus>(connectedWalletReady ? "idle" : "ready");
+  const [palateBalanceReadStatus, setPalateBalanceReadStatus] = useState<ReadStatus>(connectedWalletReady ? "loading" : "idle");
+  const [userSummaryReadStatus, setUserSummaryReadStatus] = useState<ReadStatus>(connectedWalletReady ? "loading" : "idle");
+  const [activityReadStatus, setActivityReadStatus] = useState<ReadStatus>(connectedWalletReady ? "loading" : "idle");
   const [publicGameReadStatus, setPublicGameReadStatus] = useState<ReadStatus>("idle");
   const [readLifecycle, setReadLifecycle] = useState<ReadLifecycleState>(initial_read_lifecycle_state);
   const readLifecycleRef = useRef<ReadLifecycleState>(initial_read_lifecycle_state);
@@ -643,7 +643,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
   const refreshPalateBalanceForWallet = useCallback(async (ownerAddress: string) => {
     const finishPerf = startUiPerf("refreshPalateBalanceForWallet", { ownerAddress });
-    setPalateBalanceReadStatus("loading");
+    setPalateBalanceReadStatus((current) => current === "ready" ? "refreshing" : "loading");
     try {
       const nextBalance = await getPalateBalance(ownerAddress);
       setBalance(nextBalance);
@@ -663,6 +663,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (isInitialLoad) {
       setMediaReadStatus("loading");
     } else {
+      setMediaReadStatus("refreshing");
       isRefreshingMediaRef.current = true;
     }
     try {
@@ -703,6 +704,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (isInitialLoad) {
       setClaimReadStatus("loading");
     } else {
+      setClaimReadStatus("refreshing");
       isRefreshingClaimsRef.current = true;
     }
     try {
@@ -743,6 +745,8 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     const isInitialLoad = !readLifecycleRef.current.hasLoadedUserBuffs;
     if (isInitialLoad) {
       setUserBuffReadStatus("loading");
+    } else {
+      setUserBuffReadStatus("refreshing");
     }
 
     try {
@@ -763,6 +767,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (isInitialLoad) {
       setUserSummaryReadStatus("loading");
     } else {
+      setUserSummaryReadStatus("refreshing");
       isRefreshingUserSummaryRef.current = true;
     }
     try {
@@ -801,6 +806,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (isInitialLoad) {
       setActivityReadStatus("loading");
     } else {
+      setActivityReadStatus("refreshing");
       isRefreshingActivityRef.current = true;
     }
     try {
@@ -831,11 +837,13 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (initialMediaLoad) {
       setMediaReadStatus("loading");
     } else {
+      setMediaReadStatus("refreshing");
       isRefreshingMediaRef.current = true;
     }
     if (initialPublicGameLoad) {
       setPublicGameReadStatus("loading");
     } else {
+      setPublicGameReadStatus("refreshing");
       isRefreshingPublicGameStateRef.current = true;
     }
 
@@ -972,6 +980,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if ((shouldRefreshWaitingPushes || shouldRefreshActiveMatches) && isInitialPublicGameLoad) {
       setPublicGameReadStatus("loading");
     } else if (shouldRefreshWaitingPushes || shouldRefreshActiveMatches) {
+      setPublicGameReadStatus("refreshing");
       isRefreshingPublicGameStateRef.current = true;
     }
 
@@ -1072,7 +1081,6 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     if (walletConnectionStatus !== "connected" || !walletAddress) return;
 
     let cancelled = false;
-    let deferredRefreshTimer: number | null = null;
     const ownerAddress = walletAddress;
 
     async function refreshOnWalletConnect() {
@@ -1098,23 +1106,18 @@ export function PalateProvider({ children }: { children: ReactNode }) {
           setUserSummary({ ...loading_summary, walletAddress: ownerAddress });
           await refreshPalateBalanceForWallet(ownerAddress);
           await refreshUserSummaryForWallet(ownerAddress);
-          deferredRefreshTimer = window.setTimeout(() => {
-            if (cancelled) return;
-            const finishDeferredPerf = startUiPerf("refreshOnWalletConnect:deferredReads", { ownerAddress });
-            void Promise.allSettled([
-              refreshDeferredWalletState(ownerAddress),
-              refreshClaimsForWallet(ownerAddress),
-              refreshUserBuffRecordsForWallet(ownerAddress)
-            ]).then((results) => {
-              if (cancelled) return;
-              if (results.some((result) => result.status === "rejected")) {
-                setFeedback(createFeedback("general", "info", "Using last read."));
-              }
-              finishDeferredPerf("success", {
-                results: results.map((result) => result.status).join(",")
-              });
-            });
-          }, 350);
+          const finishDeferredPerf = startUiPerf("refreshOnWalletConnect:deferredReads", { ownerAddress });
+          const results = await Promise.allSettled([
+            refreshDeferredWalletState(ownerAddress),
+            refreshClaimsForWallet(ownerAddress),
+            refreshUserBuffRecordsForWallet(ownerAddress)
+          ]);
+          if (!cancelled && results.some((result) => result.status === "rejected")) {
+            setFeedback(createFeedback("general", "info", "Using last read."));
+          }
+          finishDeferredPerf("success", {
+            results: results.map((result) => result.status).join(",")
+          });
           finishPerf("success");
         }
       } catch (error) {
@@ -1129,9 +1132,6 @@ export function PalateProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
-      if (deferredRefreshTimer !== null) {
-        window.clearTimeout(deferredRefreshTimer);
-      }
     };
   }, [
     refreshClaimsForWallet,

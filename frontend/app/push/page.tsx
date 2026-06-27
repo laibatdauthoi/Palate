@@ -99,8 +99,8 @@ function PushPageContent() {
   const canCreatePush = walletReady && !pushBusy && Boolean(createMediaId) && createAmountValidation.valid && createBalanceValid;
   const createPushLoading = walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia;
   const isLoadingEligibleMedia = walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia;
-  const waitingSectionLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
-  const activeMatchesSectionLoading = publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState;
+  const waitingSectionLoading = !readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading");
+  const activeMatchesSectionLoading = !readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading");
   const idleMediaOptions: DropdownOption<string>[] = [
     { label: "Select idle media", value: "" },
     ...pushableMedia.map((media) => ({
@@ -121,11 +121,14 @@ function PushPageContent() {
 
       void refreshPublicGameState({
         waitingPushes: true,
+        activeMatches: true,
         source: `push:${source}`
       });
     }
 
-    runRefresh("mount");
+    if (!readLifecycle.hasLoadedPublicGameState || publicGameReadStatus === "idle") {
+      runRefresh("mount");
+    }
     const intervalId = window.setInterval(() => runRefresh("interval"), live_refresh_interval_ms);
     const handleVisibilityChange = () => {
       if (!document.hidden) {
@@ -138,7 +141,7 @@ function PushPageContent() {
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [refreshPublicGameState]);
+  }, [publicGameReadStatus, readLifecycle.hasLoadedPublicGameState, refreshPublicGameState]);
 
   const replacePushQuery = useCallback((next: URLSearchParams) => {
     const query = next.toString();
