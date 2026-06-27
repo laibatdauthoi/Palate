@@ -68,7 +68,7 @@ export default function HomePage() {
   const isLoadingEligibleMedia = walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia;
   const activityTabs = useMemo(() => ([
     { key: "waiting" as const, label: "Waiting Pushes", count: waitingCount },
-    { key: "matches" as const, label: "Active Matches", count: activeCount }
+    { key: "matches" as const, label: "Matches", count: activeCount }
   ]), [activeCount, waitingCount]);
   const homePublicGameErrored = homePublicGameResolvedSinceMount && publicGameReadStatus === "error";
   const lobbyLoading = !homePublicGameResolvedSinceMount || publicGameReadStatus === "idle";
