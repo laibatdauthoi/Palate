@@ -152,7 +152,7 @@ function getDefaultPlayerPosition(mode: ActiveMode, size: { width: number; heigh
   );
 }
 
-function PlayerIcon({ name }: { name: "play" | "pause" | "previous" | "next" | "shuffle" | "repeatOff" | "repeatOne" | "repeatAll" | "volume" | "mute" | "fullscreen" | "close" | "drag" }) {
+export function PlayerIcon({ name }: { name: "play" | "pause" | "previous" | "next" | "shuffle" | "repeatOff" | "repeatOne" | "repeatAll" | "replay" | "volume" | "mute" | "fullscreen" | "close" | "drag" }) {
   const iconProps = {
     fill: "none",
     stroke: "currentColor",
@@ -184,6 +184,9 @@ function PlayerIcon({ name }: { name: "play" | "pause" | "previous" | "next" | "
   }
   if (name === "repeatOff") {
     return <svg viewBox="0 0 24 24" aria-hidden="true"><path {...iconProps} d="M6.5 8h6.8M17.5 8l-3.8 3.8M17.5 16h-6.8M6.5 16l3.8-3.8M4 4l16 16" /></svg>;
+  }
+  if (name === "replay") {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path {...iconProps} d="M7.5 7.5H16A5.5 5.5 0 1 1 10.5 18M7.5 7.5 10.8 4M7.5 7.5l3.3 3.5" /></svg>;
   }
   if (name === "volume") {
     return <svg viewBox="0 0 24 24" aria-hidden="true"><path {...iconProps} d="M4 9.5v5h4l5 4v-13l-5 4zM16 9c1 .8 1.5 1.8 1.5 3s-.5 2.2-1.5 3M18.8 6.4A7.5 7.5 0 0 1 21 12a7.5 7.5 0 0 1-2.2 5.6" /></svg>;

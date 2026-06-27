@@ -99,17 +99,6 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
         subtitle={detailStateLabel}
       >
         <div className="match_detail_modal">
-          <div className="match_detail_preview_row">
-            <div className={`match_detail_preview mini_media card_preview media_preview_${match.mediaA.accent}`}>
-              <span className="mini_side_label">Media A</span>
-              <MediaRenderer compact disablePreview media={match.mediaA} variant="match" />
-            </div>
-            <div className="match_detail_vs">VS</div>
-            <div className={`match_detail_preview mini_media card_preview media_preview_${match.mediaB.accent}`}>
-              <span className="mini_side_label">Media B</span>
-              <MediaRenderer compact disablePreview media={match.mediaB} variant="match" />
-            </div>
-          </div>
           <dl className="match_detail_grid">
             <div className="match_detail_row">
               <dt>Match ID</dt>
@@ -129,11 +118,11 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
             </div>
             <div className="match_detail_row">
               <dt>Stake A</dt>
-              <dd>{match.pushAmountA} APT</dd>
+              <dd>{formatAptAmount(match.pushAmountA)}</dd>
             </div>
             <div className="match_detail_row">
               <dt>Stake B</dt>
-              <dd>{match.pushAmountB} APT</dd>
+              <dd>{formatAptAmount(match.pushAmountB)}</dd>
             </div>
             <div className="match_detail_row">
               <dt>State</dt>
@@ -181,4 +170,9 @@ function formatCompactMatchId(matchId: string | number): string {
   }
 
   return `#${rawId.slice(0, 3)}...${rawId.slice(-3)}`;
+}
+
+function formatAptAmount(value: string | number): string {
+  const raw = String(value).trim();
+  return /\bAPT\b/i.test(raw) ? raw : `${raw} APT`;
 }
