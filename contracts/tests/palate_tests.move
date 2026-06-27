@@ -399,6 +399,33 @@ module palate::palate_tests {
         assert!(palate::getMediaStorageStatus(1) == palate::storageStatusUploaded(), 4);
     }
 
+    #[test(admin = @palate, framework = @0x1, user = @0x1041)]
+    fun getUserMediaRecordSummariesReturnsVisibleMedia(admin: signer, framework: signer, user: signer) {
+        init(&admin, &framework);
+
+        palate::registerMedia(
+            &user,
+            palate::categoryImage(),
+            b"summary-one.png",
+            b"hash-summary-one",
+            b"image/png",
+            b"Summary One",
+            11,
+        );
+        palate::registerMedia(
+            &user,
+            palate::categoryAudio(),
+            b"summary-two.mp3",
+            b"hash-summary-two",
+            b"audio/mpeg",
+            b"Summary Two",
+            12,
+        );
+
+        let summaries = palate::getUserMediaRecordSummaries(signer::address_of(&user));
+        assert!(vector::length(&summaries) == 2, 0);
+    }
+
     #[test(admin = @palate, framework = @0x1, user = @0x566)]
     fun failedUploadRecordCanBeCreatedAndAppearsInOwnerMedia(admin: signer, framework: signer, user: signer) {
         init(&admin, &framework);
@@ -1164,6 +1191,19 @@ module palate::palate_tests {
         assert!(*vector::borrow(&pushes, 0) == 0, 1);
     }
 
+    #[test(admin = @palate, framework = @0x1, first = @0x2251, second = @0x2261)]
+    fun getWaitingPushSummariesReturnsOpenWaitingPushes(admin: signer, framework: signer, first: signer, second: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &first, b"summary-first.png", 1);
+        registerImage(&framework, &second, b"summary-second.png", 2);
+        palate::createPush(&first, 0, palate::getMinPushAmount());
+        palate::createPush(&second, 1, palate::getMinPushAmount());
+        palate::cancelPush(&second, 1);
+
+        let summaries = palate::getWaitingPushSummaries();
+        assert!(vector::length(&summaries) == 1, 0);
+    }
+
     #[test(admin = @palate, framework = @0x1, pusher = @0x227, challenger = @0x228)]
     fun getActiveMatchesReturnsActiveMatches(admin: signer, framework: signer, pusher: signer, challenger: signer) {
         init(&admin, &framework);
@@ -1175,6 +1215,18 @@ module palate::palate_tests {
         let matches = palate::getActiveMatches();
         assert!(vector::length(&matches) == 1, 0);
         assert!(*vector::borrow(&matches, 0) == 0, 1);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x2271, challenger = @0x2281)]
+    fun getActiveMatchSummariesReturnsActiveMatches(admin: signer, framework: signer, pusher: signer, challenger: signer) {
+        init(&admin, &framework);
+        registerImage(&framework, &pusher, b"summary-original.png", 1);
+        registerImage(&framework, &challenger, b"summary-challenger.png", 2);
+        palate::createPush(&pusher, 0, palate::getMinPushAmount());
+        palate::challengePush(&challenger, 0, 1, palate::getMinimumChallengeAmount(0));
+
+        let summaries = palate::getActiveMatchSummaries();
+        assert!(vector::length(&summaries) == 1, 0);
     }
 
     #[test(admin = @palate, framework = @0x1, pusher = @0x300, challenger = @0x301, user = @0x302)]
@@ -1412,6 +1464,23 @@ module palate::palate_tests {
         assert!(palate::getCurrentAssignmentMatchId(user_address) == 0, 0);
         assert!(palate::getCurrentAssignmentCommitmentAmount(user_address) == palate::getBuffCommitmentAmount(), 1);
         assert!(palate::getCurrentAssignmentAssignedTime(user_address) == 0, 2);
+    }
+
+    #[test(admin = @palate, framework = @0x1, pusher = @0x3171, challenger = @0x3181, user = @0x3191)]
+    fun getCurrentAssignmentSummaryReturnsAssignedMatch(
+        admin: signer,
+        framework: signer,
+        pusher: signer,
+        challenger: signer,
+        user: signer,
+    ) {
+        init(&admin, &framework);
+        createImageMatch(&framework, &pusher, &challenger);
+        fundPalateBalance(&framework, &user);
+        palate::findMatch(&user);
+
+        let summaries = palate::getCurrentAssignmentSummary(signer::address_of(&user));
+        assert!(vector::length(&summaries) == 1, 0);
     }
 
     #[test(admin = @palate, framework = @0x1, pusher = @0x320, challenger = @0x321, user = @0x322)]

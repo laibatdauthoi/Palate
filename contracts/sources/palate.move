@@ -211,6 +211,57 @@ module palate::palate {
         status: u8,
     }
 
+    struct MediaRecordSummary has copy, drop, store {
+        media_id: u64,
+        owner: address,
+        category: u8,
+        shelby_blob_ref: vector<u8>,
+        content_hash: vector<u8>,
+        mime_type: vector<u8>,
+        title: vector<u8>,
+        created_time: u64,
+        status: u8,
+        storage_status: u8,
+        has_waiting_push: bool,
+        waiting_push_id: u64,
+        waiting_push_created_time: u64,
+        waiting_push_expired: bool,
+        waiting_push_expiry_seconds: u64,
+    }
+
+    struct WaitingPushSummary has copy, drop, store {
+        push_id: u64,
+        media: MediaRecordSummary,
+        pusher: address,
+        category: u8,
+        push_amount: u64,
+        min_challenge_amount: u64,
+        created_time: u64,
+        expiry_seconds: u64,
+        status: u8,
+    }
+
+    struct ActiveMatchSummary has copy, drop, store {
+        match_id: u64,
+        media_a: MediaRecordSummary,
+        media_b: MediaRecordSummary,
+        pusher_a: address,
+        pusher_b: address,
+        push_amount_a: u64,
+        push_amount_b: u64,
+        category: u8,
+        start_time: u64,
+        end_time: u64,
+        status: u8,
+    }
+
+    struct CurrentAssignmentSummary has copy, drop, store {
+        match: ActiveMatchSummary,
+        commitment_amount: u64,
+        skip_penalty_amount_snapshot: u64,
+        assigned_time: u64,
+    }
+
     /// Spec name: buff_record. Move requires struct names to start uppercase.
     struct BuffRecord has copy, drop, store {
         match_id: u64,
@@ -652,6 +703,24 @@ module palate::palate {
         };
 
         vector::empty<u64>()
+    }
+
+    #[view]
+    public fun getUserMediaRecordSummaries(owner: address): vector<MediaRecordSummary> acquires PalateState, MediaStorageStatusRegistry, WaitingPushMediaIndexRegistry {
+        assertInitialized();
+
+        let media_ids = getUserMedia(owner);
+        let state = borrow_global<PalateState>(@palate);
+        let current_time = timestamp::now_seconds();
+        let summaries = vector::empty<MediaRecordSummary>();
+        let index = 0;
+        let length = vector::length(&media_ids);
+        while (index < length) {
+            let media_id = *vector::borrow(&media_ids, index);
+            vector::push_back(&mut summaries, buildMediaRecordSummary(state, media_id, current_time));
+            index = index + 1;
+        };
+        summaries
     }
 
     public entry fun createPush(account: &signer, media_id: u64, push_amount: u64) acquires PalateState, MediaStorageStatusRegistry, WaitingPushMediaIndexRegistry {
@@ -1123,6 +1192,25 @@ module palate::palate {
     }
 
     #[view]
+    public fun getWaitingPushSummaries(): vector<WaitingPushSummary> acquires PalateState, MediaStorageStatusRegistry, WaitingPushMediaIndexRegistry {
+        assertInitialized();
+
+        let state = borrow_global<PalateState>(@palate);
+        let current_time = timestamp::now_seconds();
+        let summaries = vector::empty<WaitingPushSummary>();
+        let length = vector::length(&state.waiting_pushes);
+        let index = 0;
+        while (index < length) {
+            let waiting_push = vector::borrow(&state.waiting_pushes, index);
+            if (waiting_push.status == WAITING_PUSH_STATUS_OPEN && !isWaitingPushExpiredAtTime(waiting_push, current_time)) {
+                vector::push_back(&mut summaries, buildWaitingPushSummary(state, waiting_push, current_time));
+            };
+            index = index + 1;
+        };
+        summaries
+    }
+
+    #[view]
     public fun getActiveMatches(): vector<u64> acquires PalateState {
         assertInitialized();
 
@@ -1138,6 +1226,25 @@ module palate::palate {
             index = index + 1;
         };
         ids
+    }
+
+    #[view]
+    public fun getActiveMatchSummaries(): vector<ActiveMatchSummary> acquires PalateState, MediaStorageStatusRegistry, WaitingPushMediaIndexRegistry {
+        assertInitialized();
+
+        let state = borrow_global<PalateState>(@palate);
+        let current_time = timestamp::now_seconds();
+        let summaries = vector::empty<ActiveMatchSummary>();
+        let length = vector::length(&state.active_matches);
+        let index = 0;
+        while (index < length) {
+            let active_match = vector::borrow(&state.active_matches, index);
+            if (active_match.status == MATCH_STATUS_ACTIVE) {
+                vector::push_back(&mut summaries, buildActiveMatchSummary(state, active_match, current_time));
+            };
+            index = index + 1;
+        };
+        summaries
     }
 
     public entry fun updateFeeConfig(
@@ -1731,6 +1838,36 @@ module palate::palate {
     #[view]
     public fun getCurrentAssignmentAssignedTime(user: address): u64 acquires PalateState {
         getCurrentAssignment(user).assigned_time
+    }
+
+    #[view]
+    public fun getCurrentAssignmentSummary(user: address): vector<CurrentAssignmentSummary> acquires PalateState, MediaStorageStatusRegistry, WaitingPushMediaIndexRegistry {
+        assertInitialized();
+
+        let summaries = vector::empty<CurrentAssignmentSummary>();
+        let state = borrow_global<PalateState>(@palate);
+        let (has_assignment, assignment_index) = findAssignmentIndexMaybe(state, user);
+        if (!has_assignment) {
+            return summaries
+        };
+
+        let assignment = vector::borrow(&state.user_assignments, assignment_index);
+        let match_index = findActiveMatchIndex(state, assignment.match_id);
+        let active_match = vector::borrow(&state.active_matches, match_index);
+        if (active_match.status == MATCH_STATUS_SETTLED) {
+            return summaries
+        };
+
+        vector::push_back(
+            &mut summaries,
+            CurrentAssignmentSummary {
+                match: buildActiveMatchSummary(state, active_match, timestamp::now_seconds()),
+                commitment_amount: assignment.commitment_amount,
+                skip_penalty_amount_snapshot: assignment.skip_penalty_amount_snapshot,
+                assigned_time: assignment.assigned_time,
+            }
+        );
+        summaries
     }
 
     #[view]
@@ -3134,6 +3271,96 @@ module palate::palate {
         };
 
         buff_record.buff_amount + (buff_record.buff_amount * losing_pool_after_fee) / winning_pool
+    }
+
+    fun buildMediaRecordSummary(
+        state: &PalateState,
+        media_id: u64,
+        current_time: u64,
+    ): MediaRecordSummary acquires MediaStorageStatusRegistry, WaitingPushMediaIndexRegistry {
+        let media = *vector::borrow(&state.media_records, findMediaIndex(state, media_id));
+        let storage_status = effectiveMediaStorageStatus(&media);
+        let has_waiting_push = false;
+        let waiting_push_id = 0;
+        let waiting_push_created_time = 0;
+        let waiting_push_expired = false;
+        let waiting_push_expiry_seconds = 0;
+
+        if (media.status == STATUS_WAITING) {
+            let (found, indexed_push_id) = tryGetWaitingPushIndex(media_id);
+            if (found) {
+                let push_index = findWaitingPushIndex(state, indexed_push_id);
+                let waiting_push = vector::borrow(&state.waiting_pushes, push_index);
+                if (waiting_push.status == WAITING_PUSH_STATUS_OPEN) {
+                    has_waiting_push = true;
+                    waiting_push_id = indexed_push_id;
+                    waiting_push_created_time = waiting_push.created_time;
+                    waiting_push_expired = isWaitingPushExpiredAtTime(waiting_push, current_time);
+                    waiting_push_expiry_seconds = WAITING_PUSH_EXPIRY_SECONDS;
+                };
+            };
+        };
+
+        MediaRecordSummary {
+            media_id: media.media_id,
+            owner: media.owner,
+            category: media.category,
+            shelby_blob_ref: media.shelby_blob_ref,
+            content_hash: media.content_hash,
+            mime_type: media.mime_type,
+            title: media.title,
+            created_time: media.created_time,
+            status: media.status,
+            storage_status,
+            has_waiting_push,
+            waiting_push_id,
+            waiting_push_created_time,
+            waiting_push_expired,
+            waiting_push_expiry_seconds,
+        }
+    }
+
+    fun buildWaitingPushSummary(
+        state: &PalateState,
+        waiting_push: &WaitingPush,
+        current_time: u64,
+    ): WaitingPushSummary acquires MediaStorageStatusRegistry, WaitingPushMediaIndexRegistry {
+        let min_challenge_amount = calculateMinimumChallengeAmount(
+            waiting_push.push_amount,
+            state.protocol_config.min_push_increment_bps,
+        );
+
+        WaitingPushSummary {
+            push_id: waiting_push.push_id,
+            media: buildMediaRecordSummary(state, waiting_push.media_id, current_time),
+            pusher: waiting_push.pusher,
+            category: waiting_push.category,
+            push_amount: waiting_push.push_amount,
+            min_challenge_amount,
+            created_time: waiting_push.created_time,
+            expiry_seconds: WAITING_PUSH_EXPIRY_SECONDS,
+            status: waiting_push.status,
+        }
+    }
+
+    fun buildActiveMatchSummary(
+        state: &PalateState,
+        active_match: &ActiveMatch,
+        current_time: u64,
+    ): ActiveMatchSummary acquires MediaStorageStatusRegistry, WaitingPushMediaIndexRegistry {
+        ActiveMatchSummary {
+            match_id: active_match.match_id,
+            media_a: buildMediaRecordSummary(state, active_match.media_a_id, current_time),
+            media_b: buildMediaRecordSummary(state, active_match.media_b_id, current_time),
+            pusher_a: active_match.pusher_a,
+            pusher_b: active_match.pusher_b,
+            push_amount_a: active_match.push_amount_a,
+            push_amount_b: active_match.push_amount_b,
+            category: active_match.category,
+            start_time: active_match.start_time,
+            end_time: active_match.end_time,
+            status: active_match.status,
+        }
     }
 
     fun getWaitingPushRecord(push_id: u64): WaitingPush acquires PalateState {

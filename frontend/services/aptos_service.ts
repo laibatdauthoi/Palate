@@ -39,6 +39,7 @@ const wallet_balance_retry_count = 2;
 const wallet_balance_retry_delay_ms = 250;
 const rate_limit_cooldown_ms = 20000;
 const max_concurrent_reads = 2;
+const DEBUG_READ_PERFORMANCE = false;
 const aptos_coin_type = "0x1::aptos_coin::AptosCoin";
 const aptos_coin_store_resource = `0x1::coin::CoinStore<${aptos_coin_type}>`;
 const aptos_api_key_header_name = "Authorization";
@@ -90,6 +91,8 @@ let read_cooldown_until = 0;
 let active_read_count = 0;
 const read_queue: Array<() => void> = [];
 const inflight_reads = new Map<string, Promise<unknown>>();
+const grouped_read_cache = new Map<string, unknown>();
+const grouped_inflight_reads = new Map<string, Promise<unknown>>();
 let aptos_api_key_mode_logged = false;
 
 function getErrorMessage(error: unknown) {
@@ -371,6 +374,195 @@ async function readWithDiagnostics<T>(name: string, read: () => Promise<T>, opti
   });
 
   return execution;
+}
+
+type GroupedReadOptions = {
+  cacheKey: string;
+  force?: boolean;
+  groupName: string;
+  itemCount?: number | null;
+  estimatedViewCallCount?: number | null;
+  ownerAddress?: string | null;
+  path: "single" | "batch" | "fallback";
+};
+
+function logReadPerformance(event: "cache_hit" | "inflight_reuse" | "start" | "end", details: Record<string, unknown>) {
+  if (!DEBUG_READ_PERFORMANCE) return;
+  console.info("[Palate read performance]", event, details);
+}
+
+export function invalidatePalateReadCache(options: { keys?: string[]; prefixes?: string[] } = {}) {
+  const { keys = [], prefixes = [] } = options;
+
+  keys.forEach((key) => {
+    grouped_read_cache.delete(key);
+  });
+
+  if (prefixes.length === 0) {
+    return;
+  }
+
+  Array.from(grouped_read_cache.keys()).forEach((key) => {
+    if (prefixes.some((prefix) => key === prefix || key.startsWith(`${prefix}:`))) {
+      grouped_read_cache.delete(key);
+    }
+  });
+}
+
+async function readGroupedCached<T>(options: GroupedReadOptions, read: () => Promise<T>): Promise<T> {
+  const {
+    cacheKey,
+    force = false,
+    groupName,
+    itemCount = null,
+    estimatedViewCallCount = null,
+    ownerAddress = null,
+    path
+  } = options;
+
+  if (!force && grouped_read_cache.has(cacheKey)) {
+    logReadPerformance("cache_hit", { groupName, cacheKey, path, itemCount, estimatedViewCallCount, ownerAddress });
+    return grouped_read_cache.get(cacheKey) as T;
+  }
+
+  const existing = grouped_inflight_reads.get(cacheKey) as Promise<T> | undefined;
+  if (existing) {
+    logReadPerformance("inflight_reuse", { groupName, cacheKey, path, itemCount, estimatedViewCallCount, ownerAddress });
+    return existing;
+  }
+
+  logReadPerformance("start", { groupName, cacheKey, path, itemCount, estimatedViewCallCount, ownerAddress, force });
+  const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const execution = read().then((result) => {
+    grouped_read_cache.set(cacheKey, result);
+    logReadPerformance("end", {
+      groupName,
+      cacheKey,
+      path,
+      itemCount,
+      estimatedViewCallCount,
+      ownerAddress,
+      durationMs: Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt)
+    });
+    return result;
+  }).finally(() => {
+    if (grouped_inflight_reads.get(cacheKey) === execution) {
+      grouped_inflight_reads.delete(cacheKey);
+    }
+  });
+
+  grouped_inflight_reads.set(cacheKey, execution);
+  return execution;
+}
+
+type ReadGroupOptions = {
+  force?: boolean;
+};
+
+type ChainProtocolConfigView = {
+  protocol_fee_bps: string | number;
+  min_push_amount: string | number;
+  min_buff_amount: string | number;
+  min_push_increment_bps: string | number;
+  match_duration_seconds: string | number;
+  buff_commitment_amount: string | number;
+  skip_penalty_amount: string | number;
+  random_retry_count: string | number;
+  score_algorithm_type: string | number;
+  score_scale: string | number;
+  score_log_base: string | number;
+  treasury_address: string;
+  admin_address: string;
+};
+
+type ChainUserBalanceView = {
+  available_balance: string | number;
+  total_deposited: string | number;
+  total_withdrawn: string | number;
+  locked_push_amount: string | number;
+  locked_buff_amount: string | number;
+  locked_commitment_amount: string | number;
+  total_claimed: string | number;
+};
+
+type ChainMediaRecordView = {
+  media_id: string | number;
+  owner: string;
+  category: string | number;
+  shelby_blob_ref: unknown;
+  content_hash: unknown;
+  mime_type: unknown;
+  title: unknown;
+  created_time: string | number;
+  status: string | number;
+};
+
+type ChainMediaRecordSummaryView = ChainMediaRecordView & {
+  storage_status: string | number;
+  has_waiting_push: boolean;
+  waiting_push_id: string | number;
+  waiting_push_created_time: string | number;
+  waiting_push_expired: boolean;
+  waiting_push_expiry_seconds: string | number;
+};
+
+type ChainWaitingPushSummaryView = {
+  push_id: string | number;
+  media: ChainMediaRecordSummaryView;
+  pusher: string;
+  category: string | number;
+  push_amount: string | number;
+  min_challenge_amount: string | number;
+  created_time: string | number;
+  expiry_seconds: string | number;
+  status: string | number;
+};
+
+type ChainActiveMatchView = {
+  match_id: string | number;
+  media_a_id: string | number;
+  media_b_id: string | number;
+  pusher_a: string;
+  pusher_b: string;
+  push_amount_a: string | number;
+  push_amount_b: string | number;
+  category: string | number;
+  start_time: string | number;
+  end_time: string | number;
+  status: string | number;
+};
+
+type ChainActiveMatchSummaryView = {
+  match_id: string | number;
+  media_a: ChainMediaRecordSummaryView;
+  media_b: ChainMediaRecordSummaryView;
+  pusher_a: string;
+  pusher_b: string;
+  push_amount_a: string | number;
+  push_amount_b: string | number;
+  category: string | number;
+  start_time: string | number;
+  end_time: string | number;
+  status: string | number;
+};
+
+type ChainCurrentAssignmentSummaryView = {
+  match: ChainActiveMatchSummaryView;
+  commitment_amount: string | number;
+  skip_penalty_amount_snapshot: string | number;
+  assigned_time: string | number;
+};
+
+type PublicHomeState = {
+  waitingPushes: WaitingPush[];
+  activeMatches: ActiveMatch[];
+};
+
+function asBoolean(value: unknown) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  if (typeof value === "number") return value !== 0;
+  return Boolean(value);
 }
 
 function categoryToChainValue(category: MediaCategory, constants?: ChainCategoryConstants | null) {
@@ -685,52 +877,86 @@ export async function getTreasuryAddress(): Promise<string> {
   return asString(await viewOne("getTreasuryAddress"));
 }
 
-export async function getProtocolConfig(): Promise<ChainProtocolConfig> {
-  const [
-    protocolFeeBps,
-    minPushAmount,
-    minBuffAmount,
-    minPushIncrementBps,
-    matchDurationSeconds,
-    buffCommitmentAmount,
-    skipPenaltyAmount,
-    randomRetryCount,
-    scoreAlgorithmType,
-    scoreScale,
-    scoreLogBase,
-    treasuryAddress,
-    adminAddress
-  ] = await Promise.all([
-    viewOne("getProtocolFeeBps"),
-    viewOne("getMinPushAmount"),
-    viewOne("getMinBuffAmount"),
-    viewOne("getMinPushIncrementBps"),
-    viewOne("getMatchDurationSeconds"),
-    viewOne("getBuffCommitmentAmount"),
-    viewOne("getSkipPenaltyAmount"),
-    viewOne("getRandomRetryCount"),
-    viewOne("getScoreAlgorithmType"),
-    viewOne("getScoreScale"),
-    viewOne("getScoreLogBase"),
-    viewOne("getTreasuryAddress"),
-    viewOne("getAdminAddress")
-  ]);
+export async function getProtocolConfig(options: ReadGroupOptions = {}): Promise<ChainProtocolConfig> {
+  return readGroupedCached(
+    {
+      cacheKey: "protocolConfig",
+      force: options.force,
+      groupName: "protocolConfig",
+      estimatedViewCallCount: 1,
+      path: "batch"
+    },
+    async () => {
+      try {
+        const config = await viewOne<ChainProtocolConfigView>("getProtocolConfig");
+        return {
+          protocolFeeBps: asString(config.protocol_fee_bps),
+          minPushAmount: asString(config.min_push_amount),
+          minBuffAmount: asString(config.min_buff_amount),
+          minPushIncrementBps: asString(config.min_push_increment_bps),
+          matchDurationSeconds: asString(config.match_duration_seconds),
+          buffCommitmentAmount: asString(config.buff_commitment_amount),
+          skipPenaltyAmount: asString(config.skip_penalty_amount),
+          randomRetryCount: asString(config.random_retry_count),
+          scoreAlgorithmType: asNumber(config.score_algorithm_type),
+          scoreScale: asString(config.score_scale),
+          scoreLogBase: asString(config.score_log_base),
+          treasuryAddress: asString(config.treasury_address),
+          adminAddress: asString(config.admin_address)
+        };
+      } catch (error) {
+        if (!isMissingViewFunctionError(error, "getProtocolConfig")) {
+          throw error;
+        }
 
-  return {
-    protocolFeeBps: asString(protocolFeeBps),
-    minPushAmount: asString(minPushAmount),
-    minBuffAmount: asString(minBuffAmount),
-    minPushIncrementBps: asString(minPushIncrementBps),
-    matchDurationSeconds: asString(matchDurationSeconds),
-    buffCommitmentAmount: asString(buffCommitmentAmount),
-    skipPenaltyAmount: asString(skipPenaltyAmount),
-    randomRetryCount: asString(randomRetryCount),
-    scoreAlgorithmType: asNumber(scoreAlgorithmType),
-    scoreScale: asString(scoreScale),
-    scoreLogBase: asString(scoreLogBase),
-    treasuryAddress: asString(treasuryAddress),
-    adminAddress: asString(adminAddress)
-  };
+        const [
+          protocolFeeBps,
+          minPushAmount,
+          minBuffAmount,
+          minPushIncrementBps,
+          matchDurationSeconds,
+          buffCommitmentAmount,
+          skipPenaltyAmount,
+          randomRetryCount,
+          scoreAlgorithmType,
+          scoreScale,
+          scoreLogBase,
+          treasuryAddress,
+          adminAddress
+        ] = await Promise.all([
+          viewOne("getProtocolFeeBps"),
+          viewOne("getMinPushAmount"),
+          viewOne("getMinBuffAmount"),
+          viewOne("getMinPushIncrementBps"),
+          viewOne("getMatchDurationSeconds"),
+          viewOne("getBuffCommitmentAmount"),
+          viewOne("getSkipPenaltyAmount"),
+          viewOne("getRandomRetryCount"),
+          viewOne("getScoreAlgorithmType"),
+          viewOne("getScoreScale"),
+          viewOne("getScoreLogBase"),
+          viewOne("getTreasuryAddress"),
+          viewOne("getAdminAddress")
+        ]);
+
+        return {
+          protocolFeeBps: asString(protocolFeeBps),
+          minPushAmount: asString(minPushAmount),
+          minBuffAmount: asString(minBuffAmount),
+          minPushIncrementBps: asString(minPushIncrementBps),
+          matchDurationSeconds: asString(matchDurationSeconds),
+          buffCommitmentAmount: asString(buffCommitmentAmount),
+          skipPenaltyAmount: asString(skipPenaltyAmount),
+          randomRetryCount: asString(randomRetryCount),
+          scoreAlgorithmType: asNumber(scoreAlgorithmType),
+          scoreScale: asString(scoreScale),
+          scoreLogBase: asString(scoreLogBase),
+          treasuryAddress: asString(treasuryAddress),
+          adminAddress: asString(adminAddress)
+        };
+      }
+    }
+  );
 }
 
 export async function getWalletAptBalance(walletAddress: string): Promise<string> {
@@ -939,77 +1165,161 @@ export async function getChainReadSnapshot() {
   };
 }
 
-async function getMediaRecordById(mediaId: string): Promise<MediaRecord> {
-  const [
-    ownerAddress,
-    category,
-    shelbyBlobRef,
-    contentHash,
-    mimeType,
-    title,
-    createdTime,
-    status,
-    storageStatus
-  ] = await Promise.all([
-    viewOne("getMediaOwner", [mediaId]),
-    viewOne("getMediaCategory", [mediaId]),
-    viewOne("getMediaShelbyBlobRef", [mediaId]),
-    viewOne("getMediaContentHash", [mediaId]),
-    viewOne("getMediaMimeType", [mediaId]),
-    viewOne("getMediaTitle", [mediaId]),
-    viewOne("getMediaCreatedTime", [mediaId]),
-    viewOne("getMediaStatus", [mediaId]),
-    viewOne("getMediaStorageStatus", [mediaId])
-  ]);
+function mapChainMediaSummaryToFrontend(summary: ChainMediaRecordSummaryView): MediaRecord {
+  const mediaId = Number(asString(summary.media_id));
+  const mediaCategory = chainCategoryToFrontend(asNumber(summary.category));
+  const mediaMimeType = decodeUtf8(summary.mime_type);
+  const hasWaitingPush = asBoolean(summary.has_waiting_push);
 
-  const mediaCategory = chainCategoryToFrontend(asNumber(category));
-  const mediaMimeType = decodeUtf8(mimeType);
-
-  const record: MediaRecord = {
-    id: Number(mediaId),
-    palateMediaId: Number(mediaId),
+  return {
+    id: mediaId,
+    palateMediaId: mediaId,
     source: "palate",
-    ownerAddress: asString(ownerAddress),
-    title: decodeUtf8(title) || `Media ${mediaId}`,
+    ownerAddress: asString(summary.owner),
+    title: decodeUtf8(summary.title) || `Media ${mediaId}`,
     category: mediaCategory,
     format: mimeTypeToFormat(mediaMimeType),
-    status: chainStatusToFrontend(asNumber(status)),
-    storageStatus: chainStorageStatusToFrontend(asNumber(storageStatus)),
-    createdTime: formatChainTime(asString(createdTime)),
-    shelbyBlobRef: decodeUtf8(shelbyBlobRef),
-    contentHash: decodeUtf8(contentHash),
+    status: chainStatusToFrontend(asNumber(summary.status)),
+    storageStatus: chainStorageStatusToFrontend(asNumber(summary.storage_status)),
+    createdTime: formatChainTime(asString(summary.created_time)),
+    createdTimeSeconds: asString(summary.created_time),
+    shelbyBlobRef: decodeUtf8(summary.shelby_blob_ref),
+    contentHash: decodeUtf8(summary.content_hash),
     mimeType: mediaMimeType,
+    waitingPushId: hasWaitingPush ? Number(asString(summary.waiting_push_id)) : undefined,
+    waitingPushCreatedTimeSeconds: hasWaitingPush ? asString(summary.waiting_push_created_time) : undefined,
+    waitingPushExpired: hasWaitingPush ? asBoolean(summary.waiting_push_expired) : undefined,
+    waitingPushExpirySeconds: hasWaitingPush ? asString(summary.waiting_push_expiry_seconds) : undefined,
     accent: accentForCategory(mediaCategory)
   };
+}
 
-  if (record.status === "waiting" && record.storageStatus === "uploaded") {
-    try {
-      const waitingPushId = asString(await viewOne("getWaitingPushIdForMedia", [mediaId]));
-      const [waitingPushCreatedTime, waitingPushExpired, waitingPushExpirySeconds] = await Promise.all([
-        viewOne("getWaitingPushCreatedTime", [waitingPushId]),
-        viewOne("isWaitingPushExpired", [waitingPushId]),
-        viewOne("getWaitingPushExpirySeconds")
-      ]);
-      record.waitingPushId = Number(waitingPushId);
-      record.waitingPushCreatedTimeSeconds = asString(waitingPushCreatedTime);
-      record.waitingPushExpired = Boolean(waitingPushExpired);
-      record.waitingPushExpirySeconds = asString(waitingPushExpirySeconds);
-    } catch {
-      // Preserve the chain media record even if waiting-push metadata is unavailable.
+function mapChainMediaRecordToFrontend(record: ChainMediaRecordView, storageStatus: unknown): MediaRecord {
+  return mapChainMediaSummaryToFrontend({
+    ...record,
+    storage_status: asNumber(storageStatus),
+    has_waiting_push: false,
+    waiting_push_id: 0,
+    waiting_push_created_time: 0,
+    waiting_push_expired: false,
+    waiting_push_expiry_seconds: 0
+  });
+}
+
+function mapChainWaitingPushSummaryToFrontend(summary: ChainWaitingPushSummaryView): WaitingPush {
+  return {
+    id: Number(asString(summary.push_id)),
+    media: mapChainMediaSummaryToFrontend(summary.media),
+    pusherAddress: asString(summary.pusher),
+    pushAmount: formatOctasToApt(asString(summary.push_amount)),
+    pushAmountOctas: asString(summary.push_amount),
+    minChallengeAmount: formatOctasToApt(asString(summary.min_challenge_amount)),
+    minChallengeAmountOctas: asString(summary.min_challenge_amount),
+    createdTime: formatChainTime(asString(summary.created_time)),
+    createdTimeSeconds: asString(summary.created_time),
+    expirySeconds: asString(summary.expiry_seconds),
+    status: chainWaitingPushStatusToFrontend(asNumber(summary.status))
+  };
+}
+
+function mapChainActiveMatchSummaryToFrontend(summary: ChainActiveMatchSummaryView): ActiveMatch {
+  return {
+    id: Number(asString(summary.match_id)),
+    mediaA: mapChainMediaSummaryToFrontend(summary.media_a),
+    mediaB: mapChainMediaSummaryToFrontend(summary.media_b),
+    pusherA: asString(summary.pusher_a),
+    pusherB: asString(summary.pusher_b),
+    pushAmountA: formatOctasToApt(asString(summary.push_amount_a)),
+    pushAmountB: formatOctasToApt(asString(summary.push_amount_b)),
+    category: chainCategoryToFrontend(asNumber(summary.category)),
+    timeRemaining: formatTimeRemaining(asString(summary.end_time)),
+    endTimeSeconds: asString(summary.end_time),
+    status: chainMatchStatusToFrontend(asNumber(summary.status))
+  };
+}
+
+function mapChainActiveMatchToFrontend(match: ChainActiveMatchView, mediaA: MediaRecord, mediaB: MediaRecord): ActiveMatch {
+  return {
+    id: Number(asString(match.match_id)),
+    mediaA,
+    mediaB,
+    pusherA: asString(match.pusher_a),
+    pusherB: asString(match.pusher_b),
+    pushAmountA: formatOctasToApt(asString(match.push_amount_a)),
+    pushAmountB: formatOctasToApt(asString(match.push_amount_b)),
+    category: chainCategoryToFrontend(asNumber(match.category)),
+    timeRemaining: formatTimeRemaining(asString(match.end_time)),
+    endTimeSeconds: asString(match.end_time),
+    status: chainMatchStatusToFrontend(asNumber(match.status))
+  };
+}
+
+async function getMediaRecordById(mediaId: string, options: ReadGroupOptions = {}): Promise<MediaRecord> {
+  return readGroupedCached(
+    {
+      cacheKey: `mediaRecord:${mediaId}`,
+      force: options.force,
+      groupName: "mediaRecord",
+      itemCount: 1,
+      estimatedViewCallCount: 2,
+      path: "single"
+    },
+    async () => {
+      const record = await viewOne<ChainMediaRecordView>("getMediaRecord", [mediaId]);
+      const storageStatus = await viewOne("getMediaStorageStatus", [mediaId]);
+      const mappedRecord = mapChainMediaRecordToFrontend(record, storageStatus);
+
+      if (mappedRecord.status === "waiting" && mappedRecord.storageStatus === "uploaded") {
+        try {
+          const waitingPushId = asString(await viewOne("getWaitingPushIdForMedia", [mediaId]));
+          const [waitingPushCreatedTime, waitingPushExpired, waitingPushExpirySeconds] = await Promise.all([
+            viewOne("getWaitingPushCreatedTime", [waitingPushId]),
+            viewOne("isWaitingPushExpired", [waitingPushId]),
+            viewOne("getWaitingPushExpirySeconds")
+          ]);
+          mappedRecord.waitingPushId = Number(waitingPushId);
+          mappedRecord.waitingPushCreatedTimeSeconds = asString(waitingPushCreatedTime);
+          mappedRecord.waitingPushExpired = asBoolean(waitingPushExpired);
+          mappedRecord.waitingPushExpirySeconds = asString(waitingPushExpirySeconds);
+        } catch {
+          // Preserve the chain media record even if waiting-push metadata is unavailable.
+        }
+      }
+
+      return mappedRecord;
     }
-  }
-
-  return record;
+  );
 }
 
-export async function getUserMedia(walletAddress: string): Promise<MediaRecord[]> {
-  const mediaIds = await viewOne<unknown[]>("getUserMedia", [walletAddress]);
-  const normalizedIds = mediaIds.map((mediaId) => asString(mediaId));
-  const records = await Promise.all(normalizedIds.map((mediaId) => getMediaRecordById(mediaId)));
-  return records.sort((a, b) => b.id - a.id);
+export async function getUserMedia(walletAddress: string, options: ReadGroupOptions = {}): Promise<MediaRecord[]> {
+  const normalizedWalletAddress = canonicalizeAptosAddress(walletAddress) ?? walletAddress;
+  return readGroupedCached(
+    {
+      cacheKey: `userMedia:${normalizedWalletAddress}`,
+      force: options.force,
+      groupName: "userMedia",
+      ownerAddress: normalizedWalletAddress,
+      path: "batch"
+    },
+    async () => {
+      try {
+        const summaries = await viewOne<ChainMediaRecordSummaryView[]>("getUserMediaRecordSummaries", [normalizedWalletAddress]);
+        return summaries.map(mapChainMediaSummaryToFrontend).sort((a, b) => b.id - a.id);
+      } catch (error) {
+        if (!isMissingViewFunctionError(error, "getUserMediaRecordSummaries")) {
+          throw error;
+        }
+
+        const mediaIds = await viewOne<unknown[]>("getUserMedia", [normalizedWalletAddress]);
+        const normalizedIds = mediaIds.map((mediaId) => asString(mediaId));
+        const records = await Promise.all(normalizedIds.map((mediaId) => getMediaRecordById(mediaId, options)));
+        return records.sort((a, b) => b.id - a.id);
+      }
+    }
+  );
 }
 
-async function getWaitingPushById(pushId: string): Promise<WaitingPush> {
+async function getWaitingPushById(pushId: string, options: ReadGroupOptions = {}): Promise<WaitingPush> {
   const [
     mediaId,
     pusherAddress,
@@ -1028,7 +1338,7 @@ async function getWaitingPushById(pushId: string): Promise<WaitingPush> {
     viewOne("getWaitingPushExpirySeconds")
   ]);
 
-  const media = await getMediaRecordById(asString(mediaId));
+  const media = await getMediaRecordById(asString(mediaId), options);
 
   return {
     id: Number(pushId),
@@ -1045,124 +1355,219 @@ async function getWaitingPushById(pushId: string): Promise<WaitingPush> {
   };
 }
 
-export async function getWaitingPushes(): Promise<WaitingPush[]> {
-  const pushIds = await viewOne<unknown[]>("getWaitingPushes");
-  const normalizedIds = pushIds.map((pushId) => asString(pushId));
-  const records = await Promise.all(normalizedIds.map((pushId) => getWaitingPushById(pushId)));
-  return records.sort((a, b) => b.id - a.id);
+export async function getWaitingPushes(options: ReadGroupOptions = {}): Promise<WaitingPush[]> {
+  return readGroupedCached(
+    {
+      cacheKey: "publicWaitingPushes",
+      force: options.force,
+      groupName: "publicWaitingPushes",
+      path: "batch"
+    },
+    async () => {
+      try {
+        const summaries = await viewOne<ChainWaitingPushSummaryView[]>("getWaitingPushSummaries");
+        return summaries.map(mapChainWaitingPushSummaryToFrontend).sort((a, b) => b.id - a.id);
+      } catch (error) {
+        if (!isMissingViewFunctionError(error, "getWaitingPushSummaries")) {
+          throw error;
+        }
+
+        const pushIds = await viewOne<unknown[]>("getWaitingPushes");
+        const normalizedIds = pushIds.map((pushId) => asString(pushId));
+        const records = await Promise.all(normalizedIds.map((pushId) => getWaitingPushById(pushId, options)));
+        return records.sort((a, b) => b.id - a.id);
+      }
+    }
+  );
 }
 
-async function getActiveMatchById(matchId: string): Promise<ActiveMatch> {
-  const [
-    mediaAId,
-    mediaBId,
-    pusherA,
-    pusherB,
-    pushAmountA,
-    pushAmountB,
-    category,
-    endTime,
-    status
-  ] = await Promise.all([
-    viewOne("getMatchMediaAId", [matchId]),
-    viewOne("getMatchMediaBId", [matchId]),
-    viewOne("getMatchPusherA", [matchId]),
-    viewOne("getMatchPusherB", [matchId]),
-    viewOne("getMatchPushAmountA", [matchId]),
-    viewOne("getMatchPushAmountB", [matchId]),
-    viewOne("getMatchCategory", [matchId]),
-    viewOne("getMatchEndTime", [matchId]),
-    viewOne("getMatchStatus", [matchId])
-  ]);
-
+async function getActiveMatchById(matchId: string, options: ReadGroupOptions = {}): Promise<ActiveMatch> {
+  const match = await viewOne<ChainActiveMatchView>("getMatch", [matchId]);
   const [mediaA, mediaB] = await Promise.all([
-    getMediaRecordById(asString(mediaAId)),
-    getMediaRecordById(asString(mediaBId))
+    getMediaRecordById(asString(match.media_a_id), options),
+    getMediaRecordById(asString(match.media_b_id), options)
   ]);
 
-  return {
-    id: Number(matchId),
-    mediaA,
-    mediaB,
-    pusherA: asString(pusherA),
-    pusherB: asString(pusherB),
-    pushAmountA: formatOctasToApt(asString(pushAmountA)),
-    pushAmountB: formatOctasToApt(asString(pushAmountB)),
-    category: chainCategoryToFrontend(asNumber(category)),
-    timeRemaining: formatTimeRemaining(asString(endTime)),
-    endTimeSeconds: asString(endTime),
-    status: chainMatchStatusToFrontend(asNumber(status))
-  };
+  return mapChainActiveMatchToFrontend(match, mediaA, mediaB);
 }
 
-export async function getActiveMatches(): Promise<ActiveMatch[]> {
-  const matchIds = await viewOne<unknown[]>("getActiveMatches");
-  const normalizedIds = matchIds.map((matchId) => asString(matchId));
-  const records = await Promise.all(normalizedIds.map((matchId) => getActiveMatchById(matchId)));
-  return records.sort((a, b) => b.id - a.id);
+export async function getActiveMatches(options: ReadGroupOptions = {}): Promise<ActiveMatch[]> {
+  return readGroupedCached(
+    {
+      cacheKey: "publicActiveMatches",
+      force: options.force,
+      groupName: "publicActiveMatches",
+      path: "batch"
+    },
+    async () => {
+      try {
+        const summaries = await viewOne<ChainActiveMatchSummaryView[]>("getActiveMatchSummaries");
+        return summaries.map(mapChainActiveMatchSummaryToFrontend).sort((a, b) => b.id - a.id);
+      } catch (error) {
+        if (!isMissingViewFunctionError(error, "getActiveMatchSummaries")) {
+          throw error;
+        }
+
+        const matchIds = await viewOne<unknown[]>("getActiveMatches");
+        const normalizedIds = matchIds.map((matchId) => asString(matchId));
+        const records = await Promise.all(normalizedIds.map((matchId) => getActiveMatchById(matchId, options)));
+        return records.sort((a, b) => b.id - a.id);
+      }
+    }
+  );
+}
+
+export async function getPublicHomeState(options: ReadGroupOptions = {}): Promise<PublicHomeState> {
+  return readGroupedCached(
+    {
+      cacheKey: "publicHomeState",
+      force: options.force,
+      groupName: "publicHomeState",
+      path: "batch"
+    },
+    async () => {
+      const [waitingPushes, activeMatches] = await Promise.all([
+        getWaitingPushes(options),
+        getActiveMatches(options)
+      ]);
+
+      return {
+        waitingPushes,
+        activeMatches
+      };
+    }
+  );
 }
 
 // Future Aptos view call boundary: read current assignment for a wallet.
-export async function getCurrentAssignment(walletAddress: string): Promise<BuffAssignment | null> {
-  const hasCurrentAssignment = await viewOne<boolean>("hasCurrentAssignment", [walletAddress]);
-  if (!hasCurrentAssignment) {
-    return null;
-  }
+export async function getCurrentAssignment(walletAddress: string, options: ReadGroupOptions = {}): Promise<BuffAssignment | null> {
+  const normalizedWalletAddress = canonicalizeAptosAddress(walletAddress) ?? walletAddress;
+  return readGroupedCached(
+    {
+      cacheKey: `currentAssignment:${normalizedWalletAddress}`,
+      force: options.force,
+      groupName: "currentAssignment",
+      ownerAddress: normalizedWalletAddress,
+      itemCount: 1,
+      path: "batch"
+    },
+    async () => {
+      try {
+        const summaries = await viewOne<ChainCurrentAssignmentSummaryView[]>("getCurrentAssignmentSummary", [normalizedWalletAddress]);
+        const summary = summaries[0];
+        if (!summary) {
+          return null;
+        }
 
-  const [matchId, commitmentAmount, skipPenaltyAmountSnapshot, assignedTime] = await Promise.all([
-    viewOne("getCurrentAssignmentMatchId", [walletAddress]),
-    viewOne("getCurrentAssignmentCommitmentAmount", [walletAddress]),
-    viewOne("getCurrentAssignmentSkipPenaltyAmount", [walletAddress]),
-    viewOne("getCurrentAssignmentAssignedTime", [walletAddress])
-  ]);
-  const match = await getActiveMatchById(asString(matchId));
-  if (match.status === "settled") {
-    return null;
-  }
+        const match = mapChainActiveMatchSummaryToFrontend(summary.match);
+        if (match.status === "settled") {
+          return null;
+        }
 
-  return {
-    match,
-    assignedAt: formatChainTime(asString(assignedTime)),
-    commitmentAmount: formatOctasToApt(asString(commitmentAmount)),
-    skipPenaltyAmount: formatOctasToApt(asString(skipPenaltyAmountSnapshot))
-  };
+        return {
+          match,
+          assignedAt: formatChainTime(asString(summary.assigned_time)),
+          commitmentAmount: formatOctasToApt(asString(summary.commitment_amount)),
+          skipPenaltyAmount: formatOctasToApt(asString(summary.skip_penalty_amount_snapshot))
+        };
+      } catch (error) {
+        if (!isMissingViewFunctionError(error, "getCurrentAssignmentSummary")) {
+          throw error;
+        }
+
+        const hasCurrentAssignment = await viewOne<boolean>("hasCurrentAssignment", [normalizedWalletAddress]);
+        if (!hasCurrentAssignment) {
+          return null;
+        }
+
+        const [matchId, commitmentAmount, skipPenaltyAmountSnapshot, assignedTime] = await Promise.all([
+          viewOne("getCurrentAssignmentMatchId", [normalizedWalletAddress]),
+          viewOne("getCurrentAssignmentCommitmentAmount", [normalizedWalletAddress]),
+          viewOne("getCurrentAssignmentSkipPenaltyAmount", [normalizedWalletAddress]),
+          viewOne("getCurrentAssignmentAssignedTime", [normalizedWalletAddress])
+        ]);
+        const match = await getActiveMatchById(asString(matchId), options);
+        if (match.status === "settled") {
+          return null;
+        }
+
+        return {
+          match,
+          assignedAt: formatChainTime(asString(assignedTime)),
+          commitmentAmount: formatOctasToApt(asString(commitmentAmount)),
+          skipPenaltyAmount: formatOctasToApt(asString(skipPenaltyAmountSnapshot))
+        };
+      }
+    }
+  );
 }
 
-export async function getPalateBalance(walletAddress: string): Promise<PalateBalance> {
-  const [
-    availableBalance,
-    lockedPushAmount,
-    lockedBuffAmount,
-    lockedCommitmentAmount,
-    totalDeposited,
-    totalWithdrawn,
-    totalClaimed
-  ] = await Promise.all([
-    viewOne("getAvailableBalance", [walletAddress]),
-    viewOne("getLockedPushAmount", [walletAddress]),
-    viewOne("getLockedBuffAmount", [walletAddress]),
-    viewOne("getLockedCommitmentAmount", [walletAddress]),
-    viewOne("getTotalDeposited", [walletAddress]),
-    viewOne("getTotalWithdrawn", [walletAddress]),
-    viewOne("getTotalClaimed", [walletAddress])
-  ]);
+export async function getPalateBalance(walletAddress: string, options: ReadGroupOptions = {}): Promise<PalateBalance> {
+  const normalizedWalletAddress = canonicalizeAptosAddress(walletAddress) ?? walletAddress;
+  return readGroupedCached(
+    {
+      cacheKey: `balance:${normalizedWalletAddress}`,
+      force: options.force,
+      groupName: "balance",
+      ownerAddress: normalizedWalletAddress,
+      itemCount: 1,
+      estimatedViewCallCount: 1,
+      path: "batch"
+    },
+    async () => {
+      try {
+        const balance = await viewOne<ChainUserBalanceView>("getUserBalance", [normalizedWalletAddress]);
+        return {
+          availableBalance: formatOctasToApt(asString(balance.available_balance)),
+          lockedPushAmount: formatOctasToApt(asString(balance.locked_push_amount)),
+          lockedBuffAmount: formatOctasToApt(asString(balance.locked_buff_amount)),
+          lockedCommitmentAmount: formatOctasToApt(asString(balance.locked_commitment_amount)),
+          totalDeposited: formatOctasToApt(asString(balance.total_deposited)),
+          totalWithdrawn: formatOctasToApt(asString(balance.total_withdrawn)),
+          totalClaimed: formatOctasToApt(asString(balance.total_claimed))
+        };
+      } catch (error) {
+        if (!isMissingViewFunctionError(error, "getUserBalance")) {
+          throw error;
+        }
 
-  return {
-    availableBalance: formatOctasToApt(asString(availableBalance)),
-    lockedPushAmount: formatOctasToApt(asString(lockedPushAmount)),
-    lockedBuffAmount: formatOctasToApt(asString(lockedBuffAmount)),
-    lockedCommitmentAmount: formatOctasToApt(asString(lockedCommitmentAmount)),
-    totalDeposited: formatOctasToApt(asString(totalDeposited)),
-    totalWithdrawn: formatOctasToApt(asString(totalWithdrawn)),
-    totalClaimed: formatOctasToApt(asString(totalClaimed))
-  };
+        const [
+          availableBalance,
+          lockedPushAmount,
+          lockedBuffAmount,
+          lockedCommitmentAmount,
+          totalDeposited,
+          totalWithdrawn,
+          totalClaimed
+        ] = await Promise.all([
+          viewOne("getAvailableBalance", [normalizedWalletAddress]),
+          viewOne("getLockedPushAmount", [normalizedWalletAddress]),
+          viewOne("getLockedBuffAmount", [normalizedWalletAddress]),
+          viewOne("getLockedCommitmentAmount", [normalizedWalletAddress]),
+          viewOne("getTotalDeposited", [normalizedWalletAddress]),
+          viewOne("getTotalWithdrawn", [normalizedWalletAddress]),
+          viewOne("getTotalClaimed", [normalizedWalletAddress])
+        ]);
+
+        return {
+          availableBalance: formatOctasToApt(asString(availableBalance)),
+          lockedPushAmount: formatOctasToApt(asString(lockedPushAmount)),
+          lockedBuffAmount: formatOctasToApt(asString(lockedBuffAmount)),
+          lockedCommitmentAmount: formatOctasToApt(asString(lockedCommitmentAmount)),
+          totalDeposited: formatOctasToApt(asString(totalDeposited)),
+          totalWithdrawn: formatOctasToApt(asString(totalWithdrawn)),
+          totalClaimed: formatOctasToApt(asString(totalClaimed))
+        };
+      }
+    }
+  );
 }
 
 function claimRewardTypeToFrontend(value: number): ClaimRecord["type"] {
   return value === 2 ? "buff" : "push";
 }
 
-export async function getClaimRecords(walletAddress: string): Promise<ClaimRecord[]> {
+export async function getClaimRecords(walletAddress: string, options: ReadGroupOptions = {}): Promise<ClaimRecord[]> {
   type ChainClaimDiscoveryRecord = {
     claim_key: string | number;
     match_id: string | number;
@@ -1173,31 +1578,45 @@ export async function getClaimRecords(walletAddress: string): Promise<ClaimRecor
     settled: boolean;
   };
 
-  const records = await viewOne<ChainClaimDiscoveryRecord[]>("getClaimDiscoveryRecords", [walletAddress]);
-  if (!Array.isArray(records) || records.length === 0) {
-    return [];
-  }
+  const normalizedWalletAddress = canonicalizeAptosAddress(walletAddress) ?? walletAddress;
+  return readGroupedCached(
+    {
+      cacheKey: `claimRecords:${normalizedWalletAddress}`,
+      force: options.force,
+      groupName: "claimRecords",
+      ownerAddress: normalizedWalletAddress,
+      itemCount: null,
+      estimatedViewCallCount: 1,
+      path: "batch"
+    },
+    async () => {
+      const records = await viewOne<ChainClaimDiscoveryRecord[]>("getClaimDiscoveryRecords", [normalizedWalletAddress]);
+      if (!Array.isArray(records) || records.length === 0) {
+        return [];
+      }
 
-  return records
-    .map((record) => {
-      const normalizedMatchId = Number(asString(record.match_id));
-      const normalizedRewardType = claimRewardTypeToFrontend(asNumber(record.reward_type));
+      return records
+        .map((record) => {
+          const normalizedMatchId = Number(asString(record.match_id));
+          const normalizedRewardType = claimRewardTypeToFrontend(asNumber(record.reward_type));
 
-      return {
-        id: Number(asString(record.claim_key)),
-        claimKey: Number(asString(record.claim_key)),
-        matchId: normalizedMatchId,
-        type: normalizedRewardType,
-        matchRef: `Match ${normalizedMatchId}`,
-        amount: formatOctasToApt(asString(record.claimable_amount)),
-        claimableAmountOctas: asString(record.claimable_amount),
-        settledTime: Boolean(record.settled) ? "Settled on chain" : "Pending settlement",
-        claimable: Boolean(record.claimable),
-        claimed: Boolean(record.claimed),
-        settled: Boolean(record.settled)
-      } satisfies ClaimRecord;
-    })
-    .sort((a, b) => b.id - a.id);
+          return {
+            id: Number(asString(record.claim_key)),
+            claimKey: Number(asString(record.claim_key)),
+            matchId: normalizedMatchId,
+            type: normalizedRewardType,
+            matchRef: `Match ${normalizedMatchId}`,
+            amount: formatOctasToApt(asString(record.claimable_amount)),
+            claimableAmountOctas: asString(record.claimable_amount),
+            settledTime: Boolean(record.settled) ? "Settled on chain" : "Pending settlement",
+            claimable: Boolean(record.claimable),
+            claimed: Boolean(record.claimed),
+            settled: Boolean(record.settled)
+          } satisfies ClaimRecord;
+        })
+        .sort((a, b) => b.id - a.id);
+    }
+  );
 }
 
 function buffSideToFrontend(value: number): UserBuffRecord["side"] {
@@ -1276,28 +1695,40 @@ async function getUserBuffRecordsLegacy(normalizedWalletAddress: string): Promis
     .sort((a, b) => b.matchId - a.matchId);
 }
 
-export async function getUserBuffRecords(walletAddress: string): Promise<UserBuffRecord[]> {
+export async function getUserBuffRecords(walletAddress: string, options: ReadGroupOptions = {}): Promise<UserBuffRecord[]> {
   const normalizedWalletAddress = canonicalizeAptosAddress(walletAddress);
   if (!normalizedWalletAddress) {
     return [];
   }
 
-  try {
-    const records = await viewOne<ChainBuffRecord[]>("getUserBuffRecords", [normalizedWalletAddress]);
-    if (!Array.isArray(records) || records.length === 0) {
-      return [];
-    }
+  return readGroupedCached(
+    {
+      cacheKey: `userBuffRecords:${normalizedWalletAddress}`,
+      force: options.force,
+      groupName: "userBuffRecords",
+      ownerAddress: normalizedWalletAddress,
+      itemCount: null,
+      path: "batch"
+    },
+    async () => {
+      try {
+        const records = await viewOne<ChainBuffRecord[]>("getUserBuffRecords", [normalizedWalletAddress]);
+        if (!Array.isArray(records) || records.length === 0) {
+          return [];
+        }
 
-    return records
-      .map(chainBuffRecordToFrontend)
-      .sort((a, b) => b.matchId - a.matchId);
-  } catch (error) {
-    if (!isMissingViewFunctionError(error, "getUserBuffRecords")) {
-      throw error;
-    }
-  }
+        return records
+          .map(chainBuffRecordToFrontend)
+          .sort((a, b) => b.matchId - a.matchId);
+      } catch (error) {
+        if (!isMissingViewFunctionError(error, "getUserBuffRecords")) {
+          throw error;
+        }
+      }
 
-  return getUserBuffRecordsLegacy(normalizedWalletAddress);
+      return getUserBuffRecordsLegacy(normalizedWalletAddress);
+    }
+  );
 }
 
 type AccountTransactionPayload = {
@@ -1315,55 +1746,68 @@ type AccountTransaction = {
   payload?: AccountTransactionPayload;
 };
 
-export async function getPalateTransactionLog(walletAddress: string, options: { limit?: number } = {}): Promise<PalateActivityTransaction[]> {
+export async function getPalateTransactionLog(walletAddress: string, options: { limit?: number; force?: boolean } = {}): Promise<PalateActivityTransaction[]> {
   const limit = Math.max(1, Math.min(options.limit ?? 80, 100));
-  const normalizedWalletAddress = walletAddress.trim().toLowerCase();
-  const endpoint = `/accounts/${walletAddress}/transactions?limit=${limit}`;
-  const transactions = await readWithDiagnostics<AccountTransaction[]>(
-    `accountTransactions:${normalizedWalletAddress}`,
-    () => fetchJsonWithDiagnostics<AccountTransaction[]>(`accountTransactions:${normalizedWalletAddress}`, endpoint),
+  const normalizedWalletAddress = canonicalizeAptosAddress(walletAddress) ?? walletAddress.trim().toLowerCase();
+  return readGroupedCached(
     {
-      endpoint,
-      retries: 1,
-      delayMs: view_retry_delay_ms,
-      dedupeKey: `accountTransactions:${normalizedWalletAddress}:${limit}`
+      cacheKey: `userActivity:${normalizedWalletAddress}:${limit}`,
+      force: options.force,
+      groupName: "userActivity",
+      ownerAddress: normalizedWalletAddress,
+      itemCount: limit,
+      estimatedViewCallCount: 1,
+      path: "batch"
+    },
+    async () => {
+      const endpoint = `/accounts/${walletAddress}/transactions?limit=${limit}`;
+      const transactions = await readWithDiagnostics<AccountTransaction[]>(
+        `accountTransactions:${normalizedWalletAddress}`,
+        () => fetchJsonWithDiagnostics<AccountTransaction[]>(`accountTransactions:${normalizedWalletAddress}`, endpoint),
+        {
+          endpoint,
+          retries: 1,
+          delayMs: view_retry_delay_ms,
+          dedupeKey: `accountTransactions:${normalizedWalletAddress}:${limit}`
+        }
+      );
+
+      const palateTransactions: PalateActivityTransaction[] = transactions
+        .filter((transaction) => transaction.type === "user_transaction")
+        .map((transaction): PalateActivityTransaction | null => {
+          const payload = transaction.payload;
+          const fullFunction = payload?.function;
+          if (!fullFunction || !fullFunction.startsWith(`${module_id}::`)) {
+            return null;
+          }
+
+          const functionName = fullFunction.split("::").pop() ?? fullFunction;
+          const filter = getActivityFilter(functionName);
+          if (!filter) return null;
+
+          const hash = transaction.hash ?? "";
+          const args = Array.isArray(payload?.arguments) ? payload.arguments : [];
+          const success = transaction.success === true;
+
+          return {
+            id: hash || `${functionName}:${transaction.version ?? Math.random().toString(36).slice(2)}`,
+            hash,
+            shortHash: hash ? shortenTransactionHash(hash) : "Unknown tx",
+            functionName,
+            filter,
+            title: getActivityLabel(functionName),
+            status: success ? "Success" : "Failed",
+            timestamp: formatTransactionTimestamp(transaction.timestamp),
+            amount: decodeActivityAmount(functionName, args),
+            decodedId: decodeActivityId(functionName, args),
+            explorerUrl: hash ? `${app_config.aptosExplorerBaseUrl}/${hash}?network=testnet` : `${app_config.aptosExplorerBaseUrl}?network=testnet`
+          } satisfies PalateActivityTransaction;
+        })
+        .filter((transaction): transaction is PalateActivityTransaction => transaction !== null);
+
+      return palateTransactions;
     }
   );
-
-  const palateTransactions: PalateActivityTransaction[] = transactions
-    .filter((transaction) => transaction.type === "user_transaction")
-    .map((transaction): PalateActivityTransaction | null => {
-      const payload = transaction.payload;
-      const fullFunction = payload?.function;
-      if (!fullFunction || !fullFunction.startsWith(`${module_id}::`)) {
-        return null;
-      }
-
-      const functionName = fullFunction.split("::").pop() ?? fullFunction;
-      const filter = getActivityFilter(functionName);
-      if (!filter) return null;
-
-      const hash = transaction.hash ?? "";
-      const args = Array.isArray(payload?.arguments) ? payload.arguments : [];
-      const success = transaction.success === true;
-
-      return {
-        id: hash || `${functionName}:${transaction.version ?? Math.random().toString(36).slice(2)}`,
-        hash,
-        shortHash: hash ? shortenTransactionHash(hash) : "Unknown tx",
-        functionName,
-        filter,
-        title: getActivityLabel(functionName),
-        status: success ? "Success" : "Failed",
-        timestamp: formatTransactionTimestamp(transaction.timestamp),
-        amount: decodeActivityAmount(functionName, args),
-        decodedId: decodeActivityId(functionName, args),
-        explorerUrl: hash ? `${app_config.aptosExplorerBaseUrl}/${hash}?network=testnet` : `${app_config.aptosExplorerBaseUrl}?network=testnet`
-      } satisfies PalateActivityTransaction;
-    })
-    .filter((transaction): transaction is PalateActivityTransaction => transaction !== null);
-
-  return palateTransactions;
 }
 
 function formatWinRate(wins: number, total: number) {
@@ -1371,7 +1815,7 @@ function formatWinRate(wins: number, total: number) {
   return `${((wins / total) * 100).toFixed(1)}%`;
 }
 
-export async function getUserSummary(walletAddress: string): Promise<UserSummary> {
+export async function getUserSummary(walletAddress: string, options: ReadGroupOptions = {}): Promise<UserSummary> {
   type ChainUserSummary = {
     push_count: string | number;
     push_win_count: string | number;
@@ -1386,53 +1830,67 @@ export async function getUserSummary(walletAddress: string): Promise<UserSummary
     claimable_amount: string | number;
   };
 
-  if (app_config.debugAptosReads) {
-    console.info("[Palate user summary] start", { view: "getUserSummary", walletAddress });
-  }
+  const normalizedWalletAddress = canonicalizeAptosAddress(walletAddress) ?? walletAddress;
+  return readGroupedCached(
+    {
+      cacheKey: `userSummary:${normalizedWalletAddress}`,
+      force: options.force,
+      groupName: "userSummary",
+      ownerAddress: normalizedWalletAddress,
+      itemCount: 1,
+      estimatedViewCallCount: 1,
+      path: "batch"
+    },
+    async () => {
+      if (app_config.debugAptosReads) {
+        console.info("[Palate user summary] start", { view: "getUserSummary", walletAddress: normalizedWalletAddress });
+      }
 
-  try {
-    const summary = await viewOne<ChainUserSummary>("getUserSummary", [walletAddress]);
-    const pushCount = asNumber(summary.push_count);
-    const pushWins = asNumber(summary.push_win_count);
-    const pushLosses = asNumber(summary.push_loss_count);
-    const buffCount = asNumber(summary.buff_count);
-    const buffWins = asNumber(summary.buff_win_count);
-    const buffLosses = asNumber(summary.buff_loss_count);
+      try {
+        const summary = await viewOne<ChainUserSummary>("getUserSummary", [normalizedWalletAddress]);
+        const pushCount = asNumber(summary.push_count);
+        const pushWins = asNumber(summary.push_win_count);
+        const pushLosses = asNumber(summary.push_loss_count);
+        const buffCount = asNumber(summary.buff_count);
+        const buffWins = asNumber(summary.buff_win_count);
+        const buffLosses = asNumber(summary.buff_loss_count);
 
-    const result: UserSummary = {
-      walletAddress,
-      claimableAmount: formatOctasToApt(asString(summary.claimable_amount)),
-      pushProfit: formatOctasToApt(asString(summary.push_profit)),
-      buffProfit: formatOctasToApt(asString(summary.buff_profit)),
-      totalPushed: formatOctasToApt(asString(summary.total_pushed)),
-      totalBuffed: formatOctasToApt(asString(summary.total_buffed)),
-      pushWinRate: formatWinRate(pushWins, pushCount),
-      buffWinRate: formatWinRate(buffWins, buffCount),
-      pushCount: String(pushCount),
-      pushWins: String(pushWins),
-      pushLosses: String(pushLosses),
-      buffCount: String(buffCount),
-      buffWins: String(buffWins),
-      buffLosses: String(buffLosses),
-      pendingBuffs: "Unavailable",
-      skipPenalty: "Unavailable"
-    };
+        const result: UserSummary = {
+          walletAddress: normalizedWalletAddress,
+          claimableAmount: formatOctasToApt(asString(summary.claimable_amount)),
+          pushProfit: formatOctasToApt(asString(summary.push_profit)),
+          buffProfit: formatOctasToApt(asString(summary.buff_profit)),
+          totalPushed: formatOctasToApt(asString(summary.total_pushed)),
+          totalBuffed: formatOctasToApt(asString(summary.total_buffed)),
+          pushWinRate: formatWinRate(pushWins, pushCount),
+          buffWinRate: formatWinRate(buffWins, buffCount),
+          pushCount: String(pushCount),
+          pushWins: String(pushWins),
+          pushLosses: String(pushLosses),
+          buffCount: String(buffCount),
+          buffWins: String(buffWins),
+          buffLosses: String(buffLosses),
+          pendingBuffs: "Unavailable",
+          skipPenalty: "Unavailable"
+        };
 
-    if (app_config.debugAptosReads) {
-      console.info("[Palate user summary] success", { view: "getUserSummary", walletAddress, summary: result });
+        if (app_config.debugAptosReads) {
+          console.info("[Palate user summary] success", { view: "getUserSummary", walletAddress: normalizedWalletAddress, summary: result });
+        }
+
+        return result;
+      } catch (error) {
+        if (app_config.debugAptosReads) {
+          console.warn("[Palate user summary] failure", {
+            view: "getUserSummary",
+            walletAddress: normalizedWalletAddress,
+            error: error instanceof Error ? error.message : String(error ?? "Unknown error")
+          });
+        }
+        throw error;
+      }
     }
-
-    return result;
-  } catch (error) {
-    if (app_config.debugAptosReads) {
-      console.warn("[Palate user summary] failure", {
-        view: "getUserSummary",
-        walletAddress,
-        error: error instanceof Error ? error.message : String(error ?? "Unknown error")
-      });
-    }
-    throw error;
-  }
+  );
 }
 
 // Future signed entry-function boundary. Local UI flows call provider actions until real Aptos transactions are wired.
