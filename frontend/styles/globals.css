@@ -2983,9 +2983,24 @@ select.input_control option:checked,
 }
 
 .match_card_match_id {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.match_card_match_id_label {
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.match_card_match_id_value {
   min-width: 0;
   color: rgba(229, 237, 242, 0.92);
-  font-size: 19px;
+  font-size: 22px;
   font-weight: 820;
   letter-spacing: 0.01em;
   line-height: 1.05;
@@ -4451,8 +4466,12 @@ select.input_control option:checked,
     width: 100%;
   }
 
-  .match_card_match_id {
-    font-size: 17px;
+  .match_card_match_id_label {
+    font-size: 14px;
+  }
+
+  .match_card_match_id_value {
+    font-size: 18px;
     line-height: 1.1;
     white-space: normal;
   }

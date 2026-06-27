@@ -19,6 +19,7 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
   const detailStateLabel = isSettleEligible ? "Ready to settle" : `Remaining ${countdown.label}`;
   const categoryLabel = formatCategoryLabel(match.category);
   const endTimeLabel = formatUnixSeconds(match.endTimeSeconds);
+  const compactMatchIdLabel = formatCompactMatchId(match.id);
 
   return (
     <>
@@ -43,8 +44,9 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
               >
                 {categoryLabel}
               </span>
-              <span className="match_card_match_id" title={`Match #${match.id}`}>
-                MATCH #{match.id}
+              <span className="match_card_match_id" title={`MATCH #${String(match.id)}`}>
+                <span className="match_card_match_id_label">MATCH</span>
+                <span className="match_card_match_id_value">{compactMatchIdLabel}</span>
               </span>
             </div>
             <div className="match_card_footer_actions">
@@ -167,4 +169,13 @@ function formatUnixSeconds(value: string | number): string {
     hour: "numeric",
     minute: "2-digit"
   }).format(new Date(seconds * 1000));
+}
+
+function formatCompactMatchId(matchId: string | number): string {
+  const rawId = String(matchId);
+  if (rawId.length <= 6) {
+    return `#${rawId}`;
+  }
+
+  return `#${rawId.slice(0, 3)}...${rawId.slice(-3)}`;
 }
