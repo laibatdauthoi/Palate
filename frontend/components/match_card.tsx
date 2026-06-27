@@ -51,15 +51,18 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
             </div>
             <div className="match_card_footer_actions">
               <ActionButton
+                aria-label="Detail"
                 className="match_card_detail_button"
                 variant="secondary"
                 onClick={() => setDetailOpen(true)}
               >
-                Detail
+                i
               </ActionButton>
               {isSettleEligible && onSettle ? (
                 <ActionButton
+                  aria-label="Settle"
                   className="match_card_settle_button"
+                  variant="caution"
                   disabled={settleDisabled}
                   onClick={() => {
                     const startedAt = uiPerfNow();

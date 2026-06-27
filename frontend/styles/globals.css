@@ -3029,8 +3029,8 @@ select.input_control option:checked,
   color: rgba(237, 245, 250, 0.92);
   min-height: 48px;
   padding-inline: 10px;
-  font-size: 13px;
-  font-weight: 760;
+  font-size: 24px;
+  font-weight: 820;
   line-height: 1;
   text-align: center;
   box-shadow:
@@ -3054,14 +3054,15 @@ select.input_control option:checked,
 }
 
 .match_card_footer_actions > button.action_button.app_action_button.match_card_detail_button {
-  width: 96px;
-  min-width: 96px;
-  min-height: 50px;
-  padding: 8px 10px;
-  font-size: 20px;
+  width: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1;
+  border-radius: 999px;
+  font-size: 24px;
 }
 
 .match_card_footer_actions > button.action_button.app_action_button.match_card_settle_button {
@@ -3069,10 +3070,11 @@ select.input_control option:checked,
   min-width: 112px;
   min-height: 50px;
   padding: 8px 10px;
-  font-size: 20px;
   font-weight: 780;
   letter-spacing: 0;
   line-height: 1;
+  border-radius: 14px;
+  font-size: 20px;
 }
 
 .match_card_body {
@@ -4486,21 +4488,22 @@ select.input_control option:checked,
     width: 108px;
     min-width: 108px;
     min-height: 44px;
-    font-size: 12px;
+    font-size: 18px;
   }
 
   .match_card_footer_actions > button.action_button.app_action_button.match_card_detail_button {
-    width: 92px;
-    min-width: 92px;
-    min-height: 46px;
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
     font-size: 18px;
   }
 
   .match_card_footer_actions > button.action_button.app_action_button.match_card_settle_button {
     width: 108px;
     min-width: 108px;
-    min-height: 46px;
+    min-height: 52px;
     font-size: 18px;
+    border-radius: 14px;
   }
 
   .match_detail_preview_row,
