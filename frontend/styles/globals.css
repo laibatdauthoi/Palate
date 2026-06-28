@@ -12,6 +12,24 @@ html {
   --ui-scale: 1;
   --safe-gutter-x: 0px;
   --safe-gutter-y: 0px;
+  /* Shell-only scaled tokens. Stage 2 consumes these for sidebar and main
+     wrapper rhythm while preserving the approved layout at ui-scale = 1. */
+  --sidebar-width-scaled: calc(var(--sidebar-width) * var(--ui-scale));
+  --sidebar-padding-scaled: calc(var(--spacing-xl) * var(--ui-scale));
+  --sidebar-gap-scaled: calc(var(--spacing-lg) * var(--ui-scale));
+  --sidebar-nav-gap-scaled: calc(var(--spacing-sm) * var(--ui-scale));
+  --sidebar-nav-offset-y-scaled: calc(10px * var(--ui-scale));
+  --brand-offset-x-scaled: calc(24px * var(--ui-scale));
+  --brand-offset-y-scaled: calc(-12px * var(--ui-scale));
+  --nav-link-pad-y-scaled: calc(14px * var(--ui-scale));
+  --nav-link-pad-right-scaled: calc(16px * var(--ui-scale));
+  --nav-link-pad-left-scaled: calc(18px * var(--ui-scale));
+  --nav-link-rail-inset-scaled: calc(8px * var(--ui-scale));
+  --wallet-padding-scaled: calc(10px * var(--ui-scale));
+  --wallet-gap-scaled: calc(8px * var(--ui-scale));
+  --main-padding-top-scaled: calc(var(--spacing-xl) * var(--ui-scale));
+  --main-padding-x-scaled: calc(var(--spacing-2xl) * var(--ui-scale));
+  --main-padding-bottom-scaled: calc(var(--spacing-3xl) * var(--ui-scale));
   min-height: 100%;
   background: var(--background-primary);
   color-scheme: dark;
@@ -443,7 +461,7 @@ img {
 
 .app_shell {
   display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-width-scaled) minmax(0, 1fr);
   min-height: 100dvh;
   opacity: 1;
   visibility: visible;
@@ -453,7 +471,7 @@ img {
 .main_content {
   width: min(100%, var(--app-max-width));
   margin: 0 auto;
-  padding: var(--spacing-xl) var(--spacing-2xl) var(--spacing-3xl);
+  padding: var(--main-padding-top-scaled) var(--main-padding-x-scaled) var(--main-padding-bottom-scaled);
 }
 
 .page_stack {
@@ -771,9 +789,9 @@ select.input_control option:checked,
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
+  gap: var(--sidebar-gap-scaled);
   height: 100vh;
-  padding: var(--spacing-xl);
+  padding: var(--sidebar-padding-scaled);
   border-right: 2px solid rgba(255, 47, 159, 0.2);
   background:
     linear-gradient(90deg, rgba(255, 47, 159, 0.12), transparent 8%),
@@ -787,8 +805,8 @@ select.input_control option:checked,
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  margin-top: -12px;
-  padding-left: 24px;
+  margin-top: var(--brand-offset-y-scaled);
+  padding-left: var(--brand-offset-x-scaled);
   font-size: var(--font-size-heading-3);
   font-weight: 900;
   letter-spacing: -0.02em;
@@ -813,8 +831,8 @@ select.input_control option:checked,
 
 .nav_links {
   display: grid;
-  margin-top: 10px;
-  gap: var(--spacing-sm);
+  margin-top: var(--sidebar-nav-offset-y-scaled);
+  gap: var(--sidebar-nav-gap-scaled);
 }
 
 .nav_link {
@@ -826,14 +844,14 @@ select.input_control option:checked,
   border: 2px solid transparent;
   border-radius: 18px;
   color: var(--text-secondary);
-  padding: 14px 16px 14px 18px;
+  padding: var(--nav-link-pad-y-scaled) var(--nav-link-pad-right-scaled) var(--nav-link-pad-y-scaled) var(--nav-link-pad-left-scaled);
   font-weight: 800;
   transition: var(--transition-fast);
 }
 
 .nav_link::before {
   position: absolute;
-  inset: 12px auto 12px 8px;
+  inset: 12px auto 12px var(--nav-link-rail-inset-scaled);
   width: 3px;
   border-radius: var(--radius-pill);
   background: transparent;
@@ -878,7 +896,7 @@ select.input_control option:checked,
 
 .wallet_panel {
   display: grid;
-  gap: var(--spacing-xs);
+  gap: var(--wallet-gap-scaled);
   margin-top: auto;
   border: 2px solid rgba(255, 47, 159, 0.2);
   border-radius: var(--radius-large);
@@ -887,7 +905,7 @@ select.input_control option:checked,
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
     var(--gradient-surface),
     var(--surface-primary);
-  padding: var(--spacing-sm);
+  padding: var(--wallet-padding-scaled);
   box-shadow: var(--shadow-panel), var(--shadow-bevel);
 }
 
@@ -5872,7 +5890,7 @@ select.input_control option:checked,
 .navigation_bar {
   height: 100dvh;
   min-height: 0;
-  gap: var(--spacing-lg);
+  gap: var(--sidebar-gap-scaled);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -5971,10 +5989,10 @@ select.input_control option:checked,
 }
 
 .wallet_panel {
-  gap: 8px;
+  gap: var(--wallet-gap-scaled);
   margin-top: auto;
   border-radius: 16px;
-  padding: 10px;
+  padding: var(--wallet-padding-scaled);
   box-shadow: var(--shadow-bevel), 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
