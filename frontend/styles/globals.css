@@ -5,6 +5,13 @@
 }
 
 html {
+  --viewport-width: 100vw;
+  --viewport-height: 100vh;
+  --layout-design-width: 1536;
+  --layout-design-height: 864;
+  --ui-scale: 1;
+  --safe-gutter-x: 0px;
+  --safe-gutter-y: 0px;
   min-height: 100%;
   background: var(--background-primary);
   color-scheme: dark;

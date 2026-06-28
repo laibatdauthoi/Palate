@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { LayoutScaleController } from "@/components/layout_scale_controller";
 import { MobileBottomNav } from "@/components/mobile_bottom_nav";
 import { NavigationBar } from "@/components/navigation_bar";
 import { RoutePerfTracker } from "@/components/route_perf_tracker";
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="en">
       <body>
+        <LayoutScaleController />
         <WalletProvider>
           <PalateProvider>
             <MediaPlayerProvider>
