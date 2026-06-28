@@ -17,6 +17,7 @@ export type UploadStep =
   | "completed"
   | "failed";
 export type WalletStatus = "disconnected" | "connecting" | "connected" | "wrong_network" | "error";
+export type WalletDisplayState = "disconnected" | "connecting" | "switching" | "connected" | "wrong_network" | "error";
 export type BuffSide = "A" | "B";
 export type ChainReadStatus = "idle" | "loading" | "ready" | "error";
 export type FeedbackScope = "push" | "challenge" | "cleanup" | "claim" | "settle" | "buff" | "wallet" | "profile" | "general";
@@ -169,6 +170,14 @@ export type ClaimableRewardsSummary = {
 };
 
 export type ReadStatus = "idle" | "loading" | "refreshing" | "ready" | "error";
+export type MediaLoadPhase =
+  | "idle"
+  | "wallet_gate"
+  | "aptos_records"
+  | "shelby_sources"
+  | "previews"
+  | "ready"
+  | "error";
 
 export type ReadLifecycleState = {
   hasLoadedActivity: boolean;
@@ -178,6 +187,24 @@ export type ReadLifecycleState = {
   hasLoadedPublicGameState: boolean;
   hasLoadedUserSummary: boolean;
 };
+
+export type WalletReadGroup =
+  | "palateBalance"
+  | "userMedia"
+  | "claimRecords"
+  | "userBuffRecords"
+  | "userSummary"
+  | "userActivity"
+  | "currentAssignment"
+  | "publicGameState";
+
+export type WalletReadGroupCache = {
+  ownerAddress: string | null;
+  lastSuccessfulReadAt: number | null;
+  error: string | null;
+};
+
+export type WalletReadCacheState = Record<WalletReadGroup, WalletReadGroupCache>;
 
 export type PalateActivityFilter = "All" | "Media" | "Push" | "Buff" | "Match" | "Claims" | "Balance" | "Failed" | "Admin";
 

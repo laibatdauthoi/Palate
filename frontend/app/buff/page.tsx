@@ -37,7 +37,8 @@ export default function BuffPage() {
     settleMatch,
     skipMatch,
     userBuffReadStatus,
-    userBuffRecords
+    userBuffRecords,
+    walletReadCache
   } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const [buffAmount, setBuffAmount] = useState("0.250");
@@ -47,7 +48,12 @@ export default function BuffPage() {
   const [showLocalNoValidMatchFeedback, setShowLocalNoValidMatchFeedback] = useState(false);
   const nowMs = useCountdownNow();
   const normalizedWalletAddress = normalizeAddress(walletAddress);
-  const assignedMatch = currentAssignment?.match;
+  const buffRecordsOwnedByCurrentWallet = walletReadCache.userBuffRecords.ownerAddress === normalizedWalletAddress;
+  const buffRecordsHaveCurrentWalletData = buffRecordsOwnedByCurrentWallet && walletReadCache.userBuffRecords.lastSuccessfulReadAt !== null;
+  const assignmentOwnedByCurrentWallet = walletReadCache.currentAssignment.ownerAddress === normalizedWalletAddress;
+  const assignmentHasCurrentWalletData = assignmentOwnedByCurrentWallet && walletReadCache.currentAssignment.lastSuccessfulReadAt !== null;
+  const currentWalletAssignment = assignmentOwnedByCurrentWallet ? currentAssignment : null;
+  const assignedMatch = currentWalletAssignment?.match;
   const assignedMatchCountdown = assignedMatch
     ? getLiveCountdownState(Number(assignedMatch.endTimeSeconds), nowMs, { endedLabel: "Ended" })
     : null;
@@ -104,7 +110,10 @@ export default function BuffPage() {
   const buffFeedback = feedback?.scope === "buff" ? feedback : null;
   const settleFeedback = feedback?.scope === "settle" ? feedback : null;
   const findMatchFeedback = buffFeedback && isFindMatchFeedbackMessage(buffFeedback.message) ? buffFeedback : null;
-  const isAssignmentZoneUnresolved = !readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading");
+  const isAssignmentZoneUnresolved = walletReady && (
+    (!readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading"))
+    || !assignmentHasCurrentWalletData
+  );
   const canFindMatch = walletReady && !buffBusy && !isAssignmentZoneUnresolved;
   const activeMatchesById = useMemo(() => new Map(activeMatches.map((match) => [normalizeMatchId(match.id), match])), [activeMatches]);
   const myBuffEntries = useMemo(() => {
@@ -185,7 +194,7 @@ export default function BuffPage() {
 
     return myBuffEntries.filter((entry) => entry.status === "pending_result" || entry.status === "ready_to_settle");
   }, [myBuffEntries, myBuffFilter, pendingBuffEntries, readyToSettleBuffEntries]);
-  const isUserBuffsResolved = !walletReady || (userBuffReadStatus !== "idle" && userBuffReadStatus !== "loading");
+  const isUserBuffsResolved = !walletReady || (buffRecordsOwnedByCurrentWallet && userBuffReadStatus !== "idle" && userBuffReadStatus !== "loading");
   const isUserBuffsUnresolved = walletReady && !isUserBuffsResolved;
   const isMyBuffPublicStateUnresolved = !readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading");
   const isMyBuffsDataUnresolved = isUserBuffsUnresolved || isMyBuffPublicStateUnresolved;
@@ -193,6 +202,7 @@ export default function BuffPage() {
   const isMyBuffsError = walletReady
     && !isMyBuffsLoading
     && (userBuffReadStatus === "error" || publicGameReadStatus === "error")
+    && !buffRecordsHaveCurrentWalletData
     && myBuffEntries.length === 0;
   const hasMyBuffRecords = filteredMyBuffEntries.length > 0;
   const canShowMyBuffsEmpty = !isMyBuffsLoading && !isMyBuffsError && !hasMyBuffRecords;
@@ -311,7 +321,7 @@ export default function BuffPage() {
         </div>
       </div>
 
-      {assignedMatch ? (
+      {assignedMatch && assignmentOwnedByCurrentWallet ? (
         <div className="buff_assignment_banner surface_card card_shell">
           <p className="secondary_text">{assignmentBannerCopy}</p>
           <div className="buff_assignment_banner_actions card_actions">
@@ -323,7 +333,7 @@ export default function BuffPage() {
         </div>
       ) : null}
 
-      {assignedMatch ? (
+      {assignedMatch && assignmentOwnedByCurrentWallet ? (
         <ModalShell
           onClose={() => setAssignmentModalOpen(false)}
           open={assignmentModalOpen}
@@ -354,7 +364,7 @@ export default function BuffPage() {
               selectedSide={selectedSide}
               settleDisabled={!walletReady || isSettlingMatch || assignedMatch.status === "settled"}
               settleLoading={isSettlingMatch}
-              skipPenalty={currentAssignment.skipPenaltyAmount}
+              skipPenalty={currentWalletAssignment.skipPenaltyAmount}
               skipLoading={isSkippingMatch}
             />
           </div>
@@ -369,7 +379,13 @@ export default function BuffPage() {
           items={myBuffFilterItems}
           onChange={setMyBuffFilter}
         />
-        {isMyBuffsError ? (
+        {!walletReady ? (
+          <EmptyState
+            variant="section"
+            title="Connect wallet to view My Buffs."
+            copy="Your Buff records and settlement-ready matches only appear for the connected wallet."
+          />
+        ) : isMyBuffsError ? (
           <ErrorState
             variant="section"
             title="My Buffs unavailable"

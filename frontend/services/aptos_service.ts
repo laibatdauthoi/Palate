@@ -839,6 +839,20 @@ export function getReadablePalateError(error: unknown, fallback = "Transaction f
   return rawMessage || fallback;
 }
 
+export function isWalletUserRejectionError(error: unknown) {
+  const rawMessage = error instanceof Error ? error.message : String(error ?? "");
+  const normalized = rawMessage.toLowerCase();
+
+  return normalized.includes("rejected")
+    || normalized.includes("rejected the request")
+    || normalized.includes("request rejected")
+    || normalized.includes("user rejected")
+    || normalized.includes("user denied")
+    || normalized.includes("declined")
+    || normalized.includes("cancelled")
+    || normalized.includes("canceled");
+}
+
 export const aptos_service_config = {
   networkLabel: app_config.networkLabel,
   moduleAddress: app_config.moduleAddress,

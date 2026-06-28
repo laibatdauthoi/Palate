@@ -4,8 +4,9 @@ import { CategoryBadge } from "./category_badge";
 import { FormatBadge } from "./format_badge";
 import { MediaRenderer } from "./media_renderer";
 import { StatusBadge } from "./status_badge";
-import { useMediaPlayer } from "@/providers/media_player_provider";
+import { useMediaViewer } from "@/providers/media_viewer_provider";
 import { getMediaDisplayTitle } from "@/utils/media_display";
+import { AudioPreviewGlyph } from "./audio_preview_glyph";
 
 type WaitingPushCardProps = {
   push: WaitingPush;
@@ -22,85 +23,29 @@ function shortenAddress(address: string) {
 
 function WaitingAudioPreview({
   interactive,
-  playing,
-  onToggle,
+  onOpen,
   title
 }: {
   interactive: boolean;
-  playing: boolean;
-  onToggle?: () => void;
+  onOpen?: () => void;
   title: string;
 }) {
   if (!interactive) {
     return (
       <div className="waiting_audio_preview waiting_audio_preview_static" aria-hidden="true">
-        <div className="waiting_audio_icon_shell">
-          <svg className="waiting_audio_icon" viewBox="0 0 64 64" fill="none">
-            <path
-              d="M18 34V31C18 23.268 24.268 17 32 17C39.732 17 46 23.268 46 31V34"
-              stroke="currentColor"
-              strokeWidth="4.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <rect x="15" y="31" width="9" height="18" rx="4.5" stroke="currentColor" strokeWidth="4.5" />
-            <rect x="40" y="31" width="9" height="18" rx="4.5" stroke="currentColor" strokeWidth="4.5" />
-            <path
-              d="M24 46C24 49.314 26.686 52 30 52H34"
-              stroke="currentColor"
-              strokeWidth="4.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
+        <AudioPreviewGlyph shellClassName="waiting_audio_icon_shell" iconClassName="waiting_audio_icon" />
       </div>
     );
   }
 
   return (
     <button
-      aria-label={`${playing ? "Pause" : "Play"} audio preview for ${title}`}
-      className={`waiting_audio_preview waiting_audio_preview_button ${playing ? "active" : ""}`}
-      onClick={onToggle}
+      aria-label={`View ${title}`}
+      className="waiting_audio_preview waiting_audio_preview_button"
+      onClick={onOpen}
       type="button"
     >
-      <div className="waiting_audio_icon_shell">
-        <svg className="waiting_audio_icon" viewBox="0 0 64 64" fill="none">
-          <path
-            d="M18 34V31C18 23.268 24.268 17 32 17C39.732 17 46 23.268 46 31V34"
-            stroke="currentColor"
-            strokeWidth="4.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <rect
-            x="15"
-            y="31"
-            width="9"
-            height="18"
-            rx="4.5"
-            stroke="currentColor"
-            strokeWidth="4.5"
-          />
-          <rect
-            x="40"
-            y="31"
-            width="9"
-            height="18"
-            rx="4.5"
-            stroke="currentColor"
-            strokeWidth="4.5"
-          />
-          <path
-            d="M24 46C24 49.314 26.686 52 30 52H34"
-            stroke="currentColor"
-            strokeWidth="4.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
+      <AudioPreviewGlyph shellClassName="waiting_audio_icon_shell" iconClassName="waiting_audio_icon" />
     </button>
   );
 }
@@ -112,11 +57,10 @@ export function WaitingPushCard({
   challengeDisabledReason,
   variant = "default"
 }: WaitingPushCardProps) {
-  const { canPlayMedia, currentTrackId, isPlaying, playMedia, togglePlayback } = useMediaPlayer();
+  const { openMediaViewer } = useMediaViewer();
   const displayTitle = getMediaDisplayTitle(push.media);
   const canChallenge = push.status === "open" && !challengeDisabledReason && Boolean(challengeHref || onChallenge);
-  const canPlayAudioPreview = push.media.category === "audio" && canPlayMedia(push.media);
-  const audioPreviewActive = canPlayAudioPreview && currentTrackId === push.media.id;
+  const canPreviewAudio = push.media.category === "audio";
   const isCompact = variant === "compact";
   const cardStatus = push.status === "open" ? "open" : push.status === "challenged" ? "active" : "disabled";
   const actionLabel = push.status === "open" ? "Challenge" : "Closed";
@@ -125,19 +69,8 @@ export function WaitingPushCard({
       <div className={`waiting_media card_preview media_preview_${push.media.accent}`}>
         {push.media.category === "audio" ? (
           <WaitingAudioPreview
-            interactive={canPlayAudioPreview}
-            onToggle={
-              canPlayAudioPreview
-                ? () => {
-                    if (audioPreviewActive) {
-                      togglePlayback();
-                    } else {
-                      playMedia(push.media);
-                    }
-                  }
-                : undefined
-            }
-            playing={audioPreviewActive && isPlaying}
+            interactive={canPreviewAudio}
+            onOpen={canPreviewAudio ? () => openMediaViewer(push.media, "media_renderer:audio_match") : undefined}
             title={displayTitle}
           />
         ) : (
@@ -177,7 +110,7 @@ export function WaitingPushCard({
             <div className="media_card_actions waiting_push_action_stack_compact card_actions">
               <div className="waiting_push_actions card_actions">
                 {challengeHref && canChallenge ? (
-                  <ActionButton href={challengeHref} variant="primary">Challenge</ActionButton>
+                  <ActionButton href={challengeHref} size="cardMain" variant="primary">Challenge</ActionButton>
                 ) : challengeDisabledReason ? (
                   <span
                     aria-label={challengeDisabledReason}
@@ -185,10 +118,10 @@ export function WaitingPushCard({
                     data-tooltip={challengeDisabledReason}
                     tabIndex={0}
                   >
-                    <ActionButton disabled onClick={undefined} variant="primary">{actionLabel}</ActionButton>
+                    <ActionButton disabled onClick={undefined} size="cardMain" variant="primary">{actionLabel}</ActionButton>
                   </span>
                 ) : (
-                  <ActionButton disabled={!canChallenge} onClick={canChallenge ? onChallenge : undefined} variant="primary">{actionLabel}</ActionButton>
+                  <ActionButton disabled={!canChallenge} onClick={canChallenge ? onChallenge : undefined} size="cardMain" variant="primary">{actionLabel}</ActionButton>
                 )}
               </div>
             </div>
@@ -220,7 +153,7 @@ export function WaitingPushCard({
                 <div className="waiting_push_action_stack">
                   <div className="waiting_push_actions card_actions">
                     {challengeHref && canChallenge ? (
-                      <ActionButton href={challengeHref} variant="primary">Challenge</ActionButton>
+                      <ActionButton href={challengeHref} size="cardMain" variant="primary">Challenge</ActionButton>
                     ) : challengeDisabledReason ? (
                       <span
                         aria-label={challengeDisabledReason}
@@ -228,10 +161,10 @@ export function WaitingPushCard({
                         data-tooltip={challengeDisabledReason}
                         tabIndex={0}
                       >
-                        <ActionButton disabled onClick={undefined} variant="primary">{actionLabel}</ActionButton>
+                        <ActionButton disabled onClick={undefined} size="cardMain" variant="primary">{actionLabel}</ActionButton>
                       </span>
                     ) : (
-                      <ActionButton disabled={!canChallenge} onClick={canChallenge ? onChallenge : undefined} variant="primary">{actionLabel}</ActionButton>
+                      <ActionButton disabled={!canChallenge} onClick={canChallenge ? onChallenge : undefined} size="cardMain" variant="primary">{actionLabel}</ActionButton>
                     )}
                   </div>
                 </div>

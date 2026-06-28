@@ -9,6 +9,7 @@ import { resolveShelbyReadUrl } from "@/services/shelby_service";
 import type { MediaRecord } from "@/types/palate";
 import { getMediaDisplayTitle } from "@/utils/media_display";
 import { detectMediaKindFromMetadata } from "@/utils/media_file_validation";
+import { AudioPreviewGlyph } from "./audio_preview_glyph";
 
 type MediaRendererProps = {
   media: MediaRecord;
@@ -110,17 +111,7 @@ export function MediaRenderer({ media, compact = false, variant, mediaActive = f
       if (disablePreview) {
         return (
           <div className="media_renderer media_renderer_audio_match media_renderer_variant_match media_renderer_static">
-            <div className="audio_preview_visual" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="audio_preview_meta">
-              <small>Audio track</small>
-              <span>View media</span>
-            </div>
+            <AudioPreviewGlyph />
           </div>
         );
       }
@@ -130,19 +121,10 @@ export function MediaRenderer({ media, compact = false, variant, mediaActive = f
           aria-label={`View ${displayTitle}`}
           className="media_renderer media_renderer_audio_match media_renderer_button media_renderer_variant_match"
           onClick={() => openMediaViewer(media, "media_renderer:audio_match")}
+          title={displayTitle}
           type="button"
         >
-          <div className="audio_preview_visual" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="audio_preview_meta">
-            <small>Audio track</small>
-            <span>View media</span>
-          </div>
+          <AudioPreviewGlyph />
         </button>
       );
     }

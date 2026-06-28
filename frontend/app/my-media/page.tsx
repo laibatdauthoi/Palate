@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/page_header";
 import { useMediaPlayer } from "@/providers/media_player_provider";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
-import type { MediaCategory, MediaRecord, MediaStatus } from "@/types/palate";
+import type { MediaCategory, MediaLoadPhase, MediaRecord, MediaStatus } from "@/types/palate";
 import { getMediaDisplayTitle } from "@/utils/media_display";
 import { getPushEligibility } from "@/utils/push_eligibility";
 import { isMediaCategoryCompatible } from "@/utils/media_file_validation";
@@ -40,16 +40,26 @@ const category_values = {
 } as const satisfies Record<Exclude<(typeof categories)[number], "All Categories">, MediaCategory>;
 
 export default function MyMediaPage() {
-  const { clearPendingRegistration, deleteMedia, expireWaitingPush, feedback, mediaReadStatus, mediaRecords, processingAction, readLifecycle, retryOnChainDelete, retryPalateRegistration } = usePalate();
+  const { clearPendingRegistration, deleteMedia, expireWaitingPush, feedback, mediaLoadPhase, mediaReadStatus, mediaRecords, processingAction, retryOnChainDelete, retryPalateRegistration, walletReadCache } = usePalate();
   const { canPlayMedia, currentTrackId, isPlaying, playMedia, setQueueFromMedia, togglePlayback } = useMediaPlayer();
-  const { walletStatus } = usePalateWallet();
+  const { walletAddress, walletStatus } = usePalateWallet();
   const router = useRouter();
   const [status, setStatus] = useState<(typeof statuses)[number]>("All");
   const [category, setCategory] = useState<CategoryFilter>("All Categories");
   const [deleteMediaId, setDeleteMediaId] = useState<number | null>(null);
   const categoryOptions: DropdownOption<CategoryFilter>[] = categories.map((item) => ({ label: item, value: item }));
-  const walletReady = walletStatus === "connected";
+  const walletReady = walletStatus === "connected" && Boolean(walletAddress);
+  const normalizedWalletAddress = normalizeAddress(walletAddress);
+  const mediaOwnedByCurrentWallet = walletReadCache.userMedia.ownerAddress === normalizedWalletAddress;
+  const mediaHasCurrentWalletData = mediaOwnedByCurrentWallet && walletReadCache.userMedia.lastSuccessfulReadAt !== null;
+  const mediaInitialLoading = walletReady && (!mediaOwnedByCurrentWallet || ((mediaReadStatus === "idle" || mediaReadStatus === "loading") && !mediaHasCurrentWalletData));
+  const mediaInitialError = walletReady && mediaReadStatus === "error" && !mediaHasCurrentWalletData;
   const cleanupFeedback = feedback?.scope === "cleanup" ? feedback : null;
+  const loadingCopy = getMyMediaLoadingCopy({
+    walletReady,
+    mediaOwnedByCurrentWallet,
+    mediaLoadPhase
+  });
 
   const filteredMedia = useMemo(() => {
     return mediaRecords.filter((media) => {
@@ -246,18 +256,30 @@ export default function MyMediaPage() {
       >
           <CustomDropdown label="Category" onChange={setCategory} options={categoryOptions} value={category} />
       </FilterBar>
-      {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to load your on-chain media.</p> : null}
+      {!walletReady ? (
+        <EmptyState
+          variant="section"
+          title="Connect wallet to view My Media."
+          copy="Your on-chain media inventory only appears for the connected wallet."
+        />
+      ) : null}
       {cleanupFeedback ? <p className={`feedback_text feedback_${cleanupFeedback.type}`}>{cleanupFeedback.message}</p> : null}
 
-      {walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia ? <LoadingState variant="section" label="Loading on-chain media" /> : null}
-      {walletReady && mediaReadStatus === "error" ? <ErrorState variant="section" title="Media read failed" copy="Local inventory remains available while the chain read is retried later." /> : null}
-      {filteredMedia.length === 0 && !(mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia) && mediaReadStatus !== "error" ? (
+      {mediaInitialLoading ? (
+        <LoadingState
+          variant="section"
+          label={loadingCopy.label}
+          copy={loadingCopy.copy}
+        />
+      ) : null}
+      {mediaInitialError ? <ErrorState variant="section" title="Media read failed" copy="Local inventory remains available while the chain read is retried later." /> : null}
+      {walletReady && mediaOwnedByCurrentWallet && filteredMedia.length === 0 && !mediaInitialLoading && !mediaInitialError ? (
         <EmptyState variant="section" title="No media found" copy="Upload and register media to start building your Palate inventory." actionLabel="Upload Media" actionHref="/my-media/upload" />
-      ) : (
+      ) : walletReady && mediaOwnedByCurrentWallet && !mediaInitialLoading ? (
         <div className="media_grid">
           {filteredMedia.map((media) => renderMediaCard(media))}
         </div>
-      )}
+      ) : null}
 
       <ModalShell title="Delete media" open={deleteMediaId !== null} onClose={() => setDeleteMediaId(null)}>
         <div className="stack">
@@ -291,4 +313,51 @@ export default function MyMediaPage() {
       </ModalShell>
     </div>
   );
+}
+
+function normalizeAddress(address: string | null | undefined) {
+  return address?.trim().toLowerCase() ?? null;
+}
+
+function getMyMediaLoadingCopy({
+  walletReady,
+  mediaOwnedByCurrentWallet,
+  mediaLoadPhase
+}: {
+  walletReady: boolean;
+  mediaOwnedByCurrentWallet: boolean;
+  mediaLoadPhase: MediaLoadPhase;
+}) {
+  if (!walletReady || !mediaOwnedByCurrentWallet || mediaLoadPhase === "wallet_gate") {
+    return {
+      label: "Loading My Media",
+      copy: "Preparing your media inventory for this wallet."
+    };
+  }
+
+  if (mediaLoadPhase === "aptos_records") {
+    return {
+      label: "Reading media records",
+      copy: "Checking your on-chain media inventory on Aptos."
+    };
+  }
+
+  if (mediaLoadPhase === "shelby_sources") {
+    return {
+      label: "Resolving media files",
+      copy: "Loading media sources and previews from Shelby."
+    };
+  }
+
+  if (mediaLoadPhase === "previews") {
+    return {
+      label: "Preparing previews",
+      copy: "Building your media cards."
+    };
+  }
+
+  return {
+    label: "Loading My Media",
+    copy: "Preparing your on-chain media inventory."
+  };
 }

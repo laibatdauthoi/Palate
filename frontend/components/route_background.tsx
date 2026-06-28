@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 function getRouteClass(pathname: string) {
@@ -14,9 +15,20 @@ function getRouteClass(pathname: string) {
 
 export function RouteBackground() {
   const pathname = usePathname();
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    function syncPausedState() {
+      setPaused(document.visibilityState !== "visible");
+    }
+
+    syncPausedState();
+    document.addEventListener("visibilitychange", syncPausedState);
+    return () => document.removeEventListener("visibilitychange", syncPausedState);
+  }, []);
 
   return (
-    <div className={`route_background ${getRouteClass(pathname)}`} aria-hidden="true">
+    <div className={`route_background ${getRouteClass(pathname)}`} aria-hidden="true" data-paused={paused ? "true" : "false"}>
       <span className="route_fx route_fx_one" />
       <span className="route_fx route_fx_two" />
       <span className="route_fx route_fx_three" />

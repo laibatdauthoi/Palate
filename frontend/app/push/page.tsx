@@ -6,6 +6,7 @@ import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
 import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
 import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
+import { EmptyState } from "@/components/empty_state";
 import { FilterBar } from "@/components/filter_bar";
 import { MatchCard } from "@/components/match_card";
 import { LoadingState } from "@/components/loading_state";
@@ -38,7 +39,7 @@ export default function PushPage() {
 }
 
 function PushPageContent() {
-  const { activeMatches, balance, challengePush, chainRead, clearFeedback, createPush, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, clearFeedback, createPush, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes, walletReadCache } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -60,6 +61,8 @@ function PushPageContent() {
   );
   const selectedPush = openWaitingPushes.find((push) => push.id === challengePushId) ?? null;
   const normalizedWalletAddress = normalizeAddress(walletAddress);
+  const mediaOwnedByCurrentWallet = walletReadCache.userMedia.ownerAddress === normalizedWalletAddress;
+  const mediaHasCurrentWalletData = mediaOwnedByCurrentWallet && walletReadCache.userMedia.lastSuccessfulReadAt !== null;
   const selectedPushIsOwned = Boolean(
     selectedPush
       && normalizedWalletAddress
@@ -97,8 +100,8 @@ function PushPageContent() {
       ? "Not enough Palate Balance."
       : createAmountValidation.message;
   const canCreatePush = walletReady && !pushBusy && Boolean(createMediaId) && createAmountValidation.valid && createBalanceValid;
-  const createPushLoading = walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia;
-  const isLoadingEligibleMedia = walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia;
+  const createPushLoading = walletReady && (!mediaOwnedByCurrentWallet || ((mediaReadStatus === "idle" || mediaReadStatus === "loading") && !mediaHasCurrentWalletData));
+  const isLoadingEligibleMedia = walletReady && (!mediaOwnedByCurrentWallet || ((mediaReadStatus === "idle" || mediaReadStatus === "loading") && !mediaHasCurrentWalletData));
   const waitingSectionLoading = !readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading");
   const activeMatchesSectionLoading = !readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading");
   const idleMediaOptions: DropdownOption<string>[] = [
@@ -377,7 +380,13 @@ function PushPageContent() {
       />
 
       <SectionPanel title="Create push" copy="Use Palate Balance and mark selected idle media as waiting for a challenger.">
-        {createPushLoading ? (
+        {!walletReady ? (
+          <EmptyState
+            variant="section"
+            title="Connect wallet to create a Push."
+            copy="User media selection and Push creation only appear for the connected wallet."
+          />
+        ) : createPushLoading ? (
           <LoadingState
             variant="section"
             label="Loading push inventory"
@@ -398,7 +407,6 @@ function PushPageContent() {
           </div>
         )}
         {prefillReason ? <p className="feedback_text feedback_error">{prefillReason}</p> : null}
-        {!walletReady ? <p className="feedback_text feedback_info">Connect wallet to create or challenge Pushes on Aptos Testnet.</p> : null}
         {pushFeedback ? <p className={`feedback_text feedback_${pushFeedback.type}`}>{pushFeedback.message}</p> : null}
       </SectionPanel>
 

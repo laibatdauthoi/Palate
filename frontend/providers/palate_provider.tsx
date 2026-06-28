@@ -29,6 +29,7 @@ import {
   getPalateTransactionLog,
   getPalateBalance,
   getReadablePalateError,
+  isWalletUserRejectionError,
   getUserBuffRecords as readUserBuffRecords,
   getUserSummary as readUserSummary,
   getUserMedia,
@@ -195,7 +196,7 @@ type PalateContextValue = {
   placeBuff: (side: BuffSide, amount: string) => Promise<void>;
   placeMockBuff: (side: BuffSide, amount: string) => Promise<void>;
   skipMatch: () => Promise<void>;
-  settleMatch: (matchId: number) => Promise<void>;
+  settleMatch: (matchId: number) => Promise<"success" | "rejected" | "error" | "skipped">;
   uploadMedia: (input: UploadMediaInput) => Promise<void>;
   retryPalateRegistration: (mediaId: number) => Promise<void>;
   deleteMedia: (mediaId: number) => Promise<void>;
@@ -1736,12 +1737,12 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function settleMatchOnChain(matchId: number) {
+  async function settleMatchOnChain(matchId: number): Promise<"success" | "rejected" | "error" | "skipped"> {
     const finishPerf = startUiPerf("settleMatchOnChain", { matchId });
     if (walletConnectionStatus !== "connected" || !walletAddress) {
       setFeedback(createFeedback("settle", "error", "Connect wallet to settle the match."));
       finishPerf("end", { skipped: true, reason: "wallet not connected" });
-      return;
+      return "skipped";
     }
 
     setProcessingAction("settleMatch");
@@ -1780,10 +1781,16 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       ]);
       setFeedback(createFeedback("settle", "success", `Match settled ${shortenTransactionHash(transactionHash)}. Check Profile Claims for rewards.`));
       finishPerf("success", { transactionHash, refreshedClaims: true, refreshedGameState: true });
+      return "success";
     } catch (error) {
       console.error("settleMatch failed", error);
+      if (isWalletUserRejectionError(error)) {
+        finishPerf("error", { message: error instanceof Error ? error.message : String(error), rejected: true });
+        return "rejected";
+      }
       setFeedback(createFeedback("settle", "error", getReadablePalateError(error, "Settle Match failed.")));
       finishPerf("error", { message: error instanceof Error ? error.message : String(error) });
+      return "error";
     } finally {
       setProcessingAction(null);
     }

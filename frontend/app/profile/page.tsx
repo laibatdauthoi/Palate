@@ -34,6 +34,10 @@ function shortenAddress(address: string | null | undefined) {
   return `${address.slice(0, 8)}...${address.slice(-6)}`;
 }
 
+function normalizeAddress(address: string | null | undefined) {
+  return address?.trim().toLowerCase() ?? null;
+}
+
 function parseProfileTab(value: string | null): ProfileTab {
   if (value === "Claims" || value === "Activity" || value === "Stats") {
     return value;
@@ -90,10 +94,10 @@ function ProfilePageContent() {
     depositBalance,
     feedback,
     processingAction,
-    readLifecycle,
     refreshProfileActivity,
     userSummary,
     userSummaryReadStatus,
+    walletReadCache,
     withdrawBalance
   } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
@@ -110,6 +114,14 @@ function ProfilePageContent() {
   const balanceBusy = processingAction === "deposit" || processingAction === "withdraw";
   const walletReady = walletStatus === "connected" && Boolean(walletAddress);
   const claimBusy = processingAction === "claimReward";
+  const normalizedWalletAddress = normalizeAddress(walletAddress);
+  const summaryOwnedByCurrentWallet = walletReadCache.userSummary.ownerAddress === normalizedWalletAddress;
+  const summaryHasCurrentWalletData = summaryOwnedByCurrentWallet && walletReadCache.userSummary.lastSuccessfulReadAt !== null;
+  const claimsOwnedByCurrentWallet = walletReadCache.claimRecords.ownerAddress === normalizedWalletAddress;
+  const claimsHaveCurrentWalletData = claimsOwnedByCurrentWallet && walletReadCache.claimRecords.lastSuccessfulReadAt !== null;
+  const activityOwnedByCurrentWallet = walletReadCache.userActivity.ownerAddress === normalizedWalletAddress;
+  const activityHasCurrentWalletData = activityOwnedByCurrentWallet && walletReadCache.userActivity.lastSuccessfulReadAt !== null;
+  const balanceOwnedByCurrentWallet = walletReadCache.palateBalance.ownerAddress === normalizedWalletAddress;
 
   const profile_stats = [
     { label: "Push count", value: userSummary.pushCount },
@@ -132,9 +144,18 @@ function ProfilePageContent() {
   );
   const claimedClaims = useMemo(() => claimRecords.filter((claim) => claim.claimed), [claimRecords]);
   const totalClaimableAmount = useMemo(() => formatOctasToApt(claimableRewardsSummary.claimableTotalOctas), [claimableRewardsSummary.claimableTotalOctas]);
+  const visibleClaimableRewardsSummary = claimsOwnedByCurrentWallet
+    ? claimableRewardsSummary
+    : {
+        claimableCount: 0,
+        claimableTotalOctas: "0",
+        hasClaimableRewards: false
+      };
 
   const claimReadMessage =
-    claimReadStatus === "loading"
+    !claimsOwnedByCurrentWallet
+      ? "Loading claims."
+      : claimReadStatus === "loading"
       ? "Loading claims."
       : claimReadStatus === "error"
         ? claimRecords.length > 0
@@ -143,7 +164,9 @@ function ProfilePageContent() {
         : null;
 
   const statsReadMessage =
-    userSummaryReadStatus === "loading"
+    !summaryOwnedByCurrentWallet
+      ? "Loading stats."
+      : userSummaryReadStatus === "loading"
       ? "Loading stats."
       : userSummaryReadStatus === "error"
         ? Object.values(userSummary).some((value) => value !== "Unavailable" && value !== "Loading" && value !== "" && value !== walletAddress)
@@ -152,7 +175,9 @@ function ProfilePageContent() {
         : null;
 
   const summaryClaimableValue =
-    claimReadStatus === "loading" && claimRecords.length === 0
+    !claimsOwnedByCurrentWallet
+      ? "Loading"
+      : claimReadStatus === "loading" && claimRecords.length === 0
       ? "Loading"
       : claimReadStatus === "error" && claimRecords.length === 0
         ? "Unavailable"
@@ -178,7 +203,9 @@ function ProfilePageContent() {
   const canLoadMoreActivity = visibleActivityTransactions.length < filteredActivityTransactions.length;
 
   const activityReadMessage =
-    activityReadStatus === "loading" || activityRefreshing
+    !activityOwnedByCurrentWallet
+      ? "Loading activity."
+      : activityReadStatus === "loading" || activityRefreshing
       ? "Loading activity."
       : activityReadStatus === "error"
         ? activityTransactions.length > 0
@@ -274,6 +301,15 @@ function ProfilePageContent() {
         lifted
       />
 
+      {!walletReady ? (
+        <EmptyState
+          variant="section"
+          title="Connect wallet to view Profile."
+          copy="Profile stats, claims, activity, and Palate Balance management only appear for the connected wallet."
+        />
+      ) : (
+        <>
+
       <div className="profile_summary_grid">
         <SectionPanel>
           <div className="stat_card">
@@ -284,7 +320,7 @@ function ProfilePageContent() {
         <SectionPanel accent>
           <div className="stat_card">
             <span>Palate Balance</span>
-            {renderStatValue(balance.availableBalance)}
+            {renderStatValue(balanceOwnedByCurrentWallet ? balance.availableBalance : "Loading")}
           </div>
         </SectionPanel>
         <SectionPanel>
@@ -314,7 +350,7 @@ function ProfilePageContent() {
         ariaLabel="Profile views"
         items={[
           { key: "Stats", label: "Stats" },
-          { key: "Claims", label: "Claims", count: claimableRewardsSummary.hasClaimableRewards ? claimableRewardsSummary.claimableCount : undefined, attention: claimableRewardsSummary.hasClaimableRewards },
+          { key: "Claims", label: "Claims", count: visibleClaimableRewardsSummary.hasClaimableRewards ? visibleClaimableRewardsSummary.claimableCount : undefined, attention: visibleClaimableRewardsSummary.hasClaimableRewards },
           { key: "Activity", label: "Activity" }
         ]}
         onChange={handleTabChange}
@@ -323,7 +359,7 @@ function ProfilePageContent() {
       {tab === "Stats" ? (
         <div className="stack">
           {statsReadMessage ? <p className={`feedback_text ${userSummaryReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{statsReadMessage}</p> : null}
-          {userSummaryReadStatus === "loading" && !readLifecycle.hasLoadedUserSummary ? (
+          {!summaryHasCurrentWalletData && (!summaryOwnedByCurrentWallet || userSummaryReadStatus === "idle" || userSummaryReadStatus === "loading") ? (
             <LoadingState
               variant="section"
               label="Loading profile stats"
@@ -368,15 +404,15 @@ function ProfilePageContent() {
 
             {claimReadMessage ? <p className={`feedback_text ${claimReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{claimReadMessage}</p> : null}
 
-            {claimReadStatus === "loading" && !readLifecycle.hasLoadedClaims ? (
+            {!claimsHaveCurrentWalletData && (!claimsOwnedByCurrentWallet || claimReadStatus === "idle" || claimReadStatus === "loading") ? (
               <LoadingState
                 variant="section"
                 label="Loading claim records"
                 copy="Real claim discovery records are loading from chain."
               />
-            ) : claimReadStatus === "error" && claimRecords.length === 0 ? (
+            ) : claimReadStatus === "error" && !claimsHaveCurrentWalletData && claimRecords.length === 0 ? (
               <ErrorState variant="section" title="Claim records unavailable" copy="Claims could not be loaded from chain right now." />
-            ) : claimRecords.length === 0 && claimReadStatus !== "loading" && claimReadStatus !== "refreshing" ? (
+            ) : claimsOwnedByCurrentWallet && claimRecords.length === 0 && claimReadStatus !== "loading" && claimReadStatus !== "refreshing" ? (
               <EmptyState variant="section" title="No settled rewards yet." copy="Claimable and claimed rewards will appear here after settlement." />
             ) : (
               <div className="claim_center_stack">
@@ -477,15 +513,15 @@ function ProfilePageContent() {
                 {activityReadMessage ? <p className={`feedback_text ${activityReadStatus === "error" ? "feedback_error" : "feedback_info"}`}>{activityReadMessage}</p> : null}
                 {activityFeedback ? <p className={`feedback_text feedback_${activityFeedback.type}`}>{activityFeedback.message}</p> : null}
 
-                {activityReadStatus === "loading" && !readLifecycle.hasLoadedActivity ? (
+                {!activityHasCurrentWalletData && (!activityOwnedByCurrentWallet || activityReadStatus === "idle" || activityReadStatus === "loading") ? (
                   <LoadingState
                     variant="section"
                     label="Loading activity"
                     copy="Palate wallet activity is loading from chain."
                   />
-                ) : activityReadStatus === "error" && filteredActivityTransactions.length === 0 ? (
+                ) : activityReadStatus === "error" && !activityHasCurrentWalletData && filteredActivityTransactions.length === 0 ? (
                   <ErrorState variant="section" title="Activity unavailable" copy="Palate wallet activity could not be loaded from chain right now." />
-                ) : filteredActivityTransactions.length === 0 && activityReadStatus !== "loading" && activityReadStatus !== "refreshing" ? (
+                ) : activityOwnedByCurrentWallet && filteredActivityTransactions.length === 0 && activityReadStatus !== "loading" && activityReadStatus !== "refreshing" ? (
                   <EmptyState variant="section" title="No Palate activity yet." copy="Palate transaction history will appear here after the connected wallet sends Palate actions." />
                 ) : (
                   <div className="activity_rows">
@@ -521,6 +557,8 @@ function ProfilePageContent() {
             )}
           </SectionPanel>
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ActiveMatch, MediaCategory } from "@/types/palate";
 import { ActionButton } from "./action_button";
 import { useLiveCountdown } from "@/hooks/use_live_countdown";
@@ -8,18 +8,37 @@ import { logUiPerf, uiPerfNow } from "@/utils/ui_perf";
 
 type MatchCardProps = {
   match: ActiveMatch;
-  onSettle?: () => void;
+  onSettle?: () => Promise<unknown> | void;
   settleDisabled?: boolean;
 };
 
 export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
+  const [settleLocalFeedback, setSettleLocalFeedback] = useState<"idle" | "rejected">("idle");
+  const settleFeedbackResetRef = useRef<number | null>(null);
   const countdown = useLiveCountdown(Number(match.endTimeSeconds), { endedLabel: "Ended" });
   const isSettleEligible = match.status === "active" && countdown.isEnded;
   const detailStateLabel = isSettleEligible ? "Ready to settle" : `Remaining ${countdown.label}`;
   const categoryLabel = formatCategoryLabel(match.category);
   const endTimeLabel = formatUnixSeconds(match.endTimeSeconds);
   const compactMatchIdLabel = formatCompactMatchId(match.id);
+
+  useEffect(() => () => {
+    if (settleFeedbackResetRef.current !== null) {
+      window.clearTimeout(settleFeedbackResetRef.current);
+    }
+  }, []);
+
+  function showSettleRejectedFeedback() {
+    if (settleFeedbackResetRef.current !== null) {
+      window.clearTimeout(settleFeedbackResetRef.current);
+    }
+    setSettleLocalFeedback("rejected");
+    settleFeedbackResetRef.current = window.setTimeout(() => {
+      setSettleLocalFeedback("idle");
+      settleFeedbackResetRef.current = null;
+    }, 2400);
+  }
 
   return (
     <>
@@ -59,12 +78,13 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
                 i
               </ActionButton>
               {isSettleEligible && onSettle ? (
-                <ActionButton
-                  aria-label="Settle"
-                  className="match_card_settle_button"
-                  variant="caution"
-                  disabled={settleDisabled}
-                  onClick={() => {
+              <ActionButton
+                aria-label="Settle"
+                className="match_card_settle_button"
+                size="cardMain"
+                variant="caution"
+                disabled={settleDisabled}
+                onClick={async () => {
                     const startedAt = uiPerfNow();
                     logUiPerf("settleButtonClick", {
                       matchId: match.id,
@@ -73,14 +93,17 @@ export function MatchCard({ match, onSettle, settleDisabled }: MatchCardProps) {
                       localStateUpdatedImmediately: false,
                       providerAction: "settleMatch"
                     });
-                    onSettle();
+                    const result = await onSettle();
+                    if (result === "rejected") {
+                      showSettleRejectedFeedback();
+                    }
                     logUiPerf("settleButtonClick:end", {
                       matchId: match.id,
                       syncDurationMs: Math.round(uiPerfNow() - startedAt)
                     });
                   }}
                 >
-                  Settle
+                  {settleLocalFeedback === "rejected" ? "Rejected" : "Settle"}
                 </ActionButton>
               ) : (
                 <span className="countdown_timer match_card_countdown_slot" aria-label={`Time remaining ${countdown.label}`}>

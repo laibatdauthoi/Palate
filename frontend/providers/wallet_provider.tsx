@@ -8,15 +8,17 @@ import {
 } from "@aptos-labs/wallet-adapter-react";
 import type { InputTransactionData } from "@aptos-labs/wallet-adapter-core";
 import { Network } from "@aptos-labs/ts-sdk";
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { getWalletAptBalance } from "@/services/aptos_service";
-import type { WalletStatus } from "@/types/palate";
+import type { WalletDisplayState, WalletStatus } from "@/types/palate";
 
 type WalletContextValue = {
   walletStatus: WalletStatus;
+  walletDisplayState: WalletDisplayState;
   walletAddress: string | null;
   walletName: string | null;
   networkName: string | null;
+  providerReady: boolean;
   walletBalance: string | null;
   walletBalanceStatus: "idle" | "loading" | "ready" | "error";
   walletBalanceError: string | null;
@@ -58,20 +60,45 @@ function WalletBridge({ children }: { children: ReactNode }) {
   const [walletBalance, setWalletBalance] = useState<string | null>(null);
   const [walletBalanceStatus, setWalletBalanceStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [walletBalanceError, setWalletBalanceError] = useState<string | null>(null);
+  const lastResolvedWalletAddressRef = useRef<string | null>(null);
 
   const walletAddress = normalizeAddress(account?.address);
   const networkName = network?.name ? String(network.name) : null;
   const wrongNetwork = connected && networkName !== null && networkName.toLowerCase() !== Network.TESTNET;
+  const providerReady = wallets.length > 0 || notDetectedWallets.length > 0;
+  const hasConnectedAccount = connected && Boolean(walletAddress);
+  const adapterTransitioning = isLoading || Boolean(connectingWalletName) || (connected && !walletAddress);
 
   const walletStatus: WalletStatus = walletError
     ? "error"
-    : isLoading || connectingWalletName
+    : adapterTransitioning
       ? "connecting"
       : wrongNetwork
         ? "wrong_network"
-        : connected
+        : hasConnectedAccount
           ? "connected"
           : "disconnected";
+
+  const walletDisplayState: WalletDisplayState = walletError
+    ? "error"
+    : wrongNetwork
+      ? "wrong_network"
+      : hasConnectedAccount
+        ? "connected"
+        : adapterTransitioning
+          ? (lastResolvedWalletAddressRef.current ? "switching" : "connecting")
+          : "disconnected";
+
+  useEffect(() => {
+    if (walletAddress) {
+      lastResolvedWalletAddressRef.current = walletAddress;
+      return;
+    }
+
+    if (!connected && !isLoading && !connectingWalletName) {
+      lastResolvedWalletAddressRef.current = null;
+    }
+  }, [connected, connectingWalletName, isLoading, walletAddress]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,9 +137,11 @@ function WalletBridge({ children }: { children: ReactNode }) {
   const value = useMemo<WalletContextValue>(
     () => ({
       walletStatus,
+      walletDisplayState,
       walletAddress,
       walletName: wallet?.name ?? null,
       networkName,
+      providerReady,
       walletBalance,
       walletBalanceStatus,
       walletBalanceError,
@@ -147,10 +176,12 @@ function WalletBridge({ children }: { children: ReactNode }) {
       disconnect,
       networkName,
       notDetectedWallets,
+      providerReady,
       signAndSubmitTransaction,
       walletBalance,
       walletBalanceError,
       walletBalanceStatus,
+      walletDisplayState,
       wallet?.name,
       walletAddress,
       walletError,

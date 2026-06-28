@@ -10,6 +10,7 @@ import { ModalShell } from "./modal_shell";
 const wallet_status_copy = {
   disconnected: "Disconnected",
   connecting: "Connecting",
+  switching: "Switching",
   connected: "Connected",
   wrong_network: "Wrong network",
   error: "Error"
@@ -36,36 +37,54 @@ export function WalletPanel() {
     disconnectWallet,
     networkName,
     notDetectedWallets,
+    providerReady,
     walletAddress,
     walletBalance,
     walletBalanceError,
     walletBalanceStatus,
+    walletDisplayState,
     walletError,
     walletName,
     walletStatus
   } = usePalateWallet();
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const connected = walletStatus === "connected";
-  const statusCopy = connected ? "Connected" : wallet_status_copy[walletStatus];
+
+  const connected = walletDisplayState === "connected";
+  const transitioning = walletDisplayState === "connecting" || walletDisplayState === "switching";
+  const statusCopy = wallet_status_copy[walletDisplayState];
   const addressCopy = walletAddress ? shortenAddress(walletAddress) : statusCopy;
   const chainStatusCopy = getChainStatusCopy(chainRead.status, chainRead.warning);
-  const walletBalanceCopy = walletBalanceStatus === "ready"
-    ? walletBalance ?? "Unavailable"
-    : walletBalanceStatus === "loading"
-      ? "Loading"
-      : walletBalanceStatus === "error"
-        ? "Unavailable"
-        : "Disconnected";
-  const palateBalanceCopy = !connected
-    ? "Disconnected"
-    : palateBalanceReadStatus === "ready"
-      ? balance.availableBalance
-      : palateBalanceReadStatus === "loading"
+  const providerStatusCopy = providerReady ? "Ready" : "Unavailable";
+  const walletPrimaryCopy = connected
+    ? addressCopy
+    : walletDisplayState === "switching"
+      ? "Switching wallet..."
+      : walletDisplayState === "connecting"
+        ? "Connecting..."
+        : statusCopy;
+  const walletBalanceCopy = connected
+    ? walletBalanceStatus === "ready"
+      ? walletBalance ?? "Unavailable"
+      : walletBalanceStatus === "loading"
         ? "Loading"
+        : walletBalanceStatus === "error"
+          ? "Unavailable"
+          : "Loading"
+    : transitioning
+      ? "Syncing..."
+      : "Disconnected";
+  const palateBalanceCopy = connected
+    ? palateBalanceReadStatus === "ready"
+      ? balance.availableBalance
+      : palateBalanceReadStatus === "loading" || palateBalanceReadStatus === "refreshing"
+        ? "Syncing..."
         : palateBalanceReadStatus === "error"
           ? "Unavailable"
-          : "Disconnected";
+          : "Syncing..."
+    : transitioning
+      ? "Syncing..."
+      : "Disconnected";
   const showDetailsToggle = Boolean(chainRead.warning || chainRead.error || app_config.debugAptosReads);
   const compactStatusLine = chainRead.error
     ? "Contract read temporarily unavailable"
@@ -75,7 +94,11 @@ export function WalletPanel() {
         ? walletError
         : walletBalanceError && connected
           ? "Wallet balance unavailable."
-          : null;
+          : walletDisplayState === "switching"
+            ? "Waiting for the new wallet account to resolve."
+            : walletDisplayState === "connecting"
+              ? "Waiting for wallet connection."
+              : null;
 
   async function handleConnect(nextWalletName: string) {
     await connectWallet(nextWalletName);
@@ -89,16 +112,24 @@ export function WalletPanel() {
           <div className="wallet_identity">
             <span className="eyebrow">Wallet</span>
           </div>
-          <span className={`wallet_status wallet_status_${walletStatus}`}>{statusCopy}</span>
+          <span className={`wallet_status wallet_status_${walletDisplayState === "switching" ? "connecting" : walletDisplayState}`}>{statusCopy}</span>
         </div>
         <div className="wallet_compact_body">
-          <strong>{connected ? addressCopy : statusCopy}</strong>
+          <strong>{walletPrimaryCopy}</strong>
           <span><strong>Wallet:</strong> {walletBalanceCopy}</span>
           <span><strong>Palate:</strong> {palateBalanceCopy}</span>
         </div>
-        {connected ? (
+        {walletName || networkName || providerReady ? (
           <div className="wallet_meta">
-            <span>{walletName ?? "Wallet"} · {(networkName ?? "Network").toLowerCase()} · <span className={`chain_status_pill chain_status_${chainRead.status}`}>{chainStatusCopy}</span></span>
+            <span>
+              {walletName ?? "Wallet"}
+              {" · "}
+              {(networkName ?? "Network").toLowerCase()}
+              {" · "}
+              <span className={`chain_status_pill chain_status_${connected ? chainRead.status : "ready"}`}>
+                {connected ? chainStatusCopy : providerStatusCopy}
+              </span>
+            </span>
           </div>
         ) : null}
         {compactStatusLine ? <p className={`wallet_message ${chainRead.error || walletStatus === "wrong_network" || walletError || walletBalanceError ? "wallet_message_error" : ""}`}>{compactStatusLine}</p> : null}
@@ -126,8 +157,8 @@ export function WalletPanel() {
           {connected ? (
             <ActionButton className="wallet_compact_button" onClick={disconnectWallet} variant="secondary">Disconnect</ActionButton>
           ) : (
-            <ActionButton className="wallet_compact_button" disabled={walletStatus === "connecting"} onClick={() => setWalletModalOpen(true)}>
-              {walletStatus === "connecting" ? "Connecting" : "Connect"}
+            <ActionButton className="wallet_compact_button" disabled={transitioning || walletStatus === "connecting"} onClick={() => setWalletModalOpen(true)}>
+              {walletDisplayState === "switching" ? "Switching" : walletStatus === "connecting" ? "Connecting" : "Connect"}
             </ActionButton>
           )}
         </div>
@@ -141,7 +172,7 @@ export function WalletPanel() {
               {availableWallets.map((wallet) => (
                 <button
                   className="wallet_option_card"
-                  disabled={walletStatus === "connecting"}
+                  disabled={transitioning || walletStatus === "connecting"}
                   key={wallet.name}
                   onClick={() => handleConnect(wallet.name)}
                   type="button"
