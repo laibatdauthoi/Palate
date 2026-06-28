@@ -2,8 +2,10 @@
 
 import { useEffect } from "react";
 
-const DESIGN_WIDTH = 1536;
-const DESIGN_HEIGHT = 864;
+// Calibrated to the currently approved Home viewport so Stage 2 can preserve
+// the existing composition when scale variables are consumed later.
+const DESIGN_WIDTH = 1280;
+const DESIGN_HEIGHT = 678;
 const MIN_SCALE = 0.8;
 const MAX_SCALE = 1.18;
 
