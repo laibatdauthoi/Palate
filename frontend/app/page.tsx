@@ -18,7 +18,8 @@ import type { MediaCategory } from "@/types/palate";
 import { getPushEligibility } from "@/utils/push_eligibility";
 import { logPageMount, logUiPerf } from "@/utils/ui_perf";
 
-const live_refresh_interval_ms = 18000;
+const PUBLIC_HOME_REFRESH_INTERVAL_MS = 15000;
+const PUBLIC_HOME_STALE_AFTER_MS = 15000;
 const category_labels: Record<MediaCategory, string> = {
   meme: "Meme",
   image: "Image",
@@ -27,7 +28,7 @@ const category_labels: Record<MediaCategory, string> = {
 };
 
 export default function HomePage() {
-  const { activeMatches, balance, challengePush, chainRead, clearFeedback, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, clearFeedback, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes, walletReadCache } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const [activityTab, setActivityTab] = useState<"waiting" | "matches">("waiting");
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
@@ -77,6 +78,7 @@ export default function HomePage() {
   const showMatchesError = activityTab === "matches" && homePublicGameErrored && activeMatches.length === 0;
   const showWaitingEmpty = activityTab === "waiting" && readLifecycle.hasLoadedPublicGameState && publicGameReadStatus === "ready" && waitingPushes.length === 0;
   const showMatchesEmpty = activityTab === "matches" && readLifecycle.hasLoadedPublicGameState && publicGameReadStatus === "ready" && activeMatches.length === 0;
+  const lastSuccessfulPublicReadAt = walletReadCache.publicGameState.lastSuccessfulReadAt;
 
   useEffect(() => {
     logPageMount("Home");
@@ -90,35 +92,59 @@ export default function HomePage() {
   }, [challengePushId, clearFeedback, selectedPush]);
 
   useEffect(() => {
-    async function runRefresh(source: "interval" | "visible" | "mount") {
-      if (document.hidden) {
+    function isPublicHomeDataStale() {
+      return lastSuccessfulPublicReadAt === null
+        || (Date.now() - lastSuccessfulPublicReadAt) > PUBLIC_HOME_STALE_AFTER_MS;
+    }
+
+    async function runRefresh(
+      source: "interval" | "visible" | "focus" | "mount" | "mount-stale",
+      options: { force?: boolean; staleOnly?: boolean } = {}
+    ) {
+      if (document.visibilityState !== "visible") {
         logUiPerf("liveRefresh:skippedHidden", { page: "home", source });
+        return;
+      }
+
+      if (options.staleOnly && !isPublicHomeDataStale()) {
+        logUiPerf("liveRefresh:skippedFresh", { page: "home", source });
         return;
       }
 
       await refreshPublicGameState({
         waitingPushes: true,
         activeMatches: true,
-        source: `home:${source}`
+        source: `home:${source}`,
+        force: options.force ?? false
       });
     }
 
     if (!readLifecycle.hasLoadedPublicGameState || publicGameReadStatus === "idle") {
-      void runRefresh("mount");
+      void runRefresh("mount", { force: true });
+    } else if (isPublicHomeDataStale()) {
+      void runRefresh("mount-stale", { force: true, staleOnly: true });
     }
-    const intervalId = window.setInterval(() => runRefresh("interval"), live_refresh_interval_ms);
+    const intervalId = window.setInterval(() => {
+      void runRefresh("interval", { force: true });
+    }, PUBLIC_HOME_REFRESH_INTERVAL_MS);
+
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        void runRefresh("visible");
+      if (document.visibilityState === "visible") {
+        void runRefresh("visible", { force: true, staleOnly: true });
       }
+    };
+    const handleWindowFocus = () => {
+      void runRefresh("focus", { force: true, staleOnly: true });
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleWindowFocus);
     return () => {
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleWindowFocus);
     };
-  }, [publicGameReadStatus, readLifecycle.hasLoadedPublicGameState, refreshPublicGameState]);
+  }, [lastSuccessfulPublicReadAt, publicGameReadStatus, readLifecycle.hasLoadedPublicGameState, refreshPublicGameState]);
 
   return (
     <div className="page_stack page_home">
