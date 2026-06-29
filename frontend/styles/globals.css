@@ -28,6 +28,7 @@ html {
   --wallet-padding-scaled: calc(10px * var(--ui-scale));
   --wallet-gap-scaled: calc(8px * var(--ui-scale));
   --main-frame-width-scaled: calc(1005px * var(--ui-scale));
+  --waiting-grid-gap-scaled: calc(27px * var(--ui-scale));
   --main-padding-top-scaled: calc(var(--spacing-xl) * var(--ui-scale));
   --main-padding-x-scaled: calc(var(--spacing-2xl) * var(--ui-scale));
   --main-padding-bottom-scaled: calc(var(--spacing-3xl) * var(--ui-scale));
@@ -5078,9 +5079,9 @@ select.input_control option:checked,
 @media (min-width: 1200px) {
   .waiting_grid {
     grid-template-columns: repeat(3, 296px);
-    justify-content: space-between;
+    justify-content: start;
     justify-items: start;
-    column-gap: var(--spacing-xl);
+    column-gap: var(--waiting-grid-gap-scaled);
   }
 
   .matches_grid {
