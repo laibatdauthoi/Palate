@@ -22,13 +22,16 @@ export function LayoutScaleController() {
 
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
+      const layoutMode = viewportWidth >= 768 ? "desktop-fit" : "mobile";
+      const layoutModeCode = layoutMode === "desktop-fit" ? "1" : "3";
       const scaleX = viewportWidth / DESIGN_WIDTH;
       const scaleY = viewportHeight / DESIGN_HEIGHT;
       const scaleUniform = Math.min(scaleX, scaleY);
       const uiScale = clamp(scaleUniform, MIN_SCALE, MAX_SCALE);
       const safeGutterX = Math.max((viewportWidth - DESIGN_WIDTH * uiScale) / 2, 0);
       const safeGutterY = Math.max((viewportHeight - DESIGN_HEIGHT * uiScale) / 2, 0);
-      const rootStyle = document.documentElement.style;
+      const rootElement = document.documentElement;
+      const rootStyle = rootElement.style;
 
       rootStyle.setProperty("--viewport-width", `${viewportWidth}px`);
       rootStyle.setProperty("--viewport-height", `${viewportHeight}px`);
@@ -40,6 +43,8 @@ export function LayoutScaleController() {
       rootStyle.setProperty("--ui-scale", uiScale.toFixed(4));
       rootStyle.setProperty("--safe-gutter-x", `${safeGutterX.toFixed(2)}px`);
       rootStyle.setProperty("--safe-gutter-y", `${safeGutterY.toFixed(2)}px`);
+      rootStyle.setProperty("--layout-mode-code", layoutModeCode);
+      rootElement.dataset.layoutMode = layoutMode;
     };
 
     const scheduleLayoutMetrics = () => {
