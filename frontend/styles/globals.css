@@ -27,6 +27,7 @@ html {
   --nav-link-rail-inset-scaled: calc(8px * var(--ui-scale));
   --wallet-padding-scaled: calc(10px * var(--ui-scale));
   --wallet-gap-scaled: calc(8px * var(--ui-scale));
+  --main-frame-width-scaled: calc(1005px * var(--ui-scale));
   --main-padding-top-scaled: calc(var(--spacing-xl) * var(--ui-scale));
   --main-padding-x-scaled: calc(var(--spacing-2xl) * var(--ui-scale));
   --main-padding-bottom-scaled: calc(var(--spacing-3xl) * var(--ui-scale));
@@ -469,8 +470,8 @@ img {
 }
 
 .main_content {
-  width: min(100%, var(--app-max-width));
-  margin: 0 auto;
+  width: min(100%, var(--main-frame-width-scaled));
+  margin: 0;
   padding: var(--main-padding-top-scaled) var(--main-padding-x-scaled) var(--main-padding-bottom-scaled);
 }
 
