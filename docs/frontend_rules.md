@@ -7,6 +7,7 @@ Before implementing frontend code, read:
 docs/Palate_spec.md
 docs/Palate_ui_spec.md
 docs/design_tokens.md
+docs/Layout_scale_rules.md
 docs/Shelby_notes.md
 docs/naming_rules.md
 docs/Codex_rules.md
@@ -95,6 +96,14 @@ Do not create a generic DeFi dashboard style.
 Do not make the UI cute, childish, meme-like, or overly playful.
 
 Prefer premium dark GameFi elegance.
+
+## Layout scale contract
+
+For any UI layout, spacing, sizing, grid, card, sidebar, modal, or button dimension change, follow `docs/Layout_scale_rules.md`.
+
+Do not introduce layout values that bypass the scale system.
+
+If a UI change cannot be mapped to the scale system, stop and ask before implementing.
 
 ## 7. Responsive Rule
 

@@ -49,6 +49,7 @@ Before implementing anything, read:
 docs/Palate_spec.md
 docs/Palate_ui_spec.md
 docs/design_tokens.md
+docs/Layout_scale_rules.md
 docs/frontend_rules.md
 docs/Shelby_notes.md
 docs/naming_rules.md
@@ -65,6 +66,14 @@ Use Buff as the main user-facing term for supporting one side in a random match.
 Use Buff terminology in the main contract spec: `placeBuff`, `claimBuff`, `buff_record`, `buff_pool_a`, `buff_pool_b`, `buff_count_a`, `buff_count_b`, `min_buff_amount`, `buff_commitment_amount`, `calculateBuffScore`, `buff_win_count`, `buff_loss_count`, `buff_profit`, and `total_buffed`.
 
 The UI must feel premium, dark, dynamic, and GameFi-like, with mature pink accents. Do not make it cute, candy-like, generic, or overly flashy.
+
+## Layout scale contract
+
+For any UI layout, spacing, sizing, grid, card, sidebar, modal, or button dimension change, follow `docs/Layout_scale_rules.md`.
+
+Do not introduce layout values that bypass the scale system.
+
+If a UI change cannot be mapped to the scale system, stop and ask before implementing.
 
 MVP media categories are meme, image, audio, and video.
 
