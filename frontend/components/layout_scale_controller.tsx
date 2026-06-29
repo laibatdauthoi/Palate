@@ -22,8 +22,10 @@ export function LayoutScaleController() {
 
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      const rawScale = Math.min(viewportWidth / DESIGN_WIDTH, viewportHeight / DESIGN_HEIGHT);
-      const uiScale = clamp(rawScale, MIN_SCALE, MAX_SCALE);
+      const scaleX = viewportWidth / DESIGN_WIDTH;
+      const scaleY = viewportHeight / DESIGN_HEIGHT;
+      const scaleUniform = Math.min(scaleX, scaleY);
+      const uiScale = clamp(scaleUniform, MIN_SCALE, MAX_SCALE);
       const safeGutterX = Math.max((viewportWidth - DESIGN_WIDTH * uiScale) / 2, 0);
       const safeGutterY = Math.max((viewportHeight - DESIGN_HEIGHT * uiScale) / 2, 0);
       const rootStyle = document.documentElement.style;
@@ -32,6 +34,9 @@ export function LayoutScaleController() {
       rootStyle.setProperty("--viewport-height", `${viewportHeight}px`);
       rootStyle.setProperty("--layout-design-width", `${DESIGN_WIDTH}`);
       rootStyle.setProperty("--layout-design-height", `${DESIGN_HEIGHT}`);
+      rootStyle.setProperty("--ui-scale-x", scaleX.toFixed(4));
+      rootStyle.setProperty("--ui-scale-y", scaleY.toFixed(4));
+      rootStyle.setProperty("--ui-scale-uniform", scaleUniform.toFixed(4));
       rootStyle.setProperty("--ui-scale", uiScale.toFixed(4));
       rootStyle.setProperty("--safe-gutter-x", `${safeGutterX.toFixed(2)}px`);
       rootStyle.setProperty("--safe-gutter-y", `${safeGutterY.toFixed(2)}px`);
