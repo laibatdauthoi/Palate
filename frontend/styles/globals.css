@@ -4,7 +4,7 @@
   box-sizing: border-box;
 }
 
-html {
+:root {
   --viewport-width: 100vw;
   --viewport-height: 100vh;
   --layout-design-width: 1280;
@@ -29,9 +29,15 @@ html {
   --wallet-gap-scaled: calc(8px * var(--ui-scale));
   --main-frame-width-scaled: calc(1005px * var(--ui-scale));
   --waiting-grid-gap-scaled: calc(27px * var(--ui-scale));
+  --waiting-card-width-scaled: calc(296px * var(--ui-scale));
+  --waiting-card-height-scaled: calc(328px * var(--ui-scale));
+  --waiting-card-media-height-scaled: calc(176px * var(--ui-scale));
   --main-padding-top-scaled: calc(var(--spacing-xl) * var(--ui-scale));
   --main-padding-x-scaled: calc(var(--spacing-2xl) * var(--ui-scale));
   --main-padding-bottom-scaled: calc(var(--spacing-3xl) * var(--ui-scale));
+}
+
+html {
   min-height: 100%;
   background: var(--background-primary);
   color-scheme: dark;
@@ -3241,8 +3247,8 @@ select.input_control option:checked,
 
 .waiting_push_card_compact {
   width: 100%;
-  max-width: 296px;
-  min-height: 0;
+  max-width: var(--waiting-card-width-scaled, 296px);
+  min-height: var(--waiting-card-height-scaled, 328px);
   height: auto;
   justify-self: start;
   align-self: start;
@@ -3251,9 +3257,9 @@ select.input_control option:checked,
 }
 
 .waiting_push_card_compact .waiting_media {
-  min-height: 176px;
-  height: 176px;
-  max-height: 176px;
+  min-height: var(--waiting-card-media-height-scaled, 176px);
+  height: var(--waiting-card-media-height-scaled, 176px);
+  max-height: var(--waiting-card-media-height-scaled, 176px);
   padding: 0;
 }
 
@@ -5068,7 +5074,7 @@ select.input_control option:checked,
 }
 
 .waiting_grid .waiting_push_card_compact {
-  max-width: 296px;
+  max-width: var(--waiting-card-width-scaled, 296px);
 }
 
 .matches_grid .match_card {
@@ -5078,7 +5084,7 @@ select.input_control option:checked,
 
 @media (min-width: 1200px) {
   .waiting_grid {
-    grid-template-columns: repeat(3, 296px);
+    grid-template-columns: repeat(3, var(--waiting-card-width-scaled, 296px));
     justify-content: start;
     justify-items: start;
     column-gap: var(--waiting-grid-gap-scaled);
