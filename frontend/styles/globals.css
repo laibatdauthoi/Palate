@@ -32,6 +32,11 @@
   --waiting-card-width-scaled: calc(296px * var(--ui-scale));
   --waiting-card-height-scaled: calc(328px * var(--ui-scale));
   --waiting-card-media-height-scaled: calc(176px * var(--ui-scale));
+  --match-card-width-scaled: calc(462.5px * var(--ui-scale));
+  --match-card-height-scaled: calc(256px * var(--ui-scale));
+  --match-card-media-height-scaled: calc(168px * var(--ui-scale));
+  --match-grid-gap-scaled: calc(16px * var(--ui-scale));
+  --match-grid-row-gap-scaled: calc(16px * var(--ui-scale));
   --main-padding-top-scaled: calc(var(--spacing-xl) * var(--ui-scale));
   --main-padding-x-scaled: calc(var(--spacing-2xl) * var(--ui-scale));
   --main-padding-bottom-scaled: calc(var(--spacing-3xl) * var(--ui-scale));
@@ -2207,7 +2212,7 @@ select.input_control option:checked,
 }
 
 .media_preview_variant_match {
-  max-height: 180px;
+  max-height: var(--match-card-media-height-scaled, 168px);
 }
 
 .media_preview_variant_selector {
@@ -3122,12 +3127,12 @@ select.input_control option:checked,
   gap: var(--spacing-sm);
 }
 
-.mini_media {
+.match_media_pair .mini_media {
   display: grid;
   align-items: stretch;
   min-height: 0;
-  min-block-size: 168px;
-  block-size: 168px;
+  min-block-size: var(--match-card-media-height-scaled, 168px);
+  block-size: var(--match-card-media-height-scaled, 168px);
   padding: 6px;
 }
 
@@ -5080,6 +5085,7 @@ select.input_control option:checked,
 .matches_grid .match_card {
   justify-self: start;
   width: 100%;
+  max-width: var(--match-card-width-scaled, 462.5px);
 }
 
 @media (min-width: 1200px) {
@@ -5091,13 +5097,14 @@ select.input_control option:checked,
   }
 
   .matches_grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: var(--spacing-lg);
-    row-gap: var(--spacing-lg);
+    grid-template-columns: repeat(2, var(--match-card-width-scaled, 462.5px));
+    justify-content: start;
+    column-gap: var(--match-grid-gap-scaled, 16px);
+    row-gap: var(--match-grid-row-gap-scaled, 16px);
   }
 
   .matches_grid .match_card {
-    min-height: 256px;
+    min-height: var(--match-card-height-scaled, 256px);
   }
 
   .match_card_meta_row {
