@@ -10,8 +10,33 @@
   --layout-design-width: 1280;
   --layout-design-height: 678;
   --ui-scale: 1;
+  --ui-scale-x: 1;
+  --ui-scale-y: 1;
+  --ui-scale-uniform: 1;
   --safe-gutter-x: 0px;
   --safe-gutter-y: 0px;
+  --text-scale: clamp(0.88, var(--ui-scale-uniform), 1.18);
+  --button-scale: clamp(0.86, var(--ui-scale-uniform), 1.16);
+  --icon-scale: clamp(0.85, var(--ui-scale-uniform), 1.18);
+  --radius-scale: clamp(0.9, var(--ui-scale-uniform), 1.16);
+  --button-pad-x-scaled: calc(18px * var(--button-scale));
+  --button-pad-y-scaled: calc(12px * var(--button-scale));
+  --button-font-size-scaled: calc(14px * var(--text-scale));
+  --button-radius-scaled: calc(16px * var(--radius-scale));
+  --button-icon-size-scaled: calc(18px * var(--icon-scale));
+  --button-card-main-width-scaled: calc(112px * var(--ui-scale-x));
+  --button-card-main-height-scaled: calc(50px * var(--button-scale));
+  --button-card-main-pad-x-scaled: calc(8px * var(--button-scale));
+  --button-card-main-font-size-scaled: calc(15px * var(--text-scale));
+  --button-card-main-radius-scaled: calc(14px * var(--radius-scale));
+  --tab-pad-x-scaled: calc(16px * var(--button-scale));
+  --tab-pad-y-scaled: calc(9px * var(--button-scale));
+  --tab-font-size-scaled: calc(14px * var(--text-scale));
+  --tab-radius-scaled: calc(14px * var(--radius-scale));
+  --chip-pad-x-scaled: calc(10px * var(--button-scale));
+  --chip-pad-y-scaled: calc(6px * var(--button-scale));
+  --chip-font-size-scaled: calc(12px * var(--text-scale));
+  --chip-radius-scaled: calc(999px);
   /* Shell-only scaled tokens. Stage 2 consumes these for sidebar and main
      wrapper rhythm while preserving the approved layout at ui-scale = 1. */
   --sidebar-width-scaled: calc(var(--sidebar-width) * var(--ui-scale-x));
