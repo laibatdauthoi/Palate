@@ -19,14 +19,22 @@
   --sidebar-gap-scaled: calc(var(--spacing-lg) * var(--ui-scale));
   --sidebar-nav-gap-scaled: calc(var(--spacing-sm) * var(--ui-scale));
   --sidebar-nav-offset-y-scaled: calc(10px * var(--ui-scale));
+  --brand-gap-scaled: calc(var(--spacing-md) * var(--ui-scale));
   --brand-offset-x-scaled: calc(24px * var(--ui-scale));
   --brand-offset-y-scaled: calc(-12px * var(--ui-scale));
+  --brand-mark-size-scaled: calc(42px * var(--ui-scale));
+  --nav-link-gap-scaled: calc(10px * var(--ui-scale));
   --nav-link-pad-y-scaled: calc(14px * var(--ui-scale));
   --nav-link-pad-right-scaled: calc(16px * var(--ui-scale));
   --nav-link-pad-left-scaled: calc(18px * var(--ui-scale));
+  --nav-link-rail-pad-y-scaled: calc(12px * var(--ui-scale));
   --nav-link-rail-inset-scaled: calc(8px * var(--ui-scale));
   --wallet-padding-scaled: calc(10px * var(--ui-scale));
   --wallet-gap-scaled: calc(8px * var(--ui-scale));
+  --wallet-header-gap-scaled: calc(8px * var(--ui-scale));
+  --wallet-compact-body-gap-scaled: calc(2px * var(--ui-scale));
+  --wallet-meta-row-gap-scaled: calc(5px * var(--ui-scale));
+  --wallet-meta-column-gap-scaled: calc(8px * var(--ui-scale));
   --main-frame-width-scaled: calc(1005px * var(--ui-scale));
   --waiting-grid-gap-scaled: calc(27px * var(--ui-scale));
   --waiting-card-width-scaled: calc(296px * var(--ui-scale));
@@ -835,9 +843,9 @@ select.input_control option:checked,
 .brand_lockup {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  margin-top: var(--brand-offset-y-scaled);
-  padding-left: var(--brand-offset-x-scaled);
+  gap: var(--brand-gap-scaled, var(--spacing-md));
+  margin-top: var(--brand-offset-y-scaled, -12px);
+  padding-left: var(--brand-offset-x-scaled, 24px);
   font-size: var(--font-size-heading-3);
   font-weight: 900;
   letter-spacing: -0.02em;
@@ -845,8 +853,8 @@ select.input_control option:checked,
 
 .brand_mark {
   display: block;
-  width: 42px;
-  height: 42px;
+  width: var(--brand-mark-size-scaled, 42px);
+  height: var(--brand-mark-size-scaled, 42px);
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -855,15 +863,15 @@ select.input_control option:checked,
 }
 
 .brand_mark img {
-  width: 42px;
-  height: 42px;
+  width: var(--brand-mark-size-scaled, 42px);
+  height: var(--brand-mark-size-scaled, 42px);
   object-fit: contain;
 }
 
 .nav_links {
   display: grid;
-  margin-top: var(--sidebar-nav-offset-y-scaled);
-  gap: var(--sidebar-nav-gap-scaled);
+  margin-top: var(--sidebar-nav-offset-y-scaled, 10px);
+  gap: var(--sidebar-nav-gap-scaled, var(--spacing-sm));
 }
 
 .nav_link {
@@ -871,18 +879,18 @@ select.input_control option:checked,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--nav-link-gap-scaled, 10px);
   border: 2px solid transparent;
   border-radius: 18px;
   color: var(--text-secondary);
-  padding: var(--nav-link-pad-y-scaled) var(--nav-link-pad-right-scaled) var(--nav-link-pad-y-scaled) var(--nav-link-pad-left-scaled);
+  padding: var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-right-scaled, 16px) var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-left-scaled, 18px);
   font-weight: 800;
   transition: var(--transition-fast);
 }
 
 .nav_link::before {
   position: absolute;
-  inset: 12px auto 12px var(--nav-link-rail-inset-scaled);
+  inset: var(--nav-link-rail-pad-y-scaled, 12px) auto var(--nav-link-rail-pad-y-scaled, 12px) var(--nav-link-rail-inset-scaled, 8px);
   width: 3px;
   border-radius: var(--radius-pill);
   background: transparent;
@@ -5969,7 +5977,7 @@ select.input_control option:checked,
 .navigation_bar {
   height: 100dvh;
   min-height: 0;
-  gap: var(--sidebar-gap-scaled);
+  gap: var(--sidebar-gap-scaled, var(--spacing-lg));
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -6068,16 +6076,16 @@ select.input_control option:checked,
 }
 
 .wallet_panel {
-  gap: var(--wallet-gap-scaled);
+  gap: var(--wallet-gap-scaled, 8px);
   margin-top: auto;
   border-radius: 16px;
-  padding: var(--wallet-padding-scaled);
+  padding: var(--wallet-padding-scaled, 10px);
   box-shadow: var(--shadow-bevel), 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
 .wallet_panel_header {
   align-items: center;
-  gap: 8px;
+  gap: var(--wallet-header-gap-scaled, 8px);
 }
 
 .wallet_identity {
@@ -6102,7 +6110,7 @@ select.input_control option:checked,
 .wallet_compact_body {
   display: grid;
   min-width: 0;
-  gap: 2px;
+  gap: var(--wallet-compact-body-gap-scaled, 2px);
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 850;
@@ -6128,7 +6136,7 @@ select.input_control option:checked,
 .wallet_meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px 8px;
+  gap: var(--wallet-meta-row-gap-scaled, 5px) var(--wallet-meta-column-gap-scaled, 8px);
   font-size: 10px;
   line-height: 1.2;
 }
