@@ -57,7 +57,7 @@ export function NavigationBar() {
                 });
               }}
             >
-              {item.label}
+              <span className="nav_link_label">{item.label}</span>
               {showClaimReminder && claimReminderKnown ? <span className="nav_claim_badge">{claimableRewardsSummary.claimableCount}</span> : null}
             </Link>
           );
