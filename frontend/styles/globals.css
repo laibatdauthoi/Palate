@@ -749,6 +749,8 @@ img {
 }
 
 .eyebrow {
+  min-width: 0;
+  max-width: 100%;
   color: var(--accent-soft);
   font-size: var(--font-size-eyebrow-scaled, var(--font-size-caption));
   font-weight: 700;
@@ -757,15 +759,18 @@ img {
 }
 
 .hero_title {
+  min-width: 0;
   max-width: var(--hero-title-max-width-scaled, 800px);
   margin: 0;
   font-size: var(--font-size-display-large-scaled, var(--font-size-display-large));
   letter-spacing: -0.035em;
   font-weight: 900;
   line-height: 0.92;
+  overflow-wrap: anywhere;
 }
 
 .hero_copy {
+  min-width: 0;
   max-width: 680px;
   margin: 0;
   color: var(--text-secondary);
@@ -2202,11 +2207,25 @@ select.input_control option:checked,
   color: var(--text-muted);
 }
 
+/* PageHeader / Hero + ActionRow ownership:
+   - PageHeader owns shared typography roles (.eyebrow, title, copy) and the
+     header content/action structure used by reusable page headers.
+   - Hero or page composition owns route-specific placement, lifted/floating
+     offsets, and Home-specific spacing tokens.
+   - ActionRow owns reusable action layout patterns only; pages may arrange
+     action rows, but must not redefine button internals or CTA material here. */
 .page_header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: calc(var(--spacing-xl) * var(--ui-scale-x));
+  min-width: 0;
+  max-width: 100%;
+}
+
+.page_header_content {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .page_header_stacked {
@@ -2250,10 +2269,12 @@ select.input_control option:checked,
 }
 
 .page_header .page_header_title {
+  min-width: 0;
   max-width: var(--page-header-title-max-width-scaled, 780px);
   margin: 0;
   font-size: var(--font-size-display-medium-scaled, var(--font-size-display-medium));
   line-height: var(--line-height-solid);
+  overflow-wrap: anywhere;
 }
 
 .page_header_density_compact .page_header_content {
@@ -2320,6 +2341,7 @@ select.input_control option:checked,
 
 .page_header .page_header_copy,
 .section_panel_header p {
+  min-width: 0;
   max-width: var(--page-header-copy-max-width-scaled, 720px);
   margin: 0;
   color: var(--text-secondary);
@@ -2332,6 +2354,8 @@ select.input_control option:checked,
   display: flex;
   gap: var(--surface-gap-xs-x-scaled, var(--spacing-sm));
   flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .page_home .page_header_actions {
@@ -2388,12 +2412,21 @@ select.input_control option:checked,
   margin: 0;
 }
 
+/* Card Foundation ownership:
+   - Foundation owns the reusable shell, preview frame, body, title row, chip row,
+     footer row, and shared action row primitives.
+   - Card variants (for example media, waiting push, match, claim) own only
+     variant-specific composition, media behavior, metadata treatment, and
+     gameplay-specific controls.
+   - Pages may place cards in a composition, but must not restyle shared card
+     foundation internals through broad descendant overrides. */
 .card_shell,
 .media_card,
 .match_card,
 .waiting_push_card,
 .claim_card,
 .state_card {
+  min-width: 0;
   position: relative;
   border: 2px solid var(--palate-card-border);
   border-radius: var(--radius-large);
@@ -2451,6 +2484,8 @@ select.input_control option:checked,
 .waiting_media,
 .buff_media_stage,
 .mini_media {
+  min-width: 0;
+  max-width: 100%;
   position: relative;
   display: flex;
   align-items: center;
@@ -3273,6 +3308,7 @@ select.input_control option:checked,
 
 .card_chip_row {
   min-width: 0;
+  max-width: 100%;
 }
 
 .card_footer {
@@ -3280,6 +3316,7 @@ select.input_control option:checked,
   align-items: center;
   gap: calc(var(--spacing-md) * var(--ui-scale-x));
   min-width: 0;
+  max-width: 100%;
 }
 
 .card_footer > :first-child {
@@ -3311,6 +3348,7 @@ select.input_control option:checked,
   justify-content: flex-end;
   gap: 8px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .recovery_note {
@@ -4306,6 +4344,8 @@ select.input_control option:checked,
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 10px;
   align-items: center;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .buff_amount_input_wrap {
@@ -5301,6 +5341,8 @@ select.input_control option:checked,
   justify-content: flex-end;
   gap: var(--spacing-sm);
   overflow: visible;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .challenge_row_button {

@@ -21,6 +21,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Recent Changes
 
+- Added explicit PageHeader / Hero + ActionRow ownership comments and low-risk width/overflow safety rules in [`frontend/styles/globals.css`](./frontend/styles/globals.css) while leaving Home-specific lifted/floating offsets, CTA selectors, and card-main actions unchanged.
+- Added explicit Card Foundation ownership comments and low-risk width/overflow safety rules in [`frontend/styles/globals.css`](./frontend/styles/globals.css) while leaving variant card composition, decorative match tags, and card-main actions unchanged.
 - Added explicit Badge / MediaTag ownership comments and low-risk inline-shell safety rules in [`frontend/styles/globals.css`](./frontend/styles/globals.css) without changing shared badge identity or match-card decorative tag ownership.
 - Added explicit Tabs / FilterBar ownership comments and low-risk row/shell safety rules in [`frontend/styles/globals.css`](./frontend/styles/globals.css), plus a dedicated `.tab_button_label` in [`frontend/components/filter_bar.tsx`](./frontend/components/filter_bar.tsx).
 - Added explicit WalletPanel ownership comments and low-risk width/overflow guards in [`frontend/styles/globals.css`](./frontend/styles/globals.css) without changing wallet behavior or shell/layout modes.
@@ -79,6 +81,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - The latest nav label ownership split is validated only by lint; no browser verification was run for that pass by request.
 - The latest small-viewport scale-consistency pass is validated only by lint; no browser verification was run for that pass by request.
 - The latest outer-card and transaction-control scale pass is validated only by lint; no browser verification was run for that pass by request.
+- The latest Card Foundation ownership pass is validated only by lint; no browser verification was run for that pass by request.
+- The latest PageHeader / Hero + ActionRow ownership pass is validated only by lint; no browser verification was run for that pass by request.
 
 # Known Bugs
 
@@ -620,6 +624,77 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Remaining risks:
   - specialized card-owned badge/tag behaviors still live outside the shared badge contract
   - later broad cleanup rules still touch `.badge` family border width globally
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - Card Foundation Contract Ownership Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to establish Card Foundation ownership explicitly:
+  - Card Foundation owns the shared shell, preview frame, body, title row, chip row, footer row, and shared action row primitives
+  - card variants own only variant-specific composition, media behavior, metadata treatment, and gameplay-specific controls
+  - pages may position cards, but should not restyle shared card internals through broad descendant overrides
+- Touched selectors:
+  - `.card_shell`
+  - `.card_preview`
+  - `.card_body`
+  - `.card_title_row`
+  - `.card_chip_row`
+  - `.card_footer`
+  - `.card_actions`
+  - `.media_card_actions`
+- Low-risk normalization only:
+  - added `min-width: 0` to shared card shells and preview frames
+  - added `max-width: 100%` safety to shared preview/chip/footer/action primitives
+  - kept shared body/title/footer/action layout ownership explicit without changing card dimensions or composition
+- Protected selectors intentionally skipped:
+  - `.media_card`
+  - `.waiting_push_card`
+  - `.waiting_push_card_compact`
+  - `.match_card`
+  - `.match_card_category_tag`
+  - `.action_button_cardMain`
+- Remaining risks:
+  - card variants still own a large amount of later composition-specific CSS, so future cleanup must stay staged
+  - responsive and page-specific card overrides later in the file still depend on the current shared primitive structure
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - PageHeader / Hero + ActionRow Contract Ownership Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to establish PageHeader / Hero + ActionRow ownership explicitly:
+  - PageHeader owns shared eyebrow/title/copy typography roles and header content/action structure
+  - Hero/page composition owns lifted/floating placement and Home-specific spacing/offset tokens
+  - ActionRow owns reusable shared action-layout patterns only, not button internals
+- Touched selectors:
+  - `.eyebrow`
+  - `.hero_title`
+  - `.hero_copy`
+  - `.page_header`
+  - `.page_header_content`
+  - `.page_header .page_header_title`
+  - `.page_header .page_header_copy`
+  - `.page_header_actions`
+  - `.buff_action_row`
+  - `.challenge_action_row`
+- Low-risk normalization only:
+  - added `min-width: 0` / `max-width: 100%` safety to shared header and action-row containers
+  - added safe text wrapping ownership to shared hero/header title roles where long content already needs to stay inside the frame
+  - left Home-specific layout offsets and CTA-specific button styling untouched
+- Protected selectors intentionally skipped:
+  - `.page_home`
+  - `.page_stack.page_home`
+  - `.page_home .page_header_actions`
+  - `.page_home > .filter_bar`
+  - Home-specific offsets/tokens
+  - `.hero_primary_cta`
+  - `.home_cta_button`
+  - `.action_button_cardMain`
+  - Challenge/Settle selectors
+- Remaining risks:
+  - shared header structure still depends on later Home-specific composition overrides in the same file
+  - `.buff_action_row` and `.challenge_action_row` are only partially generalized and still sit near page-specific rules
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
