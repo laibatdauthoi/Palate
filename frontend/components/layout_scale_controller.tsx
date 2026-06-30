@@ -22,7 +22,7 @@ export function LayoutScaleController() {
 
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      const layoutMode = viewportWidth >= 768 ? "desktop-fit" : "mobile";
+      const layoutMode = viewportWidth >= 640 ? "desktop-fit" : "mobile";
       const layoutModeCode = layoutMode === "desktop-fit" ? "1" : "3";
       const scaleX = viewportWidth / DESIGN_WIDTH;
       const scaleY = viewportHeight / DESIGN_HEIGHT;

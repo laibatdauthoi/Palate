@@ -89,7 +89,7 @@ function FilterTabs<T extends string>({
             role={itemRole}
             type="button"
           >
-            <span>{item.label}</span>
+            <span className="tab_button_label">{item.label}</span>
             {typeof item.count === "number" ? <span className="tab_badge">{item.count}</span> : null}
           </button>
         );

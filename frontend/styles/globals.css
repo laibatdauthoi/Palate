@@ -15,12 +15,12 @@
   --ui-scale-uniform: 1;
   --safe-gutter-x: 0px;
   --safe-gutter-y: 0px;
-  --text-scale: clamp(0.88, var(--ui-scale-uniform), 1.18);
-  --text-scale-display: clamp(0.94, var(--ui-scale-uniform), 1.2);
-  --text-scale-secondary: clamp(0.8, calc(var(--ui-scale-uniform) * 0.94), 1.08);
-  --button-scale: clamp(0.78, var(--ui-scale-uniform), 1.08);
-  --icon-scale: clamp(0.85, var(--ui-scale-uniform), 1.18);
-  --radius-scale: clamp(0.9, var(--ui-scale-uniform), 1.16);
+  --text-scale: clamp(0.8, var(--ui-scale-uniform), 1.18);
+  --text-scale-display: clamp(0.78, calc(var(--ui-scale-uniform) * 0.98), 1.2);
+  --text-scale-secondary: clamp(0.7, calc(var(--ui-scale-uniform) * 0.9), 1.08);
+  --button-scale: clamp(0.74, var(--ui-scale-uniform), 1.08);
+  --icon-scale: clamp(0.74, var(--ui-scale-uniform), 1.18);
+  --radius-scale: clamp(0.84, var(--ui-scale-uniform), 1.16);
   --button-pad-x-scaled: calc(18px * var(--button-scale));
   --button-pad-y-scaled: calc(12px * var(--button-scale));
   --button-font-size-scaled: calc(14px * var(--text-scale));
@@ -58,6 +58,8 @@
   --font-size-title-scaled: calc(18px * var(--text-scale));
   --font-size-meta-scaled: calc(12px * var(--text-scale-secondary));
   --font-size-micro-scaled: calc(10px * var(--text-scale-secondary));
+  --font-size-eyebrow-scaled: calc(12px * var(--text-scale-secondary));
+  --font-size-page-header-title-scaled: calc(30px * var(--text-scale-display));
   --line-height-solid: 1;
   --line-height-tight: 1.12;
   --line-height-snug: 1.25;
@@ -84,6 +86,50 @@
   --surface-gap-2xs-y-scaled: calc(4px * var(--ui-scale-y));
   --surface-gap-xs-x-scaled: calc(8px * var(--ui-scale-x));
   --surface-gap-xs-y-scaled: calc(8px * var(--ui-scale-y));
+  --hero-title-max-width-scaled: calc(800px * var(--ui-scale-x));
+  --page-header-title-max-width-scaled: calc(780px * var(--ui-scale-x));
+  --page-header-title-compact-max-width-scaled: calc(760px * var(--ui-scale-x));
+  --page-header-copy-max-width-scaled: calc(720px * var(--ui-scale-x));
+  --hero-action-height-scaled: calc(44px * var(--button-scale));
+  --hero-action-pad-x-scaled: calc(16px * var(--button-scale));
+  --hero-action-font-size-scaled: calc(16px * var(--text-scale));
+  --hero-action-radius-scaled: calc(14px * var(--radius-scale));
+  --audio-preview-badge-size-scaled: calc(104px * var(--icon-scale));
+  --audio-preview-icon-size-scaled: calc(60px * var(--icon-scale));
+  --media-card-width-scaled: calc(460px * var(--ui-scale-x));
+  --media-preview-card-height-scaled: calc(220px * var(--ui-scale-y));
+  --media-preview-compact-height-scaled: calc(160px * var(--ui-scale-y));
+  --media-preview-selector-height-scaled: calc(120px * var(--ui-scale-y));
+  --match-card-shell-min-height-scaled: calc(248px * var(--ui-scale-y));
+  --waiting-card-action-width-scaled: calc(136px * var(--ui-scale-x));
+  --waiting-card-action-compact-width-scaled: calc(118px * var(--ui-scale-x));
+  --waiting-card-action-height-scaled: calc(40px * var(--ui-scale-y));
+  --waiting-card-action-pad-y-scaled: calc(10px * var(--ui-scale-y));
+  --waiting-card-action-pad-x-scaled: calc(14px * var(--ui-scale-x));
+  --challenge-row-button-height-scaled: calc(48px * var(--ui-scale-y));
+  --challenge-row-button-pad-y-scaled: calc(10px * var(--ui-scale-y));
+  --challenge-row-button-pad-x-scaled: calc(14px * var(--ui-scale-x));
+  --challenge-row-button-primary-width-scaled: calc(164px * var(--ui-scale-x));
+  --match-countdown-width-scaled: calc(112px * var(--ui-scale-x));
+  --match-countdown-height-scaled: calc(48px * var(--ui-scale-y));
+  --match-countdown-pad-x-scaled: calc(10px * var(--ui-scale-x));
+  --match-countdown-font-size-scaled: calc(24px * var(--text-scale));
+  --match-detail-button-size-scaled: calc(48px * var(--icon-scale));
+  --match-detail-button-font-size-scaled: calc(24px * var(--text-scale));
+  --match-settle-height-scaled: calc(46px * var(--ui-scale-y));
+  --match-settle-pad-y-scaled: calc(6px * var(--ui-scale-y));
+  --match-settle-radius-scaled: calc(13px * var(--radius-scale));
+  --button-card-main-width-mobile-scaled: calc(108px * var(--ui-scale-x));
+  --button-card-main-height-mobile-scaled: calc(52px * var(--ui-scale-y));
+  --button-card-main-pad-y-mobile-scaled: calc(8px * var(--ui-scale-y));
+  --button-card-main-pad-x-mobile-scaled: calc(7px * var(--ui-scale-x));
+  --button-card-main-font-size-mobile-scaled: calc(14px * var(--text-scale));
+  --match-countdown-width-mobile-scaled: calc(108px * var(--ui-scale-x));
+  --match-countdown-height-mobile-scaled: calc(44px * var(--ui-scale-y));
+  --match-countdown-font-size-mobile-scaled: calc(18px * var(--text-scale));
+  --match-detail-button-size-mobile-scaled: calc(44px * var(--icon-scale));
+  --match-detail-button-font-size-mobile-scaled: calc(18px * var(--text-scale));
+  --match-settle-height-mobile-scaled: calc(44px * var(--ui-scale-y));
   /* Shell-only scaled tokens. Stage 2 consumes these for sidebar and main
      wrapper rhythm while preserving the approved layout at ui-scale = 1. */
   --sidebar-width-scaled: calc(var(--sidebar-width) * var(--ui-scale-x));
@@ -171,8 +217,8 @@ body {
     linear-gradient(135deg, rgba(28, 42, 58, 0.92), rgba(9, 15, 24, 0.98)),
     radial-gradient(circle at 26% 18%, rgba(255, 255, 255, 0.16), transparent 22%),
     radial-gradient(circle at 74% 78%, rgba(0, 213, 247, 0.18), transparent 32%);
-  --audio-preview-badge-size: 104px;
-  --audio-preview-icon-size: 60px;
+  --audio-preview-badge-size: var(--audio-preview-badge-size-scaled, 104px);
+  --audio-preview-icon-size: var(--audio-preview-icon-size-scaled, 60px);
   --audio-preview-hover-scale: 1.02;
 }
 
@@ -704,16 +750,16 @@ img {
 
 .eyebrow {
   color: var(--accent-soft);
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-eyebrow-scaled, var(--font-size-caption));
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .hero_title {
-  max-width: 800px;
+  max-width: var(--hero-title-max-width-scaled, 800px);
   margin: 0;
-  font-size: clamp(40px, 7vw, var(--font-size-display-large));
+  font-size: var(--font-size-display-large-scaled, var(--font-size-display-large));
   letter-spacing: -0.035em;
   font-weight: 900;
   line-height: 0.92;
@@ -733,9 +779,18 @@ img {
   font-size: var(--font-size-caption);
 }
 
+/* Tabs / FilterBar contract:
+   - FilterBar owns shell, surface, and overflow context
+   - Tabs owns the pill row and shared row behavior
+   - TabButton owns pill shape, label layout, badge layout, and tab interaction
+   - pages may position FilterBar in composition, but must not casually restyle
+     tab internals or make tabs resemble primary action buttons */
 .tabs {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
   gap: var(--spacing-sm);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-pill-scaled, var(--radius-pill));
@@ -748,6 +803,7 @@ img {
 .tab_button {
   display: inline-flex;
   align-items: center;
+  min-width: 0;
   gap: calc(8px * var(--button-scale));
   border: 1px solid rgba(150, 158, 188, 0.18);
   border-radius: var(--radius-pill);
@@ -767,6 +823,11 @@ img {
     0 10px 16px rgba(0, 0, 0, 0.28),
     0 2px 0 rgba(5, 7, 12, 0.32);
   transition: var(--transition-fast);
+}
+
+.tab_button_label {
+  min-width: 0;
+  line-height: inherit;
 }
 
 .tab_button:hover {
@@ -813,6 +874,7 @@ img {
 
 .tab_badge {
   display: inline-grid;
+  flex: 0 0 auto;
   min-width: calc(22px * var(--button-scale));
   min-height: calc(22px * var(--button-scale));
   place-items: center;
@@ -1019,8 +1081,16 @@ select.input_control option:checked,
   box-shadow: 0 0 14px rgba(255, 47, 159, 0.28);
 }
 
+/* WalletPanel contract:
+   - WalletPanel owns its internal shell, header, identity, status, compact text,
+     meta, feedback, details, actions, and wallet modal option-card layout
+   - Navigation owns sidebar placement and shell context only
+   - ActionButton owns shared button material; wallet-specific button selectors may
+     tune compact fit inside the panel but must not replace the shared button contract
+   - Page composition must not restyle wallet internals */
 .wallet_panel {
   display: grid;
+  min-width: 0;
   gap: var(--wallet-gap-scaled);
   margin-top: auto;
   border: 2px solid rgba(255, 47, 159, 0.2);
@@ -1038,6 +1108,7 @@ select.input_control option:checked,
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  min-width: 0;
   gap: var(--spacing-md);
 }
 
@@ -1058,6 +1129,7 @@ select.input_control option:checked,
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  min-width: 0;
   gap: 6px;
   color: var(--text-muted);
   font-size: var(--font-size-caption);
@@ -1067,6 +1139,7 @@ select.input_control option:checked,
 
 .wallet_compact_body {
   display: grid;
+  min-width: 0;
   gap: 4px;
 }
 
@@ -1110,6 +1183,7 @@ select.input_control option:checked,
 
 .wallet_actions {
   display: grid;
+  min-width: 0;
   gap: var(--spacing-sm);
 }
 
@@ -1138,9 +1212,17 @@ select.input_control option:checked,
 .wallet_details_list {
   display: grid;
   gap: 4px;
+  min-width: 0;
   color: var(--text-muted);
   font-size: var(--font-size-caption);
   line-height: 1.4;
+}
+
+.wallet_details_list span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wallet_message {
@@ -1165,6 +1247,7 @@ select.input_control option:checked,
   justify-content: space-between;
   gap: var(--spacing-sm);
   width: 100%;
+  min-width: 0;
   min-height: 44px;
   border: 1px solid rgba(255, 47, 159, 0.2);
   border-radius: var(--radius-medium);
@@ -1177,6 +1260,13 @@ select.input_control option:checked,
   font-weight: 850;
   text-align: left;
   transition: var(--transition-fast);
+}
+
+.wallet_option_card > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wallet_choice:hover {
@@ -1210,6 +1300,7 @@ select.input_control option:checked,
 .wallet_modal_content {
   display: grid;
   gap: var(--spacing-lg);
+  min-width: 0;
   max-height: min(62vh, 520px);
   overflow-y: auto;
   padding-right: 2px;
@@ -1219,6 +1310,7 @@ select.input_control option:checked,
 
 .wallet_modal_grid {
   display: grid;
+  min-width: 0;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: var(--spacing-sm);
 }
@@ -1330,12 +1422,20 @@ select.input_control option:checked,
   box-shadow: 0 0 12px rgba(255, 47, 159, 0.24);
 }
 
+/* ActionButton contract:
+   - base button owns shell, shared typography, radius, interaction, and generic
+     icon/label spacing
+   - variant selectors own color/material only
+   - size selectors own dimensions only
+   - page/card/wallet selectors may position buttons or opt into documented size
+     variants, but must not casually redefine base shell/material rules */
 .action_button,
 .app_action_button {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
   gap: var(--inline-icon-gap-scaled, calc(8px * var(--button-scale)));
   min-height: calc(48px * var(--button-scale));
   padding: var(--button-pad-y-scaled, 12px) var(--button-pad-x-scaled, 18px);
@@ -1360,13 +1460,20 @@ select.input_control option:checked,
 }
 
 .action_button_label {
+  display: block;
   position: relative;
   z-index: 1;
   min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
   white-space: nowrap;
   line-height: inherit;
 }
 
+/* Protected size path:
+   card-main dimensions are still coupled to Challenge/Settle/countdown history.
+   Do not widen, shrink, or restyle this size contract casually from shared work. */
 .action_button_cardMain {
   width: auto;
   min-width: var(--button-card-main-width-scaled, 112px);
@@ -1746,6 +1853,9 @@ select.input_control option:checked,
   width: 100%;
 }
 
+/* Legacy page-level exception:
+   hero CTA sizing is intentionally page-owned for now. Shared button tasks should
+   not repurpose this selector to change base button material or layout behavior. */
 .hero_primary_cta {
   min-height: 54px;
   padding-inline: 24px;
@@ -1972,18 +2082,33 @@ select.input_control option:checked,
     0 0 26px rgba(255, 47, 159, 0.08);
 }
 
+/* Badge / MediaTag contract:
+   - .badge owns the shared inline shell, typography, radius, padding, and
+     single-line behavior
+   - .status_badge, .category_badge, and .format_badge own variant material only
+   - cards/pages may position badges, but must not casually redefine the base
+     badge shell
+   - specialized decorative tags such as .match_card_category_tag remain
+     card-owned until the Card contract phase */
 .badge {
   display: inline-flex;
   align-items: center;
-  border-radius: 14px;
-  padding: 6px 10px;
-  font-size: var(--font-size-caption);
+  min-width: 0;
+  max-width: 100%;
+  border-radius: var(--radius-md-scaled, 14px);
+  padding: var(--chip-pad-y-scaled, 6px) var(--chip-pad-x-scaled, 10px);
+  font-size: var(--chip-font-size-scaled, var(--font-size-caption));
   font-weight: 900;
   letter-spacing: 0.035em;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-transform: uppercase;
 }
 
 .status_badge {
+  flex: 0 0 auto;
   border: 2px solid var(--border-subtle);
   background: var(--surface-secondary);
   color: var(--text-secondary);
@@ -2046,6 +2171,7 @@ select.input_control option:checked,
 }
 
 .category_badge {
+  flex: 0 0 auto;
   border: 2px solid rgba(255, 47, 159, 0.28);
   background: rgba(255, 47, 159, 0.12);
   color: var(--accent-soft);
@@ -2070,6 +2196,7 @@ select.input_control option:checked,
 }
 
 .format_badge {
+  flex: 0 0 auto;
   border: 2px solid var(--border-subtle);
   background: var(--surface-secondary);
   color: var(--text-muted);
@@ -2079,7 +2206,7 @@ select.input_control option:checked,
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--spacing-xl);
+  gap: calc(var(--spacing-xl) * var(--ui-scale-x));
 }
 
 .page_header_stacked {
@@ -2097,7 +2224,7 @@ select.input_control option:checked,
 }
 
 .page_header_floating .page_header_content {
-  gap: var(--spacing-sm);
+  gap: var(--surface-gap-xs-y-scaled, var(--spacing-sm));
 }
 
 .page_header_floating .eyebrow,
@@ -2123,10 +2250,10 @@ select.input_control option:checked,
 }
 
 .page_header .page_header_title {
-  max-width: 780px;
+  max-width: var(--page-header-title-max-width-scaled, 780px);
   margin: 0;
-  font-size: clamp(30px, 5vw, var(--font-size-display-medium));
-  line-height: 1;
+  font-size: var(--font-size-display-medium-scaled, var(--font-size-display-medium));
+  line-height: var(--line-height-solid);
 }
 
 .page_header_density_compact .page_header_content {
@@ -2138,9 +2265,9 @@ select.input_control option:checked,
 }
 
 .page_header.page_header_density_compact .page_header_title {
-  max-width: 760px;
-  font-size: clamp(20px, 2.6vw, 30px);
-  line-height: 1.12;
+  max-width: var(--page-header-title-compact-max-width-scaled, 760px);
+  font-size: var(--font-size-page-header-title-scaled, 30px);
+  line-height: var(--line-height-tight);
 }
 
 .typewriter_headline {
@@ -2185,7 +2312,7 @@ select.input_control option:checked,
   width: 1px;
   height: 1em;
   vertical-align: text-bottom;
-  margin-left: 2px;
+  margin-left: calc(2px * var(--icon-scale));
   background: currentColor;
   opacity: 0.75;
   animation: typewriter_cursor_blink 900ms steps(1) infinite;
@@ -2193,16 +2320,17 @@ select.input_control option:checked,
 
 .page_header .page_header_copy,
 .section_panel_header p {
-  max-width: 720px;
+  max-width: var(--page-header-copy-max-width-scaled, 720px);
   margin: 0;
   color: var(--text-secondary);
+  font-size: var(--font-size-body-large-scaled, var(--font-size-body-large));
   line-height: var(--line-height-relaxed);
   overflow-wrap: anywhere;
 }
 
 .page_header_actions {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--surface-gap-xs-x-scaled, var(--spacing-sm));
   flex-wrap: wrap;
 }
 
@@ -2288,7 +2416,7 @@ select.input_control option:checked,
 .media_card,
 .waiting_push_card {
   width: 100%;
-  max-width: 460px;
+  max-width: var(--media-card-width-scaled, 460px);
   justify-self: center;
 }
 
@@ -2334,12 +2462,12 @@ select.input_control option:checked,
 }
 
 .media_preview_variant_card {
-  min-height: 220px;
-  max-height: 220px;
+  min-height: var(--media-preview-card-height-scaled, 220px);
+  max-height: var(--media-preview-card-height-scaled, 220px);
 }
 
 .media_preview_variant_compact {
-  max-height: 160px;
+  max-height: var(--media-preview-compact-height-scaled, 160px);
 }
 
 .media_preview_variant_match {
@@ -2347,7 +2475,7 @@ select.input_control option:checked,
 }
 
 .media_preview_variant_selector {
-  max-height: 120px;
+  max-height: var(--media-preview-selector-height-scaled, 120px);
 }
 
 .media_preview_purple {
@@ -2424,11 +2552,11 @@ select.input_control option:checked,
 }
 
 .media_renderer_variant_card {
-  max-height: 220px;
+  max-height: var(--media-preview-card-height-scaled, 220px);
 }
 
 .media_renderer_variant_compact {
-  max-height: 160px;
+  max-height: var(--media-preview-compact-height-scaled, 160px);
 }
 
 .media_renderer_variant_match {
@@ -2438,7 +2566,7 @@ select.input_control option:checked,
 }
 
 .media_renderer_variant_selector {
-  max-height: 120px;
+  max-height: var(--media-preview-selector-height-scaled, 120px);
 }
 
 .media_renderer_button {
@@ -2589,23 +2717,23 @@ select.input_control option:checked,
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 5px;
-  min-height: 48px;
-  padding: 6px 0;
+  gap: calc(5px * var(--ui-scale-x));
+  min-height: calc(48px * var(--ui-scale-y));
+  padding: calc(6px * var(--ui-scale-y)) 0;
 }
 
 .audio_preview_visual span {
-  width: 6px;
+  width: calc(6px * var(--icon-scale));
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 47, 159, 0.72));
   box-shadow: 0 0 16px rgba(255, 47, 159, 0.22);
 }
 
-.audio_preview_visual span:nth-child(1) { height: 16px; }
-.audio_preview_visual span:nth-child(2) { height: 30px; }
-.audio_preview_visual span:nth-child(3) { height: 22px; }
-.audio_preview_visual span:nth-child(4) { height: 36px; }
-.audio_preview_visual span:nth-child(5) { height: 14px; }
+.audio_preview_visual span:nth-child(1) { height: calc(16px * var(--icon-scale)); }
+.audio_preview_visual span:nth-child(2) { height: calc(30px * var(--icon-scale)); }
+.audio_preview_visual span:nth-child(3) { height: calc(22px * var(--icon-scale)); }
+.audio_preview_visual span:nth-child(4) { height: calc(36px * var(--icon-scale)); }
+.audio_preview_visual span:nth-child(5) { height: calc(14px * var(--icon-scale)); }
 
 .audio_preview_meta {
   display: grid;
@@ -3150,7 +3278,7 @@ select.input_control option:checked,
 .card_footer {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: calc(var(--spacing-md) * var(--ui-scale-x));
   min-width: 0;
 }
 
@@ -3390,7 +3518,7 @@ select.input_control option:checked,
 
 .waiting_push_meta {
   display: grid;
-  gap: 7px;
+  gap: calc(7px * var(--ui-scale-y));
   min-height: 0;
 }
 
@@ -3414,14 +3542,14 @@ select.input_control option:checked,
 
 .waiting_push_card_compact .waiting_push_body {
   grid-template-rows: auto auto auto;
-  gap: 10px;
-  padding: var(--spacing-md);
+  gap: calc(10px * var(--ui-scale-y));
+  padding: calc(var(--spacing-md) * var(--ui-scale-y)) calc(var(--spacing-md) * var(--ui-scale-x));
   align-content: start;
 }
 
 .waiting_push_compact_title_row {
   align-items: center;
-  gap: 10px;
+  gap: calc(10px * var(--ui-scale-x));
 }
 
 .waiting_push_card_compact h3 {
@@ -3435,21 +3563,21 @@ select.input_control option:checked,
 }
 
 .waiting_push_compact_chip_row {
-  gap: 6px;
+  gap: calc(6px * var(--ui-scale-x));
 }
 
 .waiting_push_meta_compact {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: calc(12px * var(--ui-scale-x));
   min-width: 0;
   margin-top: auto;
 }
 
 .waiting_push_required_meta {
   display: grid;
-  gap: 2px;
+  gap: calc(2px * var(--ui-scale-y));
   min-width: 0;
 }
 
@@ -3474,30 +3602,30 @@ select.input_control option:checked,
 }
 
 .waiting_push_card_compact .waiting_push_actions .action_button:not(.action_button_cardMain) {
-  min-width: 118px;
-  min-height: 40px;
-  padding: 10px 14px;
+  min-width: var(--waiting-card-action-compact-width-scaled, 118px);
+  min-height: var(--waiting-card-action-height-scaled, 40px);
+  padding: var(--waiting-card-action-pad-y-scaled, 10px) var(--waiting-card-action-pad-x-scaled, 14px);
 }
 
 .waiting_push_stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--surface-gap-xs-y-scaled, 8px) var(--surface-gap-xs-x-scaled, 8px);
   margin: 0;
 }
 
 .waiting_push_stat {
   display: grid;
-  gap: 3px;
+  gap: calc(3px * var(--ui-scale-y));
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  border-radius: var(--radius-md-scaled, 14px);
   background: rgba(255, 255, 255, 0.035);
-  padding: 8px 10px;
+  padding: calc(8px * var(--ui-scale-y)) calc(10px * var(--ui-scale-x));
 }
 
 .waiting_push_stat dt {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale-secondary));
   font-weight: 800;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -3506,13 +3634,13 @@ select.input_control option:checked,
 .waiting_push_stat dd {
   margin: 0;
   color: var(--text-primary);
-  font-size: var(--font-size-body-small);
+  font-size: var(--font-size-body-small-scaled, var(--font-size-body-small));
   font-weight: 900;
 }
 
 .waiting_push_detail_stack {
   display: grid;
-  gap: 3px;
+  gap: calc(3px * var(--ui-scale-y));
   min-width: 0;
   align-content: start;
 }
@@ -3555,7 +3683,7 @@ select.input_control option:checked,
 }
 
 .waiting_push_actions .action_button:not(.action_button_cardMain) {
-  min-width: 136px;
+  min-width: var(--waiting-card-action-width-scaled, 136px);
 }
 
 .waiting_push_tooltip_anchor {
@@ -3691,13 +3819,13 @@ select.input_control option:checked,
 }
 
 .media_renderer_audio_match .audio_preview_glyph_shell {
-  width: 88px;
-  height: 88px;
+  width: calc(88px * var(--icon-scale));
+  height: calc(88px * var(--icon-scale));
 }
 
 .media_renderer_audio_match .audio_preview_glyph_icon {
-  width: 52px;
-  height: 52px;
+  width: calc(52px * var(--icon-scale));
+  height: calc(52px * var(--icon-scale));
 }
 
 .match_card_meta_row {
@@ -3705,7 +3833,7 @@ select.input_control option:checked,
   align-items: center;
   justify-content: space-between;
   flex-wrap: nowrap;
-  gap: 10px 12px;
+  gap: calc(10px * var(--ui-scale-y)) calc(12px * var(--ui-scale-x));
   min-width: 0;
   width: 100%;
 }
@@ -3713,7 +3841,7 @@ select.input_control option:checked,
 .match_card_footer_meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: calc(8px * var(--ui-scale-x));
   min-width: 0;
   flex: 1 1 auto;
   flex-wrap: nowrap;
@@ -3724,10 +3852,10 @@ select.input_control option:checked,
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  min-width: 82px;
-  padding: 8px 13px;
-  border-radius: 999px;
-  font-size: 11px;
+  min-width: calc(82px * var(--ui-scale-x));
+  padding: calc(8px * var(--ui-scale-y)) calc(13px * var(--ui-scale-x));
+  border-radius: var(--radius-pill-scaled, 999px);
+  font-size: calc(11px * var(--text-scale-secondary));
   font-weight: 900;
   letter-spacing: 0.09em;
   line-height: 1;
@@ -3741,13 +3869,13 @@ select.input_control option:checked,
 
 .match_card_match_id {
   display: grid;
-  gap: 2px;
+  gap: calc(2px * var(--ui-scale-y));
   min-width: 0;
 }
 
 .match_card_match_id_label {
   color: var(--text-muted);
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale-secondary));
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -3757,7 +3885,7 @@ select.input_control option:checked,
 .match_card_match_id_value {
   min-width: 0;
   color: rgba(229, 237, 242, 0.92);
-  font-size: 22px;
+  font-size: calc(22px * var(--text-scale));
   font-weight: 820;
   letter-spacing: 0.01em;
   line-height: 1.05;
@@ -3769,7 +3897,7 @@ select.input_control option:checked,
 .match_card_footer_actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: calc(8px * var(--ui-scale-x));
   flex: 0 0 auto;
   flex-wrap: nowrap;
 }
@@ -3778,15 +3906,15 @@ select.input_control option:checked,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 112px;
-  min-width: 112px;
+  width: var(--match-countdown-width-scaled, 112px);
+  min-width: var(--match-countdown-width-scaled, 112px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  border-radius: var(--radius-md-scaled, 14px);
   background: rgba(255, 255, 255, 0.035);
   color: rgba(237, 245, 250, 0.92);
-  min-height: 48px;
-  padding-inline: 10px;
-  font-size: 24px;
+  min-height: var(--match-countdown-height-scaled, 48px);
+  padding-inline: var(--match-countdown-pad-x-scaled, calc(10px * var(--ui-scale-x)));
+  font-size: var(--match-countdown-font-size-scaled, calc(24px * var(--text-scale)));
   font-weight: 820;
   line-height: 1;
   text-align: center;
@@ -3802,35 +3930,35 @@ select.input_control option:checked,
   width: 100%;
   max-width: none;
   grid-template-rows: auto 1fr;
-  min-height: 248px;
+  min-height: var(--match-card-shell-min-height-scaled, 248px);
 }
 
 .match_card .action_button {
-  min-width: 112px;
+  min-width: var(--button-card-main-width-scaled, 112px);
   width: auto;
 }
 
 .match_card .action_button.action_button_cardMain {
-  min-width: 112px;
+  min-width: var(--button-card-main-width-scaled, 112px);
 }
 
 .match_card_footer_actions > button.action_button.app_action_button.match_card_detail_button {
-  width: 48px;
-  min-width: 48px;
-  min-height: 48px;
+  width: var(--match-detail-button-size-scaled, 48px);
+  min-width: var(--match-detail-button-size-scaled, 48px);
+  min-height: var(--match-detail-button-size-scaled, 48px);
   padding: 0;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1;
-  border-radius: 999px;
-  font-size: 24px;
+  border-radius: var(--radius-pill-scaled, 999px);
+  font-size: var(--match-detail-button-font-size-scaled, 24px);
 }
 
 .match_card_footer_actions > button.action_button.app_action_button.match_card_settle_button {
-  min-height: 46px;
-  padding-top: 6px;
-  padding-bottom: 6px;
-  border-radius: 13px;
+  min-height: var(--match-settle-height-scaled, 46px);
+  padding-top: var(--match-settle-pad-y-scaled, 6px);
+  padding-bottom: var(--match-settle-pad-y-scaled, 6px);
+  border-radius: var(--match-settle-radius-scaled, 13px);
   border-color: rgba(255, 214, 145, 0.62);
   background:
     linear-gradient(180deg, rgba(66, 48, 28, 0.88), rgba(25, 19, 17, 0.94));
@@ -5176,8 +5304,8 @@ select.input_control option:checked,
 }
 
 .challenge_row_button {
-  min-height: 48px;
-  padding: 10px 14px;
+  min-height: var(--challenge-row-button-height-scaled, 48px);
+  padding: var(--challenge-row-button-pad-y-scaled, 10px) var(--challenge-row-button-pad-x-scaled, 14px);
   white-space: nowrap;
   flex: 0 0 auto;
 }
@@ -5187,7 +5315,7 @@ select.input_control option:checked,
 }
 
 .challenge_row_button_primary {
-  min-width: 164px;
+  min-width: var(--challenge-row-button-primary-width-scaled, 164px);
 }
 
 .hero_match_preview {
@@ -5195,11 +5323,12 @@ select.input_control option:checked,
 }
 
 .home_cta_button {
-  min-height: 44px;
-  padding-inline: 16px;
-  border-radius: 14px;
-  font-size: var(--font-size-body);
+  min-height: var(--hero-action-height-scaled, 44px);
+  padding-inline: var(--hero-action-pad-x-scaled, 16px);
+  border-radius: var(--hero-action-radius-scaled, 14px);
+  font-size: var(--hero-action-font-size-scaled, var(--font-size-body));
   font-weight: 800;
+  line-height: var(--line-height-tight);
 }
 
 .home_activity_content {
@@ -5302,32 +5431,32 @@ select.input_control option:checked,
   }
 
   .match_card_footer_actions > .match_card_countdown_slot {
-    width: 108px;
-    min-width: 108px;
-    min-height: 44px;
-    font-size: 18px;
+    width: var(--match-countdown-width-mobile-scaled, 108px);
+    min-width: var(--match-countdown-width-mobile-scaled, 108px);
+    min-height: var(--match-countdown-height-mobile-scaled, 44px);
+    font-size: var(--match-countdown-font-size-mobile-scaled, 18px);
   }
 
   .match_card_footer_actions > button.action_button.app_action_button.match_card_detail_button {
-    width: 44px;
-    min-width: 44px;
-    min-height: 44px;
-    font-size: 18px;
+    width: var(--match-detail-button-size-mobile-scaled, 44px);
+    min-width: var(--match-detail-button-size-mobile-scaled, 44px);
+    min-height: var(--match-detail-button-size-mobile-scaled, 44px);
+    font-size: var(--match-detail-button-font-size-mobile-scaled, 18px);
   }
 
   .match_card_footer_actions > button.action_button.app_action_button.match_card_settle_button {
-    min-height: 44px;
-    padding-top: 6px;
-    padding-bottom: 6px;
-    border-radius: 13px;
+    min-height: var(--match-settle-height-mobile-scaled, 44px);
+    padding-top: var(--match-settle-pad-y-scaled, 6px);
+    padding-bottom: var(--match-settle-pad-y-scaled, 6px);
+    border-radius: var(--match-settle-radius-scaled, 13px);
   }
 
   .action_button_cardMain {
     width: auto;
-    min-width: 108px;
-    min-height: 52px;
-    padding: 8px 7px;
-    font-size: 14px;
+    min-width: var(--button-card-main-width-mobile-scaled, 108px);
+    min-height: var(--button-card-main-height-mobile-scaled, 52px);
+    padding: var(--button-card-main-pad-y-mobile-scaled, 8px) var(--button-card-main-pad-x-mobile-scaled, 7px);
+    font-size: var(--button-card-main-font-size-mobile-scaled, 14px);
   }
 
   .match_detail_preview_row,
@@ -5395,16 +5524,20 @@ select.input_control option:checked,
     var(--surface-elevated);
 }
 
+/* FilterBar shell is page-positionable but component-owned internally.
+   Keep Home/page-specific positioning separate from these shared shell rules. */
 .filter_bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: calc(var(--spacing-lg) * var(--ui-scale-x));
   width: 100%;
+  min-width: 0;
   padding: calc(2px * var(--ui-scale-y)) calc(2px * var(--ui-scale-x));
 }
 
 .filter_bar_surface {
+  min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-pill-scaled, var(--radius-pill));
   background:
@@ -5436,6 +5569,7 @@ select.input_control option:checked,
 .filter_bar .tabs {
   flex: 1 1 auto;
   min-width: 0;
+  max-width: 100%;
   border-radius: var(--radius-large);
   padding: var(--surface-gap-xs-y-scaled, 8px) var(--surface-gap-xs-x-scaled, 8px);
 }
@@ -6175,6 +6309,10 @@ select.input_control option:checked,
   box-shadow: none;
 }
 
+/* Legacy dependency:
+   WalletPanel still inherits shell context from Navigation and broad cleanup rules
+   later in this file. Keep these scoped overrides narrow until navigation/shell
+   ownership is migrated explicitly. */
 .wallet_panel .feedback_text {
   display: none;
 }
@@ -6240,9 +6378,14 @@ select.input_control option:checked,
 .wallet_meta {
   display: flex;
   flex-wrap: wrap;
+  min-width: 0;
   gap: var(--wallet-meta-row-gap-scaled, 5px) var(--wallet-meta-column-gap-scaled, 8px);
   font-size: 10px;
   line-height: 1.2;
+}
+
+.wallet_meta > span {
+  min-width: 0;
 }
 
 .wallet_message {
@@ -6254,7 +6397,11 @@ select.input_control option:checked,
   gap: 0;
 }
 
+/* Legacy component-local exception:
+   WalletPanel may tune its own compact button footprint, but should not redefine
+   the shared button material contract outside wallet-specific needs. */
 .wallet_compact_button.action_button {
+  width: 100%;
   min-height: 44px;
   border-radius: 14px;
   padding: 9px 12px;
@@ -6897,7 +7044,7 @@ select.input_control,
   }
 }
 
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 640px) and (max-width: 1199px) {
   .app_shell {
     grid-template-columns: var(--sidebar-width-scaled) minmax(0, 1fr);
   }
@@ -7008,7 +7155,7 @@ select.input_control,
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 639px) {
   body {
     padding-bottom: calc(var(--bottom-nav-height) + var(--spacing-2xl));
   }
@@ -7019,6 +7166,10 @@ select.input_control,
 
   .main_content {
     padding: var(--spacing-md) var(--spacing-md) calc(var(--spacing-2xl) + 96px);
+  }
+
+  .page_stack.page_home {
+    gap: calc(16px * var(--ui-scale-y));
   }
 
   .desktop_only {
@@ -7101,8 +7252,55 @@ select.input_control,
     flex-direction: column;
   }
 
+  .page_stack.page_home .page_header_content,
+  .page_stack.page_home > .filter_bar,
+  .page_stack.page_home > .home_activity_content,
+  .page_stack.page_home .filter_bar_surface,
+  .page_stack.page_home .filter_bar_inner {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .page_stack.page_home .page_header_actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    justify-items: stretch;
+    gap: calc(10px * var(--ui-scale-y));
+  }
+
   .home_cta_button {
     width: 100%;
+  }
+
+  .page_stack.page_home .filter_bar {
+    align-items: stretch;
+  }
+
+  .page_stack.page_home .filter_bar_surface {
+    overflow-x: auto;
+  }
+
+  .page_stack.page_home .filter_bar .tabs {
+    flex: 0 0 auto;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .page_stack.page_home .filter_bar .tab_button {
+    flex: 0 0 auto;
+  }
+
+  .page_stack.page_home .home_activity_content,
+  .page_stack.page_home .compact_card_grid_waiting.waiting_grid,
+  .page_stack.page_home .compact_card_grid_matches.matches_grid {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .page_stack.page_home .waiting_grid .waiting_push_card_compact,
+  .page_stack.page_home .matches_grid .match_card {
+    max-width: none;
   }
 
   .match_media_pair {
@@ -7295,7 +7493,7 @@ select.input_control,
   }
 }
 
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 640px) and (max-width: 1199px) {
   .app_shell {
     display: grid;
     grid-template-columns: var(--sidebar-width-scaled, 260px) minmax(0, 1fr);

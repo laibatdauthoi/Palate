@@ -21,12 +21,23 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Recent Changes
 
+- Added explicit Badge / MediaTag ownership comments and low-risk inline-shell safety rules in [`frontend/styles/globals.css`](./frontend/styles/globals.css) without changing shared badge identity or match-card decorative tag ownership.
+- Added explicit Tabs / FilterBar ownership comments and low-risk row/shell safety rules in [`frontend/styles/globals.css`](./frontend/styles/globals.css), plus a dedicated `.tab_button_label` in [`frontend/components/filter_bar.tsx`](./frontend/components/filter_bar.tsx).
+- Added explicit WalletPanel ownership comments and low-risk width/overflow guards in [`frontend/styles/globals.css`](./frontend/styles/globals.css) without changing wallet behavior or shell/layout modes.
+- Added explicit Button / ActionButton ownership comments to [`frontend/styles/globals.css`](./frontend/styles/globals.css) and tightened the shared label safety path without changing intended visuals.
+- Added [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) as the canonical UI ownership spec for future Palate layout/component refactor work.
+- Lowered the explicit `data-layout-mode` mobile threshold in [`frontend/components/layout_scale_controller.tsx`](./frontend/components/layout_scale_controller.tsx) from `768px` to `640px` so desktop-fit mode remains active longer.
+- Extended the existing desktop-fit repair media queries in [`frontend/styles/globals.css`](./frontend/styles/globals.css) from `768–1199px` to `640–1199px`.
+- Tightened the true-mobile Home layout in [`frontend/styles/globals.css`](./frontend/styles/globals.css) so the hero/action cluster, filter tabs, and one-column waiting/match grids fit more coherently below the new mobile threshold.
+- Updated [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md) to reflect the new `desktop-fit` / `mobile` threshold contract.
 - Added root-level AI handoff documentation files:
   - [`AI_CONTEXT.md`](./AI_CONTEXT.md)
   - [`AI_STATE.md`](./AI_STATE.md)
 - Increased desktop sidebar nav label text size for `Home`, `Buff`, `My Media`, `Push`, and `Profile` using a nav-specific scaled token.
 - Reduced the desktop sidebar nav label baseline from `21px` to `18.9px` and normalized `.nav_link` line-height so the label no longer makes the tab/container feel larger.
 - Decoupled desktop sidebar nav label typography from `.nav_link` layout by introducing a dedicated `.nav_link_label` element and moving nav-label font ownership onto it.
+- Tightened the shared text/button/icon/radius floors and migrated hero/header, badge/tag, audio-preview, and card-internal micro-layout selectors onto scale-policy tokens so very small viewports do not visually re-inflate those details.
+- Migrated the remaining safe outer card dimensions, media-frame heights, and Challenge/Settle/countdown/action-slot sizing onto axis-aware or policy tokens without changing gameplay behavior.
 - Restored the desktop sidebar width and removed the sidebar-shrink shell compensation so desktop content alignment returns to the pre-shrink composition.
 - Recalibrated shell/content spacing after the desktop sidebar width reduction so the main content no longer starts directly against the reduced sidebar column.
 - Continued the staged UI scale migration in [`frontend/styles/globals.css`](./frontend/styles/globals.css) for shared UI selectors that are low-risk to scale generically.
@@ -42,6 +53,7 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Current TODO
 
+- [ ] Visually verify the new `640px` mobile threshold and the true-mobile Home stack in a browser.
 - [ ] Verify the current shared-selector scale migration visually at reference, large, and narrow desktop-fit viewports.
 - [ ] Verify the text-scale and overflow safeguards visually at reference, large, and narrow desktop-fit viewports.
 - [ ] Verify the desktop shell/sidebar response visually at 1280, 1440, 1728, and 1920 widths.
@@ -55,6 +67,7 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 # Current Blockers
 
 - The working tree is **not clean** because [`frontend/styles/globals.css`](./frontend/styles/globals.css) is already modified.
+- The new mobile-threshold change and Home mobile cleanup are validated only by lint in this session; no browser verification was run.
 - Some recent UI scale work appears intentionally staged rather than fully finished, so visual validation is still important before further migration.
 - Browser/runtime validation details for all edge viewport cases are not stored in one canonical place yet.
 - Several card/layout selectors remain intentionally unmigrated because they are tightly coupled to the approved Home composition and past Challenge/Settle regressions.
@@ -64,6 +77,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Browser visual verification was attempted again, but stable local dev-server plus automated screenshot capture still failed in this environment, so the latest nav-label change is validated only by lint/build.
 - The latest sidebar-nav text correction is validated only by lint; no browser verification was run for that pass by request.
 - The latest nav label ownership split is validated only by lint; no browser verification was run for that pass by request.
+- The latest small-viewport scale-consistency pass is validated only by lint; no browser verification was run for that pass by request.
+- The latest outer-card and transaction-control scale pass is validated only by lint; no browser verification was run for that pass by request.
 
 # Known Bugs
 
@@ -73,6 +88,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - [`frontend/providers/palate_provider.tsx`](./frontend/providers/palate_provider.tsx) is large enough that small UI or read-lifecycle changes can have broad side effects.
 - Match-card, waiting-push-card, and some Home composition selectors are still partly fixed-size by design for now; they require targeted staged migration rather than blanket token replacement.
 - Multi-line card-title and description treatment is still selector-specific; changing those globally remains a layout risk.
+- Some responsive/mobile overrides still contain fixed values for challenge modal thumbnails and other non-home secondary layouts; those were intentionally left alone in the latest scale-consistency pass.
+- Match-card footer layout still contains composition-sensitive wrapping behavior at narrow widths; size ownership is now tokenized, but visual verification is still needed before touching that structure further.
 
 # Decisions Made During Development
 
@@ -326,6 +343,283 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
   - claim badge behavior
   - mobile nav behavior
   - cards and gameplay logic
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - Small-Viewport Scale Consistency Pass
+
+- Root cause identified:
+  - the root axis scale controller remained monotonic, but several visible selectors still bypassed the shared scale contract with fixed `px` internals or `vw`-based headline sizing
+  - shared text/button/icon/radius floors were also bottoming out too early, so at very small viewports those internals looked inflated against structures that were still shrinking
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - lowered the minimum floors for `--text-scale`, `--text-scale-display`, `--text-scale-secondary`, `--button-scale`, `--icon-scale`, and `--radius-scale`
+  - added shared hero/header and audio-preview tokens
+  - migrated safe visible selectors including:
+    - `.eyebrow`
+    - `.hero_title`
+    - `.badge`
+    - `.page_header`
+    - `.page_header_floating .page_header_content`
+    - `.page_header .page_header_title`
+    - `.page_header.page_header_density_compact .page_header_title`
+    - `.page_header .page_header_copy`
+    - `.page_header_actions`
+    - `.home_cta_button`
+    - `.audio_preview_visual`
+    - `.audio_preview_glyph_shell`
+    - `.audio_preview_glyph_icon`
+    - `.card_footer`
+    - `.waiting_push_meta`
+    - `.waiting_push_card_compact .waiting_push_body`
+    - `.waiting_push_compact_title_row`
+    - `.waiting_push_compact_chip_row`
+    - `.waiting_push_meta_compact`
+    - `.waiting_push_required_meta`
+    - `.waiting_push_stats`
+    - `.waiting_push_stat`
+    - `.waiting_push_stat dt`
+    - `.waiting_push_stat dd`
+    - `.waiting_push_detail_stack`
+    - `.match_card_meta_row`
+    - `.match_card_footer_meta`
+    - `.match_card_category_tag`
+    - `.match_card_match_id`
+    - `.match_card_match_id_label`
+    - `.match_card_match_id_value`
+    - `.match_card_footer_actions`
+    - `.match_card_countdown_slot`
+- Intentionally skipped in this pass:
+  - outer Waiting Push / Match / Media card dimensions
+  - Challenge / Settle-specific button width-height rules and special overrides
+  - sidebar width and main-content alignment
+  - challenge modal thumbnail hardcoded mobile sizes
+  - broader mobile breakpoint redesign
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - Outer Card And Transaction-Control Scale Pass
+
+- Coverage gap identified:
+  - the root/layout tokens and many internals were already migrated, but several outer-card shell sizes and transaction-control footprints still used hardcoded `px` values
+  - the remaining fixed values were concentrated in media-card shell width, media-preview heights, generic match-card min-height, waiting-push Challenge button widths, challenge-row buttons, and match-card Detail / Settle / countdown slots
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - added new axis-aware or policy-backed tokens for:
+    - media-card width
+    - media preview card / compact / selector heights
+    - generic match-card shell min-height
+    - waiting-push action widths and paddings
+    - challenge-row button height / padding / primary width
+    - match countdown width / height / font size
+    - match detail button size / font size
+    - match settle height / padding / radius
+    - mobile card-main and match-footer action footprints
+  - migrated selectors including:
+    - `.media_card, .waiting_push_card`
+    - `.media_preview_variant_card`
+    - `.media_preview_variant_compact`
+    - `.media_preview_variant_selector`
+    - `.media_renderer_variant_card`
+    - `.media_renderer_variant_compact`
+    - `.media_renderer_variant_selector`
+    - `.challenge_row_button`
+    - `.challenge_row_button_primary`
+    - `.waiting_push_card_compact .waiting_push_actions .action_button:not(.action_button_cardMain)`
+    - `.waiting_push_actions .action_button:not(.action_button_cardMain)`
+    - `.match_card`
+    - `.match_card .action_button`
+    - `.match_card .action_button.action_button_cardMain`
+    - `.match_card_footer_actions > .match_card_countdown_slot`
+    - `.match_card_footer_actions > button.action_button.app_action_button.match_card_detail_button`
+    - `.match_card_footer_actions > button.action_button.app_action_button.match_card_settle_button`
+    - mobile overrides for those match footer controls and `.action_button_cardMain`
+- Intentionally skipped in this pass:
+  - Home shell/sidebar/main alignment
+  - Waiting/Match card grid formulas
+  - outer Home composition offsets
+  - match footer wrap structure at narrow widths
+  - challenge modal thumbnail sizes and other secondary mobile fixed layouts
+  - any gameplay or transaction logic
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - Mobile Threshold Recalibration
+
+- Lowered the explicit layout-mode threshold in [`frontend/components/layout_scale_controller.tsx`](./frontend/components/layout_scale_controller.tsx):
+  - old threshold: `768px`
+  - new threshold: `640px`
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - extended the desktop-fit repair blocks from `768–1199px` to `640–1199px`
+  - moved the true-mobile block from `<=767px` to `<=639px`
+  - cleaned up true-mobile Home composition by:
+    - making the page-header action cluster a single-column grid
+    - making the filter surface/tabs width-safe with horizontal overflow instead of squeezed tab buttons
+    - forcing Home waiting/match grids to stretch cleanly in one column
+    - removing Home-specific waiting/match card max-width caps in true mobile
+- Updated [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md) to document the new threshold contract.
+- Intentionally left unchanged:
+  - desktop sidebar width
+  - desktop Home composition
+  - gameplay logic
+  - wallet connect behavior
+  - build/browser automation
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - UI Architecture Ownership Spec
+
+- Added [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) as the canonical Palate UI ownership document.
+- The spec defines:
+  - purpose and layer model
+  - current and target layout modes
+  - component ownership rules
+  - component contracts
+  - page composition boundaries
+  - legacy cleanup policy
+  - staged migration order
+  - Codex working rules for future UI architecture tasks
+- Intentionally left unchanged:
+  - CSS files
+  - layout visuals
+  - component behavior
+  - gameplay logic
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - Button Contract Ownership Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) near the shared button block to make Button / ActionButton ownership explicit:
+  - base button owns shell/layout/typography/radius/interaction
+  - variants own color/material only
+  - size classes own dimensions only
+  - page/card/wallet selectors may position buttons but should not casually redefine the base contract
+- Touched shared selectors:
+  - `.action_button`
+  - `.app_action_button`
+  - `.action_button_label`
+  - comments near `.action_button_cardMain`
+  - comments near `.hero_primary_cta`
+  - comments near `.wallet_compact_button.action_button`
+- Low-risk normalization only:
+  - added explicit `min-width: 0` to the shared button shell
+  - made the shared label block/overflow contract explicit without introducing ellipsis
+- Protected selectors intentionally skipped:
+  - `.action_button_cardMain`
+  - waiting-push Challenge button selectors
+  - match-card Settle/detail/countdown selectors
+  - Home composition selectors
+  - filter/tab pill selectors
+- Remaining risks:
+  - later file sections still contain legacy page/card/wallet button exceptions
+  - card-main and match-footer action paths remain high-risk until their own contract pass
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - WalletPanel Contract Ownership Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to establish WalletPanel ownership explicitly:
+  - WalletPanel owns its shell, header, identity, status, compact text, meta, details, message, actions, compact button fit, and wallet modal option-card layout
+  - Navigation still owns sidebar placement and shell context
+  - ActionButton still owns shared button material
+- Touched WalletPanel selectors:
+  - `.wallet_panel`
+  - `.wallet_panel_header`
+  - `.wallet_meta`
+  - `.wallet_compact_body`
+  - `.wallet_actions`
+  - `.wallet_details_list`
+  - `.wallet_details_list span`
+  - `.wallet_choice, .wallet_option_card`
+  - `.wallet_option_card > span`
+  - `.wallet_modal_content`
+  - `.wallet_modal_grid`
+  - `.wallet_compact_button.action_button`
+- Low-risk normalization only:
+  - added `min-width: 0` where wallet text/actions sit inside flex/grid containers
+  - added explicit ellipsis protection for details rows and wallet option labels
+  - made the wallet compact button fill its local action row
+- Protected selectors intentionally skipped:
+  - `.navigation_bar`
+  - `.nav_links`
+  - `.nav_link`
+  - `.action_button_cardMain`
+  - desktop/mobile layout-mode selectors
+- Remaining legacy dependencies:
+  - `.wallet_panel` still depends on navigation context for placement (`margin-top: auto`)
+  - later cleanup block still applies wallet-specific compact overrides in the same global file
+- Risks:
+  - wallet shell placement is still coupled to navigation ownership
+  - wallet button sizing still depends on the shared ActionButton contract plus local compact override
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - Tabs / FilterBar Contract Ownership Pass
+
+- Updated [`frontend/components/filter_bar.tsx`](./frontend/components/filter_bar.tsx):
+  - wrapped the tab label in a dedicated `.tab_button_label` span so label ownership is explicit
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to establish Tabs / FilterBar ownership explicitly:
+  - FilterBar owns shell, surface, and overflow context
+  - Tabs owns the shared pill row
+  - TabButton owns pill shape, label layout, badge layout, and interaction
+  - pages may position FilterBar but must not restyle tab internals casually
+- Touched selectors:
+  - `.tabs`
+  - `.tab_button`
+  - `.tab_button_label`
+  - `.tab_badge`
+  - `.filter_bar`
+  - `.filter_bar_surface`
+  - `.filter_bar_inner`
+  - `.filter_bar .tabs`
+- Low-risk normalization only:
+  - added `min-width: 0` / `max-width: 100%` safety on shared filter/tab containers
+  - added explicit label ownership for tab text
+  - kept badge alignment explicit with `flex: 0 0 auto`
+- Protected selectors intentionally skipped:
+  - `.page_home > .filter_bar`
+  - Home-specific filter offsets/padding rules
+  - `.action_button*`
+  - Challenge/Settle selectors
+  - card grid selectors
+- Remaining risks:
+  - Home still applies page-specific filter positioning and shell padding later in the file
+  - a later cleanup block still touches `.tab_button.active`
+  - mobile Home filter overflow behavior remains page-specific by design for now
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - Badge / MediaTag Contract Ownership Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to establish Badge / MediaTag ownership explicitly:
+  - `.badge` owns the shared inline shell, typography, radius, padding, and single-line behavior
+  - `.status_badge`, `.category_badge`, and `.format_badge` own variant material only
+  - cards/pages may position badges but should not redefine the shared badge shell
+  - `.match_card_category_tag` remains card-owned until the Card contract phase
+- Touched selectors:
+  - `.badge`
+  - `.status_badge`
+  - `.category_badge`
+  - `.format_badge`
+- Low-risk normalization only:
+  - added `min-width: 0` / `max-width: 100%` safety on the shared badge shell
+  - made single-line overflow behavior explicit with hidden overflow and ellipsis
+  - kept variant badges as `flex: 0 0 auto` so material badges do not stretch unexpectedly
+- Protected selectors intentionally skipped:
+  - `.match_card_category_tag`
+  - match-card decorative tag placement
+  - card outer dimensions
+  - Challenge/Settle selectors
+  - Home composition selectors
+- Remaining risks:
+  - specialized card-owned badge/tag behaviors still live outside the shared badge contract
+  - later broad cleanup rules still touch `.badge` family border width globally
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request

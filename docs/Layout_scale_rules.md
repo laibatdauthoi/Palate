@@ -32,8 +32,8 @@ The controller writes these root variables:
 
 It also sets:
 
-- `data-layout-mode="desktop-fit"` when `viewport width >= 768`
-- `data-layout-mode="mobile"` when `viewport width < 768`
+- `data-layout-mode="desktop-fit"` when `viewport width >= 640`
+- `data-layout-mode="mobile"` when `viewport width < 640`
 
 Reference viewport:
 
@@ -45,6 +45,11 @@ At the approved reference viewport:
 - `--ui-scale-y = 1`
 - `--ui-scale-uniform = 1`
 - compatibility `--ui-scale = 1`
+
+Layout-mode intent:
+
+- `desktop-fit` stays active down through narrow-but-usable tablet/small-laptop widths so the scaled shell can keep working
+- true `mobile` is reserved for widths where the sidebar/content composition is no longer practical and Home must collapse to a single-column stack
 
 ## Scale Policy
 
@@ -79,6 +84,13 @@ Use axis-aware layout scale.
 ### 2. Text / icon / button / radius policy
 
 Do not map typography or small controls directly to raw axis values unless there is a strong reason.
+
+Policy-token floors must be monotonic:
+
+- when viewport size decreases, a scaled token may shrink or hold at its readability floor
+- it must never rebound to a larger value because of mixed formulas or a later selector override
+- avoid mixing `vw`-based typography with root scale tokens in the same UI family
+- if a control or label reaches its minimum floor too early and starts looking inflated against shrinking structure, lower the floor or migrate the surrounding selector coverage instead of adding a new breakpoint
 
 Use policy tokens in [`frontend/styles/globals.css`](../frontend/styles/globals.css):
 
@@ -175,6 +187,7 @@ This prevents:
 - unreadably tiny text on narrow desktop-fit layouts
 - oversized text that breaks cards or modals on large viewports
 - different pages inventing incompatible text scaling rules
+- extreme-small viewport inflation where card internals, tags, or hero controls stop shrinking while the surrounding layout continues to compress
 
 ### 5. Overflow rules
 
@@ -312,6 +325,8 @@ If the same widget also has text:
 - shared tab/filter shell padding and gaps
 - shared modal shell padding/gaps
 - shared utility notes/chips/badges
+- hero/header eyebrow, title, copy, and action-row internals
+- card-internal labels, tags, stats, and micro-layout gaps
 - shared wallet panel internals
 - shared text helpers and meta labels
 - shared overflow safeguards on generic text containers
