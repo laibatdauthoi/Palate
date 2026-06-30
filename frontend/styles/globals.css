@@ -807,6 +807,7 @@ img {
 
 .tab_button {
   display: inline-flex;
+  flex: var(--tab-button-flex, 0 1 auto);
   align-items: center;
   min-width: 0;
   gap: calc(8px * var(--button-scale));
@@ -2577,12 +2578,20 @@ select.input_control option:checked,
   place-items: center;
 }
 
+/* MediaRenderer shared primitive ownership:
+   - MediaRenderer owns media-kind rendering, shared renderer shell behavior,
+     and renderer variant framing primitives.
+   - Cards/pages own only the outer frame and placement around MediaRenderer.
+   - Feature-specific media experiences (for example match audio, waiting-card
+     overrides, or viewer-specific controls) remain owned by those features. */
 .media_renderer {
   position: relative;
   z-index: 1;
   width: 100%;
   height: 100%;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
   color: var(--text-primary);
 }
 
@@ -2609,6 +2618,8 @@ select.input_control option:checked,
   align-items: center;
   justify-content: center;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   appearance: none;
   border: 0;
   background: transparent;
@@ -2634,6 +2645,8 @@ select.input_control option:checked,
 
 .media_renderer_video_frame {
   overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .media_renderer_video_frame.active {
@@ -2645,6 +2658,8 @@ select.input_control option:checked,
   display: grid;
   width: 100%;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
   place-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
@@ -2665,6 +2680,8 @@ select.input_control option:checked,
   gap: 10px;
   align-items: center;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   background:
     radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.16), transparent 28%),
     radial-gradient(circle at 50% 74%, rgba(255, 47, 159, 0.2), transparent 42%),
@@ -2688,6 +2705,8 @@ select.input_control option:checked,
   justify-items: center;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  max-width: 100%;
   gap: 8px;
   padding: 12px;
   text-align: center;
@@ -2754,6 +2773,8 @@ select.input_control option:checked,
   justify-content: center;
   gap: calc(5px * var(--ui-scale-x));
   min-height: calc(48px * var(--ui-scale-y));
+  min-width: 0;
+  max-width: 100%;
   padding: calc(6px * var(--ui-scale-y)) 0;
 }
 
@@ -2774,6 +2795,7 @@ select.input_control option:checked,
   display: grid;
   gap: 4px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .audio_preview_meta span,
@@ -4919,12 +4941,21 @@ select.input_control option:checked,
   }
 }
 
+/* Modal shell ownership:
+   - Modal shell owns the shared backdrop, container, header, subtitle, and
+     scrollable body structure only.
+   - Feature modals own their internal content, controls, and feature-specific
+     composition.
+   - Shared modal shell rules must not be used to restyle wallet, challenge,
+     or media-viewer internals. */
 .modal_backdrop {
   position: fixed;
   inset: 0;
   z-index: 30;
   display: grid;
   place-items: center;
+  min-width: 0;
+  max-width: 100%;
   padding: calc(var(--spacing-lg) * var(--ui-scale-y)) calc(var(--spacing-lg) * var(--ui-scale-x));
   background: rgba(0, 0, 0, 0.64);
   backdrop-filter: blur(14px);
@@ -4935,6 +4966,8 @@ select.input_control option:checked,
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: calc(10px * var(--button-scale));
+  min-width: 0;
+  max-width: 100%;
   border: 2px solid rgba(255, 47, 159, 0.28);
   border-radius: var(--radius-xl-scaled, var(--radius-xl));
   background:
@@ -4956,6 +4989,8 @@ select.input_control option:checked,
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: calc(10px * var(--button-scale));
+  min-width: 0;
+  max-width: 100%;
   background: inherit;
   padding-bottom: 2px;
 }
@@ -4971,6 +5006,8 @@ select.input_control option:checked,
 }
 
 .modal_shell_subtitle {
+  min-width: 0;
+  max-width: 100%;
   margin: 0;
   color: rgba(224, 243, 248, 0.9);
   font-size: var(--font-size-body-small-scaled, 13px);
@@ -4982,6 +5019,8 @@ select.input_control option:checked,
   display: grid;
   gap: calc(var(--spacing-md) * var(--ui-scale-y));
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
@@ -5381,6 +5420,13 @@ select.input_control option:checked,
   width: 100%;
 }
 
+/* Home page composition:
+   - Home owns only route composition inside the content frame:
+     header placement, section spacing, activity region placement, and waiting /
+     match grid arrangement.
+   - Shell/content-frame ownership remains outside Home selectors.
+   - Component internals (tabs, cards, button internals) should not be restyled
+     from Home selectors unless a documented legacy exception remains in place. */
 .waiting_grid,
 .matches_grid {
   width: 100%;
@@ -5587,11 +5633,10 @@ select.input_control option:checked,
     linear-gradient(145deg, rgba(30, 35, 46, 0.96), rgba(21, 24, 33, 0.94)),
     rgba(20, 23, 31, 0.95);
   box-shadow: var(--shadow-panel), var(--shadow-bevel);
-  padding: var(--surface-pad-2xs-y-scaled, 4px) var(--surface-pad-2xs-x-scaled, 6px);
-}
-
-.page_home .filter_bar_surface {
-  padding: var(--home-filter-surface-pad-y-scaled, 4px) var(--home-filter-surface-pad-x-scaled, 6px);
+  padding:
+    var(--filter-bar-surface-pad-y, var(--surface-pad-2xs-y-scaled, 4px))
+    var(--filter-bar-surface-pad-x, var(--surface-pad-2xs-x-scaled, 6px));
+  overflow-x: var(--filter-bar-surface-overflow-x, visible);
 }
 
 .filter_bar_inner {
@@ -5609,18 +5654,30 @@ select.input_control option:checked,
 }
 
 .filter_bar .tabs {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: var(--filter-bar-tabs-flex, 1 1 auto);
+  min-width: var(--filter-bar-tabs-min-width, 0);
+  width: var(--filter-bar-tabs-width, auto);
   max-width: 100%;
   border-radius: var(--radius-large);
-  padding: var(--surface-gap-xs-y-scaled, 8px) var(--surface-gap-xs-x-scaled, 8px);
+  padding:
+    var(--filter-bar-tabs-pad-y, var(--surface-gap-xs-y-scaled, 8px))
+    var(--filter-bar-tabs-pad-x, var(--surface-gap-xs-x-scaled, 8px));
 }
 
-.page_home .filter_bar .tabs {
-  padding: var(--home-tabs-shell-padding-scaled, 8px);
+/* Home composition may provide shell-level FilterBar/Tabs variables through the
+   page-owned FilterBar placement selector, but should avoid styling shared
+   FilterBar/Tabs internals directly. */
+.page_home > .filter_bar {
+  --filter-bar-surface-pad-y: var(--home-filter-surface-pad-y-scaled, 4px);
+  --filter-bar-surface-pad-x: var(--home-filter-surface-pad-x-scaled, 6px);
+  --filter-bar-tabs-pad-y: var(--home-tabs-shell-padding-scaled, 8px);
+  --filter-bar-tabs-pad-x: var(--home-tabs-shell-padding-scaled, 8px);
 }
 
 @media (min-width: 1200px) {
+  /* Home composition-only desktop positioning:
+     these selectors place existing sections within the Content Frame and should
+     not be repurposed to restyle component internals. */
   .page_home {
     position: relative;
     padding-bottom: var(--home-content-shift-y-scaled, 0px);
@@ -7319,18 +7376,12 @@ select.input_control,
     align-items: stretch;
   }
 
-  .page_stack.page_home .filter_bar_surface {
-    overflow-x: auto;
-  }
-
-  .page_stack.page_home .filter_bar .tabs {
-    flex: 0 0 auto;
-    width: max-content;
-    min-width: 100%;
-  }
-
-  .page_stack.page_home .filter_bar .tab_button {
-    flex: 0 0 auto;
+  .page_stack.page_home > .filter_bar {
+    --filter-bar-surface-overflow-x: auto;
+    --filter-bar-tabs-flex: 0 0 auto;
+    --filter-bar-tabs-width: max-content;
+    --filter-bar-tabs-min-width: 100%;
+    --tab-button-flex: 0 0 auto;
   }
 
   .page_stack.page_home .home_activity_content,
@@ -7615,12 +7666,11 @@ select.input_control,
     top: auto;
   }
 
-  .page_stack.page_home .filter_bar_surface {
-    padding: var(--home-filter-surface-pad-y-scaled, 4px) var(--home-filter-surface-pad-x-scaled, 6px);
-  }
-
-  .page_stack.page_home .filter_bar .tabs {
-    padding: var(--home-tabs-shell-padding-scaled, 8px);
+  .page_stack.page_home > .filter_bar {
+    --filter-bar-surface-pad-y: var(--home-filter-surface-pad-y-scaled, 4px);
+    --filter-bar-surface-pad-x: var(--home-filter-surface-pad-x-scaled, 6px);
+    --filter-bar-tabs-pad-y: var(--home-tabs-shell-padding-scaled, 8px);
+    --filter-bar-tabs-pad-x: var(--home-tabs-shell-padding-scaled, 8px);
   }
 
   .compact_card_grid_waiting.waiting_grid {

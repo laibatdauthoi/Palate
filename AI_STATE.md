@@ -21,6 +21,11 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Recent Changes
 
+- Extended the Tabs contract in [`frontend/styles/globals.css`](./frontend/styles/globals.css) with a component-owned `--tab-button-flex` hook and removed the direct Home descendant override targeting `.tab_button`.
+- Moved Home-specific FilterBar/Tabs shell padding and overflow behavior in [`frontend/styles/globals.css`](./frontend/styles/globals.css) behind component-owned FilterBar/Tabs variables, while leaving the remaining `tab_button` flex override documented as a protected legacy leak.
+- Added explicit Home composition-only ownership comments in [`frontend/styles/globals.css`](./frontend/styles/globals.css) and documented the remaining Home-to-FilterBar/Tabs legacy leaks without changing computed behavior.
+- Added an explicit Application Layout contract to [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md), defining ownership for App Shell, Sidebar, Content Frame, Page Frame / Page Stack, Floating Header region, and scroll containers without changing CSS behavior.
+- Added explicit Modal shell + MediaRenderer ownership comments and low-risk containment safety rules in [`frontend/styles/globals.css`](./frontend/styles/globals.css) while leaving wallet/challenge/media-viewer modal internals and card-specific media overrides unchanged.
 - Added explicit PageHeader / Hero + ActionRow ownership comments and low-risk width/overflow safety rules in [`frontend/styles/globals.css`](./frontend/styles/globals.css) while leaving Home-specific lifted/floating offsets, CTA selectors, and card-main actions unchanged.
 - Added explicit Card Foundation ownership comments and low-risk width/overflow safety rules in [`frontend/styles/globals.css`](./frontend/styles/globals.css) while leaving variant card composition, decorative match tags, and card-main actions unchanged.
 - Added explicit Badge / MediaTag ownership comments and low-risk inline-shell safety rules in [`frontend/styles/globals.css`](./frontend/styles/globals.css) without changing shared badge identity or match-card decorative tag ownership.
@@ -59,6 +64,9 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - [ ] Verify the current shared-selector scale migration visually at reference, large, and narrow desktop-fit viewports.
 - [ ] Verify the text-scale and overflow safeguards visually at reference, large, and narrow desktop-fit viewports.
 - [ ] Verify the desktop shell/sidebar response visually at 1280, 1440, 1728, and 1920 widths.
+- [ ] Refactor Home page selectors so shell-like positioning stays with the Application Layout contract and Home keeps composition-only ownership.
+- [ ] Migrate the remaining documented Home legacy leaks (`.page_home .filter_bar_surface`, `.page_home .filter_bar .tabs`, responsive Home tab shell overrides) into component-safe ownership without changing visual output.
+- [ ] Audit whether any other route-specific tab-item flex overrides exist outside Home after the new `--tab-button-flex` contract.
 - [ ] Continue the remaining staged scale migration without regressing Home composition, tab/filter identity, Challenge width, or Settle behavior.
 - [ ] Audit and migrate more safe shared selectors such as utility chips, shared action rows, and non-card-specific modal internals.
 - [ ] Document or defer the riskier match/waiting-card internals instead of migrating them opportunistically.
@@ -83,6 +91,10 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - The latest outer-card and transaction-control scale pass is validated only by lint; no browser verification was run for that pass by request.
 - The latest Card Foundation ownership pass is validated only by lint; no browser verification was run for that pass by request.
 - The latest PageHeader / Hero + ActionRow ownership pass is validated only by lint; no browser verification was run for that pass by request.
+- The latest Modal shell + MediaRenderer ownership pass is validated only by lint; no browser verification was run for that pass by request.
+- Application Layout ownership is now documented, but current CSS still mixes shell/media-query ownership with Home/page/card internals in several responsive blocks.
+- Home composition-only ownership is now documented, but Home still contains protected legacy FilterBar/Tabs shell overrides that could not be removed safely in this pass.
+- Home FilterBar/Tabs shell padding, overflow, and tab-item flex behavior are now component-consumed via scoped variables; no direct Home descendant override of `.tab_button` remains in this path.
 
 # Known Bugs
 
@@ -105,6 +117,9 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Apply text scaling through clamped shared tokens and pair it with explicit overflow rules instead of letting text scale or wrap implicitly.
 - Treat controller/runtime variables and visible selector consumption as separate checks; a healthy controller alone does not guarantee visible scaling.
 - When sidebar width changes, recalibrate shell guttering first instead of compensating by inflating page internals, cards, or buttons.
+- Application Layout is now the explicit owner of viewport shell, sidebar/content relationship, layout-mode switching, content frame width/padding, and shell-level scroll behavior.
+- For Home cleanup, preserving computed layout parity took priority over removing every ownership leak; documented legacy exceptions are preferred over risky selector moves.
+- For FilterBar/Tabs cleanup, reusable shell behavior should move behind component-owned variables first; the new `--tab-button-flex` hook follows that rule and preserves computed output.
 - Do not migrate card-size selectors, Home composition offsets, or match/waiting card internals blindly; document them as skipped when they are risky.
 - Buff Find Match should block obvious no-match wallet popups in the frontend, but still allow real contract-side errors to surface when the frontend cannot know better.
 - Treat these AI handoff files as canonical context and update them when architecture or current work state materially changes.
@@ -695,6 +710,176 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Remaining risks:
   - shared header structure still depends on later Home-specific composition overrides in the same file
   - `.buff_action_row` and `.challenge_action_row` are only partially generalized and still sit near page-specific rules
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - Modal Shell + MediaRenderer Contract Ownership Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to establish Modal shell + MediaRenderer ownership explicitly:
+  - Modal shell owns the shared backdrop, container, header, subtitle, and scrollable body structure only
+  - feature modals own their internal content and behavior
+  - MediaRenderer owns media-kind rendering plus shared renderer-shell/variant primitives
+  - cards/pages own only the outer frame and placement around MediaRenderer
+- Touched selectors:
+  - `.modal_backdrop`
+  - `.modal_shell`
+  - `.modal_shell_header`
+  - `.modal_shell_subtitle`
+  - `.modal_shell_body`
+  - `.media_renderer`
+  - `.media_renderer_button`
+  - `.media_renderer_video_frame`
+  - `.media_renderer_player`
+  - `.media_renderer_fallback`
+  - `.media_renderer_audio_controlled`
+  - `.media_renderer_audio_match`
+  - `.audio_preview_visual`
+  - `.audio_preview_meta`
+- Low-risk normalization only:
+  - added `min-width: 0` / `max-width: 100%` containment to shared modal and media-renderer primitives
+  - kept overflow ownership explicit on the shared modal body and shared renderer wrappers
+  - did not alter feature-specific modal internals, media behavior, or card-specific frame sizing
+- Protected selectors intentionally skipped:
+  - `.wallet_modal_*`
+  - `.challenge_modal_*`
+  - `.media_viewer_*`
+  - `.waiting_push_card .media_renderer*`
+  - `.media_renderer_audio_match *`
+  - card outer dimensions
+  - Challenge/Settle selectors
+- Remaining risks:
+  - later shared polish blocks still touch `.modal_shell` shadow/border treatment globally
+  - MediaRenderer still has several feature-owned descendants later in the file, so future cleanup must remain staged
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - Application Layout Contract Documentation Pass
+
+- Updated [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) to define explicit ownership for:
+  - App Shell
+  - Sidebar
+  - Content Frame
+  - Page Frame / Page Stack
+  - Floating Header region
+  - Scroll containers
+- Confirmed current shell/runtime owners from code facts:
+  - layout mode source remains [`frontend/components/layout_scale_controller.tsx`](./frontend/components/layout_scale_controller.tsx)
+  - sidebar/nav structure remains in [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+  - shell/content selectors remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+- Documented current ownership violations without changing CSS:
+  - Home page selectors currently participate in shell-like positioning:
+    - `.page_home .page_header_actions`
+    - `.page_home > .filter_bar`
+    - `.page_home > .home_activity_content`
+  - Home route selectors currently restyle shared component internals:
+    - `.page_home .filter_bar .tabs`
+    - `.page_stack.page_home .filter_bar .tab_button`
+  - shell/media-query repair blocks still mix shell, page, and card ownership
+- Remaining risks:
+  - `@media (min-width: 640px) and (max-width: 1199px)` and `@media (max-width: 639px)` still contain mixed shell/page/component responsibilities
+  - shell cleanup must avoid regressing approved Home composition or current layout-mode behavior
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-06-30 - Home Composition Cleanup Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to clarify that Home owns route composition only:
+  - header placement
+  - section spacing
+  - activity-region placement
+  - waiting/match grid arrangement
+- Touched selectors / blocks:
+  - Home composition block above `.waiting_grid, .matches_grid`
+  - `.page_home .filter_bar_surface`
+  - `.page_home .filter_bar .tabs`
+  - `@media (min-width: 1200px)` Home positioning block
+  - `.page_stack.page_home .filter_bar .tabs`
+  - desktop-fit Home `.page_stack.page_home .filter_bar .tabs`
+- No computed-value changes were made intentionally; this pass added ownership comments only.
+- Protected selectors intentionally left unchanged:
+  - `.page_home.page_stack`
+  - `.page_home .page_header_lifted`
+  - `.page_home .page_header_floating`
+  - `.page_home > .filter_bar`
+  - `.page_home > .home_activity_content`
+  - `.waiting_grid`
+  - `.matches_grid`
+  - `.media_card`
+  - `.waiting_push_card`
+  - `.waiting_push_card_compact`
+  - `.match_card`
+  - `.action_button_cardMain`
+  - `.tab_button`
+  - `.tab_badge`
+- Legacy leaks intentionally left in place and documented:
+  - `.page_home .filter_bar_surface`
+  - `.page_home .filter_bar .tabs`
+  - `.page_stack.page_home .filter_bar .tabs`
+  - related responsive Home FilterBar/Tabs shell adjustments
+- Reason for leaving them:
+  - removing or relocating them safely would risk changing the approved Home composition
+  - these selectors still bridge page composition and component-owned FilterBar/Tabs shell behavior
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Home FilterBar/Tabs Boundary Cleanup Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to move Home-specific FilterBar/Tabs shell behavior toward component ownership without changing computed output.
+- Moved rules into component-consumed variables:
+  - shared `.filter_bar_surface` now consumes:
+    - `--filter-bar-surface-pad-y`
+    - `--filter-bar-surface-pad-x`
+    - `--filter-bar-surface-overflow-x`
+  - shared `.filter_bar .tabs` now consumes:
+    - `--filter-bar-tabs-flex`
+    - `--filter-bar-tabs-min-width`
+    - `--filter-bar-tabs-width`
+    - `--filter-bar-tabs-pad-y`
+    - `--filter-bar-tabs-pad-x`
+- Home now provides those values through page composition selectors instead of styling `.filter_bar_surface` / `.tabs` directly:
+  - `.page_home > .filter_bar`
+  - `.page_stack.page_home > .filter_bar`
+- Rules intentionally left in place as protected legacy:
+  - `.page_stack.page_home .filter_bar .tab_button { flex: 0 0 auto; }`
+- Why that rule remains:
+  - it still reaches into tab internals
+  - moving it safely would require a Tabs contract extension and could change responsive Home fitting behavior
+- Protected selectors left unchanged:
+  - `.page_home > .filter_bar`
+  - `.page_home > .home_activity_content`
+  - `.waiting_grid`
+  - `.matches_grid`
+  - `.tab_button`
+  - `.tab_badge`
+  - Challenge/Settle selectors
+  - card dimensions
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Tabs Responsive Row-Fitting Contract Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to extend the Tabs contract with a component-owned tab-item flex hook:
+  - `.tab_button` now consumes `--tab-button-flex`
+- Preserved existing computed behavior by defaulting:
+  - `--tab-button-flex` to `0 1 auto`
+- Updated Home responsive FilterBar composition to provide:
+  - `--tab-button-flex: 0 0 auto`
+  through `.page_stack.page_home > .filter_bar`
+- Removed the direct legacy descendant override:
+  - `.page_stack.page_home .filter_bar .tab_button { flex: 0 0 auto; }`
+- Protected selectors left unchanged:
+  - `.page_home > .filter_bar`
+  - `.page_home > .home_activity_content`
+  - `.waiting_grid`
+  - `.matches_grid`
+  - `.tab_badge`
+  - Challenge/Settle selectors
+  - card dimensions
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request

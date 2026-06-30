@@ -213,6 +213,174 @@ Instead, layout should respond to:
 
 Each UI family has a single owner. Pages may consume components, but they must not casually restyle their internals.
 
+### Application Layout Contract
+
+Owner:
+
+- App Shell / layout-mode contract
+
+Allowed to style:
+
+- viewport shell
+- sidebar/content relationship
+- layout-mode switching
+- desktop/mobile shell visibility
+- shell-level scroll behavior
+
+Must not style:
+
+- page-specific card composition
+- page-specific header offsets
+- button/card/modal internals
+- route-specific content tuning beyond shell constraints
+
+Dependencies:
+
+- depends on root layout mode from [`frontend/components/layout_scale_controller.tsx`](../frontend/components/layout_scale_controller.tsx)
+- depends on shell tokens in [`frontend/styles/globals.css`](../frontend/styles/globals.css), including:
+  - `--sidebar-width-scaled`
+  - `--main-frame-width-scaled`
+  - `--main-padding-*`
+
+Overflow/responsive obligations:
+
+- shell must define whether the app uses grid sidebar/content mode or mobile stacked mode
+- shell must own top-level page scrolling and bottom-nav clearance
+- shell must not rely on page selectors to repair sidebar/content relationships
+
+#### App Shell
+
+Owner:
+
+- `.app_shell`
+
+Owns:
+
+- root sidebar/content grid relationship
+- shell mode switching between desktop-fit and mobile
+- top-level viewport occupancy
+
+Must not own:
+
+- page-internal composition
+- page-specific offsets such as Home lifted header placement
+
+#### Sidebar
+
+Owner:
+
+- `.navigation_bar`
+- `.brand_lockup`
+- `.nav_links`
+- `.nav_link`
+- `.wallet_panel` placement inside the sidebar
+
+Owns:
+
+- navigation placement
+- brand placement
+- wallet placement within the sidebar rail
+
+Must not own:
+
+- page content width
+- page header placement
+- route-specific content offsets
+
+#### Content Frame
+
+Owner:
+
+- `.main_content`
+
+Owns:
+
+- available page width
+- page scrolling region
+- shell padding around page content
+
+Must not own:
+
+- route-specific card grid formulas
+- page-specific floating/lifted offsets
+- component internals
+
+#### Page Frame / Page Stack
+
+Owner:
+
+- `.page_stack`
+- route-level page-frame selectors such as `.page_home.page_stack`
+
+Owns:
+
+- stacking of sections inside the content frame
+- route-level section spacing
+
+Must not own:
+
+- shared component internals
+- sidebar/content shell geometry
+
+#### Floating Header Region
+
+Owner:
+
+- shared header contract for `.page_header*`
+- page composition only for route-specific placement such as Home lifted/floating offsets
+
+Owns:
+
+- shared header structure at the component layer
+- route-specific placement only at the page-composition layer
+
+Must not own:
+
+- shell geometry
+- button internals inside header actions
+
+#### Scroll Containers
+
+Owner:
+
+- shell-level scroll containers:
+  - `body`
+  - `.main_content`
+- component-level scroll containers:
+  - component contracts such as modal shell body or media/player surfaces
+
+Owns:
+
+- which layer scrolls
+- bottom-nav avoidance in mobile mode
+- containment of route content within the content frame
+
+Must not own:
+
+- ad hoc page-specific overflow patches used to compensate for shell ownership gaps
+
+### Current Ownership Violations (Document Only)
+
+These are known violations in the current CSS and should be migrated later, not changed in this phase.
+
+- Home page selectors currently participate in shell-like positioning:
+  - `.page_home .page_header_actions`
+  - `.page_home > .filter_bar`
+  - `.page_home > .home_activity_content`
+- Home route selectors currently restyle shared component internals:
+  - `.page_home .filter_bar .tabs`
+  - `.page_stack.page_home .filter_bar .tab_button`
+- Desktop-fit repair blocks currently mix shell ownership with page/card internals:
+  - `@media (min-width: 640px) and (max-width: 1199px)` rules for `.waiting_grid`, `.matches_grid`, `.match_card_meta_row`
+- Mobile shell blocks currently mix app-shell switching with route/component internals:
+  - `@media (max-width: 639px)` rules touching `.page_stack.page_home`, waiting-card internals, challenge modal internals, and activity/claim rows
+
+Recommended staged follow-up:
+
+1. keep `.app_shell`, `.navigation_bar`, `.main_content`, and layout-mode switching as the only shell owners
+2. reduce Home page selectors back to composition-only ownership
+3. move grid/card/control internals out of shell/media-query repair blocks and into component/page contracts
+
 ### Button / ActionButton
 
 Owner:
