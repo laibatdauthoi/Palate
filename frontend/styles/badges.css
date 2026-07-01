@@ -1,0 +1,119 @@
+/* Badge / MediaTag contract:
+   - .badge owns the shared inline shell, typography, radius, padding, and
+     single-line behavior
+   - .status_badge, .category_badge, and .format_badge own variant material only
+   - cards/pages may position badges, but must not casually redefine the base
+     badge shell
+   - specialized decorative tags such as .match_card_category_tag remain
+     card-owned until the Card contract phase */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: var(--radius-md-scaled, 14px);
+  padding: var(--chip-pad-y-scaled, 6px) var(--chip-pad-x-scaled, 10px);
+  font-size: var(--chip-font-size-scaled, var(--font-size-caption));
+  font-weight: 900;
+  letter-spacing: 0.035em;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.status_badge {
+  flex: 0 0 auto;
+  border: 2px solid var(--border-subtle);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+}
+
+.status_waiting,
+.status_open,
+.status_pending,
+.status_pending_registration {
+  background: rgba(242, 184, 75, 0.12);
+  color: var(--warning-color);
+}
+
+.status_registration_failed {
+  background: rgba(255, 92, 122, 0.12);
+  color: #ffd7df;
+}
+
+.status_invalid_media_type {
+  background: rgba(255, 92, 122, 0.16);
+  color: #ffd7df;
+}
+
+.status_shelby_upload_failed {
+  background: rgba(255, 92, 122, 0.16);
+  color: #ffd7df;
+}
+
+.status_delete_pending {
+  background: rgba(242, 184, 75, 0.14);
+  color: var(--warning-color);
+}
+
+.status_content_unavailable {
+  background: rgba(255, 92, 122, 0.14);
+  color: #ffd7df;
+}
+
+.status_shelby_cleanup_required {
+  background: rgba(242, 184, 75, 0.14);
+  color: var(--warning-color);
+}
+
+.status_active,
+.status_claimable,
+.status_live {
+  background: rgba(255, 47, 159, 0.14);
+  color: var(--accent-soft);
+}
+
+.status_settled,
+.status_ended {
+  background: rgba(69, 212, 131, 0.12);
+  color: var(--success-color);
+}
+
+.status_claimed {
+  background: rgba(69, 212, 131, 0.12);
+  color: var(--success-color);
+}
+
+.category_badge {
+  flex: 0 0 auto;
+  border: 2px solid rgba(255, 47, 159, 0.28);
+  background: rgba(255, 47, 159, 0.12);
+  color: var(--accent-soft);
+}
+
+.category_image {
+  border-color: rgba(255, 107, 184, 0.24);
+  background: rgba(255, 107, 184, 0.11);
+  color: #ffc1df;
+}
+
+.category_audio {
+  border-color: rgba(135, 185, 255, 0.28);
+  background: rgba(135, 185, 255, 0.1);
+  color: #c7dcff;
+}
+
+.category_video {
+  border-color: rgba(143, 85, 255, 0.24);
+  background: rgba(143, 85, 255, 0.1);
+  color: #d8c3ff;
+}
+
+.format_badge {
+  flex: 0 0 auto;
+  border: 2px solid var(--border-subtle);
+  background: var(--surface-secondary);
+  color: var(--text-muted);
+}

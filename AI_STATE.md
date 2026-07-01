@@ -9,6 +9,10 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 # Active Files
 
 - [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+- [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+- [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css)
+- [`frontend/styles/badges.css`](./frontend/styles/badges.css)
+- [`frontend/styles/cards.css`](./frontend/styles/cards.css)
 - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
 - [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md)
 - [`AI_CONTEXT.md`](./AI_CONTEXT.md)
@@ -21,6 +25,14 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Recent Changes
 
+- Extracted the shared Card Foundation contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/cards.css`](./frontend/styles/cards.css), while intentionally leaving card-family, page-composition, and transaction-sensitive selectors in `globals.css`.
+- Extracted the shared Badge / MediaTag contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/badges.css`](./frontend/styles/badges.css), while intentionally leaving MatchCard decorative tags and family/page placement rules in `globals.css`.
+- Extracted the shared FilterBar/Tabs contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css), while intentionally leaving Home placement and page-specific FilterBar variable assignments in `globals.css`.
+- Extracted the base ActionButton contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/buttons.css`](./frontend/styles/buttons.css), while intentionally leaving protected card-main, match-footer, and route-specific button exceptions in `globals.css`.
+- Defined the Claim / Activity family contract in [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) and marked `--claim-row-*`, `--activity-row-*`, and `--activity-header-actions-*` as family-owned temporary bridge hooks.
+- Added a concrete CSS modularization plan to [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md), including target stylesheet ownership, dependency rules, extraction order, and selectors that cannot be moved yet.
+- Defined the MatchCard family contract in [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) and marked `--match-card-*` as family-owned temporary bridge hooks while keeping footer transaction controls explicitly protected.
+- Defined the WaitingPushCard family contract in [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) and marked `--waiting-push-*` as family-owned bridge hooks rather than reusable Card Foundation variables.
 - Documented durable vs temporary CSS variable families in [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) so future UI ownership work can distinguish reusable component hooks from bridge-only card/page families.
 - Added Card Foundation header/meta hooks in [`frontend/styles/globals.css`](./frontend/styles/globals.css) so shared card body/title/chip/meta containment and safe card-family spacing can move behind component-owned variables without touching outer card dimensions or protected match-card actions.
 - Added card/footer action-row variable hooks in [`frontend/styles/globals.css`](./frontend/styles/globals.css) so shared row alignment, wrapping, gap, and width behavior can move behind component-owned contracts without touching protected match-card transaction controls.
@@ -104,6 +116,14 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - The latest card/footer action-row exception pass is validated only by lint; no browser verification was run for that pass by request.
 - The latest card header/meta/chip exception pass is validated only by lint; no browser verification was run for that pass by request.
 - The latest CSS variable family classification pass is documentation-only and validated by lint; no browser verification was run for that pass by request.
+- The latest WaitingPushCard family contract pass is validated only by lint; no browser verification was run for that pass by request.
+- The latest MatchCard family contract pass is validated only by lint; no browser verification was run for that pass by request.
+- The latest CSS modularization plan pass is documentation-only and validated by lint; no browser verification was run for that pass by request.
+- The latest Claim / Activity family contract pass is validated only by lint; no browser verification was run for that pass by request.
+- The latest ActionButton modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
+- The latest FilterBar/Tabs modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
+- The latest Badge / MediaTag modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
+- The latest Card Foundation modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
 
 # Known Bugs
 
@@ -133,7 +153,15 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Do not migrate card-size selectors, Home composition offsets, or match/waiting card internals blindly; document them as skipped when they are risky.
 - Treat `--action-button-*`, `--card-footer-*`, `--card-actions-*`, `--filter-bar-*`, and `--tab-button-flex` as durable component contract families.
 - Treat `--waiting-push-*`, `--match-card-*`, `--claim-row-*`, `--activity-row-*`, and `--activity-header-actions-*` as temporary bridge families that must not be expanded casually.
+- Treat `--waiting-push-*` specifically as WaitingPushCard family-owned bridge hooks, not as reusable Card Foundation variables.
+- Treat `--match-card-*` specifically as MatchCard family-owned bridge hooks, not as reusable Card Foundation variables.
+- Treat `--claim-row-*`, `--activity-row-*`, and `--activity-header-actions-*` specifically as Claim / Activity family-owned bridge hooks, not as reusable shared ActionRow or Card Foundation variables.
 - Do not replace selector complexity with variable complexity; if a new variable only preserves one local exception, document it as a bridge hook rather than treating it as a permanent shared contract.
+- CSS file splitting must happen only after ownership is stable; moving selectors early would relocate mixed ownership instead of fixing it.
+- First CSS extraction should stay limited to durable shared owners; protected card-main, match-footer, and route CTA button selectors remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until their family/page contracts are extracted separately.
+- Shared FilterBar/Tabs contract rules can move into [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css), but Home placement selectors and route-scoped FilterBar variable assignments must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until page-composition extraction.
+- Shared Badge / MediaTag contract rules can move into [`frontend/styles/badges.css`](./frontend/styles/badges.css), but MatchCard decorative tag placement, card-family badge overrides, and page-specific badge placement must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until card/page extraction.
+- Shared Card Foundation rules can move into [`frontend/styles/cards.css`](./frontend/styles/cards.css), but WaitingPushCard, MatchCard, Claim/Activity families, page grid/composition selectors, and protected transaction-control paths must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until their later extraction phases.
 - Buff Find Match should block obvious no-match wallet popups in the frontend, but still allow real contract-side errors to surface when the frontend cannot know better.
 - Treat these AI handoff files as canonical context and update them when architecture or current work state materially changes.
 
@@ -361,6 +389,168 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
 
+## 2026-07-01 - Phase 24 ActionButton Extraction
+
+- Created [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) and moved the safe base ActionButton contract out of [`frontend/styles/globals.css`](./frontend/styles/globals.css).
+- Moved selectors:
+  - `.action_button`
+  - `.app_action_button`
+  - `.action_button_label`
+  - shared base hover / active / focus-visible / disabled rules
+  - shared base material variants:
+    - `.action_button_primary`
+    - `.app_action_primary`
+    - `.action_button_secondary`
+    - `.app_action_secondary`
+    - `.action_button_ghost`
+    - `.action_button_caution`
+    - `.app_action_caution`
+    - `.action_button_danger`
+- Added `@import "./buttons.css";` near the top of [`frontend/styles/globals.css`](./frontend/styles/globals.css), directly after `tokens.css`, so dependent component and page rules still load later.
+- Intentionally left in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.action_button_cardMain`
+  - `.action_button_cardMain .action_button_label`
+  - Challenge / Settle-sensitive selectors
+  - match-card footer transaction controls
+  - route/page-specific CTA exceptions such as:
+    - `.hero_primary_cta`
+    - `.home_cta_button`
+    - `.buff_find_match_search_button`
+    - `.buff_choose_button`
+    - `.claim_history_toggle`
+    - `.claim_detail_toggle`
+    - `.activity_filter_button`
+- Risk note:
+  - button extraction is now clean for the durable base contract, but card-main and route CTA selectors still depend on family/page ownership and should not move with the shared button file yet.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Phase 25 FilterBar/Tabs Extraction
+
+- Created [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css) and moved the shared FilterBar/Tabs contract out of [`frontend/styles/globals.css`](./frontend/styles/globals.css).
+- Moved selectors:
+  - `.filter_bar`
+  - `.filter_bar_surface`
+  - `.filter_bar_inner`
+  - `.tabs`
+  - `.tab_button`
+  - `.tab_button_label`
+  - `.tab_button.active`
+  - `.tab_button_attention`
+  - `.tab_badge`
+  - shared FilterBar/Tabs shell and row-fitting rules:
+    - `.filter_bar_surface .tabs`
+    - `.filter_bar .tabs`
+    - `.filter_bar .tab_button`
+  - shared narrow-desktop responsive contract:
+    - `@media (max-width: 1199px)` rules for `.tabs` and `.tab_button`
+- Added `@import "./filter-bar.css";` near the top of [`frontend/styles/globals.css`](./frontend/styles/globals.css), directly after `buttons.css`, so shared component rules still load before dependent component/page rules.
+- Intentionally left in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.page_home > .filter_bar`
+  - `.page_stack.page_home > .filter_bar`
+  - Home placement/offset rules
+  - page-scoped FilterBar variable assignments
+  - mixed cleanup / reduced-motion blocks that mention `.tab_button` alongside unrelated components
+  - any card/grid selectors
+  - any button selectors
+  - any Challenge/Settle selectors
+- Risk note:
+  - the shared FilterBar/Tabs contract is now isolated, but mixed global cleanup selectors and Home composition bridges still live in `globals.css` and should move only with later page/layout extraction.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Phase 26 Badge / MediaTag Extraction
+
+- Created [`frontend/styles/badges.css`](./frontend/styles/badges.css) and moved the shared Badge / MediaTag contract out of [`frontend/styles/globals.css`](./frontend/styles/globals.css).
+- Moved selectors:
+  - `.badge`
+  - `.status_badge`
+  - `.category_badge`
+  - `.format_badge`
+  - shared variant/material selectors:
+    - `.status_waiting`
+    - `.status_open`
+    - `.status_pending`
+    - `.status_pending_registration`
+    - `.status_registration_failed`
+    - `.status_invalid_media_type`
+    - `.status_shelby_upload_failed`
+    - `.status_delete_pending`
+    - `.status_content_unavailable`
+    - `.status_shelby_cleanup_required`
+    - `.status_active`
+    - `.status_claimable`
+    - `.status_live`
+    - `.status_settled`
+    - `.status_ended`
+    - `.status_claimed`
+    - `.category_image`
+    - `.category_audio`
+    - `.category_video`
+- Added `@import "./badges.css";` near the top of [`frontend/styles/globals.css`](./frontend/styles/globals.css), directly after `filter-bar.css`, so shared component rules still load before dependent component/page rules.
+- Intentionally left in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.match_card_category_tag`
+  - match-card decorative tag placement
+  - card-family badge/tag overrides such as `.waiting_push_card_compact .status_badge`
+  - page-specific badge placement
+  - mixed global cleanup blocks that include `.badge`, `.status_badge`, `.category_badge`, and `.format_badge` alongside unrelated selectors
+  - Challenge/Settle selectors
+  - card dimensions
+- Risk note:
+  - the shared badge contract is now isolated, but card-family decorative tags and mixed cleanup selectors still live in `globals.css` and should move only with later card/page extraction.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Phase 27 Card Foundation Extraction
+
+- Created [`frontend/styles/cards.css`](./frontend/styles/cards.css) and moved the shared Card Foundation contract out of [`frontend/styles/globals.css`](./frontend/styles/globals.css).
+- Moved selectors:
+  - `.card_shell`
+  - `.card_shell_interactive`
+  - `.card_preview`
+  - `.card_body`
+  - `.card_title_row`
+  - `.card_chip_row`
+  - `.card_footer`
+  - `.card_actions`
+  - `.media_card_actions`
+  - shared Card Foundation child/support selectors:
+    - `.card_shell_interactive:hover`
+    - `.card_shell_interactive:focus-within`
+    - `.card_title_row > :first-child`
+    - `.card_title_row > :last-child`
+    - `.card_title`
+    - `.card_title_row > h3`
+    - `.card_status`
+    - `.card_footer > :first-child`
+    - `.card_footer > :last-child`
+- Added `@import "./cards.css";` near the top of [`frontend/styles/globals.css`](./frontend/styles/globals.css), directly after `badges.css`, so shared component rules still load before family/page rules.
+- Intentionally left in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.media_card`
+  - `.waiting_push_card`
+  - `.waiting_push_card_compact`
+  - all `.waiting_push_*` family selectors
+  - `.match_card`
+  - all `.match_card_*` family selectors
+  - `.match_card_footer_actions`
+  - `.match_card_countdown_slot`
+  - `.match_card_detail_button`
+  - `.match_card_settle_button`
+  - `.action_button_cardMain`
+  - all `.claim_*`
+  - all `.activity_*`
+  - page grid/composition selectors
+  - Challenge/Settle-sensitive selectors
+  - mixed global cleanup blocks that mention card-family selectors alongside broader shell/component cleanup
+- Risk note:
+  - the shared Card Foundation contract is now isolated, but card-family hover/sizing/cleanup paths and decorative pseudo-element cleanup still live in `globals.css` and should move only with later family/layout extraction.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
 ## 2026-07-01 - Durable vs Temporary Variable Family Documentation Pass
 
 - Updated [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) with an explicit CSS variable family policy.
@@ -380,6 +570,167 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
   - do not replace selector complexity with variable complexity
 - Next recommended family contract:
   - formalize Waiting Push / Match Card family contracts before adding more bridge hooks
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - WaitingPushCard Family Contract Pass
+
+- Updated [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) to define a WaitingPushCard family contract layered on top of Card Foundation.
+- Defined WaitingPushCard ownership for:
+  - shell variants:
+    - `.waiting_push_card`
+    - `.waiting_push_card_compact`
+  - compact/body structure:
+    - `.waiting_push_body`
+  - title/meta/chip/stat rows:
+    - `.waiting_push_meta`
+    - `.waiting_push_meta_compact`
+    - `.waiting_push_compact_title_row`
+    - `.waiting_push_compact_chip_row`
+    - `.waiting_push_required_meta`
+    - `.waiting_push_stats`
+    - `.waiting_push_stat`
+  - non-transactional action placement:
+    - `.waiting_push_actions`
+    - `.waiting_push_action_stack_compact`
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) with a short family-contract comment that:
+  - marks `--waiting-push-*` as family-owned bridge hooks
+  - clarifies MediaRenderer internals stay MediaRenderer-owned
+  - marks `.waiting_push_actions`, Challenge-related selectors, and `.action_button_cardMain` as protected
+- Bridge variable classification:
+  - `--waiting-push-*` remain temporary bridge hooks
+  - they should not expand without updating the WaitingPushCard contract first
+- Protected / skipped:
+  - `.waiting_push_card`
+  - `.waiting_push_card_compact`
+  - `.waiting_push_actions`
+  - Challenge-related selectors
+  - `.action_button_cardMain`
+  - Home grid placement
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - MatchCard Family Contract Pass
+
+- Updated [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) to define a MatchCard family contract layered on top of Card Foundation.
+- Defined MatchCard ownership for:
+  - shell variant:
+    - `.match_card`
+  - match metadata rows:
+    - `.match_card_meta_row`
+    - `.match_card_footer_meta`
+  - match ID display:
+    - `.match_card_match_id`
+    - `.match_card_match_id_label`
+    - `.match_card_match_id_value`
+  - category tag placement:
+    - `.match_card_category_tag`
+  - media placement around MediaRenderer
+- Explicitly documented protected transaction-control ownership:
+  - `.match_card_footer_actions`
+  - `.match_card_countdown_slot`
+  - `.match_card_detail_button`
+  - `.match_card_settle_button`
+  - `.action_button_cardMain`
+  - related Challenge/Settle selectors
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) with a short MatchCard family-contract comment that:
+  - marks `--match-card-*` as family-owned temporary bridge hooks
+  - clarifies MediaRenderer internals stay MediaRenderer-owned
+  - keeps footer transaction controls isolated and protected
+- Bridge variable classification:
+  - `--match-card-*` remain temporary bridge hooks
+  - they should not expand without updating the MatchCard contract first
+- Protected / skipped:
+  - `.match_card_footer_actions`
+  - `.match_card_countdown_slot`
+  - `.match_card_detail_button`
+  - `.match_card_settle_button`
+  - `.action_button_cardMain`
+  - Challenge/Settle-related selectors
+  - Home grid placement
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - CSS Modularization Planning Pass
+
+- Updated [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) with a concrete target stylesheet structure for splitting [`frontend/styles/globals.css`](./frontend/styles/globals.css) after ownership cleanup is mature.
+- Proposed target files:
+  - `foundation.css`
+  - `layout.css`
+  - `navigation.css`
+  - `wallet.css`
+  - `buttons.css`
+  - `filter-bar.css`
+  - `badges.css`
+  - `cards.css`
+  - `waiting-push.css`
+  - `match-card.css`
+  - `modal.css`
+  - `media-renderer.css`
+  - `pages/home.css`
+  - `pages/buff.css`
+  - `pages/push.css`
+  - `pages/profile.css`
+  - `pages/media.css`
+- Added for each target file:
+  - ownership
+  - allowed dependencies
+  - forbidden dependencies
+- Added a recommended extraction order that starts with durable shared owners and ends with page-composition files.
+- Documented selectors/rule groups that cannot safely move yet:
+  - mixed shell/media-query blocks
+  - Home placement selectors that still bridge composition and component behavior
+  - protected match-card transaction controls
+  - Challenge/Settle-sensitive paths
+  - selectors still relying on temporary bridge variable families
+- Key blocker:
+  - CSS splitting is still downstream of ownership cleanup; moving selectors now would preserve mixed ownership under different filenames
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Claim / Activity Family Contract Pass
+
+- Updated [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) to define Claim and Activity family ownership before CSS modularization.
+- Defined ownership split:
+  - Profile page owns section placement and page flow
+  - Claim family owns claim card/row/detail/toggle structure
+  - Activity family owns activity rows, status/meta/action layout, and filter-row shell
+  - ActionButton contract still owns shared button material
+  - shared badge/status material remains badge-owned where applicable
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) with short ownership comments near:
+  - claim-family block
+  - activity-family block
+- Bridge variable classification:
+  - `--claim-row-*`
+  - `--activity-row-*`
+  - `--activity-header-actions-*`
+  remain family-owned temporary bridge hooks
+- Selectors covered by the contract:
+  - `.claim_card`
+  - `.claim_rows`
+  - `.claim_row_main`
+  - `.claim_row_actions`
+  - `.claim_history_toggle`
+  - `.claim_detail_toggle`
+  - `.claim_detail_item`
+  - `.activity_stack`
+  - `.activity_header_bar`
+  - `.activity_header_actions`
+  - `.activity_filters_scroller`
+  - `.activity_filters_bar`
+  - `.activity_rows`
+  - `.activity_row*`
+  - `.activity_status`
+  - `.activity_link`
+  - `.activity_filter_button`
+- Protected / skipped:
+  - no visual rewrites to Profile layout
+  - no button-material changes
+  - no gameplay/claim/activity behavior changes
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request

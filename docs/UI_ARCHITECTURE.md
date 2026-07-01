@@ -586,6 +586,175 @@ Overflow/responsive obligations:
 - titles/meta/actions must use explicit overflow rules
 - shared card primitives must remain reusable across Media, Waiting Push, and Match cards
 
+#### WaitingPushCard family contract
+
+Owner:
+
+- WaitingPushCard family contract layered on top of Card Foundation
+
+Owns:
+
+- shell variants:
+  - `.waiting_push_card`
+  - `.waiting_push_card_compact`
+- compact-body structure:
+  - `.waiting_push_body`
+  - compact variant body row structure/padding
+- title/meta/chip/stat internals:
+  - `.waiting_push_meta`
+  - `.waiting_push_meta_compact`
+  - `.waiting_push_compact_title_row`
+  - `.waiting_push_compact_chip_row`
+  - `.waiting_push_required_meta`
+  - `.waiting_push_stats`
+  - `.waiting_push_stat`
+- non-transactional action placement:
+  - `.waiting_push_actions`
+  - `.waiting_push_action_stack_compact`
+- media placement around MediaRenderer
+
+Must not own:
+
+- MediaRenderer internals
+- ActionButton material
+- page/grid placement
+- Challenge transaction behavior
+
+Bridge variable policy:
+
+- `--waiting-push-*` variables are family-owned bridge hooks
+- they preserve computed behavior while WaitingPushCard ownership is being
+  formalized
+- they are not reusable Card Foundation variables
+- do not add new `--waiting-push-*` hooks casually; update the WaitingPushCard
+  family contract first
+
+Protected paths:
+
+- `.waiting_push_actions`
+- Challenge-related selectors
+- `.action_button_cardMain`
+- Home grid placement involving waiting cards
+
+Reason:
+
+- these paths are still coupled to Challenge/card regression history and should
+  not be normalized opportunistically
+
+#### MatchCard family contract
+
+Owner:
+
+- MatchCard family contract layered on top of Card Foundation
+
+Owns:
+
+- shell variant:
+  - `.match_card`
+- match metadata rows:
+  - `.match_card_meta_row`
+  - `.match_card_footer_meta`
+- match ID display:
+  - `.match_card_match_id`
+  - `.match_card_match_id_label`
+  - `.match_card_match_id_value`
+- category tag placement:
+  - `.match_card_category_tag`
+- media placement around MediaRenderer
+
+Must not own:
+
+- MediaRenderer internals
+- generic Card Foundation ownership
+- ActionButton material
+- page/grid placement
+- footer transaction-control behavior
+
+Bridge variable policy:
+
+- `--match-card-*` variables are family-owned temporary bridge hooks
+- they preserve computed behavior while MatchCard ownership is being formalized
+- they are not reusable Card Foundation variables
+- do not add new `--match-card-*` hooks casually; update the MatchCard family
+  contract first
+
+Protected transaction-control ownership:
+
+- footer transaction controls remain isolated and protected:
+  - `.match_card_footer_actions`
+  - `.match_card_countdown_slot`
+  - `.match_card_detail_button`
+  - `.match_card_settle_button`
+  - `.action_button_cardMain`
+  - related Challenge/Settle selectors
+
+Reason:
+
+- Detail / Settle / countdown sizing and wrapping are not part of generic Card
+  Foundation behavior and remain coupled to approved Home composition plus
+  transaction-control regression history
+
+#### Claim / Activity family contract
+
+Owner:
+
+- Claim family contract and Activity family contract, consumed inside Profile
+  page composition
+
+Profile page owns:
+
+- section placement
+- page flow
+- how claim/activity sections are arranged within the Profile page
+
+Claim family owns:
+
+- claim card and summary structure:
+  - `.claim_card`
+  - `.claim_rows`
+  - `.claim_row_main`
+  - `.claim_row_actions`
+  - `.claim_detail_item`
+- claim toggle controls:
+  - `.claim_history_toggle`
+  - `.claim_detail_toggle`
+- family-owned temporary bridge hooks:
+  - `--claim-row-*`
+
+Activity family owns:
+
+- activity section shell:
+  - `.activity_stack`
+  - `.activity_header_bar`
+  - `.activity_header_actions`
+  - `.activity_filters_scroller`
+  - `.activity_filters_bar`
+  - `.activity_rows`
+- activity row layout/content:
+  - `.activity_row*`
+  - `.activity_status`
+  - `.activity_link`
+  - `.activity_filter_button`
+- family-owned temporary bridge hooks:
+  - `--activity-row-*`
+  - `--activity-header-actions-*`
+
+Must not own:
+
+- page-level section placement
+- shared ActionButton material
+- reusable badge/status shell material where a shared badge contract applies
+
+Bridge variable policy:
+
+- `--claim-row-*`, `--activity-row-*`, and `--activity-header-actions-*` are
+  family-owned temporary bridge hooks
+- they preserve current computed behavior while Claim/Activity ownership is
+  being formalized
+- they are not reusable Card Foundation or ActionRow variables
+- do not add new hooks in these families casually; update the relevant family
+  contract first
+
 ### PageHeader / Hero
 
 Owner:
@@ -1126,6 +1295,375 @@ Rationale:
 - buttons, wallet, tabs, and badges are lower-risk shared contracts than Home composition or card-family shell sizing
 - card and page-header work should happen before layout-mode cleanup only if their ownership is clear
 - CSS file splitting is the last step, not the first, so ownership exists before files are moved
+
+## 8.5 CSS Modularization Plan
+
+This is the target stylesheet structure after ownership cleanup is complete. It
+is a migration plan only. Do not move selectors into these files until the
+relevant ownership boundary is already stable.
+
+### `frontend/styles/foundation.css`
+
+Ownership:
+
+- foundation tokens
+- root global defaults
+- scale-policy primitives that are not component-specific
+
+Allowed dependencies:
+
+- `tokens.css`
+
+Forbidden dependencies:
+
+- page-specific composition
+- component-family bridge hooks
+- route-specific overrides
+
+### `frontend/styles/layout.css`
+
+Ownership:
+
+- app shell
+- layout modes
+- sidebar/content frame relationship
+- top-level scroll containers
+
+Allowed dependencies:
+
+- `foundation.css`
+
+Forbidden dependencies:
+
+- card internals
+- button internals
+- page-specific composition
+
+### `frontend/styles/navigation.css`
+
+Ownership:
+
+- navigation shell
+- brand lockup
+- nav links
+- mobile bottom navigation visibility/states
+
+Allowed dependencies:
+
+- `foundation.css`
+- `layout.css`
+
+Forbidden dependencies:
+
+- page content layout
+- wallet internals
+- card/page overrides
+
+### `frontend/styles/wallet.css`
+
+Ownership:
+
+- WalletPanel shell and internals
+- wallet modal option cards
+
+Allowed dependencies:
+
+- `foundation.css`
+- `buttons.css`
+
+Forbidden dependencies:
+
+- sidebar shell geometry
+- page composition
+- unrelated modal internals
+
+### `frontend/styles/buttons.css`
+
+Ownership:
+
+- ActionButton contract
+- durable `--action-button-*` family
+- variants, sizes, shared interaction behavior
+
+Allowed dependencies:
+
+- `foundation.css`
+
+Forbidden dependencies:
+
+- page placement
+- card-family composition
+- route-specific CTA placement
+
+### `frontend/styles/filter-bar.css`
+
+Ownership:
+
+- FilterBar shell
+- Tabs shell
+- tab badges and row-fitting contract
+- durable `--filter-bar-*` and `--tab-button-flex`
+
+Allowed dependencies:
+
+- `foundation.css`
+- `buttons.css` for token consistency only
+
+Forbidden dependencies:
+
+- Home placement offsets
+- page-specific tab visual restyling
+
+### `frontend/styles/badges.css`
+
+Ownership:
+
+- shared badge/media-tag shell
+- category/format/status badge variants
+
+Allowed dependencies:
+
+- `foundation.css`
+
+Forbidden dependencies:
+
+- decorative match-card tag placement
+- page/card grid layout
+
+### `frontend/styles/cards.css`
+
+Ownership:
+
+- Card Foundation only:
+  - `.card_shell`
+  - `.card_preview`
+  - `.card_body`
+  - `.card_title_row`
+  - `.card_chip_row`
+  - `.card_footer`
+  - `.card_actions`
+- durable `--card-footer-*` and `--card-actions-*`
+
+Allowed dependencies:
+
+- `foundation.css`
+- `buttons.css`
+- `badges.css`
+
+Forbidden dependencies:
+
+- WaitingPushCard internals
+- MatchCard internals
+- page-specific composition
+
+### `frontend/styles/waiting-push.css`
+
+Ownership:
+
+- WaitingPushCard family contract
+- `.waiting_push_card*`
+- `.waiting_push_body`
+- waiting-push meta/chip/stat/action placement
+- family-owned `--waiting-push-*` bridge hooks until consolidated
+
+Allowed dependencies:
+
+- `cards.css`
+- `buttons.css`
+- `badges.css`
+- `media-renderer.css`
+
+Forbidden dependencies:
+
+- Home grid placement
+- Challenge transaction logic/material
+- MediaRenderer internals
+
+### `frontend/styles/match-card.css`
+
+Ownership:
+
+- MatchCard family contract
+- `.match_card*`
+- match metadata rows, match ID display, category-tag placement
+- family-owned `--match-card-*` bridge hooks until consolidated
+
+Allowed dependencies:
+
+- `cards.css`
+- `buttons.css`
+- `badges.css`
+- `media-renderer.css`
+
+Forbidden dependencies:
+
+- Home grid placement
+- footer transaction-control redesign
+- MediaRenderer internals
+
+### `frontend/styles/modal.css`
+
+Ownership:
+
+- modal shell contract
+- backdrop/container/header/body
+
+Allowed dependencies:
+
+- `foundation.css`
+- `buttons.css`
+
+Forbidden dependencies:
+
+- wallet/challenge/media-viewer content internals
+- page composition
+
+### `frontend/styles/media-renderer.css`
+
+Ownership:
+
+- MediaRenderer shell
+- renderer variants
+- shared audio/video/image viewer primitives
+
+Allowed dependencies:
+
+- `foundation.css`
+- `modal.css` where viewer shell interaction is shared
+
+Forbidden dependencies:
+
+- card-family placement
+- route-specific overrides
+
+### `frontend/styles/pages/home.css`
+
+Ownership:
+
+- Home composition only
+- lifted/floating header placement
+- waiting/match section arrangement
+- route-scoped variables passed into component contracts
+
+Allowed dependencies:
+
+- all shared component styles as consumers only
+
+Forbidden dependencies:
+
+- card/button/tab internals
+- shell ownership
+
+### `frontend/styles/pages/buff.css`
+
+Ownership:
+
+- Buff page composition only
+
+Allowed dependencies:
+
+- shared component styles as consumers only
+
+Forbidden dependencies:
+
+- shared component internals without explicit contract ownership
+
+### `frontend/styles/pages/push.css`
+
+Ownership:
+
+- Push page composition only
+
+Allowed dependencies:
+
+- shared component styles as consumers only
+
+Forbidden dependencies:
+
+- shared component internals without explicit contract ownership
+
+### `frontend/styles/pages/profile.css`
+
+Ownership:
+
+- Profile page composition only
+
+Allowed dependencies:
+
+- shared component styles as consumers only
+
+Forbidden dependencies:
+
+- shared component internals without explicit contract ownership
+
+### `frontend/styles/pages/media.css`
+
+Ownership:
+
+- My Media page composition only
+
+Allowed dependencies:
+
+- shared component styles as consumers only
+
+Forbidden dependencies:
+
+- media-card or MediaRenderer internals without explicit contract ownership
+
+### Recommended extraction order
+
+Use this sequence when the actual split begins:
+
+1. `foundation.css`
+2. `layout.css`
+3. `buttons.css`
+4. `filter-bar.css`
+5. `badges.css`
+6. `wallet.css`
+7. `cards.css`
+8. `modal.css`
+9. `media-renderer.css`
+10. `waiting-push.css`
+11. `match-card.css`
+12. page files under `pages/`
+
+Rationale:
+
+- foundation/layout/buttons/filter-bar/badges are the clearest durable owners
+- wallet/modal/media-renderer have documented contracts but still need caution
+- card-family files come after shared Card Foundation is stable
+- page files move last because they should end up as composition-only consumers
+
+### Selectors that cannot be moved yet
+
+These must stay put until more ownership cleanup happens:
+
+- shell/media-query blocks that still mix layout and component behavior:
+  - `@media (min-width: 640px) and (max-width: 1199px)`
+  - `@media (max-width: 639px)`
+- Home placement selectors that still bridge page composition and component
+  behavior:
+  - `.page_home > .filter_bar`
+  - `.page_home > .home_activity_content`
+  - `.page_home .page_header_actions`
+- protected transaction-control selectors:
+  - `.match_card_footer_actions`
+  - `.match_card_countdown_slot`
+  - `.match_card_detail_button`
+  - `.match_card_settle_button`
+  - `.action_button_cardMain`
+- Challenge/Settle-sensitive paths inside waiting/match cards
+- any selector currently relying on temporary bridge families:
+  - `--waiting-push-*`
+  - `--match-card-*`
+  - `--claim-row-*`
+  - `--activity-row-*`
+  - `--activity-header-actions-*`
+
+Reason:
+
+- moving these before their ownership is fully reduced would only rename the
+  fragility instead of removing it
 
 ## 9. Codex Working Rules
 

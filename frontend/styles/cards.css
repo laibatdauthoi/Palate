@@ -1,0 +1,134 @@
+/* Card Foundation ownership:
+   - Foundation owns the reusable shell, preview frame, body, title row, chip row,
+     footer row, and shared action row primitives.
+   - Card variants own only variant-specific composition, media behavior,
+     metadata treatment, and gameplay-specific controls.
+   - Pages may place cards in a composition, but must not restyle shared card
+     foundation internals through broad descendant overrides. */
+.card_shell {
+  min-width: 0;
+  position: relative;
+  border: 2px solid var(--palate-card-border);
+  border-radius: var(--radius-large);
+  background: var(--palate-card-bg);
+  box-shadow: var(--palate-card-shadow);
+  overflow: hidden;
+}
+
+.card_shell_interactive {
+  transform-origin: center;
+  transition: var(--transition-medium);
+  will-change: transform;
+}
+
+.card_shell_interactive:hover,
+.card_shell_interactive:focus-within {
+  transform: scale(1.012);
+  border-color: var(--palate-card-hover-border);
+  box-shadow: var(--palate-card-hover-shadow);
+}
+
+.card_preview {
+  min-width: 0;
+  max-width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--media-preview-surface-bg);
+}
+
+/* Card Foundation header/meta contract:
+   - Card Foundation owns shared body, title-row, chip-row, and generic meta
+     containment behavior
+   - card families may supply scoped custom properties for gap/alignment/wrap
+     behavior while keeping Card Foundation as the shell owner
+   - protected match-card transaction controls remain outside this block */
+.card_body {
+  display: grid;
+  gap: var(--card-body-gap, var(--spacing-md));
+  padding: var(--card-body-pad, var(--spacing-md));
+  min-width: 0;
+}
+
+.card_title_row {
+  display: flex;
+  align-items: var(--card-title-row-align, flex-start);
+  justify-content: var(--card-title-row-justify, flex-start);
+  gap: var(--card-title-row-gap, var(--spacing-md));
+  min-width: 0;
+}
+
+.card_title_row > :first-child {
+  min-width: 0;
+}
+
+.card_title_row > :last-child {
+  flex: 0 0 auto;
+}
+
+.card_title,
+.card_title_row > h3 {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card_status {
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-body-small-scaled, var(--font-size-body-small));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card_chip_row {
+  min-width: 0;
+  max-width: 100%;
+  gap: var(--card-chip-row-gap, initial);
+  align-items: var(--card-chip-row-align, normal);
+  flex-wrap: var(--card-chip-row-wrap, nowrap);
+}
+
+/* Card Foundation action/footer contract:
+   - Card Foundation owns shared footer/action-row shell behavior: alignment,
+     gap, wrapping, and width containment
+   - card/page variants may supply scoped custom properties for row fitting
+   - transaction-specific match-card footer controls remain protected and should
+     not be normalized here unless a task explicitly targets them */
+.card_footer {
+  display: flex;
+  align-items: var(--card-footer-align, center);
+  justify-content: var(--card-footer-justify, flex-start);
+  gap: var(--card-footer-gap, calc(var(--spacing-md) * var(--ui-scale-x)));
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: var(--card-footer-wrap, nowrap);
+}
+
+.card_footer > :first-child {
+  min-width: 0;
+}
+
+.card_footer > :last-child {
+  flex: 0 0 auto;
+}
+
+.card_actions,
+.media_card_actions {
+  display: flex;
+  align-items: var(--card-actions-align, center);
+  flex-wrap: var(--card-actions-wrap, wrap);
+  flex: 0 0 auto;
+  justify-content: var(--card-actions-justify, flex-end);
+  gap: var(--card-actions-gap, 8px);
+  min-width: 0;
+  max-width: 100%;
+  width: var(--card-actions-width, auto);
+}

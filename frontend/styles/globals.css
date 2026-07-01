@@ -1,4 +1,8 @@
 @import "./tokens.css";
+@import "./buttons.css";
+@import "./filter-bar.css";
+@import "./badges.css";
+@import "./cards.css";
 
 * {
   box-sizing: border-box;
@@ -784,116 +788,6 @@ img {
   font-size: var(--font-size-caption);
 }
 
-/* Tabs / FilterBar contract:
-   - FilterBar owns shell, surface, and overflow context
-   - Tabs owns the pill row and shared row behavior
-   - TabButton owns pill shape, label layout, badge layout, and tab interaction
-   - pages may position FilterBar in composition, but must not casually restyle
-     tab internals or make tabs resemble primary action buttons */
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  min-width: 0;
-  max-width: 100%;
-  gap: var(--spacing-sm);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-pill-scaled, var(--radius-pill));
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.008)),
-    linear-gradient(145deg, rgba(29, 33, 42, 0.92), rgba(18, 21, 29, 0.9));
-  padding: calc(4px * var(--button-scale));
-}
-
-.tab_button {
-  display: inline-flex;
-  flex: var(--tab-button-flex, 0 1 auto);
-  align-items: center;
-  min-width: 0;
-  gap: calc(8px * var(--button-scale));
-  border: 1px solid rgba(150, 158, 188, 0.18);
-  border-radius: var(--radius-pill);
-  background:
-    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.12), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 38%, rgba(0, 0, 0, 0.08) 100%),
-    linear-gradient(145deg, rgba(48, 52, 64, 0.94), rgba(20, 23, 31, 0.96) 58%, rgba(14, 16, 23, 0.98));
-  color: var(--text-secondary);
-  padding: var(--tab-pad-y-scaled, 9px) var(--tab-pad-x-scaled, 16px);
-  font-size: var(--tab-font-size-scaled, 14px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(8, 10, 16, 0.56),
-    inset 1px 0 0 rgba(255, 255, 255, 0.035),
-    inset -1px 0 0 rgba(0, 0, 0, 0.18),
-    -1px -1px 0 rgba(255, 255, 255, 0.03),
-    0 10px 16px rgba(0, 0, 0, 0.28),
-    0 2px 0 rgba(5, 7, 12, 0.32);
-  transition: var(--transition-fast);
-}
-
-.tab_button_label {
-  min-width: 0;
-  line-height: inherit;
-}
-
-.tab_button:hover {
-  border-color: rgba(186, 194, 224, 0.24);
-  background:
-    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.14), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.02) 38%, rgba(0, 0, 0, 0.1) 100%),
-    linear-gradient(145deg, rgba(56, 60, 73, 0.95), rgba(24, 27, 36, 0.97) 58%, rgba(16, 18, 25, 0.99));
-  color: var(--text-primary);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -1px 0 rgba(8, 10, 16, 0.58),
-    inset 1px 0 0 rgba(255, 255, 255, 0.04),
-    inset -1px 0 0 rgba(0, 0, 0, 0.22),
-    -1px -1px 0 rgba(255, 255, 255, 0.032),
-    0 11px 18px rgba(0, 0, 0, 0.3),
-    0 0 10px rgba(255, 255, 255, 0.03);
-}
-
-.tab_button.active,
-.tab_button.active:hover {
-  border-color: var(--border-focus);
-  background:
-    radial-gradient(circle at 18% 16%, rgba(255, 238, 247, 0.14), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 38%, rgba(55, 16, 40, 0.1) 100%),
-    linear-gradient(145deg, rgba(63, 43, 60, 0.95), rgba(34, 24, 38, 0.96) 56%, rgba(23, 18, 29, 0.98)),
-    linear-gradient(135deg, rgba(255, 47, 159, 0.1), rgba(143, 85, 255, 0.03));
-  color: var(--text-primary);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 245, 250, 0.12),
-    inset 0 -1px 0 rgba(39, 14, 31, 0.52),
-    inset 1px 0 0 rgba(255, 255, 255, 0.04),
-    inset -1px 0 0 rgba(76, 24, 52, 0.16),
-    -1px -1px 0 rgba(255, 255, 255, 0.035),
-    0 11px 18px rgba(0, 0, 0, 0.3),
-    0 0 14px rgba(255, 47, 159, 0.08);
-}
-
-.tab_button_attention {
-  border-color: rgba(255, 47, 159, 0.18);
-  box-shadow: 0 0 18px rgba(255, 47, 159, 0.16);
-  animation: claim_tab_pulse 1.8s ease-in-out infinite;
-}
-
-.tab_badge {
-  display: inline-grid;
-  flex: 0 0 auto;
-  min-width: calc(22px * var(--button-scale));
-  min-height: calc(22px * var(--button-scale));
-  place-items: center;
-  border-radius: var(--radius-pill-scaled, 999px);
-  background: linear-gradient(135deg, rgba(255, 47, 159, 0.95), rgba(255, 126, 192, 0.9));
-  color: #fff7fb;
-  font-size: var(--chip-font-size-scaled, 12px);
-  font-weight: 900;
-  line-height: 1;
-  padding: 0 calc(6px * var(--button-scale));
-  box-shadow: 0 0 16px rgba(255, 47, 159, 0.32);
-}
-
 .input_control {
   appearance: none;
   width: 100%;
@@ -1428,64 +1322,21 @@ select.input_control option:checked,
   box-shadow: 0 0 12px rgba(255, 47, 159, 0.24);
 }
 
-/* ActionButton contract:
-   - base button owns shell, shared typography, radius, interaction, and generic
-     icon/label spacing
-   - variant selectors own color/material only
-   - size selectors own dimensions only
-   - documented custom properties are the safe route/component hook for fit and
-     width exceptions instead of descendant overrides into button internals
-   - page/card/wallet selectors may position buttons or opt into documented size
-     variants, but must not casually redefine base shell/material rules */
-.action_button,
-.app_action_button {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--action-button-width, auto);
-  max-width: var(--action-button-max-width, none);
-  min-width: var(--action-button-min-width, 0);
-  gap: var(--inline-icon-gap-scaled, calc(8px * var(--button-scale)));
-  min-height: var(--action-button-min-height, calc(48px * var(--button-scale)));
-  padding:
-    var(--action-button-pad-y, var(--button-pad-y-scaled, 12px))
-    var(--action-button-pad-x, var(--button-pad-x-scaled, 18px));
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.app_action_compact {
+  min-height: var(--button-compact-height-scaled, 40px);
+  padding: var(--button-compact-pad-y-scaled, 10px) var(--button-compact-pad-x-scaled, 14px);
   border-radius: var(--button-radius-scaled, 16px);
-  background-color: rgba(18, 24, 31, 0.96);
-  color: var(--text-primary);
-  font-size: var(--button-font-size-scaled, 14px);
-  font-weight: 850;
-  letter-spacing: -0.01em;
-  line-height: var(--line-height-tight);
-  text-decoration: none;
-  cursor: pointer;
-  overflow: hidden;
-  transform-origin: center;
-  transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
-  will-change: transform;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.16),
-    0 10px 22px rgba(0, 0, 0, 0.24);
 }
 
-.action_button_label {
-  display: block;
-  position: relative;
-  z-index: 1;
-  min-width: 0;
-  max-width: 100%;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: nowrap;
-  line-height: inherit;
+.app_action_full {
+  width: 100%;
 }
 
 /* Protected size path:
-   card-main dimensions are still coupled to Challenge/Settle/countdown history.
-   Do not widen, shrink, or restyle this size contract casually from shared work. */
+   base ActionButton shell/material now lives in `frontend/styles/buttons.css`.
+   Card-main dimensions remain here because they are still coupled to
+   Challenge/Settle/countdown history. Do not widen, shrink, or restyle this
+   size contract casually from shared work. */
 .action_button_cardMain {
   width: auto;
   min-width: var(--button-card-main-width-scaled, 112px);
@@ -1501,368 +1352,6 @@ select.input_control option:checked,
 .action_button_cardMain .action_button_label {
   overflow: visible;
   text-overflow: clip;
-}
-
-.action_button:hover,
-.app_action_button:hover {
-  transform: scale(1.025);
-  border-color: rgba(0, 213, 247, 0.34);
-  background-color: rgba(22, 31, 39, 0.99);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
-    0 14px 24px rgba(0, 0, 0, 0.28);
-}
-
-.action_button:active,
-.app_action_button:active {
-  transform: scale(0.985);
-}
-
-.action_button:focus-visible,
-.app_action_button:focus-visible {
-  outline: none;
-  border-color: rgba(0, 213, 247, 0.48);
-  box-shadow: 0 0 0 3px rgba(0, 213, 247, 0.16), 0 10px 24px rgba(0, 0, 0, 0.28);
-}
-
-.action_button_primary,
-.app_action_primary {
-  background:
-    linear-gradient(180deg, rgba(18, 58, 68, 0.88), rgba(7, 21, 32, 0.92));
-  border-color: rgba(88, 235, 255, 0.55);
-  color: #f7fbff;
-  box-shadow:
-    inset 0 1px 0 rgba(233, 252, 255, 0.18),
-    inset 0 0 0 1px rgba(64, 213, 245, 0.14),
-    inset 0 -1px 0 rgba(3, 12, 18, 0.52),
-    0 12px 24px rgba(0, 0, 0, 0.32),
-    0 0 14px rgba(59, 218, 255, 0.18);
-}
-
-.action_button_primary:hover,
-.app_action_primary:hover {
-  color: #fbfdff;
-  border-color: rgba(119, 243, 255, 0.68);
-  background:
-    linear-gradient(180deg, rgba(21, 67, 79, 0.92), rgba(8, 26, 39, 0.96));
-  box-shadow:
-    inset 0 1px 0 rgba(241, 254, 255, 0.2),
-    inset 0 0 0 1px rgba(74, 223, 255, 0.18),
-    inset 0 -1px 0 rgba(4, 14, 21, 0.54),
-    0 16px 28px rgba(0, 0, 0, 0.34),
-    0 0 18px rgba(59, 218, 255, 0.24);
-}
-
-.action_button_primary:active,
-.app_action_primary:active {
-  color: #ddf6fb;
-  border-color: rgba(72, 209, 232, 0.44);
-  background:
-    linear-gradient(180deg, rgba(13, 45, 53, 0.94), rgba(6, 18, 27, 0.98));
-  box-shadow:
-    inset 0 1px 0 rgba(220, 252, 255, 0.12),
-    inset 0 0 0 1px rgba(54, 196, 219, 0.1),
-    inset 0 -1px 0 rgba(2, 10, 16, 0.56),
-    0 8px 16px rgba(0, 0, 0, 0.28),
-    0 0 10px rgba(59, 218, 255, 0.14);
-}
-
-.action_button_primary:focus-visible,
-.app_action_primary:focus-visible {
-  border-color: rgba(114, 242, 255, 0.72);
-  box-shadow:
-    0 0 0 3px rgba(59, 218, 255, 0.18),
-    0 0 0 6px rgba(16, 49, 59, 0.32),
-    inset 0 1px 0 rgba(241, 254, 255, 0.16),
-    0 12px 24px rgba(0, 0, 0, 0.32),
-    0 0 16px rgba(59, 218, 255, 0.22);
-}
-
-.action_button_primary:disabled,
-.app_action_primary:disabled {
-  border-color: rgba(66, 126, 137, 0.2);
-  background:
-    linear-gradient(180deg, rgba(20, 34, 40, 0.74), rgba(11, 17, 23, 0.82));
-  color: rgba(228, 240, 245, 0.56);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-    0 8px 14px rgba(0, 0, 0, 0.16);
-}
-
-.action_button_secondary,
-.app_action_secondary {
-  background:
-    linear-gradient(180deg, rgba(35, 28, 52, 0.78), rgba(13, 14, 28, 0.88));
-  border-color: rgba(190, 160, 255, 0.34);
-  color: #f5efff;
-  box-shadow:
-    inset 0 1px 0 rgba(246, 240, 255, 0.12),
-    inset 0 0 0 1px rgba(182, 146, 255, 0.08),
-    inset 0 -1px 0 rgba(8, 8, 20, 0.46),
-    0 10px 22px rgba(0, 0, 0, 0.28),
-    0 0 12px rgba(170, 120, 255, 0.12);
-}
-
-.action_button_secondary:hover,
-.app_action_secondary:hover {
-  color: #ffffff;
-  border-color: rgba(210, 184, 255, 0.46);
-  background:
-    linear-gradient(180deg, rgba(42, 34, 62, 0.84), rgba(16, 17, 33, 0.94));
-  box-shadow:
-    inset 0 1px 0 rgba(250, 245, 255, 0.16),
-    inset 0 0 0 1px rgba(196, 160, 255, 0.1),
-    inset 0 -1px 0 rgba(10, 10, 22, 0.5),
-    0 14px 24px rgba(0, 0, 0, 0.3),
-    0 0 16px rgba(170, 120, 255, 0.16);
-}
-
-.action_button_secondary:active,
-.app_action_secondary:active {
-  color: #ece3ff;
-  border-color: rgba(168, 140, 235, 0.36);
-  background:
-    linear-gradient(180deg, rgba(28, 23, 42, 0.88), rgba(11, 12, 24, 0.96));
-  box-shadow:
-    inset 0 1px 0 rgba(242, 236, 255, 0.1),
-    inset 0 0 0 1px rgba(170, 136, 236, 0.08),
-    inset 0 -1px 0 rgba(8, 8, 20, 0.54),
-    0 8px 16px rgba(0, 0, 0, 0.26),
-    0 0 10px rgba(170, 120, 255, 0.1);
-}
-
-.action_button_secondary:focus-visible,
-.app_action_secondary:focus-visible {
-  border-color: rgba(214, 190, 255, 0.56);
-  box-shadow:
-    0 0 0 3px rgba(170, 120, 255, 0.14),
-    0 0 0 6px rgba(34, 24, 54, 0.24),
-    inset 0 1px 0 rgba(250, 245, 255, 0.14),
-    0 12px 24px rgba(0, 0, 0, 0.28),
-    0 0 14px rgba(170, 120, 255, 0.16);
-}
-
-.action_button_secondary:disabled,
-.app_action_secondary:disabled {
-  border-color: rgba(112, 101, 148, 0.16);
-  background:
-    linear-gradient(180deg, rgba(27, 24, 37, 0.72), rgba(12, 13, 22, 0.82));
-  color: rgba(231, 226, 238, 0.5);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-    0 8px 14px rgba(0, 0, 0, 0.16);
-}
-
-.action_button_ghost {
-  width: auto;
-  min-width: 0;
-  height: auto;
-  min-height: var(--button-compact-height-scaled, 40px);
-  padding: var(--button-compact-pad-y-scaled, 10px) var(--button-compact-pad-x-scaled, 14px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: var(--button-compact-radius-scaled, 14px);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.025));
-  color: rgba(238, 242, 247, 0.84);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.14),
-    0 8px 18px rgba(0, 0, 0, 0.18);
-}
-
-.action_button_ghost:hover {
-  border-color: rgba(255, 255, 255, 0.26);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
-  color: #ffffff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.16),
-    0 12px 22px rgba(0, 0, 0, 0.22),
-    0 0 12px rgba(255, 255, 255, 0.06);
-}
-
-.action_button_ghost:active {
-  border-color: rgba(255, 255, 255, 0.2);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.022));
-  color: rgba(244, 248, 252, 0.94);
-}
-
-.action_button_ghost:focus-visible {
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow:
-    0 0 0 3px rgba(255, 255, 255, 0.08),
-    0 0 0 6px rgba(14, 18, 24, 0.22),
-    0 10px 22px rgba(0, 0, 0, 0.22);
-}
-
-.action_button_ghost:disabled {
-  border-color: rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.012));
-  color: rgba(225, 230, 235, 0.44);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.02),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
-}
-
-.action_button_caution,
-.app_action_caution {
-  border-color: rgba(235, 198, 137, 0.52);
-  background:
-    linear-gradient(180deg, rgba(35, 29, 34, 0.84), rgba(15, 14, 21, 0.94));
-  color: #fff5dc;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 247, 230, 0.12),
-    inset 0 0 0 1px rgba(235, 198, 137, 0.08),
-    inset 0 -1px 0 rgba(10, 9, 14, 0.5),
-    0 10px 22px rgba(0, 0, 0, 0.28),
-    0 0 14px rgba(235, 178, 92, 0.14);
-}
-
-.action_button_caution:hover,
-.app_action_caution:hover {
-  color: #fff8e8;
-  border-color: rgba(255, 220, 160, 0.74);
-  background:
-    linear-gradient(180deg, rgba(41, 33, 39, 0.88), rgba(17, 16, 24, 0.96));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 249, 236, 0.16),
-    inset 0 0 0 1px rgba(245, 207, 148, 0.12),
-    inset 0 -1px 0 rgba(11, 10, 15, 0.54),
-    0 14px 24px rgba(0, 0, 0, 0.3),
-    0 0 18px rgba(235, 178, 92, 0.22);
-}
-
-.action_button_caution:active,
-.app_action_caution:active {
-  color: #f8edd2;
-  border-color: rgba(221, 184, 128, 0.44);
-  background:
-    linear-gradient(180deg, rgba(31, 26, 31, 0.9), rgba(13, 12, 18, 0.98));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 244, 220, 0.1),
-    inset 0 0 0 1px rgba(221, 184, 128, 0.08),
-    inset 0 -1px 0 rgba(9, 8, 12, 0.56),
-    0 8px 16px rgba(0, 0, 0, 0.28),
-    0 0 10px rgba(235, 178, 92, 0.12);
-}
-
-.action_button_caution:focus-visible,
-.app_action_caution:focus-visible {
-  border-color: rgba(255, 220, 160, 0.72);
-  box-shadow:
-    0 0 0 3px rgba(235, 178, 92, 0.14),
-    0 0 0 6px rgba(48, 37, 24, 0.24),
-    inset 0 1px 0 rgba(255, 249, 236, 0.12),
-    0 12px 24px rgba(0, 0, 0, 0.28),
-    0 0 16px rgba(235, 178, 92, 0.18);
-}
-
-.action_button_caution:disabled,
-.app_action_caution:disabled {
-  border-color: rgba(134, 118, 92, 0.18);
-  background:
-    linear-gradient(180deg, rgba(27, 24, 28, 0.76), rgba(14, 13, 19, 0.84));
-  color: rgba(236, 228, 210, 0.5);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-    0 8px 14px rgba(0, 0, 0, 0.16);
-}
-
-.action_button_danger {
-  border-color: rgba(255, 92, 145, 0.5);
-  background:
-    linear-gradient(180deg, rgba(72, 22, 42, 0.78), rgba(27, 10, 20, 0.92));
-  color: #ffd7df;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 228, 236, 0.12),
-    inset 0 0 0 1px rgba(255, 92, 145, 0.08),
-    inset 0 -1px 0 rgba(18, 6, 12, 0.52),
-    0 10px 22px rgba(0, 0, 0, 0.3),
-    0 0 14px rgba(255, 72, 132, 0.16);
-}
-
-.action_button_danger:hover {
-  color: #ffe4ea;
-  border-color: rgba(255, 128, 172, 0.64);
-  background:
-    linear-gradient(180deg, rgba(82, 26, 48, 0.84), rgba(33, 12, 24, 0.96));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 236, 242, 0.14),
-    inset 0 0 0 1px rgba(255, 112, 162, 0.1),
-    inset 0 -1px 0 rgba(20, 7, 14, 0.54),
-    0 14px 24px rgba(0, 0, 0, 0.32),
-    0 0 18px rgba(255, 72, 132, 0.22);
-}
-
-.action_button_danger:active {
-  color: #ffd7df;
-  border-color: rgba(232, 88, 138, 0.42);
-  background:
-    linear-gradient(180deg, rgba(60, 19, 35, 0.86), rgba(23, 9, 18, 0.98));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 224, 231, 0.1),
-    inset 0 0 0 1px rgba(232, 88, 138, 0.08),
-    inset 0 -1px 0 rgba(16, 5, 10, 0.56),
-    0 8px 16px rgba(0, 0, 0, 0.28),
-    0 0 10px rgba(255, 72, 132, 0.14);
-}
-
-.action_button_danger:focus-visible {
-  border-color: rgba(255, 136, 176, 0.66);
-  box-shadow:
-    0 0 0 3px rgba(255, 72, 132, 0.16),
-    0 0 0 6px rgba(64, 18, 35, 0.28),
-    inset 0 1px 0 rgba(255, 236, 242, 0.12),
-    0 12px 24px rgba(0, 0, 0, 0.3),
-    0 0 16px rgba(255, 72, 132, 0.18);
-}
-
-.action_button_danger:disabled {
-  border-color: rgba(128, 74, 94, 0.18);
-  background:
-    linear-gradient(180deg, rgba(42, 20, 28, 0.72), rgba(18, 10, 14, 0.84));
-  color: rgba(237, 217, 224, 0.48);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-    0 8px 14px rgba(0, 0, 0, 0.16);
-}
-
-.action_button:disabled,
-.app_action_button:disabled {
-  transform: none;
-  border-color: rgba(255, 255, 255, 0.08);
-  background-color: rgba(255, 255, 255, 0.045);
-  color: rgba(233, 240, 245, 0.44);
-  opacity: 0.5;
-  cursor: not-allowed;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
-}
-
-.action_button:disabled:hover,
-.action_button:disabled:active,
-.app_action_button:disabled:hover,
-.app_action_button:disabled:active {
-  transform: none;
-}
-
-.app_action_compact {
-  min-height: var(--button-compact-height-scaled, 40px);
-  padding: var(--button-compact-pad-y-scaled, 10px) var(--button-compact-pad-x-scaled, 14px);
-  border-radius: var(--button-radius-scaled, 16px);
-}
-
-.app_action_full {
-  width: 100%;
 }
 
 /* Legacy page-level exception:
@@ -2094,126 +1583,6 @@ select.input_control option:checked,
     0 0 26px rgba(255, 47, 159, 0.08);
 }
 
-/* Badge / MediaTag contract:
-   - .badge owns the shared inline shell, typography, radius, padding, and
-     single-line behavior
-   - .status_badge, .category_badge, and .format_badge own variant material only
-   - cards/pages may position badges, but must not casually redefine the base
-     badge shell
-   - specialized decorative tags such as .match_card_category_tag remain
-     card-owned until the Card contract phase */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
-  max-width: 100%;
-  border-radius: var(--radius-md-scaled, 14px);
-  padding: var(--chip-pad-y-scaled, 6px) var(--chip-pad-x-scaled, 10px);
-  font-size: var(--chip-font-size-scaled, var(--font-size-caption));
-  font-weight: 900;
-  letter-spacing: 0.035em;
-  line-height: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-transform: uppercase;
-}
-
-.status_badge {
-  flex: 0 0 auto;
-  border: 2px solid var(--border-subtle);
-  background: var(--surface-secondary);
-  color: var(--text-secondary);
-}
-
-.status_waiting,
-.status_open,
-.status_pending,
-.status_pending_registration {
-  background: rgba(242, 184, 75, 0.12);
-  color: var(--warning-color);
-}
-
-.status_registration_failed {
-  background: rgba(255, 92, 122, 0.12);
-  color: #ffd7df;
-}
-
-.status_invalid_media_type {
-  background: rgba(255, 92, 122, 0.16);
-  color: #ffd7df;
-}
-
-.status_shelby_upload_failed {
-  background: rgba(255, 92, 122, 0.16);
-  color: #ffd7df;
-}
-
-.status_delete_pending {
-  background: rgba(242, 184, 75, 0.14);
-  color: var(--warning-color);
-}
-
-.status_content_unavailable {
-  background: rgba(255, 92, 122, 0.14);
-  color: #ffd7df;
-}
-
-.status_shelby_cleanup_required {
-  background: rgba(242, 184, 75, 0.14);
-  color: var(--warning-color);
-}
-
-.status_active,
-.status_claimable,
-.status_live {
-  background: rgba(255, 47, 159, 0.14);
-  color: var(--accent-soft);
-}
-
-.status_settled,
-.status_ended {
-  background: rgba(69, 212, 131, 0.12);
-  color: var(--success-color);
-}
-
-.status_claimed {
-  background: rgba(69, 212, 131, 0.12);
-  color: var(--success-color);
-}
-
-.category_badge {
-  flex: 0 0 auto;
-  border: 2px solid rgba(255, 47, 159, 0.28);
-  background: rgba(255, 47, 159, 0.12);
-  color: var(--accent-soft);
-}
-
-.category_image {
-  border-color: rgba(255, 107, 184, 0.24);
-  background: rgba(255, 107, 184, 0.11);
-  color: #ffc1df;
-}
-
-.category_audio {
-  border-color: rgba(135, 185, 255, 0.28);
-  background: rgba(135, 185, 255, 0.1);
-  color: #c7dcff;
-}
-
-.category_video {
-  border-color: rgba(143, 85, 255, 0.24);
-  background: rgba(143, 85, 255, 0.1);
-  color: #d8c3ff;
-}
-
-.format_badge {
-  flex: 0 0 auto;
-  border: 2px solid var(--border-subtle);
-  background: var(--surface-secondary);
-  color: var(--text-muted);
-}
-
 /* PageHeader / Hero + ActionRow ownership:
    - PageHeader owns shared typography roles (.eyebrow, title, copy) and the
      header content/action structure used by reusable page headers.
@@ -2420,14 +1789,11 @@ select.input_control option:checked,
 }
 
 /* Card Foundation ownership:
-   - Foundation owns the reusable shell, preview frame, body, title row, chip row,
-     footer row, and shared action row primitives.
-   - Card variants (for example media, waiting push, match, claim) own only
-     variant-specific composition, media behavior, metadata treatment, and
-     gameplay-specific controls.
+   - shared Card Foundation primitives now live in `frontend/styles/cards.css`
+   - card families (media, waiting push, match, claim, state) remain here until
+     their family-specific extraction phases
    - Pages may place cards in a composition, but must not restyle shared card
      foundation internals through broad descendant overrides. */
-.card_shell,
 .media_card,
 .match_card,
 .waiting_push_card,
@@ -2442,7 +1808,6 @@ select.input_control option:checked,
   overflow: hidden;
 }
 
-.card_shell_interactive,
 .media_card,
 .match_card,
 .waiting_push_card,
@@ -2466,8 +1831,6 @@ select.input_control option:checked,
   min-height: 100%;
 }
 
-.card_shell_interactive:hover,
-.card_shell_interactive:focus-within,
 .media_card:hover,
 .media_card:focus-within,
 .match_card:hover,
@@ -2486,7 +1849,6 @@ select.input_control option:checked,
   box-shadow: var(--shadow-card-hover), var(--shadow-bevel), 0 0 34px rgba(255, 47, 159, 0.24);
 }
 
-.card_preview,
 .media_preview,
 .waiting_media,
 .buff_media_stage,
@@ -3291,13 +2653,9 @@ select.input_control option:checked,
   }
 }
 
-/* Card Foundation header/meta contract:
-   - Card Foundation owns shared body, title-row, chip-row, and generic meta
-     containment behavior
-   - card families may supply scoped custom properties for gap/alignment/wrap
-     behavior while keeping Card Foundation as the shell owner
-   - protected match-card transaction controls remain outside this block */
-.card_body,
+/* Card family body/meta rules remain here until family extraction; shared Card
+   Foundation body/title/chip/footer/action primitives now live in
+   `frontend/styles/cards.css`. */
 .media_card_body,
 .match_card_body,
 .waiting_push_body {
@@ -3305,72 +2663,6 @@ select.input_control option:checked,
   gap: var(--card-body-gap, var(--spacing-md));
   padding: var(--card-body-pad, var(--spacing-md));
   min-width: 0;
-}
-
-.card_title_row {
-  display: flex;
-  align-items: var(--card-title-row-align, flex-start);
-  justify-content: var(--card-title-row-justify, flex-start);
-  gap: var(--card-title-row-gap, var(--spacing-md));
-  min-width: 0;
-}
-
-.card_title_row > :first-child {
-  min-width: 0;
-}
-
-.card_title_row > :last-child {
-  flex: 0 0 auto;
-}
-
-.card_title,
-.card_title_row > h3 {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.card_status {
-  min-width: 0;
-  color: var(--text-muted);
-  font-size: var(--font-size-body-small-scaled, var(--font-size-body-small));
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.card_chip_row {
-  min-width: 0;
-  max-width: 100%;
-  gap: var(--card-chip-row-gap, initial);
-  align-items: var(--card-chip-row-align, normal);
-  flex-wrap: var(--card-chip-row-wrap, nowrap);
-}
-
-/* Card Foundation action/footer contract:
-   - Card Foundation owns shared footer/action-row shell behavior: alignment,
-     gap, wrapping, and width containment
-   - card/page variants may supply scoped custom properties for row fitting
-   - transaction-specific match-card footer controls remain protected and should
-     not be normalized here unless a task explicitly targets them */
-.card_footer {
-  display: flex;
-  align-items: var(--card-footer-align, center);
-  justify-content: var(--card-footer-justify, flex-start);
-  gap: var(--card-footer-gap, calc(var(--spacing-md) * var(--ui-scale-x)));
-  min-width: 0;
-  max-width: 100%;
-  flex-wrap: var(--card-footer-wrap, nowrap);
-}
-
-.card_footer > :first-child {
-  min-width: 0;
-}
-
-.card_footer > :last-child {
-  flex: 0 0 auto;
 }
 
 .match_card_body {
@@ -3385,7 +2677,6 @@ select.input_control option:checked,
   margin: 0;
 }
 
-.card_actions,
 .media_card_actions {
   display: flex;
   align-items: var(--card-actions-align, center);
@@ -3608,6 +2899,17 @@ select.input_control option:checked,
   min-height: 0;
 }
 
+/* WaitingPushCard family contract:
+   - `.waiting_push_card` / `.waiting_push_card_compact` own shell variants,
+     compact-body structure, title/meta/chip/stat rows, and non-transactional
+     action placement
+   - MediaRenderer internals remain MediaRenderer-owned; WaitingPushCard owns
+     only the frame and placement around media
+   - `--waiting-push-*` variables are family-owned bridge hooks, not reusable
+     Card Foundation contracts, and must not be expanded casually
+   - `.waiting_push_actions`, Challenge-related selectors, and
+     `.action_button_cardMain` remain protected because of Challenge/card
+     regression history */
 .waiting_push_card_compact {
   width: 100%;
   max-width: var(--waiting-card-width-scaled, 296px);
@@ -3921,6 +3223,18 @@ select.input_control option:checked,
   height: calc(52px * var(--icon-scale));
 }
 
+/* MatchCard family contract:
+   - `.match_card` owns the card-family shell variant, metadata rows, match ID
+     display, category-tag placement, footer metadata, and media placement
+     around MediaRenderer
+   - MediaRenderer internals remain MediaRenderer-owned; MatchCard owns only the
+     frame and placement around media
+   - `--match-card-*` variables are family-owned bridge hooks, not reusable
+     Card Foundation variables, and must not be expanded casually
+   - footer transaction controls remain isolated below on protected selectors:
+     `.match_card_footer_actions`, `.match_card_countdown_slot`,
+     `.match_card_detail_button`, `.match_card_settle_button`,
+     `.action_button_cardMain`, and related Challenge/Settle paths */
 .match_card_meta_row {
   display: flex;
   align-items: var(--match-card-meta-align, center);
@@ -4591,6 +3905,14 @@ select.input_control option:checked,
   gap: var(--spacing-sm);
 }
 
+/* Claim family contract:
+   - Profile owns section placement and page flow
+   - Claim family owns claim card/row/detail/toggle structure and the
+     `--claim-row-*` bridge hooks
+   - shared button material remains ActionButton-owned; claim toggles are
+     claim-family controls rather than shared ActionButton variants
+   - these hooks are family-owned temporary bridges and must not be expanded
+     casually before a fuller Claim family cleanup */
 .claim_history_toggle,
 .claim_detail_toggle {
   border: 1px solid var(--border-subtle);
@@ -4686,6 +4008,15 @@ select.input_control option:checked,
   text-transform: uppercase;
 }
 
+/* Activity family contract:
+   - Profile owns section placement and page flow
+   - Activity family owns activity rows, status/meta/action layout, filter-row
+     shell, and the `--activity-row-*` / `--activity-header-actions-*` bridge
+     hooks
+   - shared button material remains ActionButton-owned; reusable chip material
+     remains badge/status owned where applicable
+   - these hooks are family-owned temporary bridges and must not be expanded
+     casually before a fuller Activity family cleanup */
 .activity_stack {
   display: grid;
   gap: var(--spacing-sm);
@@ -5670,58 +5001,6 @@ select.input_control option:checked,
     var(--surface-elevated);
 }
 
-/* FilterBar shell is page-positionable but component-owned internally.
-   Keep Home/page-specific positioning separate from these shared shell rules. */
-.filter_bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(var(--spacing-lg) * var(--ui-scale-x));
-  width: 100%;
-  min-width: 0;
-  padding: calc(2px * var(--ui-scale-y)) calc(2px * var(--ui-scale-x));
-}
-
-.filter_bar_surface {
-  min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-pill-scaled, var(--radius-pill));
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 22%, transparent 100%),
-    linear-gradient(145deg, rgba(30, 35, 46, 0.96), rgba(21, 24, 33, 0.94)),
-    rgba(20, 23, 31, 0.95);
-  box-shadow: var(--shadow-panel), var(--shadow-bevel);
-  padding:
-    var(--filter-bar-surface-pad-y, var(--surface-pad-2xs-y-scaled, 4px))
-    var(--filter-bar-surface-pad-x, var(--surface-pad-2xs-x-scaled, 6px));
-  overflow-x: var(--filter-bar-surface-overflow-x, visible);
-}
-
-.filter_bar_inner {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  width: 100%;
-  min-width: 0;
-}
-
-.filter_bar_surface .tabs {
-  border: 0;
-  background: transparent;
-  padding: 0;
-}
-
-.filter_bar .tabs {
-  flex: var(--filter-bar-tabs-flex, 1 1 auto);
-  min-width: var(--filter-bar-tabs-min-width, 0);
-  width: var(--filter-bar-tabs-width, auto);
-  max-width: 100%;
-  border-radius: var(--radius-large);
-  padding:
-    var(--filter-bar-tabs-pad-y, var(--surface-gap-xs-y-scaled, 8px))
-    var(--filter-bar-tabs-pad-x, var(--surface-gap-xs-x-scaled, 8px));
-}
-
 /* Home composition may provide shell-level FilterBar/Tabs variables through the
    page-owned FilterBar placement selector, but should avoid styling shared
    FilterBar/Tabs internals directly. */
@@ -5755,10 +5034,6 @@ select.input_control option:checked,
     position: relative;
     top: var(--home-content-shift-y-scaled, 0px);
   }
-}
-
-.filter_bar .tab_button {
-  margin: 0;
 }
 
 .filter_bar .custom_dropdown,
@@ -7373,15 +6648,6 @@ select.input_control,
 
   .global_media_progress {
     grid-template-columns: auto minmax(0, 1fr) auto;
-  }
-
-  .tabs {
-    width: 100%;
-    border-radius: var(--radius-large);
-  }
-
-  .tab_button {
-    flex: 1 1 auto;
   }
 
   .panel_grid,
