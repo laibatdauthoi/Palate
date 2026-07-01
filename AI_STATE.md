@@ -21,6 +21,11 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Recent Changes
 
+- Documented durable vs temporary CSS variable families in [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) so future UI ownership work can distinguish reusable component hooks from bridge-only card/page families.
+- Added Card Foundation header/meta hooks in [`frontend/styles/globals.css`](./frontend/styles/globals.css) so shared card body/title/chip/meta containment and safe card-family spacing can move behind component-owned variables without touching outer card dimensions or protected match-card actions.
+- Added card/footer action-row variable hooks in [`frontend/styles/globals.css`](./frontend/styles/globals.css) so shared row alignment, wrapping, gap, and width behavior can move behind component-owned contracts without touching protected match-card transaction controls.
+- Added base ActionButton fit hooks in [`frontend/styles/globals.css`](./frontend/styles/globals.css) so safe route-level width/padding exceptions can flow through shared variables instead of targeting `.action_button` descendants directly.
+- Removed the last direct large-desktop Home overrides on `.filter_bar_surface` and `.filter_bar .tabs`; Home FilterBar/Tabs shell behavior is now routed through the existing variable contract in this path.
 - Extended the Tabs contract in [`frontend/styles/globals.css`](./frontend/styles/globals.css) with a component-owned `--tab-button-flex` hook and removed the direct Home descendant override targeting `.tab_button`.
 - Moved Home-specific FilterBar/Tabs shell padding and overflow behavior in [`frontend/styles/globals.css`](./frontend/styles/globals.css) behind component-owned FilterBar/Tabs variables, while leaving the remaining `tab_button` flex override documented as a protected legacy leak.
 - Added explicit Home composition-only ownership comments in [`frontend/styles/globals.css`](./frontend/styles/globals.css) and documented the remaining Home-to-FilterBar/Tabs legacy leaks without changing computed behavior.
@@ -65,7 +70,7 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - [ ] Verify the text-scale and overflow safeguards visually at reference, large, and narrow desktop-fit viewports.
 - [ ] Verify the desktop shell/sidebar response visually at 1280, 1440, 1728, and 1920 widths.
 - [ ] Refactor Home page selectors so shell-like positioning stays with the Application Layout contract and Home keeps composition-only ownership.
-- [ ] Migrate the remaining documented Home legacy leaks (`.page_home .filter_bar_surface`, `.page_home .filter_bar .tabs`, responsive Home tab shell overrides) into component-safe ownership without changing visual output.
+- [ ] Audit and document whether any non-Home route still needs a FilterBar/Tabs variable hook beyond the shared default contract.
 - [ ] Audit whether any other route-specific tab-item flex overrides exist outside Home after the new `--tab-button-flex` contract.
 - [ ] Continue the remaining staged scale migration without regressing Home composition, tab/filter identity, Challenge width, or Settle behavior.
 - [ ] Audit and migrate more safe shared selectors such as utility chips, shared action rows, and non-card-specific modal internals.
@@ -93,8 +98,12 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - The latest PageHeader / Hero + ActionRow ownership pass is validated only by lint; no browser verification was run for that pass by request.
 - The latest Modal shell + MediaRenderer ownership pass is validated only by lint; no browser verification was run for that pass by request.
 - Application Layout ownership is now documented, but current CSS still mixes shell/media-query ownership with Home/page/card internals in several responsive blocks.
-- Home composition-only ownership is now documented, but Home still contains protected legacy FilterBar/Tabs shell overrides that could not be removed safely in this pass.
+- Home no longer uses direct `.filter_bar_surface` / `.tabs` descendant overrides in the large-desktop path; remaining FilterBar/Tabs behavior is variable-driven or documented as page placement.
 - Home FilterBar/Tabs shell padding, overflow, and tab-item flex behavior are now component-consumed via scoped variables; no direct Home descendant override of `.tab_button` remains in this path.
+- The latest route-specific button exception pass is validated only by lint; no browser verification was run for that pass by request.
+- The latest card/footer action-row exception pass is validated only by lint; no browser verification was run for that pass by request.
+- The latest card header/meta/chip exception pass is validated only by lint; no browser verification was run for that pass by request.
+- The latest CSS variable family classification pass is documentation-only and validated by lint; no browser verification was run for that pass by request.
 
 # Known Bugs
 
@@ -120,7 +129,11 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Application Layout is now the explicit owner of viewport shell, sidebar/content relationship, layout-mode switching, content frame width/padding, and shell-level scroll behavior.
 - For Home cleanup, preserving computed layout parity took priority over removing every ownership leak; documented legacy exceptions are preferred over risky selector moves.
 - For FilterBar/Tabs cleanup, reusable shell behavior should move behind component-owned variables first; the new `--tab-button-flex` hook follows that rule and preserves computed output.
+- When a route still needs special FilterBar/Tabs shell behavior, prefer route-scoped variables on the FilterBar placement selector over descendant overrides into `.tabs` or `.tab_button`.
 - Do not migrate card-size selectors, Home composition offsets, or match/waiting card internals blindly; document them as skipped when they are risky.
+- Treat `--action-button-*`, `--card-footer-*`, `--card-actions-*`, `--filter-bar-*`, and `--tab-button-flex` as durable component contract families.
+- Treat `--waiting-push-*`, `--match-card-*`, `--claim-row-*`, `--activity-row-*`, and `--activity-header-actions-*` as temporary bridge families that must not be expanded casually.
+- Do not replace selector complexity with variable complexity; if a new variable only preserves one local exception, document it as a bridge hook rather than treating it as a permanent shared contract.
 - Buff Find Match should block obvious no-match wallet popups in the frontend, but still allow real contract-side errors to surface when the frontend cannot know better.
 - Treat these AI handoff files as canonical context and update them when architecture or current work state materially changes.
 
@@ -344,6 +357,29 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
   - card sizing/layout
   - mobile navigation
   - gameplay logic
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Durable vs Temporary Variable Family Documentation Pass
+
+- Updated [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) with an explicit CSS variable family policy.
+- Documented durable component contract families:
+  - `--action-button-*`
+  - `--card-footer-*`
+  - `--card-actions-*`
+  - `--filter-bar-*`
+  - `--tab-button-flex`
+- Documented temporary bridge families:
+  - `--waiting-push-*`
+  - `--match-card-*`
+  - `--claim-row-*`
+  - `--activity-row-*`
+  - `--activity-header-actions-*`
+- Added the explicit architecture warning:
+  - do not replace selector complexity with variable complexity
+- Next recommended family contract:
+  - formalize Waiting Push / Match Card family contracts before adding more bridge hooks
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
@@ -880,6 +916,179 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
   - `.tab_badge`
   - Challenge/Settle selectors
   - card dimensions
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Route-Specific Tabs Behavior Audit / Cleanup Pass
+
+- Audited route-specific FilterBar/Tabs behavior across Home, Buff, My Media, Push, and Profile using [`frontend/styles/globals.css`](./frontend/styles/globals.css) and [`frontend/components/filter_bar.tsx`](./frontend/components/filter_bar.tsx).
+- Findings:
+  - Home was the only route with remaining direct descendant overrides into shared FilterBar/Tabs shell selectors.
+  - No Buff / My Media / Push / Profile route-specific selectors were found targeting `.tab_button`, `.tab_button_label`, or `.tab_badge`.
+- Cleaned up:
+  - removed the remaining large-desktop direct Home overrides:
+    - `.page_home .filter_bar_surface`
+    - `.page_home .filter_bar .tabs`
+  - these behaviors are now supplied through the existing variable contract on `.page_home > .filter_bar`
+- Variable contract used:
+  - `--filter-bar-surface-pad-y`
+  - `--filter-bar-surface-pad-x`
+  - `--filter-bar-tabs-pad-y`
+  - `--filter-bar-tabs-pad-x`
+  - `--filter-bar-surface-overflow-x`
+  - `--filter-bar-tabs-flex`
+  - `--filter-bar-tabs-width`
+  - `--filter-bar-tabs-min-width`
+  - `--tab-button-flex`
+- Leaks left in place:
+  - none found in non-Home routes for the audited tab/filter selectors
+- Protected selectors left unchanged:
+  - `.filter_bar`
+  - `.filter_bar_surface`
+  - `.filter_bar_inner`
+  - `.filter_bar .tabs`
+  - `.tabs`
+  - `.tab_button`
+  - `.tab_button_label`
+  - `.tab_badge`
+  - page layout, cards, sidebar, wallet, Challenge/Settle, and gameplay paths
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Route-Specific Button Exceptions Audit / Refactor Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to extend the ActionButton contract with variable-driven fit hooks:
+  - `--action-button-width`
+  - `--action-button-max-width`
+  - `--action-button-min-width`
+  - `--action-button-min-height`
+  - `--action-button-pad-y`
+  - `--action-button-pad-x`
+- Moved safe route-level button-fit behavior behind those hooks without changing intended output:
+  - `.waiting_push_actions`
+  - `.waiting_push_card_compact .waiting_push_actions`
+  - narrow-layout Challenge stacks via:
+    - `.challenge_action_row`
+    - `.challenge_selected_actions`
+    - `.challenge_empty_actions`
+- Classified route-specific selectors:
+  - legitimate route-owned CTA exceptions:
+    - `.hero_primary_cta`
+    - `.home_cta_button`
+    - `.buff_find_match_search_button`
+  - valid route/component positioning:
+    - `.buff_choose_button`
+  - route-owned inline toggles, intentionally outside the shared ActionButton contract:
+    - `.claim_history_toggle`
+    - `.claim_detail_toggle`
+    - `.activity_filter_button`
+  - protected / high-risk selectors left untouched:
+    - `.action_button_cardMain`
+    - Challenge / Settle-specific sizing paths
+    - match-card footer action sizing
+- Remaining risks:
+  - visual output was preserved by keeping values the same, but no browser verification was run
+  - card-main / Challenge / Settle history remains intentionally protected from shared button-size cleanup
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Card/Footer Action-Row Exceptions Audit / Refactor Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to move safe shared action-row behavior behind component-owned variables without changing intended output.
+- Extended Card Foundation row ownership:
+  - `.card_footer` now consumes shared footer hooks for:
+    - alignment
+    - justification
+    - gap
+    - wrapping
+  - `.card_actions` / `.media_card_actions` now consume shared action-row hooks for:
+    - alignment
+    - wrapping
+    - justification
+    - gap
+    - width
+- Extended route/card action rows with scoped hooks while preserving current computed values:
+  - `.waiting_push_action_stack_compact`
+  - `.waiting_push_actions`
+  - `.claim_row_actions`
+  - `.activity_header_actions`
+- Classified selectors:
+  - valid card/footer composition:
+    - `.card_footer`
+    - `.card_actions`
+    - `.media_card_actions`
+    - `.waiting_push_actions`
+    - `.waiting_push_action_stack_compact`
+    - `.claim_row_actions`
+    - `.activity_header_actions`
+  - high-risk protected match footer path:
+    - `.match_card_footer_actions`
+    - `.match_card_countdown_slot`
+    - `.match_card_detail_button`
+    - `.match_card_settle_button`
+- Protected selectors left intentionally unchanged beyond comments:
+  - match-card footer countdown/detail/Settle sizing and material
+  - Challenge / Settle behavior
+- Additional note:
+  - removed an unsafe attempt to route invalid flex `stretch` values through the new hooks; preserved the prior computed behavior instead
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Card Header / Meta / Chip Exceptions Audit / Refactor Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to move safe card header/meta/chip behavior behind Card Foundation or card-family variables without changing intended output.
+- Extended shared Card Foundation ownership with hooks for:
+  - `.card_body`
+  - `.card_title_row`
+  - `.card_chip_row`
+  - `.media_meta`
+- Added waiting-card-family hooks for:
+  - `.waiting_push_meta`
+  - `.waiting_push_compact_title_row`
+  - `.waiting_push_compact_chip_row`
+  - `.waiting_push_meta_compact`
+  - `.waiting_push_required_meta`
+  - `.waiting_push_stats`
+- Added match-card meta hooks for:
+  - `.match_card_meta_row`
+  - `.match_card_footer_meta`
+  - `.match_card_match_id`
+- Added claim/activity card-family hooks for:
+  - `.claim_row_main`
+  - `.activity_row`
+  - `.activity_row_main`
+  - `.activity_row_copy`
+  - `.activity_row_meta`
+- Responsive overrides now flow through variables where safe for:
+  - narrow match-card meta wrapping
+  - single-column waiting-push stats
+  - compact waiting-push meta stacking
+  - single-column activity rows
+- Classified selectors:
+  - shared Card Foundation internals:
+    - `.card_body`
+    - `.card_title_row`
+    - `.card_chip_row`
+    - `.card_footer`
+    - `.media_meta`
+  - card-family-specific internals:
+    - waiting-push meta/stat selectors
+    - match-card meta / match-id selectors
+    - claim/activity row content selectors
+  - high-risk protected path left unchanged:
+    - match-card footer transaction controls
+    - match-card outer shell/media sizing
+- Skipped / left family-owned on purpose:
+  - `.match_card_match_id_label`
+  - `.match_card_match_id_value`
+  - `.waiting_push_required_meta span`
+  - `.waiting_push_required_meta strong`
+  - `.activity_row_actions`
+  because those still mix typography/content rules with composition-sensitive card behavior
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request

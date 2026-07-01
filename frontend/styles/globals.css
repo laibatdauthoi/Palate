@@ -1433,6 +1433,8 @@ select.input_control option:checked,
      icon/label spacing
    - variant selectors own color/material only
    - size selectors own dimensions only
+   - documented custom properties are the safe route/component hook for fit and
+     width exceptions instead of descendant overrides into button internals
    - page/card/wallet selectors may position buttons or opt into documented size
      variants, but must not casually redefine base shell/material rules */
 .action_button,
@@ -1441,10 +1443,14 @@ select.input_control option:checked,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 0;
+  width: var(--action-button-width, auto);
+  max-width: var(--action-button-max-width, none);
+  min-width: var(--action-button-min-width, 0);
   gap: var(--inline-icon-gap-scaled, calc(8px * var(--button-scale)));
-  min-height: calc(48px * var(--button-scale));
-  padding: var(--button-pad-y-scaled, 12px) var(--button-pad-x-scaled, 18px);
+  min-height: var(--action-button-min-height, calc(48px * var(--button-scale)));
+  padding:
+    var(--action-button-pad-y, var(--button-pad-y-scaled, 12px))
+    var(--action-button-pad-x, var(--button-pad-x-scaled, 18px));
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--button-radius-scaled, 16px);
   background-color: rgba(18, 24, 31, 0.96);
@@ -3285,20 +3291,27 @@ select.input_control option:checked,
   }
 }
 
+/* Card Foundation header/meta contract:
+   - Card Foundation owns shared body, title-row, chip-row, and generic meta
+     containment behavior
+   - card families may supply scoped custom properties for gap/alignment/wrap
+     behavior while keeping Card Foundation as the shell owner
+   - protected match-card transaction controls remain outside this block */
 .card_body,
 .media_card_body,
 .match_card_body,
 .waiting_push_body {
   display: grid;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
+  gap: var(--card-body-gap, var(--spacing-md));
+  padding: var(--card-body-pad, var(--spacing-md));
   min-width: 0;
 }
 
 .card_title_row {
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-md);
+  align-items: var(--card-title-row-align, flex-start);
+  justify-content: var(--card-title-row-justify, flex-start);
+  gap: var(--card-title-row-gap, var(--spacing-md));
   min-width: 0;
 }
 
@@ -3331,14 +3344,25 @@ select.input_control option:checked,
 .card_chip_row {
   min-width: 0;
   max-width: 100%;
+  gap: var(--card-chip-row-gap, initial);
+  align-items: var(--card-chip-row-align, normal);
+  flex-wrap: var(--card-chip-row-wrap, nowrap);
 }
 
+/* Card Foundation action/footer contract:
+   - Card Foundation owns shared footer/action-row shell behavior: alignment,
+     gap, wrapping, and width containment
+   - card/page variants may supply scoped custom properties for row fitting
+   - transaction-specific match-card footer controls remain protected and should
+     not be normalized here unless a task explicitly targets them */
 .card_footer {
   display: flex;
-  align-items: center;
-  gap: calc(var(--spacing-md) * var(--ui-scale-x));
+  align-items: var(--card-footer-align, center);
+  justify-content: var(--card-footer-justify, flex-start);
+  gap: var(--card-footer-gap, calc(var(--spacing-md) * var(--ui-scale-x)));
   min-width: 0;
   max-width: 100%;
+  flex-wrap: var(--card-footer-wrap, nowrap);
 }
 
 .card_footer > :first-child {
@@ -3364,13 +3388,14 @@ select.input_control option:checked,
 .card_actions,
 .media_card_actions {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  align-items: var(--card-actions-align, center);
+  flex-wrap: var(--card-actions-wrap, wrap);
   flex: 0 0 auto;
-  justify-content: flex-end;
-  gap: 8px;
+  justify-content: var(--card-actions-justify, flex-end);
+  gap: var(--card-actions-gap, 8px);
   min-width: 0;
   max-width: 100%;
+  width: var(--card-actions-width, auto);
 }
 
 .recovery_note {
@@ -3420,6 +3445,7 @@ select.input_control option:checked,
 
 .media_meta {
   min-width: 0;
+  max-width: var(--card-meta-max-width, 100%);
   color: var(--text-muted);
   font-size: var(--font-size-body-small-scaled, var(--font-size-body-small));
   overflow: hidden;
@@ -3578,7 +3604,7 @@ select.input_control option:checked,
 
 .waiting_push_meta {
   display: grid;
-  gap: calc(7px * var(--ui-scale-y));
+  gap: var(--waiting-push-meta-gap, calc(7px * var(--ui-scale-y)));
   min-height: 0;
 }
 
@@ -3600,6 +3626,10 @@ select.input_control option:checked,
   padding: 0;
 }
 
+/* Waiting Push card-family internals:
+   title/chip/meta/stat blocks remain waiting-card-owned, but safe spacing and
+   wrap behavior should flow through scoped variables instead of broad selector
+   overrides. */
 .waiting_push_card_compact .waiting_push_body {
   grid-template-rows: auto auto auto;
   gap: calc(10px * var(--ui-scale-y));
@@ -3608,8 +3638,8 @@ select.input_control option:checked,
 }
 
 .waiting_push_compact_title_row {
-  align-items: center;
-  gap: calc(10px * var(--ui-scale-x));
+  align-items: var(--waiting-push-compact-title-align, center);
+  gap: var(--waiting-push-compact-title-gap, calc(10px * var(--ui-scale-x)));
 }
 
 .waiting_push_card_compact h3 {
@@ -3623,21 +3653,22 @@ select.input_control option:checked,
 }
 
 .waiting_push_compact_chip_row {
-  gap: calc(6px * var(--ui-scale-x));
+  gap: var(--waiting-push-compact-chip-gap, calc(6px * var(--ui-scale-x)));
 }
 
 .waiting_push_meta_compact {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(12px * var(--ui-scale-x));
+  flex-direction: var(--waiting-push-meta-compact-direction, row);
+  align-items: var(--waiting-push-meta-compact-align, center);
+  justify-content: var(--waiting-push-meta-compact-justify, space-between);
+  gap: var(--waiting-push-meta-compact-gap, calc(12px * var(--ui-scale-x)));
   min-width: 0;
-  margin-top: auto;
+  margin-top: var(--waiting-push-meta-compact-margin-top, auto);
 }
 
 .waiting_push_required_meta {
   display: grid;
-  gap: calc(2px * var(--ui-scale-y));
+  gap: var(--waiting-push-required-meta-gap, calc(2px * var(--ui-scale-y)));
   min-width: 0;
 }
 
@@ -3658,19 +3689,20 @@ select.input_control option:checked,
 .waiting_push_action_stack_compact {
   flex: 0 0 auto;
   display: flex;
-  justify-content: flex-end;
+  justify-content: var(--waiting-push-action-stack-justify, flex-end);
 }
 
-.waiting_push_card_compact .waiting_push_actions .action_button:not(.action_button_cardMain) {
-  min-width: var(--waiting-card-action-compact-width-scaled, 118px);
-  min-height: var(--waiting-card-action-height-scaled, 40px);
-  padding: var(--waiting-card-action-pad-y-scaled, 10px) var(--waiting-card-action-pad-x-scaled, 14px);
+.waiting_push_card_compact .waiting_push_actions {
+  --action-button-min-width: var(--waiting-card-action-compact-width-scaled, 118px);
+  --action-button-min-height: var(--waiting-card-action-height-scaled, 40px);
+  --action-button-pad-y: var(--waiting-card-action-pad-y-scaled, 10px);
+  --action-button-pad-x: var(--waiting-card-action-pad-x-scaled, 14px);
 }
 
 .waiting_push_stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--surface-gap-xs-y-scaled, 8px) var(--surface-gap-xs-x-scaled, 8px);
+  grid-template-columns: var(--waiting-push-stats-columns, repeat(2, minmax(0, 1fr)));
+  gap: var(--waiting-push-stats-gap, var(--surface-gap-xs-y-scaled, 8px) var(--surface-gap-xs-x-scaled, 8px));
   margin: 0;
 }
 
@@ -3738,12 +3770,13 @@ select.input_control option:checked,
 
 .waiting_push_actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: var(--waiting-push-actions-align, center);
+  justify-content: var(--waiting-push-actions-justify, flex-end);
+  flex-wrap: var(--waiting-push-actions-wrap, nowrap);
+  gap: var(--waiting-push-actions-gap, 0);
+  width: var(--waiting-push-actions-width, auto);
   margin-top: 0;
-}
-
-.waiting_push_actions .action_button:not(.action_button_cardMain) {
-  min-width: var(--waiting-card-action-width-scaled, 136px);
+  --action-button-min-width: var(--waiting-card-action-width-scaled, 136px);
 }
 
 .waiting_push_tooltip_anchor {
@@ -3890,21 +3923,25 @@ select.input_control option:checked,
 
 .match_card_meta_row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: nowrap;
-  gap: calc(10px * var(--ui-scale-y)) calc(12px * var(--ui-scale-x));
+  align-items: var(--match-card-meta-align, center);
+  justify-content: var(--match-card-meta-justify, space-between);
+  flex-wrap: var(--match-card-meta-wrap, nowrap);
+  gap: var(--match-card-meta-gap, calc(10px * var(--ui-scale-y)) calc(12px * var(--ui-scale-x)));
   min-width: 0;
   width: 100%;
 }
 
+/* Match-card meta remains a card-family path. Safe gap/wrap/containment hooks
+   are allowed here, but footer transaction controls below stay protected on
+   their dedicated selectors. */
 .match_card_footer_meta {
   display: flex;
-  align-items: center;
-  gap: calc(8px * var(--ui-scale-x));
+  align-items: var(--match-card-footer-meta-align, center);
+  gap: var(--match-card-footer-meta-gap, calc(8px * var(--ui-scale-x)));
   min-width: 0;
   flex: 1 1 auto;
-  flex-wrap: nowrap;
+  flex-wrap: var(--match-card-footer-meta-wrap, nowrap);
+  width: var(--match-card-footer-meta-width, auto);
 }
 
 .match_card_category_tag {
@@ -3929,7 +3966,7 @@ select.input_control option:checked,
 
 .match_card_match_id {
   display: grid;
-  gap: calc(2px * var(--ui-scale-y));
+  gap: var(--match-card-match-id-gap, calc(2px * var(--ui-scale-y)));
   min-width: 0;
 }
 
@@ -3962,6 +3999,11 @@ select.input_control option:checked,
   flex-wrap: nowrap;
 }
 
+/* Protected match-card footer path:
+   Detail / countdown / Settle sizing and wrapping are tightly coupled to the
+   approved Home composition and previous regression history. Leave this footer
+   on its dedicated selectors unless a task explicitly targets match-card
+   controls. */
 .match_card_footer_actions > .match_card_countdown_slot {
   display: inline-flex;
   align-items: center;
@@ -4559,6 +4601,10 @@ select.input_control option:checked,
   font: inherit;
 }
 
+/* Route-owned inline toggles:
+   claim/activity controls are page-specific affordances, not shared
+   ActionButton variants. Keep them outside the ActionButton contract unless a
+   dedicated toggle component is introduced later. */
 .claim_history_toggle {
   display: flex;
   align-items: center;
@@ -4586,7 +4632,7 @@ select.input_control option:checked,
 
 .claim_row_main {
   display: grid;
-  gap: var(--surface-gap-2xs-y-scaled, 4px);
+  gap: var(--claim-row-main-gap, var(--surface-gap-2xs-y-scaled, 4px));
   min-width: 0;
 }
 
@@ -4609,11 +4655,13 @@ select.input_control option:checked,
 
 .claim_row_actions {
   display: flex;
-  flex-wrap: wrap;
+  align-items: var(--claim-row-actions-align, center);
+  flex-wrap: var(--claim-row-actions-wrap, wrap);
   flex: 0 0 auto;
-  justify-content: flex-end;
-  gap: var(--spacing-sm);
+  justify-content: var(--claim-row-actions-justify, flex-end);
+  gap: var(--claim-row-actions-gap, var(--spacing-sm));
   min-width: 0;
+  width: var(--claim-row-actions-width, auto);
 }
 
 .claim_row_details {
@@ -4657,10 +4705,11 @@ select.input_control option:checked,
 
 .activity_header_actions {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
+  align-items: var(--activity-header-actions-align, center);
+  flex-wrap: var(--activity-header-actions-wrap, wrap);
+  justify-content: var(--activity-header-actions-justify, flex-end);
+  gap: var(--activity-header-actions-gap, 8px);
+  width: var(--activity-header-actions-width, auto);
 }
 
 .activity_status {
@@ -4732,19 +4781,19 @@ select.input_control option:checked,
 
 .activity_row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--spacing-md);
+  grid-template-columns: var(--activity-row-columns, minmax(0, 1fr) auto);
+  align-items: var(--activity-row-align, center);
+  gap: var(--activity-row-gap, var(--spacing-md));
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-medium);
   background: rgba(255, 255, 255, 0.03);
-  padding: var(--spacing-md);
+  padding: var(--activity-row-pad, var(--spacing-md));
 }
 
 .activity_row_main {
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-md);
+  align-items: var(--activity-row-main-align, flex-start);
+  gap: var(--activity-row-main-gap, var(--spacing-md));
   min-width: 0;
 }
 
@@ -4763,7 +4812,7 @@ select.input_control option:checked,
 
 .activity_row_copy {
   display: grid;
-  gap: 4px;
+  gap: var(--activity-row-copy-gap, 4px);
   min-width: 0;
 }
 
@@ -4778,8 +4827,8 @@ select.input_control option:checked,
 
 .activity_row_meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
+  flex-wrap: var(--activity-row-meta-wrap, wrap);
+  gap: var(--activity-row-meta-gap, 6px 10px);
   color: var(--text-secondary);
   font-size: var(--font-size-caption);
 }
@@ -4789,6 +4838,10 @@ select.input_control option:checked,
   overflow-wrap: anywhere;
 }
 
+/* Activity row actions remain a card-family path for now. The generic action-row
+   contract already owns shared flex behavior, but activity rows still mix
+   content-specific stacking with page-state controls. Leave visual behavior here
+   until a broader activity-card contract exists. */
 .activity_row_actions {
   display: flex;
   align-items: center;
@@ -5412,6 +5465,11 @@ select.input_control option:checked,
   line-height: var(--line-height-tight);
 }
 
+/* Legitimate route-owned CTA exceptions:
+   Home/Buff hero and search-call-to-action selectors intentionally own their
+   role-specific sizing/placement. Shared button refactors should leave these in
+   place unless a task explicitly promotes them into a broader CTA contract. */
+
 .home_activity_content {
   display: grid;
   gap: var(--spacing-md);
@@ -5471,7 +5529,7 @@ select.input_control option:checked,
   }
 
   .match_card_meta_row {
-    gap: 10px;
+    --match-card-meta-gap: 10px;
   }
 }
 
@@ -5494,12 +5552,12 @@ select.input_control option:checked,
   }
 
   .match_card_meta_row {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    --match-card-meta-align: flex-start;
+    --match-card-meta-wrap: wrap;
   }
 
   .match_card_footer_meta {
-    width: 100%;
+    --match-card-footer-meta-width: 100%;
   }
 
   .match_card_match_id_label {
@@ -7223,14 +7281,6 @@ select.input_control,
     top: var(--home-content-shift-y-scaled, 0px);
   }
 
-  .page_home .filter_bar_surface {
-    padding: var(--home-filter-surface-pad-y-scaled, 4px) var(--home-filter-surface-pad-x-scaled, 6px);
-  }
-
-  .page_home .filter_bar .tabs {
-    padding: var(--home-tabs-shell-padding-scaled, 8px);
-  }
-
   .waiting_grid {
     grid-template-columns: repeat(3, var(--waiting-card-width-scaled, 296px));
     justify-content: start;
@@ -7414,7 +7464,7 @@ select.input_control,
   }
 
   .waiting_push_stats {
-    grid-template-columns: 1fr;
+    --waiting-push-stats-columns: 1fr;
   }
 
   .waiting_push_detail_row {
@@ -7438,25 +7488,26 @@ select.input_control,
     text-align: left;
   }
 
-  .waiting_push_actions {
-    justify-content: stretch;
-  }
-
   .waiting_push_card_compact .waiting_push_meta_compact {
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
+    --waiting-push-meta-compact-direction: column;
+    --waiting-push-meta-compact-align: stretch;
+    --waiting-push-meta-compact-justify: flex-start;
   }
 
   .waiting_push_card_compact .waiting_push_action_stack_compact,
-  .waiting_push_card_compact .waiting_push_actions,
-  .waiting_push_card_compact .waiting_push_actions .action_button {
+  .waiting_push_card_compact .waiting_push_actions {
     width: auto;
     justify-items: stretch;
   }
 
-  .waiting_push_actions .action_button {
-    width: 100%;
+  .waiting_push_card_compact .waiting_push_actions {
+    --action-button-width: auto;
+    --waiting-push-actions-width: auto;
+  }
+
+  .waiting_push_actions {
+    --action-button-width: 100%;
+    --waiting-push-actions-width: 100%;
   }
 
   .match_card_category_tag {
@@ -7496,16 +7547,16 @@ select.input_control,
   .challenge_action_row {
     align-items: stretch;
     flex-direction: column;
+    --action-button-width: 100%;
   }
 
   .challenge_selected_actions {
     justify-items: stretch;
+    --action-button-width: 100%;
   }
 
-  .challenge_selected_actions .action_button,
-  .challenge_action_row .action_button,
-  .challenge_empty_actions .action_button {
-    width: 100%;
+  .challenge_empty_actions {
+    --action-button-width: 100%;
   }
 
   .buff_media_stage {
@@ -7545,7 +7596,7 @@ select.input_control,
 
   .activity_header_bar,
   .activity_row {
-    grid-template-columns: 1fr;
+    --activity-row-columns: 1fr;
   }
 
   .activity_header_bar,
@@ -7555,8 +7606,8 @@ select.input_control,
   }
 
   .activity_header_actions {
-    align-items: flex-start;
-    justify-content: flex-start;
+    --activity-header-actions-align: flex-start;
+    --activity-header-actions-justify: flex-start;
   }
 
   .filter_bar {

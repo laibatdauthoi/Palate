@@ -124,6 +124,67 @@ Not allowed:
 - permanent home for new UI work
 - broad styling sweeps as the default solution
 
+## 2.5 Variable Family Policy
+
+Palate uses CSS custom properties for two different jobs:
+
+- durable component contracts
+- temporary bridge hooks
+
+These must be treated differently.
+
+### Durable contract variable families
+
+These families are part of the intended long-term component API. They may be
+reused by future components when the ownership model truly matches.
+
+- `--action-button-*`
+- `--card-footer-*`
+- `--card-actions-*`
+- `--filter-bar-*`
+- `--tab-button-flex`
+
+Rules:
+
+- these variables belong to the owning component contract
+- future work may reuse them when the component role is the same
+- additions to these families should stay generic and component-owned
+- these families should remain small and stable
+
+### Temporary bridge variable families
+
+These families exist to preserve computed behavior while ownership is being
+untangled. They are not a free-form extension surface.
+
+- `--waiting-push-*`
+- `--match-card-*`
+- `--claim-row-*`
+- `--activity-row-*`
+- `--activity-header-actions-*`
+
+Rules:
+
+- do not expand these families casually
+- before adding new bridge variables, define or update the relevant
+  component-family contract
+- bridge variables should eventually be consolidated, renamed into a formal
+  family contract, or removed once selector ownership is cleaned up
+- bridge variables are allowed to carry layout parity temporarily, but they
+  should not become permanent substitutes for proper component ownership
+
+### Warning
+
+Do not replace selector complexity with variable complexity.
+
+Moving behavior behind variables is only a win when:
+
+- the variable belongs to a real component owner
+- the hook is reusable
+- the hook reduces unsafe descendant overrides
+
+If a variable only exists to preserve one local exception, treat it as a bridge
+and document it as such instead of normalizing it prematurely.
+
 ## 3. Layout Modes
 
 ### Current runtime mode contract
