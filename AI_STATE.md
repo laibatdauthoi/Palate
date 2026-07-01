@@ -13,6 +13,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css)
 - [`frontend/styles/badges.css`](./frontend/styles/badges.css)
 - [`frontend/styles/cards.css`](./frontend/styles/cards.css)
+- [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+- [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
 - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
 - [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md)
 - [`AI_CONTEXT.md`](./AI_CONTEXT.md)
@@ -25,6 +27,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Recent Changes
 
+- Extracted the shared Navigation/sidebar contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/navigation.css`](./frontend/styles/navigation.css), while intentionally leaving app-shell, layout-mode, and mixed cleanup rules in `globals.css`.
+- Extracted the shared WalletPanel contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/wallet.css`](./frontend/styles/wallet.css), while intentionally leaving navigation/sidebar shell ownership and mixed cleanup blocks in `globals.css`.
 - Extracted the shared Card Foundation contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/cards.css`](./frontend/styles/cards.css), while intentionally leaving card-family, page-composition, and transaction-sensitive selectors in `globals.css`.
 - Extracted the shared Badge / MediaTag contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/badges.css`](./frontend/styles/badges.css), while intentionally leaving MatchCard decorative tags and family/page placement rules in `globals.css`.
 - Extracted the shared FilterBar/Tabs contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css), while intentionally leaving Home placement and page-specific FilterBar variable assignments in `globals.css`.
@@ -124,6 +128,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - The latest FilterBar/Tabs modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
 - The latest Badge / MediaTag modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
 - The latest Card Foundation modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
+- The latest WalletPanel modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
+- The latest Navigation modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
 
 # Known Bugs
 
@@ -162,6 +168,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Shared FilterBar/Tabs contract rules can move into [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css), but Home placement selectors and route-scoped FilterBar variable assignments must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until page-composition extraction.
 - Shared Badge / MediaTag contract rules can move into [`frontend/styles/badges.css`](./frontend/styles/badges.css), but MatchCard decorative tag placement, card-family badge overrides, and page-specific badge placement must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until card/page extraction.
 - Shared Card Foundation rules can move into [`frontend/styles/cards.css`](./frontend/styles/cards.css), but WaitingPushCard, MatchCard, Claim/Activity families, page grid/composition selectors, and protected transaction-control paths must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until their later extraction phases.
+- Shared WalletPanel rules can move into [`frontend/styles/wallet.css`](./frontend/styles/wallet.css), but navigation/sidebar shell ownership, page/layout placement, and mixed shell cleanup blocks must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until navigation/layout extraction.
+- Shared Navigation/sidebar rules can move into [`frontend/styles/navigation.css`](./frontend/styles/navigation.css), but app shell, layout-mode visibility/rail/mobile behavior, page/layout placement, and mixed cleanup blocks must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until shell/layout extraction.
 - Buff Find Match should block obvious no-match wallet popups in the frontend, but still allow real contract-side errors to surface when the frontend cannot know better.
 - Treat these AI handoff files as canonical context and update them when architecture or current work state materially changes.
 
@@ -547,6 +555,112 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
   - mixed global cleanup blocks that mention card-family selectors alongside broader shell/component cleanup
 - Risk note:
   - the shared Card Foundation contract is now isolated, but card-family hover/sizing/cleanup paths and decorative pseudo-element cleanup still live in `globals.css` and should move only with later family/layout extraction.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Phase 28 WalletPanel Extraction
+
+- Created [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) and moved the shared WalletPanel contract out of [`frontend/styles/globals.css`](./frontend/styles/globals.css).
+- Moved selectors:
+  - `.wallet_panel`
+  - `.wallet_panel_header`
+  - `.wallet_identity`
+  - `.wallet_status`
+  - `.wallet_compact_body`
+  - `.wallet_meta`
+  - `.wallet_message`
+  - `.wallet_actions`
+  - `.wallet_compact_button`
+  - `.wallet_details_section`
+  - `.wallet_details_toggle`
+  - `.wallet_details_list`
+  - `.wallet_choice_list`
+  - `.wallet_choice`
+  - `.wallet_option_card`
+  - `.wallet_option_icon`
+  - `.wallet_modal_content`
+  - `.wallet_modal_grid`
+  - `.wallet_modal_empty`
+  - `.wallet_not_detected`
+  - wallet-owned status/feedback/detail helpers:
+    - `.wallet_status_wrong_network`
+    - `.wallet_status_error`
+    - `.wallet_status_connecting`
+    - `.wallet_message_error`
+    - `.wallet_option_card > span`
+    - `.wallet_choice small`
+    - `.wallet_option_card small`
+    - `.wallet_not_detected span`
+    - `.wallet_panel .feedback_text`
+  - wallet-local chain status helpers used by the component:
+    - `.chain_status_panel`
+    - `.chain_status_network`
+    - `.chain_status_pill`
+    - `.chain_status_ready`
+    - `.chain_status_error`
+    - `.chain_status_loading`
+    - `.chain_status_rows`
+    - `.chain_status_rows span`
+    - `.chain_status_rows .chain_status_error`
+- Added `@import "./wallet.css";` near the top of [`frontend/styles/globals.css`](./frontend/styles/globals.css), directly after `cards.css`, so shared component rules still load before family/page rules.
+- Intentionally left in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.navigation_bar`
+  - `.brand_lockup`
+  - `.nav_links`
+  - `.nav_link`
+  - `.nav_link_label`
+  - sidebar shell/placement rules
+  - `.desktop_only`
+  - `.mobile_only`
+  - page/layout selectors
+  - generic `.action_button` rules
+  - Challenge/Settle selectors
+  - card/grid selectors
+  - mixed global cleanup blocks that mention `.wallet_panel` together with navigation/shell selectors
+- Risk note:
+  - the shared WalletPanel contract is now isolated, but nav-scoped placement/media-query behavior and mixed shell cleanup still live in `globals.css` and should move only with navigation/layout extraction.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Phase 29 Navigation Extraction
+
+- Created [`frontend/styles/navigation.css`](./frontend/styles/navigation.css) and moved the shared Navigation/sidebar contract out of [`frontend/styles/globals.css`](./frontend/styles/globals.css).
+- Moved selectors:
+  - `.navigation_bar`
+  - `.brand_lockup`
+  - `.brand_mark`
+  - `.nav_links`
+  - `.nav_link`
+  - `.nav_link_label`
+  - `.nav_link::before`
+  - `.nav_link.active`
+  - `.nav_link:hover`
+  - `.nav_link_attention`
+  - `.nav_claim_badge`
+  - navigation support selector:
+    - `.brand_mark img`
+- Note:
+  - no standalone `.brand_text` selector exists in the current markup or stylesheet; the brand text remains the second span inside `.brand_lockup` with no separate class.
+- Added `@import "./navigation.css";` near the top of [`frontend/styles/globals.css`](./frontend/styles/globals.css), directly after `wallet.css`, so shared component rules still load before layout-mode and page/family rules.
+- Intentionally left in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.app_shell`
+  - `.main_content`
+  - layout-mode rules
+  - `.desktop_only`
+  - `.mobile_only`
+  - `.mobile_bottom_nav`
+  - WalletPanel selectors already in `wallet.css`
+  - page/layout selectors
+  - card/grid selectors
+  - Challenge/Settle selectors
+  - mixed cleanup blocks that mention navigation selectors together with broader shell/component cleanup
+  - navigation layout-mode overrides such as:
+    - narrow rail-mode `@media` rules
+    - `desktop-fit` scoped `.navigation_bar.desktop_only ...` rules
+- Risk note:
+  - the shared navigation contract is now isolated, but rail/mobile/layout-mode behavior and mixed shell cleanup still live in `globals.css` and should move only with app-shell/layout extraction.
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
