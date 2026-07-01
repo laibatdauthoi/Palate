@@ -1,0 +1,61 @@
+/* Application Layout contract:
+   - App shell owns the viewport shell, sidebar/content relationship, generic
+     layout-mode switching, and content-frame sizing
+   - Page composition owns route-specific offsets and composition inside the
+     content frame
+   - Component styles must not redefine shell/frame behavior */
+.app_shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width-scaled) minmax(0, 1fr);
+  min-height: 100dvh;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 320ms ease, transform 320ms ease, visibility 0s linear 0ms;
+}
+
+.main_content {
+  width: min(100%, var(--main-frame-width-scaled));
+  margin: 0;
+  padding: var(--main-padding-top-scaled) var(--main-padding-x-scaled) var(--main-padding-bottom-scaled);
+}
+
+.page_stack {
+  display: grid;
+  gap: var(--spacing-xl);
+}
+
+@media (max-width: 1023px) {
+  .app_shell {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .main_content {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 639px) {
+  .app_shell {
+    display: block;
+  }
+
+  .main_content {
+    padding: var(--spacing-md) var(--spacing-md) calc(var(--spacing-2xl) + 96px);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1199px) {
+  .app_shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-width-scaled, 260px) minmax(0, 1fr);
+  }
+
+  main.main_content {
+    width: min(100%, var(--main-frame-width-scaled));
+    max-width: none;
+    min-width: 0;
+    padding: var(--main-padding-top-scaled) var(--main-padding-x-scaled) var(--main-padding-bottom-scaled);
+    margin-top: 0;
+    top: auto;
+  }
+}

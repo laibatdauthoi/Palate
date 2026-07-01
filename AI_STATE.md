@@ -9,6 +9,7 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 # Active Files
 
 - [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+- [`frontend/styles/layout.css`](./frontend/styles/layout.css)
 - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
 - [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css)
 - [`frontend/styles/badges.css`](./frontend/styles/badges.css)
@@ -27,6 +28,7 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Recent Changes
 
+- Extracted the shared application layout contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/layout.css`](./frontend/styles/layout.css), while intentionally leaving page-specific composition and route-specific layout exceptions in `globals.css`.
 - Extracted the shared Navigation/sidebar contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/navigation.css`](./frontend/styles/navigation.css), while intentionally leaving app-shell, layout-mode, and mixed cleanup rules in `globals.css`.
 - Extracted the shared WalletPanel contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/wallet.css`](./frontend/styles/wallet.css), while intentionally leaving navigation/sidebar shell ownership and mixed cleanup blocks in `globals.css`.
 - Extracted the shared Card Foundation contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/cards.css`](./frontend/styles/cards.css), while intentionally leaving card-family, page-composition, and transaction-sensitive selectors in `globals.css`.
@@ -130,6 +132,7 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - The latest Card Foundation modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
 - The latest WalletPanel modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
 - The latest Navigation modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
+- The latest application-layout modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
 
 # Known Bugs
 
@@ -170,6 +173,7 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Shared Card Foundation rules can move into [`frontend/styles/cards.css`](./frontend/styles/cards.css), but WaitingPushCard, MatchCard, Claim/Activity families, page grid/composition selectors, and protected transaction-control paths must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until their later extraction phases.
 - Shared WalletPanel rules can move into [`frontend/styles/wallet.css`](./frontend/styles/wallet.css), but navigation/sidebar shell ownership, page/layout placement, and mixed shell cleanup blocks must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until navigation/layout extraction.
 - Shared Navigation/sidebar rules can move into [`frontend/styles/navigation.css`](./frontend/styles/navigation.css), but app shell, layout-mode visibility/rail/mobile behavior, page/layout placement, and mixed cleanup blocks must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until shell/layout extraction.
+- Shared application layout rules can move into [`frontend/styles/layout.css`](./frontend/styles/layout.css), but Home composition selectors, page-specific layout exceptions, `mobile_bottom_nav`, and mixed shell+page blocks must remain in [`frontend/styles/globals.css`](./frontend/styles/globals.css) until later page cleanup.
 - Buff Find Match should block obvious no-match wallet popups in the frontend, but still allow real contract-side errors to surface when the frontend cannot know better.
 - Treat these AI handoff files as canonical context and update them when architecture or current work state materially changes.
 
@@ -661,6 +665,40 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
     - `desktop-fit` scoped `.navigation_bar.desktop_only ...` rules
 - Risk note:
   - the shared navigation contract is now isolated, but rail/mobile/layout-mode behavior and mixed shell cleanup still live in `globals.css` and should move only with app-shell/layout extraction.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Phase 30 Application Layout Extraction
+
+- Created [`frontend/styles/layout.css`](./frontend/styles/layout.css) and moved the shared application layout contract out of [`frontend/styles/globals.css`](./frontend/styles/globals.css).
+- Moved selectors/rules:
+  - `.app_shell`
+  - `.main_content`
+  - `.page_stack`
+  - generic layout-mode shell/content rules:
+    - `@media (max-width: 1023px)` for `.app_shell` and `.main_content`
+    - `@media (max-width: 639px)` for `.app_shell` and `.main_content`
+    - `@media (min-width: 640px) and (max-width: 1199px)` for `.app_shell` and `main.main_content`
+- Added `@import "./layout.css";` near the top of [`frontend/styles/globals.css`](./frontend/styles/globals.css), directly after `tokens.css` and before component styles.
+- Intentionally left in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.page_home*`
+  - `.home_activity_content`
+  - `.waiting_grid`
+  - `.matches_grid`
+  - page-specific composition selectors
+  - `.navigation_bar` selectors already in [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - `.wallet_*` selectors already in [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - `.mobile_bottom_nav`
+  - card family selectors
+  - Challenge/Settle selectors
+  - route-specific responsive exceptions
+- Mixed rules intentionally left behind:
+  - media-query blocks that combine shell changes with Home composition changes
+  - `desktop_only` / `mobile_only` visibility rules
+  - `page_stack.page_home` overrides, because they are page composition rather than generic shell ownership
+- Risk note:
+  - the shared shell/content frame is now isolated, but the remaining responsive blocks still mix layout-mode and page composition concerns, especially around Home and mobile navigation.
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
