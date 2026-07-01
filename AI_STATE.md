@@ -29,6 +29,7 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 # Recent Changes
 
 - Extracted the shared application layout contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/layout.css`](./frontend/styles/layout.css), while intentionally leaving page-specific composition and route-specific layout exceptions in `globals.css`.
+- Extracted the Home page composition contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css), while intentionally leaving documented bridge selectors, shell/layout ownership, and card-family responsive paths in `globals.css`.
 - Extracted the shared Navigation/sidebar contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/navigation.css`](./frontend/styles/navigation.css), while intentionally leaving app-shell, layout-mode, and mixed cleanup rules in `globals.css`.
 - Extracted the shared WalletPanel contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/wallet.css`](./frontend/styles/wallet.css), while intentionally leaving navigation/sidebar shell ownership and mixed cleanup blocks in `globals.css`.
 - Extracted the shared Card Foundation contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/cards.css`](./frontend/styles/cards.css), while intentionally leaving card-family, page-composition, and transaction-sensitive selectors in `globals.css`.
@@ -133,6 +134,9 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - The latest WalletPanel modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
 - The latest Navigation modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
 - The latest application-layout modularization pass is validated only by lint; no browser verification or build was run for that pass by request.
+- Responsive ownership inside [`frontend/styles/globals.css`](./frontend/styles/globals.css) is now better documented, but the mixed `@media` blocks still intentionally combine Home composition with shell and card-family bridges; extraction is still blocked until those bridges are isolated more cleanly.
+- Home-owned responsive selectors in [`frontend/styles/globals.css`](./frontend/styles/globals.css) are now grouped more tightly inside their existing media-query blocks, but temporary composition bridges to FilterBar internals and card-family shells still remain in place by design.
+- Home page composition now primarily lives in [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css); the remaining Home-related selectors in [`frontend/styles/globals.css`](./frontend/styles/globals.css) are temporary composition bridges or non-Home shared selectors by design.
 
 # Known Bugs
 
@@ -156,6 +160,7 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Treat controller/runtime variables and visible selector consumption as separate checks; a healthy controller alone does not guarantee visible scaling.
 - When sidebar width changes, recalibrate shell guttering first instead of compensating by inflating page internals, cards, or buttons.
 - Application Layout is now the explicit owner of viewport shell, sidebar/content relationship, layout-mode switching, content frame width/padding, and shell-level scroll behavior.
+- For responsive cleanup, keep media-query boundaries stable first and add ownership markers in place; do not move Home selectors across mixed blocks until the remaining composition bridges to FilterBar, WaitingPushCard, and MatchCard are isolated.
 - For Home cleanup, preserving computed layout parity took priority over removing every ownership leak; documented legacy exceptions are preferred over risky selector moves.
 - For FilterBar/Tabs cleanup, reusable shell behavior should move behind component-owned variables first; the new `--tab-button-flex` hook follows that rule and preserves computed output.
 - When a route still needs special FilterBar/Tabs shell behavior, prefer route-scoped variables on the FilterBar placement selector over descendant overrides into `.tabs` or `.tab_button`.
@@ -1494,6 +1499,90 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Remaining risks:
   - visual output was preserved by keeping values the same, but no browser verification was run
   - card-main / Challenge / Settle history remains intentionally protected from shared button-size cleanup
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Responsive Ownership Cleanup Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to document ownership inside the remaining mixed responsive blocks without changing computed behavior.
+- Added clearly marked responsive sections for:
+  - Application Layout
+  - Navigation + Wallet
+  - Home page composition
+  - WaitingPushCard
+  - MatchCard
+  - Challenge
+  - Buff page composition
+  - Profile / Activity
+  - FilterBar / Tabs
+  - Legacy responsive repair
+- Documented the remaining Home temporary composition bridges in the mobile and desktop-fit responsive paths:
+  - `.page_stack.page_home .filter_bar_surface`
+  - `.page_stack.page_home .filter_bar_inner`
+  - `.page_stack.page_home .waiting_grid .waiting_push_card_compact`
+  - `.page_stack.page_home .matches_grid .match_card`
+- Kept media-query boundaries, selector order, and precedence intact; this pass is comment/organization only.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Home Responsive Composition Isolation Pass
+
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) to isolate Home-owned responsive selectors more clearly within the existing mixed media-query blocks.
+- Kept all existing media-query boundaries intact and preserved selector declarations/values.
+- Tightened the Home-owned responsive grouping in:
+  - `@media (max-width: 1023px)`
+  - `@media (max-width: 639px)`
+  - `@media (min-width: 640px) and (max-width: 1199px)`
+- Kept the following selectors intentionally in mixed/bridge sections:
+  - `.matches_grid .match_card`
+  - `.page_stack.page_home .waiting_grid .waiting_push_card_compact`
+  - `.page_stack.page_home .matches_grid .match_card`
+  - `.page_stack.page_home .filter_bar_surface`
+  - `.page_stack.page_home .filter_bar_inner`
+  - shell/navigation/wallet selectors
+  - WaitingPushCard / MatchCard / Challenge-sensitive selectors
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Home Page Composition Extraction Pass
+
+- Created [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css).
+- Imported `./pages/home.css` from [`frontend/styles/globals.css`](./frontend/styles/globals.css) after shared layout/component styles so page composition continues to win where intended.
+- Moved only Home page composition selectors into `pages/home.css`, including:
+  - `.page_home.page_stack`
+  - `.page_home .page_header_floating`
+  - `.page_home .page_header_lifted`
+  - `.page_home .page_header_density_compact .page_header_content`
+  - `.page_home .page_header_actions`
+  - `.home_activity_content`
+  - `.waiting_grid`
+  - `.matches_grid`
+  - `.page_home > .filter_bar`
+  - Home-owned desktop-fit / mobile / large-desktop responsive composition sections
+  - `.page_stack.page_home*`
+  - `.compact_card_grid_waiting.waiting_grid`
+  - `.compact_card_grid_matches.matches_grid`
+- Left intentionally behind in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.matches_grid .match_card`
+  - `.page_stack.page_home .waiting_grid .waiting_push_card_compact`
+  - `.page_stack.page_home .matches_grid .match_card`
+  - `.page_stack.page_home .filter_bar_surface`
+  - `.page_stack.page_home .filter_bar_inner`
+  - `.app_shell`
+  - `.main_content`
+  - `.navigation_bar`
+  - `.nav_link*`
+  - `.wallet_panel`
+  - `.desktop_only`
+  - `.mobile_only`
+  - `.mobile_bottom_nav`
+  - `.waiting_push_*`
+  - `.match_card_*`
+  - Challenge / Settle-sensitive selectors
+  - mixed legacy repair blocks
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request

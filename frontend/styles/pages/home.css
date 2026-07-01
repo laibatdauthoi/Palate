@@ -1,0 +1,298 @@
+/* Home page composition:
+   - Home owns only route composition inside the content frame:
+     header placement, section spacing, activity region placement, and waiting /
+     match grid arrangement.
+   - Shell/content-frame ownership remains outside Home selectors.
+   - Component internals (tabs, cards, button internals) should not be restyled
+     from Home selectors unless a documented legacy exception remains in place. */
+
+.page_home.page_stack {
+  gap: var(--home-section-gap-scaled, var(--spacing-xl));
+}
+
+.page_home .page_header_floating {
+  padding-block: var(--home-header-padding-y-scaled, 4px);
+}
+
+.page_home .page_header_lifted {
+  margin-top: var(--home-header-offset-y-scaled, calc(var(--spacing-lg) * -0.65));
+}
+
+.page_home .page_header_density_compact .page_header_content {
+  gap: var(--home-header-content-gap-scaled, 6px);
+}
+
+.page_home .page_header_actions {
+  gap: var(--home-header-actions-gap-scaled, var(--spacing-sm));
+}
+
+.home_activity_content {
+  display: grid;
+  gap: var(--spacing-md);
+  align-items: start;
+  justify-items: start;
+  width: 100%;
+}
+
+.waiting_grid,
+.matches_grid {
+  width: 100%;
+  align-items: start;
+  justify-content: start;
+  justify-items: start;
+}
+
+.waiting_grid {
+  width: 100%;
+  margin-inline: 0;
+  row-gap: var(--spacing-xl);
+}
+
+/* Home composition may provide shell-level FilterBar/Tabs variables through the
+   page-owned FilterBar placement selector, but should avoid styling shared
+   FilterBar/Tabs internals directly. */
+.page_home > .filter_bar {
+  --filter-bar-surface-pad-y: var(--home-filter-surface-pad-y-scaled, 4px);
+  --filter-bar-surface-pad-x: var(--home-filter-surface-pad-x-scaled, 6px);
+  --filter-bar-tabs-pad-y: var(--home-tabs-shell-padding-scaled, 8px);
+  --filter-bar-tabs-pad-x: var(--home-tabs-shell-padding-scaled, 8px);
+}
+
+@media (min-width: 1200px) {
+  .waiting_grid {
+    grid-template-columns: repeat(3, var(--waiting-card-width-scaled, 296px));
+    justify-content: start;
+    justify-items: start;
+    column-gap: var(--waiting-grid-gap-scaled);
+  }
+
+  .matches_grid {
+    grid-template-columns: repeat(2, var(--match-card-width-scaled, 462.5px));
+    justify-content: start;
+    column-gap: var(--match-grid-gap-scaled, 16px);
+    row-gap: var(--match-grid-row-gap-scaled, 16px);
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .matches_grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--spacing-md);
+    row-gap: var(--spacing-md);
+  }
+}
+
+@media (max-width: 1023px) {
+  /* ==========================
+     Home page composition
+     ========================== */
+  .home_stats_grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero_match_preview {
+    transform: none;
+  }
+}
+
+@media (min-width: 1200px) {
+  /* Home composition-only desktop positioning:
+     these selectors place existing sections within the Content Frame and should
+     not be repurposed to restyle component internals. */
+  .page_home {
+    position: relative;
+    padding-bottom: var(--home-content-shift-y-scaled, 0px);
+  }
+
+  .page_home .page_header_actions {
+    position: relative;
+    top: var(--home-actions-shift-y-scaled, 0px);
+  }
+
+  .page_home > .filter_bar {
+    position: relative;
+    top: var(--home-tabs-shift-y-scaled, 0px);
+  }
+
+  .page_home > .home_activity_content {
+    position: relative;
+    top: var(--home-content-shift-y-scaled, 0px);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1199px) {
+  /* ==========================
+     Home page composition
+     ========================== */
+  .page_home {
+    position: relative;
+    padding-bottom: var(--home-content-shift-y-scaled, 0px);
+    gap: var(--home-section-gap-scaled, var(--spacing-xl));
+  }
+
+  .page_home .page_header_floating {
+    padding-block: var(--home-header-padding-y-scaled, 4px);
+  }
+
+  .page_home .page_header_lifted {
+    margin-top: var(--home-header-offset-y-scaled, calc(var(--spacing-lg) * -0.65));
+  }
+
+  .page_home .page_header_density_compact .page_header_content {
+    gap: var(--home-header-content-gap-scaled, 6px);
+  }
+
+  .page_home .page_header_actions {
+    position: relative;
+    top: var(--home-actions-shift-y-scaled, 0px);
+    gap: var(--home-header-actions-gap-scaled, var(--spacing-sm));
+  }
+
+  .page_home > .filter_bar {
+    position: relative;
+    top: var(--home-tabs-shift-y-scaled, 0px);
+  }
+
+  .page_home > .home_activity_content {
+    position: relative;
+    top: var(--home-content-shift-y-scaled, 0px);
+  }
+
+  .waiting_grid {
+    grid-template-columns: repeat(3, var(--waiting-card-width-scaled, 296px));
+    justify-content: start;
+    justify-items: start;
+    column-gap: var(--waiting-grid-gap-scaled);
+  }
+
+  .matches_grid {
+    grid-template-columns: repeat(2, var(--match-card-width-scaled, 462.5px));
+    justify-content: start;
+    column-gap: var(--match-grid-gap-scaled, 16px);
+    row-gap: var(--match-grid-row-gap-scaled, 16px);
+  }
+}
+
+@media (max-width: 639px) {
+  /* ==========================
+     Home page composition
+     ========================== */
+  .page_stack.page_home {
+    gap: calc(16px * var(--ui-scale-y));
+  }
+
+  .home_stats_grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ==========================
+     Home page composition
+     Temporary composition bridges remain below:
+     - .page_stack.page_home .filter_bar_surface
+     - .page_stack.page_home .filter_bar_inner
+     - .page_stack.page_home .waiting_grid .waiting_push_card_compact
+     - .page_stack.page_home .matches_grid .match_card
+     These keep current computed behavior but still cross into component/family
+     shells and should be removed only during later family/page cleanup.
+     ========================== */
+  .page_stack.page_home .page_header_content,
+  .page_stack.page_home > .filter_bar,
+  .page_stack.page_home > .home_activity_content,
+  .page_stack.page_home .filter_bar_surface,
+  .page_stack.page_home .filter_bar_inner {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .page_stack.page_home .page_header_actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    justify-items: stretch;
+    gap: calc(10px * var(--ui-scale-y));
+  }
+
+  .home_cta_button {
+    width: 100%;
+  }
+
+  .page_stack.page_home .filter_bar {
+    align-items: stretch;
+  }
+
+  .page_stack.page_home > .filter_bar {
+    --filter-bar-surface-overflow-x: auto;
+    --filter-bar-tabs-flex: 0 0 auto;
+    --filter-bar-tabs-width: max-content;
+    --filter-bar-tabs-min-width: 100%;
+    --tab-button-flex: 0 0 auto;
+  }
+
+  .page_stack.page_home .home_activity_content,
+  .page_stack.page_home .compact_card_grid_waiting.waiting_grid,
+  .page_stack.page_home .compact_card_grid_matches.matches_grid {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  /* Home-owned responsive selectors stop here.
+     The selectors below remain intentionally mixed because they belong to
+     card families, Challenge, page-specific mobile composition outside Home,
+     or shared legacy responsive repair. */
+}
+
+@media (min-width: 640px) and (max-width: 1199px) {
+  /* ==========================
+     Home page composition
+     ========================== */
+  .page_stack.page_home {
+    position: static;
+    padding-bottom: 0;
+    gap: var(--home-section-gap-scaled, var(--spacing-xl));
+  }
+
+  .page_stack.page_home .page_header_floating {
+    padding-block: var(--home-header-padding-y-scaled, 4px);
+  }
+
+  .page_stack.page_home .page_header.page_header_lifted {
+    margin-top: 0;
+  }
+
+  .page_stack.page_home .page_header_density_compact .page_header_content {
+    gap: var(--home-header-content-gap-scaled, 6px);
+  }
+
+  .page_stack.page_home .page_header_actions {
+    position: static;
+    top: auto;
+    gap: var(--home-header-actions-gap-scaled, var(--spacing-sm));
+  }
+
+  .page_stack.page_home > .filter_bar,
+  .page_stack.page_home > .home_activity_content {
+    position: static;
+    top: auto;
+  }
+
+  .page_stack.page_home > .filter_bar {
+    --filter-bar-surface-pad-y: var(--home-filter-surface-pad-y-scaled, 4px);
+    --filter-bar-surface-pad-x: var(--home-filter-surface-pad-x-scaled, 6px);
+    --filter-bar-tabs-pad-y: var(--home-tabs-shell-padding-scaled, 8px);
+    --filter-bar-tabs-pad-x: var(--home-tabs-shell-padding-scaled, 8px);
+  }
+
+  .compact_card_grid_waiting.waiting_grid {
+    grid-template-columns: repeat(3, var(--waiting-card-width-scaled, 296px));
+    justify-content: start;
+    justify-items: start;
+    column-gap: var(--waiting-grid-gap-scaled, 27px);
+  }
+
+  .compact_card_grid_matches.matches_grid {
+    grid-template-columns: repeat(2, var(--match-card-width-scaled, 462.5px));
+    justify-content: start;
+    column-gap: var(--match-grid-gap-scaled, 16px);
+    row-gap: var(--match-grid-row-gap-scaled, 16px);
+  }
+}
