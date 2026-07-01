@@ -4,6 +4,8 @@
 @import "./filter-bar.css";
 @import "./badges.css";
 @import "./cards.css";
+@import "./modal.css";
+@import "./media-renderer.css";
 @import "./waiting-push.css";
 @import "./match-card.css";
 @import "./wallet.css";
@@ -1547,118 +1549,10 @@ select.input_control option:checked,
    - Cards/pages own only the outer frame and placement around MediaRenderer.
    - Feature-specific media experiences (for example match audio, waiting-card
      overrides, or viewer-specific controls) remain owned by those features. */
-.media_renderer {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  min-width: 0;
-  max-width: 100%;
-  color: var(--text-primary);
-}
-
-.media_renderer_variant_card {
-  max-height: var(--media-preview-card-height-scaled, 220px);
-}
-
-.media_renderer_variant_compact {
-  max-height: var(--media-preview-compact-height-scaled, 160px);
-}
-
 .media_renderer_variant_match {
   width: 100%;
   height: 100%;
   max-height: none;
-}
-
-.media_renderer_variant_selector {
-  max-height: var(--media-preview-selector-height-scaled, 120px);
-}
-
-.media_renderer_button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  appearance: none;
-  border: 0;
-  background: transparent;
-  cursor: zoom-in;
-  overflow: hidden;
-  padding: 0;
-}
-
-.media_renderer_button:focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: -2px;
-}
-
-.media_renderer_image,
-.media_renderer_video {
-  display: block;
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.media_renderer_video_frame {
-  overflow: hidden;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.media_renderer_video_frame.active {
-  box-shadow: inset 0 0 0 2px rgba(255, 82, 171, 0.42);
-}
-
-.media_renderer_player,
-.media_renderer_fallback {
-  display: grid;
-  width: 100%;
-  min-height: 0;
-  min-width: 0;
-  max-width: 100%;
-  place-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  text-align: center;
-}
-
-.media_renderer_player span,
-.media_renderer_fallback span {
-  max-width: 92%;
-  font-size: var(--font-size-body-large);
-  font-weight: 900;
-  text-shadow: 0 12px 28px rgba(0, 0, 0, 0.52);
-}
-
-.media_renderer_audio_controlled {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
-  align-items: center;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  background:
-    radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.16), transparent 28%),
-    radial-gradient(circle at 50% 74%, rgba(255, 47, 159, 0.2), transparent 42%),
-    rgba(8, 5, 12, 0.14);
-}
-
-.media_renderer_audio_controlled.media_renderer_variant_card,
-.media_renderer_audio_controlled.media_renderer_variant_compact,
-.media_renderer_audio_controlled.media_renderer_variant_selector {
-  padding: var(--spacing-sm);
-}
-
-.media_renderer_audio_controlled.media_renderer_variant_card {
-  min-height: 220px;
 }
 
 .media_renderer_audio_match {
@@ -1705,89 +1599,6 @@ select.input_control option:checked,
   font-weight: 700;
 }
 
-.audio_preview_glyph_shell,
-.waiting_audio_icon_shell {
-  display: grid;
-  place-items: center;
-  width: var(--audio-preview-badge-size);
-  height: var(--audio-preview-badge-size);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.18), transparent 32%),
-    linear-gradient(180deg, rgba(19, 25, 40, 0.9), rgba(8, 11, 20, 0.98));
-  color: rgba(236, 250, 255, 0.94);
-  box-shadow:
-    0 20px 38px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.24);
-  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.audio_preview_glyph_icon,
-.waiting_audio_icon {
-  width: var(--audio-preview-icon-size);
-  height: var(--audio-preview-icon-size);
-}
-
-.audio_preview_visual {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: calc(5px * var(--ui-scale-x));
-  min-height: calc(48px * var(--ui-scale-y));
-  min-width: 0;
-  max-width: 100%;
-  padding: calc(6px * var(--ui-scale-y)) 0;
-}
-
-.audio_preview_visual span {
-  width: calc(6px * var(--icon-scale));
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 47, 159, 0.72));
-  box-shadow: 0 0 16px rgba(255, 47, 159, 0.22);
-}
-
-.audio_preview_visual span:nth-child(1) { height: calc(16px * var(--icon-scale)); }
-.audio_preview_visual span:nth-child(2) { height: calc(30px * var(--icon-scale)); }
-.audio_preview_visual span:nth-child(3) { height: calc(22px * var(--icon-scale)); }
-.audio_preview_visual span:nth-child(4) { height: calc(36px * var(--icon-scale)); }
-.audio_preview_visual span:nth-child(5) { height: calc(14px * var(--icon-scale)); }
-
-.audio_preview_meta {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.audio_preview_meta span,
-.audio_preview_meta small {
-  min-width: 0;
-}
-
-.audio_preview_meta span {
-  color: var(--text-muted);
-  font-size: var(--font-size-caption-scaled, var(--font-size-caption));
-  font-weight: 800;
-}
-
-.media_renderer_audio_controlled small {
-  color: var(--text-muted);
-  font-size: var(--font-size-caption-scaled, var(--font-size-caption));
-  font-weight: 900;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.media_renderer_audio_controlled.active small {
-  color: var(--accent-pink-soft);
-}
-
-.media_renderer_video_frame {
-  max-height: 100%;
-}
-
 .audio_card_play_button {
   border: 1px solid rgba(255, 143, 199, 0.42);
   border-radius: var(--radius-pill);
@@ -1808,23 +1619,6 @@ select.input_control option:checked,
   cursor: not-allowed;
   filter: grayscale(0.35);
   opacity: 0.56;
-}
-
-.media_renderer_fallback small {
-  color: var(--text-muted);
-  font-size: var(--font-size-caption);
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.media_renderer_compact {
-  min-height: 0;
-}
-
-.media_renderer_compact.media_renderer_player span,
-.media_renderer_compact.media_renderer_fallback span {
-  font-size: var(--font-size-body-small);
 }
 
 .media_expand_button {
@@ -3441,84 +3235,8 @@ select.input_control option:checked,
      composition.
    - Shared modal shell rules must not be used to restyle wallet, challenge,
      or media-viewer internals. */
-.modal_backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  min-width: 0;
-  max-width: 100%;
-  padding: calc(var(--spacing-lg) * var(--ui-scale-y)) calc(var(--spacing-lg) * var(--ui-scale-x));
-  background: rgba(0, 0, 0, 0.64);
-  backdrop-filter: blur(14px);
-}
-
-.modal_shell {
-  width: min(100%, 620px);
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: calc(10px * var(--button-scale));
-  min-width: 0;
-  max-width: 100%;
-  border: 2px solid rgba(255, 47, 159, 0.28);
-  border-radius: var(--radius-xl-scaled, var(--radius-xl));
-  background:
-    radial-gradient(circle at top right, rgba(255, 47, 159, 0.18), transparent 36%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 24%),
-    var(--surface-elevated);
-  max-height: 84dvh;
-  min-height: 0;
-  overflow: hidden;
-  box-shadow: var(--shadow-modal), var(--shadow-bevel);
-  padding: calc(14px * var(--button-scale));
-}
-
-.modal_shell_header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: calc(10px * var(--button-scale));
-  min-width: 0;
-  max-width: 100%;
-  background: inherit;
-  padding-bottom: 2px;
-}
-
-.modal_shell_header_text {
-  display: grid;
-  gap: calc(4px * var(--button-scale));
-  min-width: 0;
-}
-
 .modal_shell_header_text h2 {
   margin: 0;
-}
-
-.modal_shell_subtitle {
-  min-width: 0;
-  max-width: 100%;
-  margin: 0;
-  color: rgba(224, 243, 248, 0.9);
-  font-size: var(--font-size-body-small-scaled, 13px);
-  line-height: var(--line-height-body);
-  overflow-wrap: anywhere;
-}
-
-.modal_shell_body {
-  display: grid;
-  gap: calc(var(--spacing-md) * var(--ui-scale-y));
-  min-height: 0;
-  min-width: 0;
-  max-width: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  padding-right: calc(4px * var(--ui-scale-x));
 }
 
 .challenge_modal_content {

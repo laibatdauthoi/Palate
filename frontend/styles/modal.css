@@ -1,0 +1,77 @@
+/* Shared modal shell contract. Feature modal internals remain in globals.css
+   until their ownership is extracted separately. */
+.modal_backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding: calc(var(--spacing-lg) * var(--ui-scale-y)) calc(var(--spacing-lg) * var(--ui-scale-x));
+  background: rgba(0, 0, 0, 0.64);
+  backdrop-filter: blur(14px);
+}
+
+.modal_shell {
+  width: min(100%, 620px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: calc(10px * var(--button-scale));
+  min-width: 0;
+  max-width: 100%;
+  border: 2px solid rgba(255, 47, 159, 0.28);
+  border-radius: var(--radius-xl-scaled, var(--radius-xl));
+  background:
+    radial-gradient(circle at top right, rgba(255, 47, 159, 0.18), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 24%),
+    var(--surface-elevated);
+  max-height: 84dvh;
+  min-height: 0;
+  overflow: hidden;
+  box-shadow: var(--shadow-modal), var(--shadow-bevel);
+  padding: calc(14px * var(--button-scale));
+}
+
+.modal_shell_header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: calc(10px * var(--button-scale));
+  min-width: 0;
+  max-width: 100%;
+  background: inherit;
+  padding-bottom: 2px;
+}
+
+.modal_shell_header_text {
+  display: grid;
+  gap: calc(4px * var(--button-scale));
+  min-width: 0;
+}
+
+.modal_shell_subtitle {
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  color: rgba(224, 243, 248, 0.9);
+  font-size: var(--font-size-body-small-scaled, 13px);
+  line-height: var(--line-height-body);
+  overflow-wrap: anywhere;
+}
+
+.modal_shell_body {
+  display: grid;
+  gap: calc(var(--spacing-md) * var(--ui-scale-y));
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: calc(4px * var(--ui-scale-x));
+}

@@ -14,6 +14,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css)
 - [`frontend/styles/badges.css`](./frontend/styles/badges.css)
 - [`frontend/styles/cards.css`](./frontend/styles/cards.css)
+- [`frontend/styles/modal.css`](./frontend/styles/modal.css)
+- [`frontend/styles/media-renderer.css`](./frontend/styles/media-renderer.css)
 - [`frontend/styles/waiting-push.css`](./frontend/styles/waiting-push.css)
 - [`frontend/styles/match-card.css`](./frontend/styles/match-card.css)
 - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
@@ -31,6 +33,9 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 # Recent Changes
 
 - Extracted the MatchCard family contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/match-card.css`](./frontend/styles/match-card.css), while intentionally leaving footer transaction controls, mixed responsive repair blocks, and Challenge/Settle-sensitive selectors in `globals.css`.
+- Extracted the shared modal shell contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/modal.css`](./frontend/styles/modal.css), while intentionally leaving wallet/challenge/media-viewer modal internals, responsive modal repair paths, and renderer/audio-preview selectors in `globals.css`.
+- Extracted the shared MediaRenderer contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/media-renderer.css`](./frontend/styles/media-renderer.css), while intentionally leaving media-viewer selectors, MatchCard-specific `.media_renderer_audio_match` behavior, family wrapper bridges, and mixed responsive media rules in `globals.css`.
+- Shifted desktop scroll ownership into the Application Layout contract so the sidebar remains pinned while only the main content scrolls; mobile body-scroll behavior remains unchanged.
 - Extracted the WaitingPushCard family contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/waiting-push.css`](./frontend/styles/waiting-push.css), while intentionally leaving shared helper selectors, mixed mobile responsive paths, and documented Home/Challenge bridges in `globals.css`.
 - Extracted the shared application layout contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/layout.css`](./frontend/styles/layout.css), while intentionally leaving page-specific composition and route-specific layout exceptions in `globals.css`.
 - Extracted the Home page composition contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css), while intentionally leaving documented bridge selectors, shell/layout ownership, and card-family responsive paths in `globals.css`.
@@ -1792,6 +1797,86 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Preserved the current MatchCard family bridges in the new family file:
   - `.matches_grid .match_card`
   - `.compact_card_grid_matches.matches_grid .match_card`
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Modal Shell Extraction Pass
+
+- Created [`frontend/styles/modal.css`](./frontend/styles/modal.css).
+- Imported `./modal.css` from [`frontend/styles/globals.css`](./frontend/styles/globals.css) after shared component styles and before card-family/page styles.
+- Moved only the shared modal shell selectors out of [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.modal_backdrop`
+  - `.modal_shell`
+  - `.modal_shell_header`
+  - `.modal_shell_header_text`
+  - `.modal_shell_subtitle`
+  - `.modal_shell_body`
+- Left intentionally behind in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.wallet_modal_*`
+  - `.challenge_modal_*`
+  - `.media_viewer_*`
+  - feature-specific modal content selectors
+  - responsive modal repair rules inside mixed media blocks
+  - media renderer / audio preview selectors
+  - protected transaction selectors
+- Kept `.modal_shell_header_text h2` and later grouped `.modal_shell` follow-up rules in `globals.css` so the existing cascade remains unchanged.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - MediaRenderer Extraction Pass
+
+- Created [`frontend/styles/media-renderer.css`](./frontend/styles/media-renderer.css).
+- Imported `./media-renderer.css` from [`frontend/styles/globals.css`](./frontend/styles/globals.css) after `modal.css` and before card-family/page styles.
+- Moved only the shared MediaRenderer contract selectors out of [`frontend/styles/globals.css`](./frontend/styles/globals.css), including:
+  - `.media_renderer`
+  - `.media_renderer_variant_card`
+  - `.media_renderer_variant_compact`
+  - `.media_renderer_variant_selector`
+  - `.media_renderer_button`
+  - `.media_renderer_image`
+  - `.media_renderer_video`
+  - `.media_renderer_video_frame`
+  - `.media_renderer_player`
+  - `.media_renderer_fallback`
+  - `.media_renderer_audio_controlled`
+  - shared `.audio_preview_*` renderer primitives
+- Left intentionally behind in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.media_viewer_*`
+  - `.waiting_push_card .media_renderer*`
+  - WaitingPushCard wrapper bridges
+  - MatchCard wrapper bridges
+  - `.media_renderer_audio_match*`
+  - card-family media placement rules
+  - feature-specific audio/viewer behavior
+  - responsive media/viewer rules inside mixed media blocks
+  - Challenge / Settle selectors
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Desktop Sidebar Scroll Ownership Fix
+
+- Audited scroll ownership across the application shell and confirmed desktop still relied on page-level scrolling, which made the sidebar travel with the content instead of staying pinned.
+- Updated [`frontend/styles/layout.css`](./frontend/styles/layout.css):
+  - `.app_shell` now uses a viewport-bound desktop shell with `height: 100dvh` and `overflow: hidden`
+  - `.main_content` now owns desktop scrolling with:
+    - `height: 100dvh`
+    - `min-height: 0`
+    - `overflow-y: auto`
+    - `overflow-x: hidden`
+    - `overscroll-behavior: contain`
+  - mobile (`max-width: 639px`) intentionally restores `height: auto` / `overflow: visible` so body-based mobile scrolling remains unchanged
+- Updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+  - `.navigation_bar` now explicitly uses `align-self: start`
+  - `.navigation_bar` keeps its pinned desktop shell while allowing internal overflow with `overflow-y: auto`
+- Scope intentionally untouched:
+  - sidebar width
+  - main content alignment
+  - layout-mode thresholds
+  - Home/card/page composition
+  - gameplay logic
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request

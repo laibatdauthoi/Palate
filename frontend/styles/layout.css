@@ -7,7 +7,9 @@
 .app_shell {
   display: grid;
   grid-template-columns: var(--sidebar-width-scaled) minmax(0, 1fr);
+  height: 100dvh;
   min-height: 100dvh;
+  overflow: hidden;
   opacity: 1;
   visibility: visible;
   transition: opacity 320ms ease, transform 320ms ease, visibility 0s linear 0ms;
@@ -15,8 +17,14 @@
 
 .main_content {
   width: min(100%, var(--main-frame-width-scaled));
+  height: 100dvh;
+  min-height: 0;
   margin: 0;
   padding: var(--main-padding-top-scaled) var(--main-padding-x-scaled) var(--main-padding-bottom-scaled);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .page_stack {
@@ -37,9 +45,14 @@
 @media (max-width: 639px) {
   .app_shell {
     display: block;
+    height: auto;
+    overflow: visible;
   }
 
   .main_content {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
     padding: var(--spacing-md) var(--spacing-md) calc(var(--spacing-2xl) + 96px);
   }
 }
