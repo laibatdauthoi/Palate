@@ -14,6 +14,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css)
 - [`frontend/styles/badges.css`](./frontend/styles/badges.css)
 - [`frontend/styles/cards.css`](./frontend/styles/cards.css)
+- [`frontend/styles/waiting-push.css`](./frontend/styles/waiting-push.css)
+- [`frontend/styles/match-card.css`](./frontend/styles/match-card.css)
 - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
 - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
 - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
@@ -28,6 +30,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Recent Changes
 
+- Extracted the MatchCard family contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/match-card.css`](./frontend/styles/match-card.css), while intentionally leaving footer transaction controls, mixed responsive repair blocks, and Challenge/Settle-sensitive selectors in `globals.css`.
+- Extracted the WaitingPushCard family contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/waiting-push.css`](./frontend/styles/waiting-push.css), while intentionally leaving shared helper selectors, mixed mobile responsive paths, and documented Home/Challenge bridges in `globals.css`.
 - Extracted the shared application layout contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/layout.css`](./frontend/styles/layout.css), while intentionally leaving page-specific composition and route-specific layout exceptions in `globals.css`.
 - Extracted the Home page composition contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css), while intentionally leaving documented bridge selectors, shell/layout ownership, and card-family responsive paths in `globals.css`.
 - Extracted the shared Navigation/sidebar contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/navigation.css`](./frontend/styles/navigation.css), while intentionally leaving app-shell, layout-mode, and mixed cleanup rules in `globals.css`.
@@ -137,6 +141,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Responsive ownership inside [`frontend/styles/globals.css`](./frontend/styles/globals.css) is now better documented, but the mixed `@media` blocks still intentionally combine Home composition with shell and card-family bridges; extraction is still blocked until those bridges are isolated more cleanly.
 - Home-owned responsive selectors in [`frontend/styles/globals.css`](./frontend/styles/globals.css) are now grouped more tightly inside their existing media-query blocks, but temporary composition bridges to FilterBar internals and card-family shells still remain in place by design.
 - Home page composition now primarily lives in [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css); the remaining Home-related selectors in [`frontend/styles/globals.css`](./frontend/styles/globals.css) are temporary composition bridges or non-Home shared selectors by design.
+- WaitingPushCard family styles now primarily live in [`frontend/styles/waiting-push.css`](./frontend/styles/waiting-push.css); the remaining waiting-related selectors in [`frontend/styles/globals.css`](./frontend/styles/globals.css) are shared helpers, mixed responsive paths, or intentionally retained bridges.
+- MatchCard family styles now primarily live in [`frontend/styles/match-card.css`](./frontend/styles/match-card.css); the remaining match-related selectors in [`frontend/styles/globals.css`](./frontend/styles/globals.css) are protected footer transaction controls, mixed responsive paths, or intentionally retained bridges.
 - A follow-up regression fix restored one Home-to-Match bridge selector in [`frontend/styles/globals.css`](./frontend/styles/globals.css) and re-added desktop-fit Home FilterBar tab-row variables in [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css) after the initial Home extraction changed computed behavior.
 - A second follow-up regression fix restored the Home Match grid column sizing in [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css) by targeting `.compact_card_grid_matches.matches_grid` directly, because the later base `.compact_card_grid_matches` rule in [`frontend/styles/globals.css`](./frontend/styles/globals.css) was overriding the weaker extracted `.matches_grid` selector after the file split.
 
@@ -1711,6 +1717,81 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
   - `.waiting_push_required_meta strong`
   - `.activity_row_actions`
   because those still mix typography/content rules with composition-sensitive card behavior
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - WaitingPushCard Family Extraction Pass
+
+- Created [`frontend/styles/waiting-push.css`](./frontend/styles/waiting-push.css).
+- Imported `./waiting-push.css` from [`frontend/styles/globals.css`](./frontend/styles/globals.css) after `cards.css` and before wallet/navigation/page styles so the WaitingPushCard family remains layered above Card Foundation and below page composition.
+- Moved WaitingPushCard family-owned selectors out of [`frontend/styles/globals.css`](./frontend/styles/globals.css), including:
+  - `.waiting_push_card`
+  - `.waiting_media`
+  - `.waiting_push_body`
+  - `.waiting_push_header`
+  - `.waiting_push_title_group`
+  - `.waiting_push_meta`
+  - `.waiting_push_card_compact`
+  - `.waiting_grid .waiting_push_card_compact`
+  - `.waiting_push_compact_title_row`
+  - `.waiting_push_meta_compact`
+  - `.waiting_push_required_meta`
+  - `.waiting_push_action_stack_compact`
+  - `.waiting_push_stats`
+  - `.waiting_push_stat`
+  - `.waiting_push_detail_stack`
+  - `.waiting_push_detail_line`
+  - `.waiting_push_detail_row`
+  - `.waiting_push_action_stack`
+  - `.waiting_push_actions`
+  - `.waiting_push_tooltip_anchor`
+  - WaitingPushCard-owned media-frame and audio-preview selectors
+- Left intentionally behind in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - shared grouped helper selectors that also style non-waiting families:
+    - `.waiting_push_title_group h3, .media_card_body h3`
+    - `.waiting_push_details, .details_grid`
+    - related `dt` / `dd` shared helpers
+  - shared Card Foundation / decorative grouped selectors that include waiting classes
+  - mixed responsive waiting/mobile rules inside the remaining global `@media` blocks
+  - Challenge-sensitive and page-composition-sensitive bridges
+- Preserved the current Home-to-family width-cap bridge in the new family file:
+  - `.waiting_grid .waiting_push_card_compact`
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - MatchCard Family Extraction Pass
+
+- Created [`frontend/styles/match-card.css`](./frontend/styles/match-card.css).
+- Imported `./match-card.css` from [`frontend/styles/globals.css`](./frontend/styles/globals.css) after `waiting-push.css` and before wallet/navigation/page styles so MatchCard remains layered above Card Foundation and below page composition.
+- Moved MatchCard family-owned selectors out of [`frontend/styles/globals.css`](./frontend/styles/globals.css), including:
+  - `.match_card`
+  - `.match_media_pair`
+  - `.match_card_body` (MatchCard-specific override only; the earlier shared card-family body baseline stays in `globals.css`)
+  - `.match_card_meta_row`
+  - `.match_card_footer_meta`
+  - `.match_card_category_tag`
+  - `.match_card_match_id`
+  - `.match_card_match_id_label`
+  - `.match_card_match_id_value`
+  - MatchCard-owned audio glyph sizing around `.media_renderer_audio_match`
+  - `.matches_grid .match_card`
+  - `.compact_card_grid_matches.matches_grid .match_card`
+- No standalone `.match_card_status` selector exists in the current repo, so there was nothing to move for that name.
+- Left intentionally behind in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - protected footer transaction controls:
+    - `.match_card_footer_actions`
+    - `.match_card_countdown_slot`
+    - `.match_card_detail_button`
+    - `.match_card_settle_button`
+    - `.action_button_cardMain`
+  - shared Card Foundation / decorative grouped selectors that include match classes
+  - mixed responsive repair blocks, including narrow/mobile MatchCard adjustments
+  - Challenge / Settle-sensitive selectors and page-composition-owned rules
+- Preserved the current MatchCard family bridges in the new family file:
+  - `.matches_grid .match_card`
+  - `.compact_card_grid_matches.matches_grid .match_card`
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request

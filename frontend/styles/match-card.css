@@ -1,0 +1,148 @@
+/* MatchCard family contract:
+   - `.match_card` owns the card-family shell variant, metadata rows, match ID
+     display, category-tag placement, footer metadata, and media placement
+     around MediaRenderer
+   - MediaRenderer internals remain MediaRenderer-owned; MatchCard owns only the
+     frame and placement around media
+   - `--match-card-*` variables are family-owned bridge hooks, not reusable
+     Card Foundation variables, and must not be expanded casually
+   - footer transaction controls remain isolated in globals on protected
+     selectors:
+     `.match_card_footer_actions`, `.match_card_countdown_slot`,
+     `.match_card_detail_button`, `.match_card_settle_button`,
+     `.action_button_cardMain`, and related Challenge/Settle paths */
+.match_media_pair {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: var(--spacing-sm);
+}
+
+.match_media_pair .mini_media {
+  display: grid;
+  align-items: stretch;
+  min-height: 0;
+  min-block-size: var(--match-card-media-height-scaled, 168px);
+  block-size: var(--match-card-media-height-scaled, 168px);
+  padding: 6px;
+}
+
+.media_renderer_audio_match .audio_preview_glyph_shell {
+  width: calc(88px * var(--icon-scale));
+  height: calc(88px * var(--icon-scale));
+}
+
+.media_renderer_audio_match .audio_preview_glyph_icon {
+  width: calc(52px * var(--icon-scale));
+  height: calc(52px * var(--icon-scale));
+}
+
+.match_card_meta_row {
+  display: flex;
+  align-items: var(--match-card-meta-align, center);
+  justify-content: var(--match-card-meta-justify, space-between);
+  flex-wrap: var(--match-card-meta-wrap, nowrap);
+  gap: var(--match-card-meta-gap, calc(10px * var(--ui-scale-y)) calc(12px * var(--ui-scale-x)));
+  min-width: 0;
+  width: 100%;
+}
+
+/* Match-card meta remains a card-family path. Safe gap/wrap/containment hooks
+   are allowed here, but footer transaction controls stay protected in globals
+   on their dedicated selectors. */
+.match_card_footer_meta {
+  display: flex;
+  align-items: var(--match-card-footer-meta-align, center);
+  gap: var(--match-card-footer-meta-gap, calc(8px * var(--ui-scale-x)));
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: var(--match-card-footer-meta-wrap, nowrap);
+  width: var(--match-card-footer-meta-width, auto);
+}
+
+.match_card_category_tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: calc(82px * var(--ui-scale-x));
+  padding: calc(8px * var(--ui-scale-y)) calc(13px * var(--ui-scale-x));
+  border-radius: var(--radius-pill-scaled, 999px);
+  font-size: calc(11px * var(--text-scale-secondary));
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: rotate(-30deg);
+  transform-origin: center;
+  box-shadow:
+    0 8px 16px rgba(255, 47, 159, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.match_card_match_id {
+  display: grid;
+  gap: var(--match-card-match-id-gap, calc(2px * var(--ui-scale-y)));
+  min-width: 0;
+}
+
+.match_card_match_id_label {
+  color: var(--text-muted);
+  font-size: calc(16px * var(--text-scale-secondary));
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.match_card_match_id_value {
+  min-width: 0;
+  color: rgba(229, 237, 242, 0.92);
+  font-size: calc(22px * var(--text-scale));
+  font-weight: 820;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match_card {
+  display: grid;
+  gap: var(--spacing-sm);
+  width: 100%;
+  max-width: none;
+  grid-template-rows: auto 1fr;
+  min-height: var(--match-card-shell-min-height-scaled, 248px);
+}
+
+.match_card_body {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+/* Current Home-to-family shell bridge: keep MatchCard width fitting with the
+   family so Home's matches track continues to pick up the approved card width
+   without page-level card internals creeping back in. */
+.matches_grid .match_card {
+  justify-self: start;
+  width: 100%;
+  max-width: var(--match-card-width-scaled, 462.5px);
+}
+
+@media (min-width: 1200px) {
+  .matches_grid .match_card {
+    min-height: var(--match-card-height-scaled, 256px);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1199px) {
+  /* Current desktop-fit bridge: Home still relies on the MatchCard family for
+     the compact desktop-fit minimum height while responsive ownership remains
+     mixed in globals. */
+  .compact_card_grid_matches.matches_grid .match_card {
+    min-height: var(--match-card-height-scaled, 256px);
+  }
+}

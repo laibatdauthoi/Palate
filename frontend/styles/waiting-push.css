@@ -1,0 +1,368 @@
+/* WaitingPushCard family contract:
+   - `.waiting_push_card` / `.waiting_push_card_compact` own shell variants,
+     compact-body structure, title/meta/chip/stat rows, and non-transactional
+     action placement
+   - MediaRenderer internals remain MediaRenderer-owned; WaitingPushCard owns
+     only the frame and placement around media
+   - `--waiting-push-*` variables are family-owned bridge hooks, not reusable
+     Card Foundation contracts, and must not be expanded casually
+   - `.waiting_push_actions`, Challenge-related selectors, and
+     `.action_button_cardMain` remain protected because of Challenge/card
+     regression history */
+.waiting_push_card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 152px minmax(0, 1fr);
+  gap: 0;
+  align-items: stretch;
+  max-width: 420px;
+  min-height: 336px;
+  height: 100%;
+}
+
+.waiting_media {
+  min-height: 152px;
+  height: 152px;
+  max-height: 152px;
+  padding: 4px;
+}
+
+.waiting_push_body {
+  display: grid;
+  grid-template-rows: minmax(62px, auto) auto auto;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.waiting_push_header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.waiting_push_title_group {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.waiting_push_meta {
+  display: grid;
+  gap: var(--waiting-push-meta-gap, calc(7px * var(--ui-scale-y)));
+  min-height: 0;
+}
+
+.waiting_push_card_compact {
+  width: 100%;
+  max-width: var(--waiting-card-width-scaled, 296px);
+  min-height: var(--waiting-card-height-scaled, 328px);
+  height: auto;
+  justify-self: start;
+  align-self: start;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+/* Current Home-to-family shell bridge: keep the compact WaitingPushCard width
+   cap with the family so Home grid composition continues to pick up the
+   approved card track width. */
+.waiting_grid .waiting_push_card_compact {
+  max-width: var(--waiting-card-width-scaled, 296px);
+}
+
+.waiting_push_card_compact .waiting_media {
+  min-height: var(--waiting-card-media-height-scaled, 176px);
+  height: var(--waiting-card-media-height-scaled, 176px);
+  max-height: var(--waiting-card-media-height-scaled, 176px);
+  padding: 0;
+}
+
+/* Waiting Push card-family internals:
+   title/chip/meta/stat blocks remain waiting-card-owned, but safe spacing and
+   wrap behavior should flow through scoped variables instead of broad selector
+   overrides. */
+.waiting_push_card_compact .waiting_push_body {
+  grid-template-rows: auto auto auto;
+  gap: calc(10px * var(--ui-scale-y));
+  padding: calc(var(--spacing-md) * var(--ui-scale-y)) calc(var(--spacing-md) * var(--ui-scale-x));
+  align-content: start;
+}
+
+.waiting_push_compact_title_row {
+  align-items: var(--waiting-push-compact-title-align, center);
+  gap: var(--waiting-push-compact-title-gap, calc(10px * var(--ui-scale-x)));
+}
+
+.waiting_push_card_compact h3 {
+  max-width: 100%;
+}
+
+.waiting_push_card_compact .status_badge {
+  flex: 0 0 auto;
+  padding: var(--chip-pad-y-scaled, 6px) var(--chip-pad-x-scaled, 10px);
+  font-size: calc(11px * var(--text-scale));
+}
+
+.waiting_push_compact_chip_row {
+  gap: var(--waiting-push-compact-chip-gap, calc(6px * var(--ui-scale-x)));
+}
+
+.waiting_push_meta_compact {
+  display: flex;
+  flex-direction: var(--waiting-push-meta-compact-direction, row);
+  align-items: var(--waiting-push-meta-compact-align, center);
+  justify-content: var(--waiting-push-meta-compact-justify, space-between);
+  gap: var(--waiting-push-meta-compact-gap, calc(12px * var(--ui-scale-x)));
+  min-width: 0;
+  margin-top: var(--waiting-push-meta-compact-margin-top, auto);
+}
+
+.waiting_push_required_meta {
+  display: grid;
+  gap: var(--waiting-push-required-meta-gap, calc(2px * var(--ui-scale-y)));
+  min-width: 0;
+}
+
+.waiting_push_required_meta span {
+  color: var(--text-muted);
+  font-size: calc(11px * var(--text-scale));
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.waiting_push_required_meta strong {
+  color: var(--text-primary);
+  font-size: var(--font-size-title-small-scaled, 16px);
+  font-weight: 900;
+}
+
+.waiting_push_action_stack_compact {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: var(--waiting-push-action-stack-justify, flex-end);
+}
+
+.waiting_push_card_compact .waiting_push_actions {
+  --action-button-min-width: var(--waiting-card-action-compact-width-scaled, 118px);
+  --action-button-min-height: var(--waiting-card-action-height-scaled, 40px);
+  --action-button-pad-y: var(--waiting-card-action-pad-y-scaled, 10px);
+  --action-button-pad-x: var(--waiting-card-action-pad-x-scaled, 14px);
+}
+
+.waiting_push_stats {
+  display: grid;
+  grid-template-columns: var(--waiting-push-stats-columns, repeat(2, minmax(0, 1fr)));
+  gap: var(--waiting-push-stats-gap, var(--surface-gap-xs-y-scaled, 8px) var(--surface-gap-xs-x-scaled, 8px));
+  margin: 0;
+}
+
+.waiting_push_stat {
+  display: grid;
+  gap: calc(3px * var(--ui-scale-y));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md-scaled, 14px);
+  background: rgba(255, 255, 255, 0.035);
+  padding: calc(8px * var(--ui-scale-y)) calc(10px * var(--ui-scale-x));
+}
+
+.waiting_push_stat dt {
+  color: var(--text-muted);
+  font-size: calc(11px * var(--text-scale-secondary));
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.waiting_push_stat dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-body-small-scaled, var(--font-size-body-small));
+  font-weight: 900;
+}
+
+.waiting_push_detail_stack {
+  display: grid;
+  gap: calc(3px * var(--ui-scale-y));
+  min-width: 0;
+  align-content: start;
+}
+
+.waiting_push_detail_line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.waiting_push_detail_line dt {
+  flex: 0 0 auto;
+}
+
+.waiting_push_detail_line dd {
+  min-width: 0;
+  text-align: right;
+}
+
+.waiting_push_detail_row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.waiting_push_action_stack {
+  display: grid;
+  align-content: start;
+  justify-items: end;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.waiting_push_actions {
+  display: flex;
+  align-items: var(--waiting-push-actions-align, center);
+  justify-content: var(--waiting-push-actions-justify, flex-end);
+  flex-wrap: var(--waiting-push-actions-wrap, nowrap);
+  gap: var(--waiting-push-actions-gap, 0);
+  width: var(--waiting-push-actions-width, auto);
+  margin-top: 0;
+  --action-button-min-width: var(--waiting-card-action-width-scaled, 136px);
+}
+
+.waiting_push_tooltip_anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  border-radius: 16px;
+  outline: none;
+}
+
+.waiting_push_tooltip_anchor:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 213, 247, 0.16);
+}
+
+.waiting_push_tooltip_anchor::after {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 10;
+  max-width: 220px;
+  min-width: 170px;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 213, 247, 0.24);
+  border-radius: 12px;
+  background: rgba(10, 15, 20, 0.96);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+  color: #dffaff;
+  content: attr(data-tooltip);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 140ms ease, transform 140ms ease;
+  visibility: hidden;
+  white-space: normal;
+}
+
+.waiting_push_tooltip_anchor:hover::after,
+.waiting_push_tooltip_anchor:focus-visible::after,
+.waiting_push_tooltip_anchor:focus-within::after {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+.waiting_push_card .media_renderer,
+.waiting_push_card .media_renderer_button,
+.waiting_push_card .media_renderer_video_frame,
+.waiting_push_card .media_renderer_static,
+.waiting_push_card .media_renderer_image,
+.waiting_push_card .media_renderer_video {
+  height: 100%;
+}
+
+.waiting_push_card .media_renderer_variant_compact {
+  max-height: 152px;
+  min-height: 152px;
+}
+
+.waiting_push_card .media_renderer_button,
+.waiting_push_card .media_renderer_video_frame {
+  align-items: stretch;
+}
+
+.waiting_audio_preview {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 14px;
+  background: transparent;
+}
+
+.waiting_audio_preview_button {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.waiting_audio_preview_button:hover,
+.waiting_audio_preview_button:focus-visible,
+.waiting_audio_preview_button.active {
+  background: transparent;
+}
+
+.waiting_audio_preview_button:hover .waiting_audio_icon_shell,
+.waiting_audio_preview_button:focus-visible .waiting_audio_icon_shell,
+.waiting_audio_preview_button.active .waiting_audio_icon_shell {
+  border-color: rgba(0, 213, 247, 0.52);
+  box-shadow:
+    0 0 28px rgba(0, 213, 247, 0.2),
+    inset 0 0 18px rgba(255, 255, 255, 0.08);
+  transform: scale(1.03);
+}
+
+.waiting_audio_preview_button:focus-visible {
+  outline: 2px solid rgba(0, 213, 247, 0.6);
+  outline-offset: -2px;
+}
+
+.waiting_audio_preview_static {
+  cursor: default;
+  opacity: 0.78;
+}
+
+.waiting_audio_icon_shell {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 213, 247, 0.34);
+  background:
+    radial-gradient(circle at 35% 32%, rgba(255, 255, 255, 0.18), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 213, 247, 0.08));
+  box-shadow:
+    0 0 24px rgba(0, 213, 247, 0.14),
+    inset 0 0 18px rgba(255, 255, 255, 0.06);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.waiting_audio_icon {
+  width: 52px;
+  height: 52px;
+  color: rgba(233, 250, 255, 0.96);
+  filter: drop-shadow(0 0 12px rgba(0, 213, 247, 0.16));
+}
