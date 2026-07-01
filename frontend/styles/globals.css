@@ -4398,6 +4398,12 @@ select.input_control option:checked,
   max-width: var(--waiting-card-width-scaled, 296px);
 }
 
+.matches_grid .match_card {
+  justify-self: start;
+  width: 100%;
+  max-width: var(--match-card-width-scaled, 462.5px);
+}
+
 @media (min-width: 1200px) {
   .matches_grid .match_card {
     min-height: var(--match-card-height-scaled, 256px);

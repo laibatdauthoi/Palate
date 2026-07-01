@@ -137,6 +137,8 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - Responsive ownership inside [`frontend/styles/globals.css`](./frontend/styles/globals.css) is now better documented, but the mixed `@media` blocks still intentionally combine Home composition with shell and card-family bridges; extraction is still blocked until those bridges are isolated more cleanly.
 - Home-owned responsive selectors in [`frontend/styles/globals.css`](./frontend/styles/globals.css) are now grouped more tightly inside their existing media-query blocks, but temporary composition bridges to FilterBar internals and card-family shells still remain in place by design.
 - Home page composition now primarily lives in [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css); the remaining Home-related selectors in [`frontend/styles/globals.css`](./frontend/styles/globals.css) are temporary composition bridges or non-Home shared selectors by design.
+- A follow-up regression fix restored one Home-to-Match bridge selector in [`frontend/styles/globals.css`](./frontend/styles/globals.css) and re-added desktop-fit Home FilterBar tab-row variables in [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css) after the initial Home extraction changed computed behavior.
+- A second follow-up regression fix restored the Home Match grid column sizing in [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css) by targeting `.compact_card_grid_matches.matches_grid` directly, because the later base `.compact_card_grid_matches` rule in [`frontend/styles/globals.css`](./frontend/styles/globals.css) was overriding the weaker extracted `.matches_grid` selector after the file split.
 
 # Known Bugs
 
@@ -1583,6 +1585,34 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
   - `.match_card_*`
   - Challenge / Settle-sensitive selectors
   - mixed legacy repair blocks
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Home Extraction Regression Fix Pass
+
+- Fixed two regressions introduced by the Home composition extraction:
+  - restored the Home-to-Match bridge selector `.matches_grid .match_card` in [`frontend/styles/globals.css`](./frontend/styles/globals.css) so Active Matches cards keep their previous full-track sizing/alignment instead of collapsing to the left of each grid track
+  - restored desktop-fit Home FilterBar tab-row variables on `.page_stack.page_home > .filter_bar` in [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css) so narrower-width Home tabs keep compact pill sizing instead of stretching across the full filter bar
+- Kept MatchCard internals, WaitingPushCard internals, shared FilterBar visual design, shell/layout-mode rules, and gameplay behavior unchanged.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-01 - Home Match Grid Regression Fix Pass
+
+- Fixed the remaining Home Match grid regression after the `pages/home.css` extraction.
+- Root cause:
+  - [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css) was imported before later base grid selectors still living in [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+  - the extracted Home rules used the weaker `.matches_grid` selector
+  - the later base `.compact_card_grid_matches` selector then overrode Home’s grid-template-columns on the Home matches container, shrinking cards back toward the generic compact-grid width
+- Updated [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css):
+  - changed Home match-grid column rules from `.matches_grid` to `.compact_card_grid_matches.matches_grid` in:
+    - `@media (min-width: 1200px)`
+    - `@media (min-width: 900px) and (max-width: 1199px)`
+    - `@media (min-width: 640px) and (max-width: 1199px)`
+  - reasserted `justify-items: start` alongside the restored column sizing in the fixed-width desktop paths
+- Kept MatchCard internals, card media layout, Settle/Detail/countdown controls, FilterBar styling, and shell/layout-mode rules unchanged.
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request

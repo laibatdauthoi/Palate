@@ -66,16 +66,17 @@
     column-gap: var(--waiting-grid-gap-scaled);
   }
 
-  .matches_grid {
+  .compact_card_grid_matches.matches_grid {
     grid-template-columns: repeat(2, var(--match-card-width-scaled, 462.5px));
     justify-content: start;
+    justify-items: start;
     column-gap: var(--match-grid-gap-scaled, 16px);
     row-gap: var(--match-grid-row-gap-scaled, 16px);
   }
 }
 
 @media (min-width: 900px) and (max-width: 1199px) {
-  .matches_grid {
+  .compact_card_grid_matches.matches_grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: var(--spacing-md);
     row-gap: var(--spacing-md);
@@ -165,9 +166,10 @@
     column-gap: var(--waiting-grid-gap-scaled);
   }
 
-  .matches_grid {
+  .compact_card_grid_matches.matches_grid {
     grid-template-columns: repeat(2, var(--match-card-width-scaled, 462.5px));
     justify-content: start;
+    justify-items: start;
     column-gap: var(--match-grid-gap-scaled, 16px);
     row-gap: var(--match-grid-row-gap-scaled, 16px);
   }
@@ -278,6 +280,9 @@
   .page_stack.page_home > .filter_bar {
     --filter-bar-surface-pad-y: var(--home-filter-surface-pad-y-scaled, 4px);
     --filter-bar-surface-pad-x: var(--home-filter-surface-pad-x-scaled, 6px);
+    --filter-bar-tabs-flex: 0 0 auto;
+    --filter-bar-tabs-width: max-content;
+    --filter-bar-tabs-min-width: 0;
     --filter-bar-tabs-pad-y: var(--home-tabs-shell-padding-scaled, 8px);
     --filter-bar-tabs-pad-x: var(--home-tabs-shell-padding-scaled, 8px);
   }
