@@ -46,6 +46,14 @@ Primary navigation has now moved to the three-entry model: `Home`, `My Media`, a
 
 # Recent Changes
 
+- Completed IA migration Phase 5 legacy Buff-page simplification:
+  - removed the duplicated `/buff` follow-up surface that had been re-rendering `Pending Result` / `Ready to Settle` state already owned by Profile -> Claims
+  - kept the shared [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx) inline at the top of [`frontend/app/buff/page.tsx`](./frontend/app/buff/page.tsx)
+  - reduced `/buff` to its intended legacy role:
+    - legacy access point
+    - deep-link/debug entry
+    - active assignment / current Buff workflow via the shared workflow component
+  - added a small legacy notice explaining that new Buff gameplay starts from Home and follow-up now lives in `Profile -> Claims`
 - Refined IA migration Phase 4 Profile Claims controls:
   - replaced the nested Profile -> Claims subfilter tab row with the shared dropdown control in [`frontend/app/profile/page.tsx`](./frontend/app/profile/page.tsx)
   - preserved the same three views:
@@ -376,6 +384,31 @@ Primary navigation has now moved to the three-entry model: `Home`, `My Media`, a
 - Add targeted automated tests or at least repeatable verification checklists for wallet-scoped loading and Buff classification flows.
 
 # Session Notes
+
+## 2026-07-02 - IA Phase 5 Legacy Buff Page Simplification Pass
+
+- Updated [`frontend/app/buff/page.tsx`](./frontend/app/buff/page.tsx) to keep the shared [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx) as the primary legacy-route content while removing duplicated follow-up UI.
+- Removed the duplicated legacy-route surface for:
+  - `Pending Result`
+  - `Ready to Settle`
+  - duplicated settle/follow-up match grids
+  - duplicate Buff filters that now conceptually belong to `Profile -> Claims`
+- Added a small legacy notice at the top of `/buff` explaining:
+  - new Buff gameplay starts from Home
+  - follow-up now lives in `Profile -> Claims`
+  - `/buff` remains available for legacy access
+- Remaining `/buff` responsibilities after this pass:
+  - reusable Buff workflow entry
+  - active assignment reopen / current workflow handling through `BuffWorkflow`
+  - deep-link, debugging, and power-user legacy access
+- Intentionally untouched:
+  - gameplay / provider / contract logic
+  - `BuffWorkflow`
+  - Profile claims logic
+  - Home Buff CTA behavior
+- Validation status:
+  - `npm.cmd run lint` pending for this session
+  - browser visual verification was **not** performed in this session by request
 
 ## 2026-07-02 - Information Architecture Simplification Planning Pass
 
