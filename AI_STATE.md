@@ -1,10 +1,13 @@
 # Current Sprint
 
-- Stabilize the staged UI scale migration while preserving the approved Palate layout and existing gameplay flows.
+- Stabilize the staged UI scale migration with PC/desktop-first polish while preserving the approved Palate layout and existing gameplay flows.
+- Record and stage the navigation / information-architecture simplification that makes Home the single gameplay entry point.
 
 # Current Objective
 
-We are in the middle of a structured layout/UI scale migration. The immediate goal is to keep the desktop-fit composition, button behavior, and card interactions stable while scale-policy work lands incrementally. The current repo state also includes an uncommitted change in [`frontend/styles/globals.css`](./frontend/styles/globals.css), so future work should begin by understanding that diff before touching adjacent UI code.
+We are in the middle of a structured layout/UI scale migration. Mobile UI work is paused for now. The immediate goal is to finish PC/desktop UI polish and stabilization first, keeping desktop-wide (`>=1200px`) and desktop-fit (`640–1199px`) behavior stable while scale-policy work lands incrementally. Mobile (`<640px`) is deferred and should not be changed unless a task is explicitly about a blocker. The current repo state also includes uncommitted UI work, so future tasks should begin by understanding the existing diff before touching adjacent code.
+
+In parallel, the target product IA is being simplified so Home becomes the primary gameplay surface, while Buff and Push are gradually demoted from primary destinations into reusable workflows.
 
 # Active Files
 
@@ -18,9 +21,16 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 - [`frontend/styles/media-renderer.css`](./frontend/styles/media-renderer.css)
 - [`frontend/styles/waiting-push.css`](./frontend/styles/waiting-push.css)
 - [`frontend/styles/match-card.css`](./frontend/styles/match-card.css)
+- [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css)
 - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
 - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
 - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+- [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+- [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx)
+- [`frontend/app/page.tsx`](./frontend/app/page.tsx)
+- [`frontend/app/buff/page.tsx`](./frontend/app/buff/page.tsx)
+- [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx)
+- [`frontend/app/profile/page.tsx`](./frontend/app/profile/page.tsx)
 - [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md)
 - [`AI_CONTEXT.md`](./AI_CONTEXT.md)
 - [`AI_STATE.md`](./AI_STATE.md)
@@ -32,6 +42,36 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Recent Changes
 
+- Completed IA migration Phase 1 entry wiring for Buff:
+  - extracted the reusable Buff workflow into [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx)
+  - Home `Buff Random Match` CTA now launches the shared Buff workflow directly in a modal instead of linking away immediately
+  - `/buff` now reuses the same shared Buff workflow inline and keeps its existing `My Buffs` page responsibilities
+- Preserved legacy-route compatibility:
+  - `/buff` remains fully functional as the legacy route
+  - no gameplay/provider/contract logic was intentionally changed in this pass
+- Recorded the target navigation simplification in the working state:
+  - target primary nav becomes `Home`, `My Media`, and `Profile`
+  - `Buff` becomes a workflow rather than a primary destination
+  - `Push` becomes a workflow rather than a primary destination
+  - `/buff` and `/push` remain temporary legacy routes for deep links, migration, debugging, and backward compatibility
+  - `Profile -> Claims` is the intended long-term home for `Claimable`, `Pending Result`, and `Claimed`
+- Audited current route responsibilities for the IA migration:
+  - `/buff` currently owns Find Match, assignment reopen, Buff placement, Skip Match, Settle flows, and the `My Buffs` filters (`All`, `Pending Result`, `Ready to Settle`)
+  - `/push` currently owns push creation, eligible-media selection, challenge deep links, waiting/live public browsing, and challenge modal entry
+  - Home already owns the three top-level CTAs plus the public waiting-push / active-match surfaces, so it is the natural gameplay entry point after workflow extraction
+- Recorded a desktop-first UI priority shift in the working state: mobile UI work is paused, desktop-wide and desktop-fit are now the default target ranges, and future UI tasks should avoid mobile-specific blocks unless explicitly requested or blocked.
+- Replaced the loose shared card footer flex row with an explicit two-zone Card Foundation contract: left track `minmax(0, 1fr)`, right/action track `auto`, full-width shell, and no uncontrolled wrapping.
+- Applied the same shrink-first two-zone ownership to WaitingPushCard footer rows so required/meta content yields space before the Challenge action stack.
+- Tightened the shared Card Foundation action-row contract so card action clusters default to staying on one row, with direct action children held at `flex: 0 0 auto`.
+- Added low-risk shrink containment for WaitingPushCard and MatchCard footer/meta clusters so left-side text/meta can give up space before action controls wrap.
+- Removed the responsive WaitingPushCard and MatchCard footer overrides that were explicitly switching mobile/narrow card action areas into stacked or full-width button layouts, while leaving protected Challenge/Settle sizing selectors intact.
+- Reduced Home mobile card density by lowering Home-owned waiting/match mobile card height tokens and increasing bottom clearance so cards are less likely to hide behind the bottom nav.
+- Increased mobile bottom-nav label text size for better readability without redesigning the nav shell or changing its placement.
+- Defined and implemented a Home-specific `<640px` mobile composition contract in [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css), keeping the work scoped to Home page composition instead of card-family or transaction-control internals.
+- Tightened Home mobile header rhythm and typography so the title/copy stack no longer behaves like desktop hero composition on narrow screens.
+- Replaced the prior Home mobile full-width action-button stack with a compact wrapping action-row that passes size through ActionButton variables instead of forcing button internals.
+- Restored compact mobile FilterBar/Tabs behavior on Home through page-owned FilterBar variables so pills no longer stretch across the full bar.
+- Forced Home mobile waiting/match grids into one-column, width-safe tracks and added Home-owned bottom clearance so content is less likely to compete with the bottom nav.
 - Extracted the MatchCard family contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/match-card.css`](./frontend/styles/match-card.css), while intentionally leaving footer transaction controls, mixed responsive repair blocks, and Challenge/Settle-sensitive selectors in `globals.css`.
 - Extracted the shared modal shell contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/modal.css`](./frontend/styles/modal.css), while intentionally leaving wallet/challenge/media-viewer modal internals, responsive modal repair paths, and renderer/audio-preview selectors in `globals.css`.
 - Extracted the shared MediaRenderer contract from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/media-renderer.css`](./frontend/styles/media-renderer.css), while intentionally leaving media-viewer selectors, MatchCard-specific `.media_renderer_audio_match` behavior, family wrapper bridges, and mixed responsive media rules in `globals.css`.
@@ -93,6 +133,28 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Current TODO
 
+- [ ] Keep desktop-wide (`>=1200px`) and desktop-fit (`640-1199px`) UI stabilization as the default implementation priority; do not let IA work turn into broad UI redesign.
+- [ ] Phase 1 IA implementation when requested:
+  - remove `Buff` and `Push` from primary navigation only after replacement Home entry flows exist
+  - preserve `/buff` and `/push` as temporary legacy routes
+- [ ] Extract Buff into a reusable workflow entry that Home can trigger:
+  - reuse current `/buff` responsibilities for Find Match, assignment reopen, Buff placement, Skip Match, and Settle
+  - treat the current Buff page as a temporary container around that workflow until migration is complete
+- [ ] Extract Push into a reusable workflow entry that Home can trigger:
+  - reuse current `/push` responsibilities for eligible-media selection, amount entry, create-push flow, and challenge deep-link handling
+  - keep the public waiting/live browsing surfaces aligned with Home rather than duplicating them long-term
+- [ ] Reframe Profile Claims to absorb Buff-result follow-up:
+  - target claims buckets are `Claimable`, `Pending Result`, and `Claimed`
+  - `Pending Result` should become the replacement destination for Buff outcomes that currently live behind `/buff`
+- [ ] Finish PC/desktop UI polish and stabilization first for:
+  - desktop-wide: `>=1200px`
+  - desktop-fit: `640–1199px`
+- [ ] Avoid touching mobile (`<640px`) blocks unless a future task explicitly requests mobile work or a mobile blocker must be fixed.
+- [ ] Manually verify desktop sidebar pinned behavior, Home composition, card layout, Challenge/Settle behavior, and FilterBar/Tabs behavior at desktop-wide and desktop-fit widths.
+- [ ] Manually verify the shared two-zone footer contract on MediaCard as well as WaitingPushCard and MatchCard, since `card_footer` is now grid-owned globally.
+- [ ] Manually verify WaitingPushCard and MatchCard footer rows at narrow/mobile widths so Challenge, Detail, countdown, and Settle stay inline without clipping left-side meta.
+- [ ] Manually verify the revised Home mobile card density and bottom-nav label readability at a few `<640px` widths, especially the final waiting/match card above the nav.
+- [ ] Manually verify the new Home `<640px` mobile composition at a few narrow widths, especially hero/header height, action-row wrapping, tab pill sizing, card fit, and bottom-nav clearance.
 - [ ] Visually verify the new `640px` mobile threshold and the true-mobile Home stack in a browser.
 - [ ] Verify the current shared-selector scale migration visually at reference, large, and narrow desktop-fit viewports.
 - [ ] Verify the text-scale and overflow safeguards visually at reference, large, and narrow desktop-fit viewports.
@@ -109,7 +171,21 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Current Blockers
 
+- `/push` is still wired into existing route assumptions:
+  - Home CTA currently links to `/push`
+  - My Media flows push users toward `/push?mediaId=...`
+  - `/push` also handles `challengeId` / `pushId` deep links
+- `/buff` still owns workflow-specific state and follow-up views that are not yet represented elsewhere:
+  - current assignment reopen
+  - Find Match preflight
+  - `My Buffs` filters including `Pending Result` and `Ready to Settle`
+- `Profile` does not yet expose `Pending Result` as a first-class Claims category, so Buff-result follow-up cannot be moved cleanly yet.
+- Mobile UI work is intentionally deferred for now; known `<640px` issues remain and should not pull default UI work away from desktop unless a blocker forces it.
+- The new grid-based global card-footer contract is validated only by lint; no browser verification was run in this session.
+- The latest card action-row anti-wrap pass is validated only by lint; no browser verification was run in this session.
 - The working tree is **not clean** because [`frontend/styles/globals.css`](./frontend/styles/globals.css) is already modified.
+- The latest Home mobile density/nav-label pass is validated only by lint in this session; no browser verification was run.
+- The new Home mobile composition contract is validated only by lint in this session; no browser verification was run.
 - The new mobile-threshold change and Home mobile cleanup are validated only by lint in this session; no browser verification was run.
 - Some recent UI scale work appears intentionally staged rather than fully finished, so visual validation is still important before further migration.
 - Browser/runtime validation details for all edge viewport cases are not stored in one canonical place yet.
@@ -153,6 +229,11 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Known Bugs
 
+- Known mobile issues remain deferred:
+  - card/action layout is still not satisfactory at `<640px`
+  - bottom-nav/content density still needs a later redesign pass
+- Because `card_footer` is now a shared two-zone grid contract, MediaCard and any other footer using `card_footer` still need manual visual confirmation.
+- Card footer row fit at very narrow/mobile widths is sensitive to remaining protected button footprints, so manual visual verification is still required after the new anti-wrap pass.
 - Unclear whether every Stage 5 scale migration path has been manually verified at all target viewport sizes; narrow desktop-fit regressions remain a risk area.
 - Video category support is present in the model/config surface but disabled via feature flag, so any path assuming live video support will be incomplete.
 - The codebase still contains controlled mock-mode / disconnected-preview support; regressions are possible if connected-wallet and fallback paths are mixed incorrectly.
@@ -164,6 +245,44 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Decisions Made During Development
 
+- The target primary navigation is:
+  - `Home`
+  - `My Media`
+  - `Profile`
+- `Buff` becomes a workflow, not a destination.
+- `Push` becomes a workflow, not a destination.
+- Home remains the single gameplay entry point:
+  - keep the existing three CTA buttons
+  - Buff CTA will eventually open Buff workflow
+  - Push CTA will eventually open Push workflow
+  - Waiting Pushes remain on Home
+  - Active Matches remain on Home
+- `My Media` should remain media-management-only and should not become a gameplay destination.
+- `Profile` keeps its current broader role, but `Claims` should ultimately expose:
+  - `Claimable`
+  - `Pending Result`
+  - `Claimed`
+- `/buff` and `/push` should remain temporarily available as legacy routes for:
+  - deep links
+  - migration
+  - debugging
+  - backward compatibility
+- Existing reusable UI pieces for the future workflow migration are already present and should be preferred over new parallel patterns:
+  - [`frontend/components/modal_shell.tsx`](./frontend/components/modal_shell.tsx)
+  - [`frontend/components/challenge_flow_modal.tsx`](./frontend/components/challenge_flow_modal.tsx)
+  - [`frontend/components/buff_panel.tsx`](./frontend/components/buff_panel.tsx)
+- `Pending Result` and Buff follow-up should move toward Profile/Claims rather than staying exposed as a primary-navigation destination.
+
+- Mobile UI work is paused; future UI tasks should default to desktop-wide (`>=1200px`) and desktop-fit (`640–1199px`) unless mobile is explicitly requested.
+- Preserve these during desktop-first work:
+  - sidebar pinned behavior
+  - Home composition
+  - card layout
+  - Challenge/Settle behavior
+  - FilterBar/Tabs behavior
+  - current component modularization
+- Card Foundation footer rows should be treated as a reusable two-zone layout contract: left content gets the shrinkable track, right controls keep the auto track.
+- For card footer/action-row fixes, prefer letting the left-side meta cluster shrink or ellipsize before allowing Challenge/Detail/Settle controls to wrap onto a second line.
 - Preserve the approved Home composition as the visual reference; scale work should adapt around it rather than redesign it.
 - Keep layout scale rollout staged and documented through [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md).
 - Avoid touching Challenge / Settle sizing or behavior casually; those selectors have already had regression history.
@@ -211,12 +330,62 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
 
 # Next Recommended Tasks
 
+- Phase 1 IA implementation: update primary navigation to hide `Buff` and `Push`, but only after wiring the Home Buff CTA to a reusable Buff workflow entry while keeping `/buff` functional as a legacy route.
+- Phase 2 IA implementation: extract the Push create-flow entry so the Home Push CTA can launch it directly while `/push` remains available for deep links and migration.
+- Phase 3 IA implementation: move Buff-result follow-up into `Profile -> Claims` as `Pending Result`, then reduce `/buff` to a legacy/debug container.
+
+- Verify and polish desktop-wide (`>=1200px`) and desktop-fit (`640–1199px`) UI behavior first, especially shared card footer rows, shell alignment, and Home composition.
 - Resolve and verify the current CSS scale work in [`frontend/styles/globals.css`](./frontend/styles/globals.css) with actual browser measurement.
 - Add a short documented audit of which Stage 5 selectors are fully migrated versus intentionally still fixed-size.
 - Consider breaking up [`frontend/providers/palate_provider.tsx`](./frontend/providers/palate_provider.tsx) into smaller domain modules once the current UI/layout work stabilizes.
 - Add targeted automated tests or at least repeatable verification checklists for wallet-scoped loading and Buff classification flows.
 
 # Session Notes
+
+## 2026-07-02 - Information Architecture Simplification Planning Pass
+
+- Updated [`AI_STATE.md`](./AI_STATE.md) only; no route, navigation, page, CSS, or gameplay code was changed in this pass.
+- Recorded the new target primary navigation model:
+  - `Home`
+  - `My Media`
+  - `Profile`
+- Documented the IA decision that:
+  - `Buff` becomes a workflow rather than a primary destination
+  - `Push` becomes a workflow rather than a primary destination
+  - Home remains the single gameplay entry point
+- Audited current route responsibilities:
+  - `/buff` currently owns Find Match, current assignment reopen, Buff placement, Skip Match, Settle, and `My Buffs` filters (`All`, `Pending Result`, `Ready to Settle`)
+  - `/push` currently owns create-push workflow, eligible-media selection, amount entry, public waiting/live browsing, and challenge deep-link entry
+  - `Profile` is the intended long-term home for claim/result follow-up, with future Claims buckets `Claimable`, `Pending Result`, and `Claimed`
+- Recorded the legacy-route policy:
+  - keep `/buff` and `/push` temporarily for deep links, migration, debugging, and backward compatibility
+- Recorded preferred migration order:
+  1. extract reusable Buff workflow entry for Home while preserving `/buff`
+  2. extract reusable Push workflow entry for Home while preserving `/push`
+  3. move Buff-result follow-up into `Profile -> Claims`
+  4. hide `Buff` and `Push` from primary navigation after replacement flows are live
+- Validation status:
+  - `npm.cmd run lint` passed
+
+## 2026-07-02 - Buff Workflow Entry Reuse Pass
+
+- Created [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx) as the shared Buff workflow entry surface.
+- Reused the same workflow responsibilities in one place:
+  - Find Match
+  - active assignment reopen / assigned-match presentation
+  - place Buff
+  - Skip Match
+  - Settle from the assigned match flow
+  - no-valid-match and wallet/loading feedback
+- Updated [`frontend/app/buff/page.tsx`](./frontend/app/buff/page.tsx) to render the shared Buff workflow inline while preserving the existing `My Buffs` filters and results area.
+- Updated [`frontend/app/page.tsx`](./frontend/app/page.tsx) so the Home `Buff Random Match` CTA opens the shared Buff workflow in a modal instead of navigating directly to `/buff`.
+- Preserved compatibility:
+  - `/buff` remains functional as the legacy route
+  - navigation was not changed in this pass
+  - Push and Profile flows were untouched
+  - provider / contract logic was not intentionally changed
+- Validation status:
+  - `npm.cmd run lint` passed
 
 ## 2026-06-30
 
@@ -1877,6 +2046,46 @@ We are in the middle of a structured layout/UI scale migration. The immediate go
   - layout-mode thresholds
   - Home/card/page composition
   - gameplay logic
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-02 - Home Mobile Composition Contract Pass
+
+- Updated [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css) to define a clearer Home-owned `<640px` mobile composition without touching desktop or desktop-fit selectors.
+- Root cause:
+  - Home mobile was still inheriting desktop-oriented header/action spacing and title sizing.
+  - Home mobile forced `.page_header_actions` into a single-column full-width button stack.
+  - Home mobile forced Home tabs to keep a full-bar minimum width.
+  - page-level bottom clearance was too loose to clearly separate final Home content from the bottom nav.
+- Mobile composition changes:
+  - added page-owned bottom clearance on `.page_stack.page_home`
+  - tightened mobile header rhythm on:
+    - `.page_stack.page_home .page_header`
+    - `.page_stack.page_home .page_header_floating`
+    - `.page_stack.page_home .page_header_lifted`
+    - `.page_stack.page_home .page_header_content`
+    - `.page_stack.page_home .page_header .page_header_title`
+    - `.page_stack.page_home .page_header .page_header_copy`
+  - replaced the previous single-column full-width CTA stack with a compact wrapping row on:
+    - `.page_stack.page_home .page_header_actions`
+    - `.home_cta_button`
+    using inherited ActionButton variable hooks rather than restyling button internals
+  - tightened Home mobile FilterBar/Tabs through page-owned variables on:
+    - `.page_stack.page_home > .filter_bar`
+    so tabs keep compact pill sizing instead of stretching to the full bar width
+  - enforced width-safe one-column Home mobile grids and extra bottom clearance on:
+    - `.page_stack.page_home .home_activity_content`
+    - `.page_stack.page_home .compact_card_grid_waiting.waiting_grid`
+    - `.page_stack.page_home .compact_card_grid_matches.matches_grid`
+    - `.page_stack.page_home .waiting_grid .waiting_push_card_compact`
+    - `.page_stack.page_home .matches_grid .match_card`
+- Intentionally untouched:
+  - desktop Home selectors
+  - desktop-fit `640–1199px` behavior
+  - WaitingPushCard / MatchCard internals beyond page-level width constraints
+  - Challenge / Settle selectors and transaction controls
+  - sidebar/layout-mode behavior
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request

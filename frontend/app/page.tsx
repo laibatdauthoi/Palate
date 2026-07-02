@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/components/action_button";
+import { BuffWorkflow } from "@/components/buff_workflow";
 import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
 import { EmptyState } from "@/components/empty_state";
 import { ErrorState } from "@/components/error_state";
@@ -31,6 +32,7 @@ export default function HomePage() {
   const { activeMatches, balance, challengePush, chainRead, clearFeedback, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes, walletReadCache } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const [activityTab, setActivityTab] = useState<"waiting" | "matches">("waiting");
+  const [buffWorkflowOpen, setBuffWorkflowOpen] = useState(false);
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
   const [challengeMediaId, setChallengeMediaId] = useState("");
   const waitingCount = waitingPushes.length;
@@ -157,7 +159,7 @@ export default function HomePage() {
         lifted
         actions={
           <>
-            <ActionButton className="home_cta_button hero_primary_cta" href="/buff">Buff Random Match</ActionButton>
+            <ActionButton className="home_cta_button hero_primary_cta" onClick={() => setBuffWorkflowOpen(true)}>Buff Random Match</ActionButton>
             <ActionButton className="home_cta_button" href="/my-media/upload" variant="secondary">Upload Media</ActionButton>
             <ActionButton className="home_cta_button" href="/push" variant="secondary">Push Media</ActionButton>
           </>
@@ -248,6 +250,13 @@ export default function HomePage() {
         selectedPushCategoryLabel={selectedPushCategoryLabel}
         selfChallengeReason={selfChallengeReason}
         walletReady={walletReady}
+      />
+
+      <BuffWorkflow
+        onClose={() => setBuffWorkflowOpen(false)}
+        open={buffWorkflowOpen}
+        presentation="modal"
+        sourceContext="home-buff"
       />
     </div>
   );

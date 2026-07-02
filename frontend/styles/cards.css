@@ -103,32 +103,40 @@
    - transaction-specific match-card footer controls remain protected and should
      not be normalized here unless a task explicitly targets them */
 .card_footer {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--card-footer-columns, minmax(0, 1fr) auto);
   align-items: var(--card-footer-align, center);
-  justify-content: var(--card-footer-justify, flex-start);
   gap: var(--card-footer-gap, calc(var(--spacing-md) * var(--ui-scale-x)));
   min-width: 0;
   max-width: 100%;
-  flex-wrap: var(--card-footer-wrap, nowrap);
+  width: 100%;
 }
 
 .card_footer > :first-child {
   min-width: 0;
+  width: 100%;
 }
 
 .card_footer > :last-child {
-  flex: 0 0 auto;
+  min-width: 0;
+  width: auto;
+  justify-self: var(--card-footer-actions-justify-self, end);
 }
 
 .card_actions,
 .media_card_actions {
   display: flex;
   align-items: var(--card-actions-align, center);
-  flex-wrap: var(--card-actions-wrap, wrap);
+  flex-wrap: var(--card-actions-wrap, nowrap);
   flex: 0 0 auto;
   justify-content: var(--card-actions-justify, flex-end);
   gap: var(--card-actions-gap, 8px);
   min-width: 0;
   max-width: 100%;
   width: var(--card-actions-width, auto);
+}
+
+.card_actions > *,
+.media_card_actions > * {
+  flex: 0 0 auto;
 }

@@ -45,6 +45,7 @@
   gap: var(--match-card-meta-gap, calc(10px * var(--ui-scale-y)) calc(12px * var(--ui-scale-x)));
   min-width: 0;
   width: 100%;
+  --card-footer-columns: minmax(0, 1fr) auto;
 }
 
 /* Match-card meta remains a card-family path. Safe gap/wrap/containment hooks
@@ -58,6 +59,10 @@
   flex: 1 1 auto;
   flex-wrap: var(--match-card-footer-meta-wrap, nowrap);
   width: var(--match-card-footer-meta-width, auto);
+}
+
+.match_card_footer_meta > * {
+  min-width: 0;
 }
 
 .match_card_category_tag {

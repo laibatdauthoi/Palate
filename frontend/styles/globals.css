@@ -891,8 +891,9 @@ select.input_control option:checked,
   place-items: center;
   gap: 5px;
   color: var(--text-muted);
-  font-size: calc(11px * var(--text-scale));
+  font-size: clamp(12px, calc(12px * var(--text-scale)), 13px);
   font-weight: 700;
+  line-height: 1.1;
   transition: var(--transition-fast);
 }
 
@@ -3644,12 +3645,12 @@ select.input_control option:checked,
   }
 
   .match_card_meta_row {
-    --match-card-meta-align: flex-start;
-    --match-card-meta-wrap: wrap;
+    --match-card-meta-align: center;
+    --match-card-meta-wrap: nowrap;
   }
 
   .match_card_footer_meta {
-    --match-card-footer-meta-width: 100%;
+    --match-card-footer-meta-width: auto;
   }
 
   .match_card_match_id_label {
@@ -3659,13 +3660,7 @@ select.input_control option:checked,
   .match_card_match_id_value {
     font-size: 18px;
     line-height: 1.1;
-    white-space: normal;
-  }
-
-  .match_card_footer_actions {
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-start;
+    white-space: nowrap;
   }
 
   .match_card_footer_actions > .match_card_countdown_slot {
@@ -5212,13 +5207,13 @@ select.input_control,
   }
 
   .waiting_push_detail_row {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 2px;
+    align-items: flex-start;
+    flex-direction: row;
+    gap: 10px;
   }
 
   .waiting_push_action_stack {
-    justify-items: stretch;
+    justify-items: end;
   }
 
   .waiting_push_detail_line {
@@ -5233,25 +5228,8 @@ select.input_control,
   }
 
   .waiting_push_card_compact .waiting_push_meta_compact {
-    --waiting-push-meta-compact-direction: column;
-    --waiting-push-meta-compact-align: stretch;
-    --waiting-push-meta-compact-justify: flex-start;
-  }
-
-  .waiting_push_card_compact .waiting_push_action_stack_compact,
-  .waiting_push_card_compact .waiting_push_actions {
-    width: auto;
-    justify-items: stretch;
-  }
-
-  .waiting_push_card_compact .waiting_push_actions {
-    --action-button-width: auto;
-    --waiting-push-actions-width: auto;
-  }
-
-  .waiting_push_actions {
-    --action-button-width: 100%;
-    --waiting-push-actions-width: 100%;
+    --waiting-push-meta-compact-align: center;
+    --waiting-push-meta-compact-columns: minmax(0, 1fr) auto;
   }
 
   /* ==========================
