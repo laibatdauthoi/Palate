@@ -184,8 +184,8 @@ export default function MyMediaPage() {
               ? () => retryPalateRegistration(media.id)
               : canPush
                 ? () => {
-                  startRouteTransition("my-media-card", "/push", "router.push");
-                  router.push(`/push?mediaId=${media.id}`);
+                  startRouteTransition("my-media-card", "/", "router.push");
+                  router.push(`/?mediaId=${media.id}`);
                 }
               : canCleanUpExpiredPush
                 ? () => expireWaitingPush(media.waitingPushId!)
@@ -226,8 +226,8 @@ export default function MyMediaPage() {
             : undefined
         }
         onPushAction={canPush ? () => {
-          startRouteTransition("my-media-card", "/push", "router.push");
-          router.push(`/push?mediaId=${media.id}`);
+          startRouteTransition("my-media-card", "/", "router.push");
+          router.push(`/?mediaId=${media.id}`);
         } : undefined}
         waitingExpiryUnavailable={waitingExpiryUnavailable}
         waitingPushIdUnavailable={waitingPushIdUnavailable}

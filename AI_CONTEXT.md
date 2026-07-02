@@ -5,9 +5,9 @@
 - **Core user flows:**
   - Connect Aptos wallet and fund / view balances.
   - Upload IMAGE / MEME / AUDIO media to Shelby, then register it on-chain.
-  - Create a push from idle media, or challenge an existing waiting push.
+  - Create a push from idle media, or challenge an existing waiting push from Home.
   - Browse Home public state: waiting pushes and active / ended matches.
-  - Use Buff page to reopen an assignment or request a random eligible match, then Buff a side or skip.
+  - Launch Buff from Home to request a random eligible match, then Buff a side or skip.
   - Settle ended matches, claim rewards, manage profile activity, and delete or clean up media when allowed.
 - **Current project maturity:** Functional prototype / active MVP iteration. Core contract, wallet, Shelby upload, read models, and main user pages are implemented. There is still visible iteration around UI scale/layout, some mock/development paths remain, and parts of the service boundary are marked as future-facing.
 
@@ -47,7 +47,7 @@
 - **Frontend architecture:**
   - Global app shell is defined in [`frontend/app/layout.tsx`](./frontend/app/layout.tsx).
   - The layout mounts `NavigationBar`, `MobileBottomNav`, `RouteBackground`, `RoutePerfTracker`, and wraps pages with providers.
-  - Main pages are Home, Buff, My Media, Push, and Profile.
+  - Main pages are Home, My Media, and Profile, with Buff and Push exposed as reusable workflow surfaces launched from Home.
 - **Backend architecture:** No standalone backend service detected. The frontend talks directly to Aptos and Shelby.
 - **Blockchain architecture:**
   - Move contract in [`contracts/sources/palate.move`](./contracts/sources/palate.move) owns protocol state.
@@ -78,7 +78,7 @@
 - **Caching strategy:**
   - Aptos reads use grouped read caches and inflight dedupe in the service layer.
   - Provider state tracks wallet-scoped ownership / lifecycle to avoid stale reads after wallet switching.
-  - Public pages such as Home and Buff use periodic refreshes for live-ish state.
+  - Home uses periodic refreshes for live-ish public state and Home-owned challenge entry.
 
 # Coding Conventions
 
@@ -127,8 +127,8 @@
 - Wallet connection, wrong-network detection, and wallet balance reads.
 - Home public lobby with waiting pushes, matches, tabs, and challenge flow.
 - My Media inventory with category/status filtering and media lifecycle actions.
-- Push page with create push flow, challenge flow, and live match browsing.
-- Buff page with assignment reopen flow, random match preflight, user Buff filters, and settlement readiness classification.
+- Reusable Push workflow with Home-owned `mediaId` / `challengeId` / `pushId` query entry.
+- Reusable Buff workflow launched from Home, with Buff-result follow-up moved into Profile Claims.
 - Profile page with stats, claims, balances, and activity log.
 - Shelby media upload and Shelby-backed media access.
 - Aptos read mapping for public state, user summary, claim history, Buff history, balances, and activity summaries.
@@ -138,10 +138,10 @@
 
 - [`frontend/app/layout.tsx`](./frontend/app/layout.tsx) — root shell and provider composition.
 - [`frontend/app/page.tsx`](./frontend/app/page.tsx) — Home page orchestration.
-- [`frontend/app/buff/page.tsx`](./frontend/app/buff/page.tsx) — Buff workflow and my-Buffs view.
 - [`frontend/app/my-media/page.tsx`](./frontend/app/my-media/page.tsx) — wallet media inventory and lifecycle actions.
-- [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx) — push creation, waiting/live views, challenge integration.
 - [`frontend/app/profile/page.tsx`](./frontend/app/profile/page.tsx) — profile stats, balances, claims, activity.
+- [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx) — reusable Buff workflow used by Home.
+- [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx) — reusable Push creation workflow used by Home and My Media query entry.
 - [`frontend/providers/palate_provider.tsx`](./frontend/providers/palate_provider.tsx) — main app state/orchestration layer.
 - [`frontend/providers/wallet_provider.tsx`](./frontend/providers/wallet_provider.tsx) — wallet adapter integration and wallet session state.
 - [`frontend/services/aptos_service.ts`](./frontend/services/aptos_service.ts) — Aptos reads, caches, mapping, payload helpers.
@@ -186,4 +186,4 @@ Other required secrets or deployment variables are **Unclear** from the current 
 
 # Last Updated
 
-- 2026-06-30
+- 2026-07-02

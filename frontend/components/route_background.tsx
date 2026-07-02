@@ -5,10 +5,8 @@ import { usePathname } from "next/navigation";
 
 function getRouteClass(pathname: string) {
   if (pathname === "/") return "route_home";
-  if (pathname.startsWith("/buff")) return "route_buff";
   if (pathname.startsWith("/my-media/upload")) return "route_upload";
   if (pathname.startsWith("/my-media")) return "route_media";
-  if (pathname.startsWith("/push")) return "route_push";
   if (pathname.startsWith("/profile")) return "route_profile";
   return "route_home";
 }

@@ -7,9 +7,9 @@
 
 We are in the middle of a structured layout/UI scale migration. Mobile UI work is paused for now. The immediate goal is to finish PC/desktop UI polish and stabilization first, keeping desktop-wide (`>=1200px`) and desktop-fit (`640–1199px`) behavior stable while scale-policy work lands incrementally. Mobile (`<640px`) is deferred and should not be changed unless a task is explicitly about a blocker. The current repo state also includes uncommitted UI work, so future tasks should begin by understanding the existing diff before touching adjacent code.
 
-In parallel, the target product IA is being simplified so Home becomes the primary gameplay surface, while Buff and Push are gradually demoted from primary destinations into reusable workflows.
+In parallel, the target product IA is being simplified so Home becomes the primary gameplay surface, and Buff and Push now exist as reusable workflows rather than standalone routes.
 
-Primary navigation has now moved to the three-entry model: `Home`, `My Media`, and `Profile`. Buff and Push remain live as legacy routes (`/buff`, `/push`) for direct access, deep links, migration, and debugging, but gameplay entry points are expected to originate from Home CTAs rather than primary navigation.
+Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Profile`. Gameplay entry points originate from Home CTAs and Home-owned query flows rather than separate Buff/Push routes.
 
 # Active Files
 
@@ -32,8 +32,6 @@ Primary navigation has now moved to the three-entry model: `Home`, `My Media`, a
 - [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx)
 - [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx)
 - [`frontend/app/page.tsx`](./frontend/app/page.tsx)
-- [`frontend/app/buff/page.tsx`](./frontend/app/buff/page.tsx)
-- [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx)
 - [`frontend/app/profile/page.tsx`](./frontend/app/profile/page.tsx)
 - [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md)
 - [`AI_CONTEXT.md`](./AI_CONTEXT.md)
@@ -46,6 +44,41 @@ Primary navigation has now moved to the three-entry model: `Home`, `My Media`, a
 
 # Recent Changes
 
+- Completed IA migration Phase 7 route removal for Buff and Push:
+  - deleted [`frontend/app/buff/page.tsx`](./frontend/app/buff/page.tsx)
+  - deleted [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx)
+  - kept the reusable workflow components:
+    - [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx)
+    - [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx)
+  - preserved Home-owned query entry:
+    - `/?mediaId=...`
+    - `/?challengeId=...`
+    - `/?pushId=...`
+  - updated route background ownership so `/buff` and `/push` are no longer treated as active product routes
+  - current product IA is now route-level:
+    - `Home`
+    - `My Media`
+    - `Profile`
+- Completed IA migration Phase 6.5 Home Push-query migration:
+  - Home in [`frontend/app/page.tsx`](./frontend/app/page.tsx) now supports:
+    - `/?mediaId=...` opening the shared Push create workflow modal with preselected media
+    - `/?challengeId=...` opening the Home-owned challenge flow for the targeted waiting push
+    - `/?pushId=...` as the same legacy alias for challenge entry
+  - moved My Media push-entry navigation in [`frontend/app/my-media/page.tsx`](./frontend/app/my-media/page.tsx) from `/push?mediaId=...` to `/?mediaId=...`
+  - replaced Home fallback links to `/push` and `/buff` with Home-owned CTA/modal actions instead of route navigation
+  - kept [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx) unchanged for now as the temporary legacy route while Home absorbs its query-entry responsibilities
+- Completed IA migration Phase 6 legacy Push-page simplification:
+  - removed the duplicated `/push` public browse surface that had been re-rendering waiting-push and live-match boards already owned by Home
+  - kept the shared [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx) inline in [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx)
+  - preserved route-owned deep-link behavior for:
+    - `/push?mediaId=...`
+    - `/push?challengeId=...`
+    - `/push?pushId=...`
+  - kept the route-owned challenge modal path intact while reducing `/push` to its intended legacy role:
+    - legacy create-flow entry
+    - query-param preselection
+    - challenge-link access
+  - added a small legacy notice explaining that push creation now starts from Home and public boards now live there
 - Completed IA migration Phase 5 legacy Buff-page simplification:
   - removed the duplicated `/buff` follow-up surface that had been re-rendering `Pending Result` / `Ready to Settle` state already owned by Profile -> Claims
   - kept the shared [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx) inline at the top of [`frontend/app/buff/page.tsx`](./frontend/app/buff/page.tsx)
@@ -384,6 +417,70 @@ Primary navigation has now moved to the three-entry model: `Home`, `My Media`, a
 - Add targeted automated tests or at least repeatable verification checklists for wallet-scoped loading and Buff classification flows.
 
 # Session Notes
+
+## 2026-07-02 - IA Phase 7 Buff/Push Route Removal Pass
+
+- Deleted the standalone route files:
+  - [`frontend/app/buff/page.tsx`](./frontend/app/buff/page.tsx)
+  - [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx)
+- Removed the now-empty route folders under `frontend/app/buff` and `frontend/app/push`.
+- Preserved all reusable gameplay entry surfaces:
+  - [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx)
+  - [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx)
+  - Home-owned query entry: `/?mediaId=...`, `/?challengeId=...`, `/?pushId=...`
+  - Home Waiting Pushes / Active Matches
+  - Profile Claims / Pending Result
+- Updated current docs/state and route-background behavior so Buff/Push are no longer treated as standalone product routes.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-02 - IA Phase 6.5 Home Push Query Migration Pass
+
+- Updated [`frontend/app/page.tsx`](./frontend/app/page.tsx) so Home now owns the former `/push` query-entry paths:
+  - `/?mediaId=...`
+  - `/?challengeId=...`
+  - `/?pushId=...`
+- Home query behavior added in this pass:
+  - `mediaId` opens the shared modal [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx) on Home
+  - `challengeId` / `pushId` open the same challenge modal path previously handled by the legacy `/push` route
+  - invalid or unavailable push queries now clear through Home-owned query replacement and surface route-prefill feedback on Home
+- Updated [`frontend/app/my-media/page.tsx`](./frontend/app/my-media/page.tsx) so “Push” actions now route to `/?mediaId=...` instead of `/push?mediaId=...`.
+- Replaced Home empty-state fallback links to `/push` and `/buff` with Home-owned modal CTA actions so Home no longer depends on those routes for public fallback behavior.
+- Intentionally preserved:
+  - [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx) unchanged
+  - provider / contract / gameplay logic
+  - Home waiting-push and active-match sections
+- Remaining `/push` dependency after this pass:
+  - the legacy `/push` route still exists, but its query-entry behavior is no longer required by Home or My Media
+- Validation status:
+  - `npm.cmd run lint` pending for this session
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-02 - IA Phase 6 Legacy Push Page Simplification Pass
+
+- Updated [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx) to keep the shared [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx) as the main legacy-route content while removing duplicated public-board UI.
+- Removed duplicated legacy-route UI for:
+  - waiting-push board browsing
+  - live / active matches board browsing
+  - route-local Waiting / Live Matches filter tabs
+- Added a small legacy notice explaining:
+  - push creation now starts from Home
+  - this route remains available for legacy links and challenge access
+  - public waiting-push and active-match boards now live on Home
+- Preserved route-specific `/push` responsibilities:
+  - `mediaId` preselection into the shared Push create workflow
+  - `challengeId` / `pushId` deep-link handling
+  - route-owned challenge modal behavior
+  - legacy direct create-flow access
+- Intentionally untouched:
+  - gameplay / provider / contract logic
+  - `PushCreateWorkflow`
+  - Home public boards
+  - challenge transaction behavior
+- Validation status:
+  - `npm.cmd run lint` pending for this session
+  - browser visual verification was **not** performed in this session by request
 
 ## 2026-07-02 - IA Phase 5 Legacy Buff Page Simplification Pass
 

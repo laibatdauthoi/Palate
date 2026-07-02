@@ -37,13 +37,13 @@ Media files should come from Shelby.
 The main user-facing routes are:
 
 frontend/app/page.tsx = Home
-frontend/app/buff/page.tsx = Buff
 frontend/app/my-media/page.tsx = My Media
 frontend/app/my-media/upload/page.tsx = Upload Media
-frontend/app/push/page.tsx = Push
 frontend/app/profile/page.tsx = Profile
 
-The public routes are `/`, `/buff`, `/my-media`, `/my-media/upload`, `/push`, and `/profile`.
+The public routes are `/`, `/my-media`, `/my-media/upload`, and `/profile`.
+
+Buff and Push are workflow surfaces launched from Home, not standalone routes.
 
 Upload is a secondary route and must not become a main navigation tab unless the product spec changes.
 
@@ -52,16 +52,8 @@ Upload is a secondary route and must not become a main navigation tab unless the
 The main navigation order is:
 
 Home
-Buff
 My Media
-Push
 Profile
-
-Desktop navigation must place Buff directly after Home.
-
-Mobile bottom navigation must place Buff directly after Home.
-
-Do not hide Buff inside a menu.
 
 Do not rename Buff to Judge, Vote, Rally, Taste, or Boost.
 
@@ -293,11 +285,11 @@ Never let the user find a new match while an assigned match is unresolved.
 
 Always show skip penalty before signing Skip Match.
 
-## 14. Buff Page Implementation Rule
+## 14. Buff Workflow Implementation Rule
 
-Buff is a main page.
+Buff is a Home-launched workflow surface.
 
-Buff must support these states:
+Buff workflow must support these states:
 
 no assigned match
 assigned match
@@ -309,7 +301,7 @@ transaction failed
 
 The assigned match state should be the most polished decision screen in the MVP.
 
-The Buff page must work well on desktop and mobile.
+The Buff workflow must work well on desktop and mobile.
 
 ## 15. My Media Implementation Rule
 
@@ -334,16 +326,15 @@ Active media should link to match view.
 
 Settled media should show result if available.
 
-## 16. Push Implementation Rule
+## 16. Push Workflow Implementation Rule
 
-Push page contains:
+Push creation is launched from Home or My Media.
 
-Waiting tab
-Live Matches tab
+Home owns:
 
-Waiting tab shows waiting pushes and supports Challenge.
-
-Live Matches tab shows active matches but hides live score and pools.
+- Waiting Pushes
+- Active Matches
+- Challenge entry from waiting pushes
 
 Challenge must require same-category media.
 
@@ -445,10 +436,10 @@ layout shell and navigation
 design tokens and global styles
 wallet panel placeholder
 Home lobby
-Buff page states
+Buff workflow states
 My Media page
 Upload flow
-Push page
+Push workflow
 Profile page
 Shelby media display integration
 contract integration

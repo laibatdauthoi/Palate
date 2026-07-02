@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ActionButton } from "@/components/action_button";
 import { BuffWorkflow } from "@/components/buff_workflow";
 import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
-import { EmptyState } from "@/components/empty_state";
 import { ErrorState } from "@/components/error_state";
 import { FilterBar } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
@@ -30,13 +30,28 @@ const category_labels: Record<MediaCategory, string> = {
 };
 
 export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="page_stack page_home" />}>
+      <HomePageContent />
+    </Suspense>
+  );
+}
+
+function HomePageContent() {
   const { activeMatches, balance, challengePush, chainRead, clearFeedback, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes, walletReadCache } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activityTab, setActivityTab] = useState<"waiting" | "matches">("waiting");
   const [buffWorkflowOpen, setBuffWorkflowOpen] = useState(false);
   const [pushWorkflowOpen, setPushWorkflowOpen] = useState(false);
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
   const [challengeMediaId, setChallengeMediaId] = useState("");
+  const [routePrefillReason, setRoutePrefillReason] = useState<string | null>(null);
+  const [dismissedChallengeId, setDismissedChallengeId] = useState<number | null>(null);
+  const [lastAppliedChallengeQuery, setLastAppliedChallengeQuery] = useState<string | null>(null);
+  const createMediaQuery = searchParams.get("mediaId");
+  const challengePushQuery = searchParams.get("challengeId") ?? searchParams.get("pushId");
   const waitingCount = waitingPushes.length;
   const activeCount = activeMatches.length;
   const walletReady = walletStatus === "connected";
@@ -52,6 +67,8 @@ export default function HomePage() {
       && normalizeAddress(selectedPush.pusherAddress) === normalizedWalletAddress
   );
   const selfChallengeReason = selectedPushIsOwned ? "You cannot challenge your own push." : null;
+  const mediaOwnedByCurrentWallet = walletReadCache.userMedia.ownerAddress === normalizedWalletAddress;
+  const mediaHasCurrentWalletData = mediaOwnedByCurrentWallet && walletReadCache.userMedia.lastSuccessfulReadAt !== null;
   const pushableMedia = mediaRecords.filter((media) =>
     (media.status === "idle" || media.status === "settled" || (media.status === "waiting" && media.waitingPushExpired === true && typeof media.waitingPushId === "number"))
       && getPushEligibility(media, { allowExpiredWaitingPush: true }).eligible
@@ -70,7 +87,7 @@ export default function HomePage() {
   const challengeBalanceValid = effectiveChallengeOctas !== null && availableBalanceOctas !== null && effectiveChallengeOctas <= availableBalanceOctas;
   const challengeFeedback = feedback?.scope === "challenge" ? feedback : null;
   const pushBusy = processingAction === "challengePush";
-  const isLoadingEligibleMedia = walletReady && mediaReadStatus === "loading" && !readLifecycle.hasLoadedMedia;
+  const isLoadingEligibleMedia = walletReady && (!mediaOwnedByCurrentWallet || ((mediaReadStatus === "idle" || mediaReadStatus === "loading") && !mediaHasCurrentWalletData));
   const activityTabs = useMemo(() => ([
     { key: "waiting" as const, label: "Waiting Pushes", count: waitingCount },
     { key: "matches" as const, label: "Matches", count: activeCount }
@@ -89,7 +106,16 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (challengePushId === null || selectedPush) return;
+    if (createMediaQuery) {
+      setPushWorkflowOpen(true);
+    }
+  }, [createMediaQuery]);
+
+  useEffect(() => {
+    if (challengePushId === null || selectedPush) {
+      return;
+    }
+
     setChallengePushId(null);
     setChallengeMediaId("");
     clearFeedback();
@@ -150,6 +176,66 @@ export default function HomePage() {
     };
   }, [lastSuccessfulPublicReadAt, publicGameReadStatus, readLifecycle.hasLoadedPublicGameState, refreshPublicGameState]);
 
+  const replaceHomeQuery = useCallback((next: URLSearchParams) => {
+    const query = next.toString();
+    router.replace(query ? `/?${query}` : "/", { scroll: false });
+  }, [router]);
+
+  const clearChallengeQuery = useCallback(() => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("challengeId");
+    next.delete("pushId");
+    replaceHomeQuery(next);
+  }, [replaceHomeQuery, searchParams]);
+
+  useEffect(() => {
+    if (!challengePushQuery) {
+      setLastAppliedChallengeQuery(null);
+      return;
+    }
+
+    if (challengePushQuery === lastAppliedChallengeQuery) {
+      return;
+    }
+
+    const nextId = Number(challengePushQuery);
+    if (Number.isNaN(nextId)) {
+      clearChallengeQuery();
+      setLastAppliedChallengeQuery(challengePushQuery);
+      return;
+    }
+
+    if (dismissedChallengeId === nextId) {
+      return;
+    }
+
+    const push = openWaitingPushes.find((candidate) => candidate.id === nextId);
+    if (!push) {
+      setRoutePrefillReason("Selected waiting push is no longer available.");
+      setChallengePushId(null);
+      setChallengeMediaId("");
+      clearFeedback();
+      clearChallengeQuery();
+      setLastAppliedChallengeQuery(challengePushQuery);
+      return;
+    }
+
+    setChallengePushId(nextId);
+    setChallengeMediaId("");
+    setRoutePrefillReason(null);
+    clearFeedback();
+    setActivityTab("waiting");
+    setLastAppliedChallengeQuery(challengePushQuery);
+  }, [challengePushQuery, clearChallengeQuery, clearFeedback, dismissedChallengeId, lastAppliedChallengeQuery, openWaitingPushes]);
+
+  function closeChallengeModal() {
+    setDismissedChallengeId(challengePushId);
+    setChallengePushId(null);
+    setChallengeMediaId("");
+    clearFeedback();
+    clearChallengeQuery();
+  }
+
   return (
     <div className="page_stack page_home">
       <PageHeader
@@ -169,6 +255,8 @@ export default function HomePage() {
       />
 
       <FilterBar activeKey={activityTab} ariaLabel="Home activity tabs" items={activityTabs} onChange={setActivityTab} tablist />
+
+      {routePrefillReason ? <p className="feedback_text feedback_error">{routePrefillReason}</p> : null}
 
       <div className="home_activity_content" aria-live="polite">
         {showWaitingError || showMatchesError ? (
@@ -197,6 +285,7 @@ export default function HomePage() {
                   onChallenge={() => {
                     setChallengePushId(push.id);
                     setChallengeMediaId("");
+                    setRoutePrefillReason(null);
                     clearFeedback();
                   }}
                   push={push}
@@ -205,20 +294,30 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <EmptyState variant="section" title="No waiting pushes." copy="" actionLabel="Go to Push" actionHref="/push" />
+            <div className="state_card empty_state full_width_state">
+              <span className="state_mark">Empty</span>
+              <h3>No waiting pushes.</h3>
+              <p />
+              <ActionButton onClick={() => setPushWorkflowOpen(true)} variant="secondary">Push Media</ActionButton>
+            </div>
           )
         ) : !showMatchesEmpty ? (
-            <div className="compact_card_grid compact_card_grid_matches matches_grid">
-              {activeMatches.map((match) => (
-                <MatchCard
-                  key={match.id}
-                  match={match}
-                  onSettle={match.status === "active" ? () => settleMatch(match.id) : undefined}
-                />
+          <div className="compact_card_grid compact_card_grid_matches matches_grid">
+            {activeMatches.map((match) => (
+              <MatchCard
+                key={match.id}
+                match={match}
+                onSettle={match.status === "active" ? () => settleMatch(match.id) : undefined}
+              />
             ))}
           </div>
         ) : (
-          <EmptyState variant="section" title="No active matches." copy="" actionLabel="Go to Buff" actionHref="/buff" />
+          <div className="state_card empty_state full_width_state">
+            <span className="state_mark">Empty</span>
+            <h3>No active matches.</h3>
+            <p />
+            <ActionButton onClick={() => setBuffWorkflowOpen(true)} variant="secondary">Buff Random Match</ActionButton>
+          </div>
         )}
       </div>
 
@@ -231,11 +330,7 @@ export default function HomePage() {
           setChallengeMediaId("");
           clearFeedback();
         }}
-        onClose={() => {
-          setChallengePushId(null);
-          setChallengeMediaId("");
-          clearFeedback();
-        }}
+        onClose={closeChallengeModal}
         onSelectMedia={(mediaId) => {
           setChallengeMediaId(mediaId);
           clearFeedback();
@@ -262,7 +357,9 @@ export default function HomePage() {
       />
 
       <PushCreateWorkflow
+        mediaIdQuery={createMediaQuery}
         onClose={() => setPushWorkflowOpen(false)}
+        onMediaQueryApplied={() => setActivityTab("waiting")}
         open={pushWorkflowOpen}
         presentation="modal"
         sourceContext="home-push"
