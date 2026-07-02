@@ -419,38 +419,6 @@ option,
   box-shadow: 0 0 70px rgba(255, 47, 159, 0.18), 90px -80px 0 rgba(255, 143, 199, 0.08);
 }
 
-.route_buff .route_fx_three {
-  top: 38%;
-  height: 4px;
-  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.62), rgba(255, 255, 255, 0.26), rgba(255, 47, 159, 0.62), transparent);
-  box-shadow: 0 0 48px rgba(255, 47, 159, 0.28), 0 50px 0 rgba(255, 47, 159, 0.08), 0 -45px 0 rgba(255, 255, 255, 0.055);
-  animation: versus_energy 3.6s ease-in-out infinite alternate;
-}
-
-.route_buff .route_fx_four {
-  box-shadow: 0 0 42px rgba(255, 47, 159, 0.68), 44px 28px 0 rgba(255, 47, 159, 0.3), -62px -34px 0 rgba(255, 255, 255, 0.16), 116px -12px 0 rgba(255, 105, 189, 0.24), -150px 60px 0 rgba(255, 47, 159, 0.2);
-}
-
-.route_buff .route_fx_five {
-  left: 50%;
-  bottom: 18%;
-  width: 34vw;
-  height: 34vw;
-  border-color: rgba(255, 47, 159, 0.28);
-  animation: battle_pulse 3.2s ease-in-out infinite alternate;
-}
-
-.route_buff .route_fx_six {
-  box-shadow:
-    0 0 28px rgba(255, 255, 255, 0.25),
-    34px 44px 0 rgba(255, 47, 159, 0.4),
-    -70px 82px 0 rgba(255, 143, 199, 0.28),
-    130px 120px 0 rgba(255, 47, 159, 0.24),
-    -160px -30px 0 rgba(255, 255, 255, 0.14),
-    220px 24px 0 rgba(255, 47, 159, 0.18);
-  animation: spark_cross 3s ease-in-out infinite alternate;
-}
-
 .route_media::before {
   border-radius: 22px;
   background-image:
@@ -499,29 +467,6 @@ option,
   border-radius: 999px;
   background: linear-gradient(180deg, transparent, rgba(255, 47, 159, 0.14), transparent);
   animation: upload_stream 4.2s ease-in-out infinite;
-}
-
-.route_push .route_fx_three {
-  top: 18%;
-  left: 5%;
-  width: 92vw;
-  transform: rotate(-14deg);
-  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.48), rgba(255, 255, 255, 0.12), transparent);
-  box-shadow: 0 72px 0 rgba(255, 47, 159, 0.14), 0 144px 0 rgba(143, 85, 255, 0.08), 0 -80px 0 rgba(255, 143, 199, 0.08);
-  animation: challenge_lanes 4.8s ease-in-out infinite alternate;
-}
-
-.route_push .route_fx_five {
-  width: 80vw;
-  height: 3px;
-  left: -8%;
-  bottom: 28%;
-  border: 0;
-  border-radius: 0;
-  transform: rotate(-18deg);
-  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.44), transparent);
-  box-shadow: 0 44px 0 rgba(255, 143, 199, 0.12), 0 -54px 0 rgba(255, 47, 159, 0.1);
-  animation: challenge_lanes 3.6s ease-in-out infinite alternate-reverse;
 }
 
 .route_profile::after {
@@ -841,10 +786,6 @@ select.input_control option:checked,
   color: var(--text-primary);
 }
 
-.mobile_only {
-  display: none;
-}
-
 .wallet_balance {
   border: 1px solid rgba(255, 47, 159, 0.18);
   border-radius: var(--radius-medium);
@@ -866,74 +807,6 @@ select.input_control option:checked,
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--spacing-sm);
-}
-
-.mobile_bottom_nav {
-  position: fixed;
-  right: var(--spacing-sm);
-  bottom: var(--spacing-sm);
-  left: var(--spacing-sm);
-  z-index: 20;
-  grid-template-columns: repeat(5, 1fr);
-  height: var(--bottom-nav-height);
-  border: 2px solid rgba(255, 47, 159, 0.24);
-  border-radius: var(--radius-xl);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025)),
-    rgba(16, 12, 20, 0.92);
-  box-shadow: var(--shadow-modal), var(--shadow-bevel);
-  backdrop-filter: blur(20px);
-}
-
-.mobile_nav_link {
-  position: relative;
-  display: grid;
-  place-items: center;
-  gap: 5px;
-  color: var(--text-muted);
-  font-size: clamp(12px, calc(12px * var(--text-scale)), 13px);
-  font-weight: 700;
-  line-height: 1.1;
-  transition: var(--transition-fast);
-}
-
-.mobile_nav_link.active {
-  color: var(--text-primary);
-  transform: translateY(-2px);
-}
-
-.mobile_nav_link_attention {
-  color: var(--text-primary);
-}
-
-.mobile_nav_dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-pill);
-  background: var(--text-disabled);
-}
-
-.mobile_nav_link.active .mobile_nav_dot {
-  background: var(--accent-primary);
-  box-shadow: 0 0 18px var(--glow-pink);
-}
-
-.mobile_nav_badge {
-  position: absolute;
-  top: 2px;
-  right: 10px;
-  display: inline-grid;
-  min-width: var(--icon-size-sm-scaled, 16px);
-  min-height: var(--icon-size-sm-scaled, 16px);
-  place-items: center;
-  border-radius: var(--radius-pill-scaled, 999px);
-  background: linear-gradient(135deg, rgba(255, 47, 159, 0.95), rgba(255, 126, 192, 0.9));
-  color: #fff7fb;
-  font-size: calc(10px * var(--text-scale));
-  font-weight: 900;
-  line-height: 1;
-  padding: 0 calc(4px * var(--button-scale));
-  box-shadow: 0 0 12px rgba(255, 47, 159, 0.24);
 }
 
 .app_action_compact {
@@ -4728,15 +4601,6 @@ select.input_control,
   animation: home_bubble_field 4.4s ease-in-out infinite alternate;
 }
 
-.route_buff .route_fx_three {
-  height: 5px;
-  box-shadow: 0 0 76px rgba(255, 47, 159, 0.48), 0 58px 0 rgba(255, 47, 159, 0.13), 0 -52px 0 rgba(255, 255, 255, 0.09);
-}
-
-.route_buff .route_fx_six {
-  animation: buff_spark_burst 2.8s ease-in-out infinite alternate;
-}
-
 .route_media .route_fx_two,
 .route_media .route_fx_five {
   border-color: rgba(255, 47, 159, 0.34);
@@ -4750,12 +4614,6 @@ select.input_control,
 
 .route_upload .route_fx_four {
   animation: upload_mote_rise 3.4s ease-in-out infinite;
-}
-
-.route_push .route_fx_three,
-.route_push .route_fx_five {
-  height: 4px;
-  box-shadow: 0 86px 0 rgba(255, 47, 159, 0.2), 0 168px 0 rgba(255, 143, 199, 0.12), 0 -92px 0 rgba(255, 255, 255, 0.08), 0 0 58px rgba(255, 47, 159, 0.28);
 }
 
 .route_profile .route_fx_five {
@@ -4856,20 +4714,6 @@ select.input_control,
     -190px -68px 0 rgba(255, 143, 199, 0.34);
 }
 
-.route_buff .route_fx_three {
-  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.82), rgba(255, 240, 250, 0.75), rgba(255, 47, 159, 0.82), transparent);
-  box-shadow: 0 0 92px rgba(255, 240, 250, 0.34), 0 0 96px rgba(255, 47, 159, 0.42), 0 58px 0 rgba(255, 47, 159, 0.17), 0 -54px 0 rgba(255, 240, 250, 0.12);
-}
-
-.route_buff .route_fx_four {
-  box-shadow:
-    0 0 62px rgba(255, 240, 250, 0.58),
-    44px 28px 0 rgba(255, 47, 159, 0.58),
-    -62px -34px 0 rgba(255, 240, 250, 0.3),
-    116px -12px 0 rgba(255, 211, 106, 0.2),
-    -150px 60px 0 rgba(124, 248, 255, 0.18);
-}
-
 .route_media::before {
   background-image:
     linear-gradient(rgba(255, 240, 250, 0.09) 1px, transparent 1px),
@@ -4899,12 +4743,6 @@ select.input_control,
     -180px 120px 0 rgba(255, 143, 199, 0.28);
 }
 
-.route_push .route_fx_three,
-.route_push .route_fx_five {
-  background: linear-gradient(90deg, transparent, rgba(255, 47, 159, 0.76), rgba(124, 248, 255, 0.24), rgba(255, 240, 250, 0.34), transparent);
-  box-shadow: 0 86px 0 rgba(255, 47, 159, 0.28), 0 168px 0 rgba(124, 248, 255, 0.12), 0 -92px 0 rgba(255, 240, 250, 0.12), 0 0 84px rgba(255, 47, 159, 0.38);
-}
-
 .route_profile::after {
   background:
     radial-gradient(circle at 45% 62%, rgba(255, 240, 250, 0.22), transparent 8%),
@@ -4918,47 +4756,6 @@ select.input_control,
 }
 
 @media (max-width: 1023px) {
-  /* ==========================
-     Navigation + Wallet
-     ========================== */
-  .navigation_bar {
-    padding: var(--spacing-md);
-  }
-
-  .brand_lockup span:last-child,
-  .wallet_panel {
-    display: none;
-  }
-
-  .nav_link {
-    display: grid;
-    width: 48px;
-    height: 48px;
-    place-items: center;
-    overflow: hidden;
-    padding: 0;
-    white-space: nowrap;
-    color: transparent;
-  }
-
-  .nav_link::after {
-    color: var(--text-secondary);
-    content: attr(data-short);
-    font-size: var(--font-size-body);
-    font-weight: 900;
-  }
-
-  .nav_link.active::after {
-    color: var(--text-primary);
-  }
-
-  .nav_link::before {
-    inset: auto auto 6px 50%;
-    width: 16px;
-    height: 3px;
-    transform: translateX(-50%);
-  }
-
   /* ==========================
      Legacy responsive repair
      ========================== */
@@ -5031,43 +4828,6 @@ select.input_control,
   }
 
   /* ==========================
-     Navigation + Wallet
-     ========================== */
-  .navigation_bar {
-    padding: var(--sidebar-padding-scaled);
-  }
-
-  .brand_lockup span:last-child {
-    display: inline;
-  }
-
-  .wallet_panel {
-    display: grid;
-  }
-
-  .nav_link {
-    display: flex;
-    width: auto;
-    height: auto;
-    place-items: initial;
-    overflow: visible;
-    padding: var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-right-scaled, 16px) var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-left-scaled, 18px);
-    white-space: nowrap;
-    color: var(--text-secondary);
-  }
-
-  .nav_link::after {
-    content: none;
-  }
-
-  .nav_link::before {
-    inset: var(--nav-link-rail-pad-y-scaled, 12px) auto var(--nav-link-rail-pad-y-scaled, 12px) var(--nav-link-rail-inset-scaled, 8px);
-    width: 3px;
-    height: auto;
-    transform: none;
-  }
-
-  /* ==========================
      Application Layout
      ========================== */
   .main_content {
@@ -5093,28 +4853,6 @@ select.input_control,
 }
 
 @media (max-width: 639px) {
-  /* ==========================
-     Application Layout
-     ========================== */
-  body {
-    padding-bottom: calc(var(--bottom-nav-height) + var(--spacing-2xl));
-  }
-
-  /* ==========================
-     Application Layout
-     ========================== */
-  .desktop_only {
-    display: none !important;
-  }
-
-  .mobile_only {
-    display: block;
-  }
-
-  .mobile_bottom_nav.mobile_only {
-    display: grid;
-  }
-
   /* ==========================
      Legacy responsive repair
      ========================== */
@@ -5382,44 +5120,6 @@ select.input_control,
 
 @media (min-width: 640px) and (max-width: 1199px) {
   /* ==========================
-     Navigation + Wallet
-     ========================== */
-  .navigation_bar.desktop_only {
-    display: flex;
-    padding: var(--sidebar-padding-scaled);
-  }
-
-  .navigation_bar.desktop_only .brand_lockup span:last-child {
-    display: inline;
-  }
-
-  .navigation_bar.desktop_only .wallet_panel {
-    display: grid;
-  }
-
-  .navigation_bar.desktop_only .nav_link {
-    display: flex;
-    width: auto;
-    height: auto;
-    place-items: initial;
-    overflow: visible;
-    padding: var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-right-scaled, 16px) var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-left-scaled, 18px);
-    white-space: nowrap;
-    color: var(--text-secondary);
-  }
-
-  .navigation_bar.desktop_only .nav_link::after {
-    content: none;
-  }
-
-  .navigation_bar.desktop_only .nav_link::before {
-    inset: var(--nav-link-rail-pad-y-scaled, 12px) auto var(--nav-link-rail-pad-y-scaled, 12px) var(--nav-link-rail-inset-scaled, 8px);
-    width: 3px;
-    height: auto;
-    transform: none;
-  }
-
-  /* ==========================
      Temporary composition bridges
      Home owns the compact grid arrangement here, but these selectors still
      depend on WaitingPushCard / MatchCard family behavior and stay in globals
@@ -5612,17 +5312,6 @@ select.input_control,
   }
 }
 
-@keyframes challenge_lanes {
-  from {
-    transform: translateX(-4%) rotate(-14deg);
-    opacity: 0.32;
-  }
-  to {
-    transform: translateX(4%) rotate(-14deg);
-    opacity: 0.7;
-  }
-}
-
 @keyframes vault_glow {
   from {
     opacity: 0.42;
@@ -5642,17 +5331,6 @@ select.input_control,
   to {
     opacity: 1;
     transform: translate3d(32px, -22px, 0) scale(1.12);
-  }
-}
-
-@keyframes buff_spark_burst {
-  from {
-    opacity: 0.58;
-    transform: translate3d(-48px, 28px, 0) rotate(-10deg) scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(58px, -32px, 0) rotate(14deg) scale(1.18);
   }
 }
 

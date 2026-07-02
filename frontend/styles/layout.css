@@ -32,6 +32,10 @@
   gap: var(--spacing-xl);
 }
 
+.mobile_only {
+  display: none;
+}
+
 @media (max-width: 1023px) {
   .app_shell {
     grid-template-columns: 76px minmax(0, 1fr);
@@ -43,6 +47,22 @@
 }
 
 @media (max-width: 639px) {
+  body {
+    padding-bottom: calc(var(--bottom-nav-height) + var(--spacing-2xl));
+  }
+
+  .desktop_only {
+    display: none !important;
+  }
+
+  .mobile_only {
+    display: block;
+  }
+
+  .mobile_bottom_nav.mobile_only {
+    display: grid;
+  }
+
   .app_shell {
     display: block;
     height: auto;

@@ -30,18 +30,10 @@ Pink is the main accent family, but it must feel mature, expensive, and controll
 The main navigation order is:
 
 Home
-Buff
 My Media
-Push
 Profile
 
-Buff must be placed directly after Home because Buff is the main user gameplay loop.
-
-Buff must not be hidden inside Home, Push, Profile, or a secondary menu.
-
-On desktop, the navigation should show Buff as the second main tab.
-
-On mobile, the bottom navigation should show Buff as the second main tab.
+Buff and Push are launched from Home as workflows, not exposed as standalone navigation tabs.
 
 The navigation should make Palate feel like an app/game lobby, not a landing page.
 
@@ -127,7 +119,7 @@ Content should become single-column.
 
 Avoid tiny side-by-side media on mobile if readability is bad.
 
-The Buff page on mobile should stack media A and media B vertically or use a strong full-width card layout.
+The Buff workflow on mobile should stack media A and media B vertically or use a strong full-width card layout.
 
 Action buttons on Buff should be reachable near the bottom of the screen.
 
@@ -170,11 +162,9 @@ Home should include a visual match preview, but must not show live score, live b
 
 Home should feel like entering a premium game lobby.
 
-## 7. Buff Page
+## 7. Buff Workflow
 
-Buff is a dedicated main page from the MVP.
-
-Buff is the main gameplay screen for users who want to support one side in a random match.
+Buff is a Home-launched workflow for users who want to support one side in a random match.
 
 Buff has multiple states.
 
@@ -190,7 +180,7 @@ pending buffs if available
 claimable buff rewards if available
 skip penalty information if relevant
 
-The page must not feel empty even when the only primary action is Find Match.
+The workflow entry must not feel empty even when the only primary action is Find Match.
 
 Suggested copy:
 
@@ -384,16 +374,16 @@ A GIF visual artwork can compete against a WEBP image if both are registered und
 
 Do not create GIF as a separate main category in the MVP.
 
-## 11. Push Page
+## 11. Push Workflow
 
-Push is the creator and challenger board.
+Push creation is launched from Home or My Media.
 
-Push should have two main tabs:
+Home owns the public creator/challenger board:
 
-Waiting
-Live Matches
+- Waiting Pushes
+- Active Matches
 
-Waiting tab:
+Waiting Pushes:
 
 Shows media waiting for challengers.
 
@@ -418,7 +408,7 @@ User confirms transaction.
 
 Challenge must not allow different categories to enter the same match.
 
-Live Matches tab:
+Active Matches:
 
 Shows active matches.
 
@@ -439,7 +429,7 @@ leading side
 win probability
 current supporter count
 
-Push page should feel competitive and high-stakes.
+The Home-owned Push / challenge surface should feel competitive and high-stakes.
 
 ## 12. Profile Page
 

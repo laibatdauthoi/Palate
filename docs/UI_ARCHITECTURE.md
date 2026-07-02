@@ -1206,6 +1206,8 @@ Allowed:
 
 - page stack
 - header/filter/grid composition
+- Buff workflow launch and query entry composition
+- Push workflow launch and query entry composition
 - Home-only composition offsets while still required
 
 Not allowed:
@@ -1214,44 +1216,28 @@ Not allowed:
 - changing tab shape
 - changing card internals casually
 
-### Buff
-
-Allowed:
-
-- Buff decision layout
-- Buff page grid/stack placement
-
-Not allowed:
-
-- redefining shared card/button/tab internals as a shortcut
-
 ### My Media
 
 Allowed:
 
 - inventory grid placement
+- media-management actions
+- push-workflow entry via Home-owned query navigation
 - page-specific section arrangement
 
 Not allowed:
 
 - redefining shared media card internals without targeting card/media contracts
 
-### Push
-
-Allowed:
-
-- waiting/live section arrangement
-- challenge-flow page composition
-
-Not allowed:
-
-- changing Waiting Push card or modal shell internals opportunistically
-
 ### Profile
 
 Allowed:
 
 - claims/activity/stats layout
+- Claims sub-state ownership:
+  - `Claimable`
+  - `Pending Result`
+  - `Claimed`
 
 Not allowed:
 
@@ -1553,34 +1539,6 @@ Forbidden dependencies:
 
 - card/button/tab internals
 - shell ownership
-
-### `frontend/styles/pages/buff.css`
-
-Ownership:
-
-- Buff page composition only
-
-Allowed dependencies:
-
-- shared component styles as consumers only
-
-Forbidden dependencies:
-
-- shared component internals without explicit contract ownership
-
-### `frontend/styles/pages/push.css`
-
-Ownership:
-
-- Push page composition only
-
-Allowed dependencies:
-
-- shared component styles as consumers only
-
-Forbidden dependencies:
-
-- shared component internals without explicit contract ownership
 
 ### `frontend/styles/pages/profile.css`
 

@@ -57,9 +57,9 @@ docs/Codex_rules.md
 
 Do not write code until an implementation plan is approved.
 
-The main navigation order is Home, Buff, My Media, Push, Profile.
+The main navigation order is Home, My Media, Profile.
 
-Buff is a dedicated main page from the MVP and must be placed directly after Home.
+Buff and Push are Home-owned workflow surfaces, not standalone navigation destinations.
 
 Use Buff as the main user-facing term for supporting one side in a random match.
 

@@ -7,9 +7,9 @@
 
 We are in the middle of a structured layout/UI scale migration. Mobile UI work is paused for now. The immediate goal is to finish PC/desktop UI polish and stabilization first, keeping desktop-wide (`>=1200px`) and desktop-fit (`640–1199px`) behavior stable while scale-policy work lands incrementally. Mobile (`<640px`) is deferred and should not be changed unless a task is explicitly about a blocker. The current repo state also includes uncommitted UI work, so future tasks should begin by understanding the existing diff before touching adjacent code.
 
-In parallel, the target product IA is being simplified so Home becomes the primary gameplay surface, and Buff and Push now exist as reusable workflows rather than standalone routes.
+In parallel, the target product IA has been simplified so Home is the primary gameplay surface, and Buff and Push now exist as reusable workflows rather than standalone routes.
 
-Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Profile`. Gameplay entry points originate from Home CTAs and Home-owned query flows rather than separate Buff/Push routes.
+Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Profile`. Gameplay entry points originate from Home CTAs and Home-owned query flows rather than separate Buff/Push routes. Home owns Buff workflow, Push workflow, Waiting Pushes, and Active Matches. Profile owns `Claimable`, `Pending Result`, and `Claimed`. My Media owns media management and Push entry into Home.
 
 # Active Files
 
@@ -32,7 +32,9 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx)
 - [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx)
 - [`frontend/app/page.tsx`](./frontend/app/page.tsx)
+- [`frontend/app/my-media/page.tsx`](./frontend/app/my-media/page.tsx)
 - [`frontend/app/profile/page.tsx`](./frontend/app/profile/page.tsx)
+- [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md)
 - [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md)
 - [`AI_CONTEXT.md`](./AI_CONTEXT.md)
 - [`AI_STATE.md`](./AI_STATE.md)
@@ -44,6 +46,36 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Completed CSS cleanup Phase 1 for post-route-removal architecture debt:
+  - deleted obsolete route-atmosphere selectors from [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+    - all `.route_buff*`
+    - all `.route_push*`
+  - deleted route-only keyframes that were only used by those removed route selectors:
+    - `buff_spark_burst`
+    - `challenge_lanes`
+  - moved navigation-owned mobile nav shell and nav responsive-collapse/restoration rules from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+    - `.mobile_bottom_nav`
+    - `.mobile_nav_link*`
+    - `.mobile_nav_dot`
+    - `.mobile_nav_badge`
+    - nav-owned `@media (max-width: 1023px)` collapse rules
+    - nav-owned `@media (min-width: 640px) and (max-width: 1199px)` restoration rules
+  - moved layout-owned visibility rules from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/layout.css`](./frontend/styles/layout.css):
+    - `.mobile_only`
+    - mobile `.desktop_only`
+    - mobile body bottom padding
+    - `.mobile_bottom_nav.mobile_only`
+  - intentionally left mixed responsive repair blocks in `globals.css` where moving them would still mix Home/card/challenge/profile ownership or risk behavior changes
+- Completed post-route-removal architecture/documentation cleanup:
+  - removed route-owned Buff/Push language from the current architecture docs
+  - removed obsolete CSS modularization placeholders for:
+    - `pages/buff.css`
+    - `pages/push.css`
+  - documented the current ownership split:
+    - Home owns Buff workflow, Push workflow, Waiting Pushes, and Active Matches
+    - Profile owns Claims, Pending Result, and Claimed
+    - My Media owns media management
+  - preserved historical migration notes in `AI_STATE.md` session history, while updating the current-state sections to the new three-screen product
 - Completed IA migration Phase 7 route removal for Buff and Push:
   - deleted [`frontend/app/buff/page.tsx`](./frontend/app/buff/page.tsx)
   - deleted [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx)
@@ -417,6 +449,51 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Add targeted automated tests or at least repeatable verification checklists for wallet-scoped loading and Buff classification flows.
 
 # Session Notes
+
+## 2026-07-02 - Post-Route-Removal Architecture / Documentation Cleanup
+
+- Updated current-state documentation after removing the standalone Buff and Push routes.
+- Synced the current architecture to the three-screen product:
+  - Home owns Buff workflow, Push workflow, Waiting Pushes, and Active Matches
+  - My Media owns media management and Push entry into Home
+  - Profile owns Claims, Pending Result, and Claimed
+- Removed obsolete route-owned documentation and CSS modularization placeholders for:
+  - `pages/buff.css`
+  - `pages/push.css`
+- Historical migration notes mentioning `/buff` and `/push` were intentionally preserved in `AI_STATE.md` as session history, not current architecture.
+- Validation status:
+  - `npm.cmd run lint` pending for this session
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-02 - CSS Cleanup Phase 1
+
+- Removed obsolete route-background selectors from [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - all `.route_buff*`
+  - all `.route_push*`
+- Removed route-only keyframes that became unused after Buff/Push route removal:
+  - `buff_spark_burst`
+  - `challenge_lanes`
+- Moved navigation-owned leftovers into [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+  - `.mobile_bottom_nav`
+  - `.mobile_nav_link*`
+  - `.mobile_nav_dot`
+  - `.mobile_nav_badge`
+  - nav collapse/restoration rules for:
+    - `@media (max-width: 1023px)`
+    - `@media (min-width: 640px) and (max-width: 1199px)`
+- Moved layout-owned visibility rules into [`frontend/styles/layout.css`](./frontend/styles/layout.css):
+  - `.mobile_only`
+  - mobile `.desktop_only`
+  - mobile body bottom padding
+  - `.mobile_bottom_nav.mobile_only`
+- Left mixed responsive repair blocks in [`frontend/styles/globals.css`](./frontend/styles/globals.css) where ownership is still mixed across:
+  - Home composition
+  - WaitingPushCard / MatchCard family bridges
+  - Challenge flow
+  - Profile / Activity
+- Validation status:
+  - `npm.cmd run lint` pending for this session
+  - browser visual verification was **not** performed in this session by request
 
 ## 2026-07-02 - IA Phase 7 Buff/Push Route Removal Pass
 
