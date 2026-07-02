@@ -5,20 +5,24 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ActionButton } from "@/components/action_button";
 import { AmountInput } from "@/components/amount_input";
+import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
 import { EmptyState } from "@/components/empty_state";
 import { ErrorState } from "@/components/error_state";
 import { ClaimCard } from "@/components/claim_card";
 import { FilterBar } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
+import { MatchCard } from "@/components/match_card";
 import { PageHeader } from "@/components/page_header";
 import { SectionPanel } from "@/components/section_panel";
+import { getLiveCountdownState, useCountdownNow } from "@/hooks/use_live_countdown";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { formatOctasToApt } from "@/services/aptos_service";
-import type { PalateActivityFilter, PalateActivityTransaction } from "@/types/palate";
+import type { ActiveMatch, PalateActivityFilter, PalateActivityTransaction, UserBuffRecord } from "@/types/palate";
 import { logPageMount, logUiPerf, startUiPerf, uiPerfNow } from "@/utils/ui_perf";
 
 type ProfileTab = "Stats" | "Claims" | "Activity";
+type ClaimsFilter = "Claimable" | "Pending Result" | "Claimed";
 
 function isLoadingValue(value: string) {
   return value === "Loading";
@@ -84,6 +88,7 @@ export default function ProfilePage() {
 
 function ProfilePageContent() {
   const {
+    activeMatches,
     activityReadStatus,
     activityTransactions,
     balance,
@@ -95,8 +100,13 @@ function ProfilePageContent() {
     feedback,
     processingAction,
     refreshProfileActivity,
+    publicGameReadStatus,
+    readLifecycle,
+    settleMatch,
     userSummary,
     userSummaryReadStatus,
+    userBuffReadStatus,
+    userBuffRecords,
     walletReadCache,
     withdrawBalance
   } = usePalate();
@@ -105,12 +115,19 @@ function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<ProfileTab>(parseProfileTab(searchParams.get("tab")));
+  const [claimsFilter, setClaimsFilter] = useState<ClaimsFilter>("Claimable");
   const [activityFilter, setActivityFilter] = useState<Exclude<PalateActivityFilter, "Admin">>("All");
   const [balanceAmount, setBalanceAmount] = useState("1.000");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyTouched, setHistoryTouched] = useState(false);
   const [activityRefreshing, setActivityRefreshing] = useState(false);
   const [activityVisibleCount, setActivityVisibleCount] = useState(20);
+  const nowMs = useCountdownNow();
+  const claimsFilterOptions: DropdownOption<ClaimsFilter>[] = [
+    { label: "Claimable", value: "Claimable" },
+    { label: "Pending Result", value: "Pending Result" },
+    { label: "Claimed", value: "Claimed" }
+  ];
   const balanceBusy = processingAction === "deposit" || processingAction === "withdraw";
   const walletReady = walletStatus === "connected" && Boolean(walletAddress);
   const claimBusy = processingAction === "claimReward";
@@ -119,6 +136,8 @@ function ProfilePageContent() {
   const summaryHasCurrentWalletData = summaryOwnedByCurrentWallet && walletReadCache.userSummary.lastSuccessfulReadAt !== null;
   const claimsOwnedByCurrentWallet = walletReadCache.claimRecords.ownerAddress === normalizedWalletAddress;
   const claimsHaveCurrentWalletData = claimsOwnedByCurrentWallet && walletReadCache.claimRecords.lastSuccessfulReadAt !== null;
+  const buffRecordsOwnedByCurrentWallet = walletReadCache.userBuffRecords.ownerAddress === normalizedWalletAddress;
+  const buffRecordsHaveCurrentWalletData = buffRecordsOwnedByCurrentWallet && walletReadCache.userBuffRecords.lastSuccessfulReadAt !== null;
   const activityOwnedByCurrentWallet = walletReadCache.userActivity.ownerAddress === normalizedWalletAddress;
   const activityHasCurrentWalletData = activityOwnedByCurrentWallet && walletReadCache.userActivity.lastSuccessfulReadAt !== null;
   const balanceOwnedByCurrentWallet = walletReadCache.palateBalance.ownerAddress === normalizedWalletAddress;
@@ -143,6 +162,37 @@ function ProfilePageContent() {
     [claimRecords]
   );
   const claimedClaims = useMemo(() => claimRecords.filter((claim) => claim.claimed), [claimRecords]);
+  const activeMatchesById = useMemo(() => new Map(activeMatches.map((match) => [normalizeMatchId(match.id), match])), [activeMatches]);
+  const pendingBuffEntries = useMemo(() => {
+    return userBuffRecords
+      .filter((record) => !record.claimed)
+      .map((record) => {
+        const normalizedMatchId = normalizeMatchId(record.matchId);
+        const match = activeMatchesById.get(normalizedMatchId) ?? null;
+        const status = classifyBuffEntry(record, match, nowMs);
+
+        return {
+          matchId: normalizedMatchId,
+          buffRecord: record,
+          match,
+          status
+        };
+      })
+      .filter((entry) => entry.status === "pending_result" || entry.status === "ready_to_settle");
+  }, [activeMatchesById, nowMs, userBuffRecords]);
+  const pendingResultEntries = useMemo(
+    () => pendingBuffEntries.filter((entry) => entry.status === "pending_result"),
+    [pendingBuffEntries]
+  );
+  const readyToSettleEntries = useMemo(
+    () => pendingBuffEntries.filter((entry) => entry.status === "ready_to_settle"),
+    [pendingBuffEntries]
+  );
+  const visiblePendingBuffEntries = useMemo(
+    () => pendingBuffEntries.filter((entry) => entry.match),
+    [pendingBuffEntries]
+  );
+  const pendingClaimsCount = pendingBuffEntries.length;
   const totalClaimableAmount = useMemo(() => formatOctasToApt(claimableRewardsSummary.claimableTotalOctas), [claimableRewardsSummary.claimableTotalOctas]);
   const visibleClaimableRewardsSummary = claimsOwnedByCurrentWallet
     ? claimableRewardsSummary
@@ -185,6 +235,7 @@ function ProfilePageContent() {
 
   const balanceFeedback = feedback?.scope === "wallet" ? feedback : null;
   const claimFeedback = feedback?.scope === "claim" ? feedback : null;
+  const settleFeedback = feedback?.scope === "settle" ? feedback : null;
   const activityFeedback = feedback?.scope === "profile" ? feedback : null;
 
   const filteredActivityTransactions = useMemo(
@@ -213,6 +264,39 @@ function ProfilePageContent() {
           : "Activity temporarily unavailable."
         : null;
 
+  const pendingClaimsReadMessage =
+    !buffRecordsOwnedByCurrentWallet
+      ? "Loading pending Buff results."
+      : userBuffReadStatus === "loading"
+      ? "Loading pending Buff results."
+      : userBuffReadStatus === "error"
+        ? visiblePendingBuffEntries.length > 0
+          ? "Pending Buff results temporarily unavailable. Using last read."
+          : "Pending Buff results temporarily unavailable."
+        : publicGameReadStatus === "loading" && !readLifecycle.hasLoadedPublicGameState
+          ? "Loading pending Buff results."
+          : publicGameReadStatus === "error"
+            ? visiblePendingBuffEntries.length > 0
+              ? "Match state temporarily unavailable. Using last read."
+              : "Match state temporarily unavailable."
+            : null;
+
+  const isPendingClaimsLoading = walletReady
+    && (
+      !buffRecordsOwnedByCurrentWallet
+      || userBuffReadStatus === "idle"
+      || userBuffReadStatus === "loading"
+      || (!readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading"))
+    )
+    && !buffRecordsHaveCurrentWalletData
+    && visiblePendingBuffEntries.length === 0;
+
+  const isPendingClaimsError = walletReady
+    && !isPendingClaimsLoading
+    && (userBuffReadStatus === "error" || publicGameReadStatus === "error")
+    && !buffRecordsHaveCurrentWalletData
+    && visiblePendingBuffEntries.length === 0;
+
   useEffect(() => {
     logPageMount("Profile");
   }, []);
@@ -228,9 +312,9 @@ function ProfilePageContent() {
     }
 
     if (!historyTouched) {
-      setHistoryOpen(claimableClaims.length === 0);
+      setHistoryOpen(claimableClaims.length === 0 && pendingClaimsCount === 0);
     }
-  }, [claimableClaims.length, historyTouched, tab]);
+  }, [claimableClaims.length, historyTouched, pendingClaimsCount, tab]);
 
   useEffect(() => {
     setActivityVisibleCount(20);
@@ -387,6 +471,10 @@ function ProfilePageContent() {
                 <strong>{totalClaimableAmount}</strong>
               </div>
               <div className="claim_summary_item">
+                <span>Pending Result</span>
+                <strong>{pendingClaimsCount}</strong>
+              </div>
+              <div className="claim_summary_item">
                 <span>Ready</span>
                 <strong>{claimableRewardsSummary.claimableCount} rewards</strong>
               </div>
@@ -416,52 +504,130 @@ function ProfilePageContent() {
               <EmptyState variant="section" title="No settled rewards yet." copy="Claimable and claimed rewards will appear here after settlement." />
             ) : (
               <div className="claim_center_stack">
-                <div className="claim_section_header">
-                  <div>
-                    <h3>Claimable rewards</h3>
-                    <p>Real claim discovery records only. Claiming credits Palate Balance before wallet withdrawal.</p>
-                  </div>
-                </div>
+                <CustomDropdown
+                  label="Claims view"
+                  onChange={setClaimsFilter}
+                  options={claimsFilterOptions.map((option) => ({
+                    ...option,
+                    description:
+                      option.value === "Claimable"
+                        ? `${claimableClaims.length} reward${claimableClaims.length === 1 ? "" : "s"}`
+                        : option.value === "Pending Result"
+                          ? `${pendingClaimsCount} match${pendingClaimsCount === 1 ? "" : "es"}`
+                          : `${claimedClaims.length} reward${claimedClaims.length === 1 ? "" : "s"}`
+                  }))}
+                  value={claimsFilter}
+                />
 
-                {claimableClaims.length > 0 ? (
-                  <div className="claim_rows">
-                    {claimableClaims.map((claim) => (
-                      <ClaimCard
-                        actionDisabled={!walletReady}
-                        claim={claim}
-                        key={claim.claimKey}
-                        loading={claimBusy}
-                        onClaim={() => claimReward(claim)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="claim_empty_inline">
-                    <span>No claimable rewards right now.</span>
-                  </div>
-                )}
+                {claimsFilter === "Claimable" ? (
+                  <>
+                    <div className="claim_section_header">
+                      <div>
+                        <h3>Claimable rewards</h3>
+                        <p>Real claim discovery records only. Claiming credits Palate Balance before wallet withdrawal.</p>
+                      </div>
+                    </div>
 
-                {claimedClaims.length > 0 ? (
-                  <div className="claim_history_section">
-                    <button
-                      className="claim_history_toggle"
-                      onClick={() => {
-                        setHistoryTouched(true);
-                        setHistoryOpen((current) => !current);
-                      }}
-                      type="button"
-                    >
-                      <span>Claimed history</span>
-                      <strong>{claimedClaims.length}</strong>
-                    </button>
-                    {historyOpen ? (
-                      <div className="claim_rows claim_rows_history">
-                        {claimedClaims.map((claim) => (
-                          <ClaimCard actionDisabled claim={claim} key={claim.claimKey} loading={false} />
+                    {claimableClaims.length > 0 ? (
+                      <div className="claim_rows">
+                        {claimableClaims.map((claim) => (
+                          <ClaimCard
+                            actionDisabled={!walletReady}
+                            claim={claim}
+                            key={claim.claimKey}
+                            loading={claimBusy}
+                            onClaim={() => claimReward(claim)}
+                          />
                         ))}
                       </div>
+                    ) : (
+                      <div className="claim_empty_inline">
+                        <span>No claimable rewards right now.</span>
+                      </div>
+                    )}
+                  </>
+                ) : null}
+
+                {claimsFilter === "Pending Result" ? (
+                  <>
+                    <div className="claim_section_header">
+                      <div>
+                        <h3>Pending Buff results</h3>
+                        <p>Buffed matches stay here until they end. Ready-to-settle matches remain here until settlement creates claimable rewards.</p>
+                      </div>
+                    </div>
+
+                    {pendingClaimsReadMessage ? <p className={`feedback_text ${(userBuffReadStatus === "error" || publicGameReadStatus === "error") ? "feedback_error" : "feedback_info"}`}>{pendingClaimsReadMessage}</p> : null}
+                    {settleFeedback ? <p className={`feedback_text feedback_${settleFeedback.type}`}>{settleFeedback.message}</p> : null}
+
+                    {isPendingClaimsLoading ? (
+                      <LoadingState
+                        variant="section"
+                        label="Loading pending Buff results"
+                        copy="Checking your Buff records and match state."
+                      />
+                    ) : isPendingClaimsError ? (
+                      <ErrorState
+                        variant="section"
+                        title="Pending Buff results unavailable"
+                        copy="Buff records or match state could not be loaded from chain right now."
+                      />
+                    ) : visiblePendingBuffEntries.length > 0 ? (
+                      <div className="compact_card_grid compact_card_grid_matches buff_matches_grid">
+                        {visiblePendingBuffEntries.map((entry) => (
+                          <MatchCard
+                            key={`profile-claim-pending-${entry.buffRecord.matchId}-${entry.buffRecord.side}`}
+                            match={entry.match!}
+                            settleDisabled={!walletReady || processingAction === "settleMatch" || entry.status !== "ready_to_settle"}
+                            onSettle={entry.status === "ready_to_settle" ? () => settleMatch(entry.match!.id) : undefined}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState
+                        variant="section"
+                        title="No pending Buff results"
+                        copy="Matches you have Buffed will appear here until they are settled and become claimable."
+                      />
+                    )}
+
+                    {visiblePendingBuffEntries.length > 0 ? (
+                      <div className="claim_empty_inline">
+                        <span>{pendingResultEntries.length} pending result{pendingResultEntries.length === 1 ? "" : "s"} · {readyToSettleEntries.length} ready to settle</span>
+                      </div>
                     ) : null}
-                  </div>
+                  </>
+                ) : null}
+
+                {claimsFilter === "Claimed" ? (
+                  claimedClaims.length > 0 ? (
+                    <div className="claim_history_section">
+                      <button
+                        className="claim_history_toggle"
+                        onClick={() => {
+                          setHistoryTouched(true);
+                          setHistoryOpen((current) => !current);
+                        }}
+                        type="button"
+                      >
+                        <span>Claimed history</span>
+                        <strong>{claimedClaims.length}</strong>
+                      </button>
+                      {historyOpen ? (
+                        <div className="claim_rows claim_rows_history">
+                          {claimedClaims.map((claim) => (
+                            <ClaimCard actionDisabled claim={claim} key={claim.claimKey} loading={false} />
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      variant="section"
+                      title="No claimed rewards yet."
+                      copy="Claimed rewards will remain available here as history."
+                    />
+                  )
                 ) : null}
               </div>
             )}
@@ -562,4 +728,28 @@ function ProfilePageContent() {
       )}
     </div>
   );
+}
+
+function normalizeMatchId(matchId: number | string) {
+  return String(matchId);
+}
+
+function isMatchEnded(match: ActiveMatch, nowMs: number) {
+  return getLiveCountdownState(Number(match.endTimeSeconds), nowMs, { endedLabel: "Ended" }).isEnded;
+}
+
+function isMatchSettled(match: ActiveMatch) {
+  return match.status === "settled";
+}
+
+function classifyBuffEntry(record: UserBuffRecord, match: ActiveMatch | null, nowMs: number) {
+  if (record.claimed || match === null || isMatchSettled(match)) {
+    return "claimable_or_settled_excluded" as const;
+  }
+
+  if (isMatchEnded(match, nowMs)) {
+    return "ready_to_settle" as const;
+  }
+
+  return "pending_result" as const;
 }

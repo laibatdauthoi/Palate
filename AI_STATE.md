@@ -46,6 +46,22 @@ Primary navigation has now moved to the three-entry model: `Home`, `My Media`, a
 
 # Recent Changes
 
+- Refined IA migration Phase 4 Profile Claims controls:
+  - replaced the nested Profile -> Claims subfilter tab row with the shared dropdown control in [`frontend/app/profile/page.tsx`](./frontend/app/profile/page.tsx)
+  - preserved the same three views:
+    - `Claimable`
+    - `Pending Result`
+    - `Claimed`
+  - preserved all existing claim classification, pending-result logic, and settlement / claim behavior
+- Completed IA migration Phase 4 claim-surface move:
+  - added `Pending Result` to Profile -> Claims in [`frontend/app/profile/page.tsx`](./frontend/app/profile/page.tsx)
+  - reused the Buff-page pending/ready-to-settle classification path from `userBuffRecords + activeMatches + countdown state`
+  - Profile Claims now exposes three categories:
+    - `Claimable`
+    - `Pending Result`
+    - `Claimed`
+  - ready-to-settle Buff follow-up now appears inside `Pending Result` until settlement produces real claim records
+  - `/buff` remains intact as a legacy route and still keeps its dedicated Buff workflow / My Buffs surface
 - Completed IA migration Phase 3 navigation simplification:
   - removed `Buff` and `Push` from the desktop primary navigation in [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
   - removed `Buff` and `Push` from the mobile bottom navigation in [`frontend/components/mobile_bottom_nav.tsx`](./frontend/components/mobile_bottom_nav.tsx)
@@ -2154,6 +2170,45 @@ Primary navigation has now moved to the three-entry model: `Home`, `My Media`, a
 - Active-route behavior after this change:
   - `/`, `/my-media*`, and `/profile*` still highlight their primary nav entries
   - `/buff` and `/push` intentionally render with no primary-nav active state because they are legacy routes, not primary destinations
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-02 - IA Phase 4 Profile Claims Pending-Result Pass
+
+- Updated [`frontend/app/profile/page.tsx`](./frontend/app/profile/page.tsx) so Profile -> Claims now uses three filters:
+  - `Claimable`
+  - `Pending Result`
+  - `Claimed`
+- Reused the Buff-page pre-claim classification logic inside Profile:
+  - `userBuffRecords`
+  - `activeMatches`
+  - live countdown / ended-state detection
+- `Pending Result` now includes both:
+  - matches still waiting on results
+  - matches already ready to settle
+- Ready-to-settle Buff follow-up remains visible inside `Pending Result` until settlement creates real claim records and moves the reward into `Claimable`.
+- Preserved:
+  - `/buff` legacy route behavior
+  - claim transaction behavior
+  - provider / contract logic
+  - Profile Activity semantics
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-02 - IA Phase 4 Profile Claims Dropdown Control Pass
+
+- Updated [`frontend/app/profile/page.tsx`](./frontend/app/profile/page.tsx) to replace the nested Claims subfilter tab row with the shared [`frontend/components/custom_dropdown.tsx`](./frontend/components/custom_dropdown.tsx) control.
+- Preserved the same Claims view switching:
+  - `Claimable`
+  - `Pending Result`
+  - `Claimed`
+- Kept the existing classification and behavior intact:
+  - no changes to claim logic
+  - no changes to pending Buff result logic
+  - no changes to settlement / claim transactions
+- Styling changes were not required because the shared dropdown control already exists and matches the current control system.
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
