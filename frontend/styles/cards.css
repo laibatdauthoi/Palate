@@ -115,11 +115,13 @@
 .card_footer > :first-child {
   min-width: 0;
   width: 100%;
+  overflow: hidden;
 }
 
 .card_footer > :last-child {
   min-width: 0;
   width: auto;
+  max-width: 100%;
   justify-self: var(--card-footer-actions-justify-self, end);
 }
 

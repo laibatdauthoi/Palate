@@ -48,6 +48,10 @@
   --card-footer-columns: minmax(0, 1fr) auto;
 }
 
+.match_card_meta_row > :first-child {
+  overflow: visible;
+}
+
 /* Match-card meta remains a card-family path. Safe gap/wrap/containment hooks
    are allowed here, but footer transaction controls stay protected in globals
    on their dedicated selectors. */
@@ -56,8 +60,9 @@
   align-items: var(--match-card-footer-meta-align, center);
   gap: var(--match-card-footer-meta-gap, calc(8px * var(--ui-scale-x)));
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   flex-wrap: var(--match-card-footer-meta-wrap, nowrap);
+  overflow: visible;
   width: var(--match-card-footer-meta-width, auto);
 }
 
@@ -87,8 +92,10 @@
 
 .match_card_match_id {
   display: grid;
+  flex: 1 1 0;
   gap: var(--match-card-match-id-gap, calc(2px * var(--ui-scale-y)));
   min-width: 0;
+  overflow: hidden;
 }
 
 .match_card_match_id_label {
@@ -150,4 +157,67 @@
   .compact_card_grid_matches.matches_grid .match_card {
     min-height: var(--match-card-height-scaled, 256px);
   }
+}
+
+.match_detail_modal {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+.match_detail_preview_row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  align-items: stretch;
+}
+
+.match_detail_preview {
+  min-height: 204px;
+  height: 204px;
+}
+
+.match_detail_vs {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  min-width: 56px;
+  border: 1px solid rgba(255, 47, 159, 0.28);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(255, 255, 255, 0.14), transparent 44%),
+    linear-gradient(180deg, rgba(255, 47, 159, 0.18), rgba(6, 10, 26, 0.9));
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.match_detail_grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.match_detail_row {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.match_detail_row dt {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.match_detail_row dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-body-small);
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }

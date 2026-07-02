@@ -46,6 +46,70 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Fixed the MatchCard category-tag regression introduced by the desktop footer alignment pass:
+  - root cause was the new footer shrink containment clipping the rotated `.match_card_category_tag` through the MatchCard left meta slot
+  - updated [`frontend/styles/match-card.css`](./frontend/styles/match-card.css) so MatchCard overrides the shared footer clipping only for its left metadata cluster:
+    - `.match_card_meta_row`
+    - `.match_card_meta_row > :first-child`
+    - `.match_card_footer_meta`
+  - preserved the intended shrink owner on `.match_card_match_id`, so the match ID text still truncates before protected action controls are pressured
+  - kept protected transaction-control selectors untouched:
+    - `.match_card_footer_actions`
+    - `.match_card_countdown_slot`
+    - `.match_card_detail_button`
+    - `.match_card_settle_button`
+    - `.action_button_cardMain`
+- Completed desktop polish pass for `>=640px` card footer/action-row alignment:
+  - tightened the shared Card Foundation footer shell in [`frontend/styles/cards.css`](./frontend/styles/cards.css) so the left slot now clips/contains overflow before the action slot is pressured
+  - updated WaitingPushCard family rules in [`frontend/styles/waiting-push.css`](./frontend/styles/waiting-push.css) so desktop/default and compact footer meta blocks yield width through containment and single-line truncation before the `Challenge` control is displaced:
+    - `.waiting_push_meta`
+    - `.waiting_push_required_meta`
+    - `.waiting_push_required_meta strong`
+    - `.waiting_push_action_stack_compact`
+    - `.waiting_push_detail_stack`
+    - `.waiting_push_detail_line dd`
+    - `.waiting_push_action_stack`
+    - `.waiting_push_actions`
+  - updated MatchCard family rules in [`frontend/styles/match-card.css`](./frontend/styles/match-card.css) so the left metadata cluster shrinks from `flex-basis: 0` / overflow containment before the protected detail/countdown/settle controls are pressured:
+    - `.match_card_meta_row`
+    - `.match_card_footer_meta`
+    - `.match_card_match_id`
+  - intentionally left protected transaction-control selectors untouched in `globals.css`:
+    - `.match_card_footer_actions`
+    - `.match_card_countdown_slot`
+    - `.match_card_detail_button`
+    - `.match_card_settle_button`
+    - `.action_button_cardMain`
+- Completed CSS cleanup Phase 3 for WalletPanel ownership:
+  - moved the remaining clearly WalletPanel-owned balance selectors from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/wallet.css`](./frontend/styles/wallet.css):
+    - `.wallet_balance`
+    - `.wallet_balance_controls`
+    - `.wallet_balance_buttons`
+  - intentionally left wallet touches inside mixed emergency/responsive blocks in `globals.css` because they still share selectors with unrelated layout, navigation, or profile families:
+    - the emergency cleanup block touching `.wallet_panel` / `.wallet_balance` alongside cards, nav, buttons, badges, and modal shell
+    - the narrow responsive `.claim_card, .wallet_balance_buttons` block
+  - `globals.css` wallet ownership is now limited to mixed legacy/repair contexts; base WalletPanel contract ownership lives in [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+- Completed CSS cleanup Phase 2 for media-viewer and match-detail ownership:
+  - moved clearly media-viewer-owned selectors from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/media-renderer.css`](./frontend/styles/media-renderer.css):
+    - `.media_viewer_*`
+    - `.audio_card_play_button`
+    - `.media_expand_button`
+    - `.media_play_overlay`
+    - `.media_view_button`
+  - moved clearly Match detail-owned selectors from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/match-card.css`](./frontend/styles/match-card.css):
+    - `.match_detail_modal`
+    - `.match_detail_preview_row`
+    - `.match_detail_preview`
+    - `.match_detail_vs`
+    - `.match_detail_grid`
+    - `.match_detail_row`
+    - `.match_detail_row dt`
+    - `.match_detail_row dd`
+  - intentionally left generic/non-prefixed media detail selectors in `globals.css` because their ownership is still broader than the extracted viewer shell:
+    - `.media_detail_view`
+    - `.media_detail_asset`
+    - `.media_viewer_shell img.media_detail_asset`
+  - intentionally left the narrow/mobile Match detail responsive repair rules in `globals.css` because they still live inside a protected mixed MatchCard transaction/control block and moving them separately could change cascade behavior
 - Completed CSS cleanup Phase 1 for post-route-removal architecture debt:
   - deleted obsolete route-atmosphere selectors from [`frontend/styles/globals.css`](./frontend/styles/globals.css):
     - all `.route_buff*`
@@ -491,6 +555,33 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - WaitingPushCard / MatchCard family bridges
   - Challenge flow
   - Profile / Activity
+- Validation status:
+  - `npm.cmd run lint` pending for this session
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-02 - CSS Cleanup Phase 2
+
+- Moved media-viewer-owned selectors from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/media-renderer.css`](./frontend/styles/media-renderer.css):
+  - `.media_viewer_*`
+  - `.audio_card_play_button`
+  - `.media_expand_button`
+  - `.media_play_overlay`
+  - `.media_view_button`
+- Moved Match detail-owned selectors from [`frontend/styles/globals.css`](./frontend/styles/globals.css) into [`frontend/styles/match-card.css`](./frontend/styles/match-card.css):
+  - `.match_detail_modal`
+  - `.match_detail_preview_row`
+  - `.match_detail_preview`
+  - `.match_detail_vs`
+  - `.match_detail_grid`
+  - `.match_detail_row`
+  - `.match_detail_row dt`
+  - `.match_detail_row dd`
+- Left intentionally behind in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - `.media_detail_view`
+  - `.media_detail_asset`
+  - `.media_viewer_shell img.media_detail_asset`
+  because those generic selectors still span broader media-detail ownership than the extracted `media_viewer_*` block.
+- Also left the narrow/mobile Match detail responsive repair rules in `globals.css` because they still sit inside a protected mixed MatchCard control block and were safer to keep in place for this pass.
 - Validation status:
   - `npm.cmd run lint` pending for this session
   - browser visual verification was **not** performed in this session by request
@@ -2318,6 +2409,64 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - browser visual verification was **not** performed in this session by request
 
 ## 2026-07-02 - Home Mobile Composition Contract Pass
+
+## 2026-07-02 - MatchCard Category Tag Regression Fix
+
+- Updated [`frontend/styles/match-card.css`](./frontend/styles/match-card.css) to restore the MatchCard category tag after the previous footer-alignment pass clipped the rotated tag inside the left footer slot.
+- Root cause:
+  - the shared Card Foundation footer containment added overflow clipping to the left footer slot
+  - MatchCard's rotated `.match_card_category_tag` lives inside that left metadata slot, so it was being visually cut off before the match ID text had a chance to absorb the shrink pressure
+- Fix:
+  - removed family-level overflow clipping from `.match_card_meta_row`
+  - added `.match_card_meta_row > :first-child { overflow: visible; }`
+  - changed `.match_card_footer_meta` back to `overflow: visible`
+  - kept `.match_card_match_id` as the shrinkable/truncated child inside the left metadata cluster
+- Preserved:
+  - protected Match footer transaction controls
+  - action alignment behavior from the previous desktop polish pass
+  - mobile layout
+  - card outer dimensions and Home composition
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-02 - Desktop Footer/Action Row Alignment Pass
+
+- Updated [`frontend/styles/cards.css`](./frontend/styles/cards.css) to reinforce the shared Card Foundation footer contract:
+  - `.card_footer > :first-child` now explicitly clips overflow
+  - `.card_footer > :last-child` now caps itself to the available footer width without changing the protected action sizing path
+- Updated [`frontend/styles/waiting-push.css`](./frontend/styles/waiting-push.css) for `>=640px` footer stability:
+  - `.waiting_push_meta` now explicitly preserves shrinkable width containment
+  - `.waiting_push_required_meta` and `.waiting_push_required_meta strong` now truncate instead of expanding the compact/footer-left zone
+  - `.waiting_push_detail_stack` and `.waiting_push_detail_line dd` now clip/ellipsis long right-aligned values
+  - `.waiting_push_action_stack_compact`, `.waiting_push_action_stack`, and `.waiting_push_actions` now explicitly behave as fixed-width action zones instead of opportunistically participating in shrink pressure
+- Updated [`frontend/styles/match-card.css`](./frontend/styles/match-card.css) for `>=640px` footer stability:
+  - `.match_card_meta_row` now clips overflow at the family level
+  - `.match_card_footer_meta` now uses `flex: 1 1 0` and overflow containment so the metadata cluster gives up width before the action zone does
+  - `.match_card_match_id` now participates as the shrinkable flex child inside the metadata cluster
+- Intentionally untouched:
+  - mobile `<640px` rules
+  - protected Match transaction controls in [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+  - Challenge / Settle behavior
+  - card outer dimensions and Home composition
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-02 - CSS Cleanup Phase 3 Wallet Ownership Pass
+
+- Updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) so WalletPanel now owns the remaining balance-specific shell selectors:
+  - `.wallet_balance`
+  - `.wallet_balance_controls`
+  - `.wallet_balance_buttons`
+- Removed those base selectors from [`frontend/styles/globals.css`](./frontend/styles/globals.css) to keep WalletPanel styling self-contained.
+- Intentionally left mixed wallet touches in `globals.css` where ownership is still shared across families:
+  - the emergency cleanup block that groups `.wallet_panel` / `.wallet_balance` with navigation, cards, badges, buttons, and modal shell
+  - the responsive `.claim_card, .wallet_balance_buttons` rule because it is still a mixed Profile/Wallet block
+- No visual values were intentionally changed; this pass was ownership-only.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
 
 - Updated [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css) to define a clearer Home-owned `<640px` mobile composition without touching desktop or desktop-fit selectors.
 - Root cause:
