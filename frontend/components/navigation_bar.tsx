@@ -4,14 +4,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { House, Images, UserRound } from "lucide-react";
 import { usePalate } from "@/providers/palate_provider";
 import { logUiPerf, startRouteTransition, uiPerfNow } from "@/utils/ui_perf";
 import { WalletPanel } from "./wallet_panel";
 
 const nav_items = [
-  { label: "Home", href: "/" },
-  { label: "My Media", href: "/my-media" },
-  { label: "Profile", href: "/profile" }
+  { label: "Home", href: "/", icon: House },
+  { label: "My Media", href: "/my-media", icon: Images },
+  { label: "Profile", href: "/profile", icon: UserRound }
 ];
 
 export function NavigationBar() {
@@ -34,6 +35,7 @@ export function NavigationBar() {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const showClaimReminder = item.href === "/profile" && claimableRewardsSummary.hasClaimableRewards;
           const claimReminderKnown = claimReadStatus !== "loading" || claimableRewardsSummary.hasClaimableRewards;
+          const Icon = item.icon;
           return (
             <Link
               className={`nav_link ${active ? "active" : ""} ${showClaimReminder ? "nav_link_attention" : ""}`}
@@ -55,7 +57,12 @@ export function NavigationBar() {
                 });
               }}
             >
-              <span className="nav_link_label">{item.label}</span>
+              <span className="nav_link_main">
+                <span aria-hidden="true" className="nav_link_icon">
+                  <Icon className="nav_link_icon_svg" strokeWidth={2.4} />
+                </span>
+                <span className="nav_link_label">{item.label}</span>
+              </span>
               {showClaimReminder && claimReminderKnown ? <span className="nav_claim_badge">{claimableRewardsSummary.claimableCount}</span> : null}
             </Link>
           );

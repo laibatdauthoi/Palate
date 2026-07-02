@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CircleAlert, CircleCheckBig, LoaderCircle, Plug, PlugZap, Unplug, Wallet } from "lucide-react";
 import { app_config } from "@/config/app_config";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
@@ -28,6 +29,51 @@ function getChainStatusCopy(status: "idle" | "loading" | "ready" | "error", warn
   return "Idle";
 }
 
+function WalletDisplayIcon({ walletDisplayState }: { walletDisplayState: keyof typeof wallet_status_copy }) {
+  switch (walletDisplayState) {
+    case "connected":
+      return <PlugZap className="wallet_status_icon_svg wallet_status_icon_svg_connected" strokeWidth={2.25} />;
+    case "connecting":
+    case "switching":
+      return <LoaderCircle className="wallet_status_icon_svg wallet_status_icon_svg_loading" strokeWidth={2.25} />;
+    case "wrong_network":
+      return <CircleAlert className="wallet_status_icon_svg wallet_status_icon_svg_warning" strokeWidth={2.25} />;
+    case "error":
+      return <CircleAlert className="wallet_status_icon_svg wallet_status_icon_svg_error" strokeWidth={2.25} />;
+    case "disconnected":
+    default:
+      return <Unplug className="wallet_status_icon_svg wallet_status_icon_svg_idle" strokeWidth={2.25} />;
+  }
+}
+
+function ChainStatusIcon({
+  connected,
+  status,
+  warning
+}: {
+  connected: boolean;
+  status: "idle" | "loading" | "ready" | "error";
+  warning: string | null;
+}) {
+  if (!connected) {
+    return <Wallet className="chain_status_icon_svg chain_status_icon_svg_idle" strokeWidth={2.2} />;
+  }
+
+  if (warning || status === "error") {
+    return <CircleAlert className="chain_status_icon_svg chain_status_icon_svg_error" strokeWidth={2.2} />;
+  }
+
+  if (status === "loading") {
+    return <LoaderCircle className="chain_status_icon_svg chain_status_icon_svg_loading" strokeWidth={2.2} />;
+  }
+
+  if (status === "ready") {
+    return <CircleCheckBig className="chain_status_icon_svg chain_status_icon_svg_ready" strokeWidth={2.2} />;
+  }
+
+  return <Wallet className="chain_status_icon_svg chain_status_icon_svg_idle" strokeWidth={2.2} />;
+}
+
 export function WalletPanel() {
   const { balance, chainRead, palateBalanceReadStatus } = usePalate();
   const {
@@ -52,10 +98,10 @@ export function WalletPanel() {
 
   const connected = walletDisplayState === "connected";
   const transitioning = walletDisplayState === "connecting" || walletDisplayState === "switching";
+  const showWalletEnvironment = walletDisplayState === "connected" || walletDisplayState === "error";
   const statusCopy = wallet_status_copy[walletDisplayState];
   const addressCopy = walletAddress ? shortenAddress(walletAddress) : statusCopy;
   const chainStatusCopy = getChainStatusCopy(chainRead.status, chainRead.warning);
-  const providerStatusCopy = providerReady ? "Ready" : "Unavailable";
   const walletPrimaryCopy = connected
     ? addressCopy
     : walletDisplayState === "switching"
@@ -89,7 +135,7 @@ export function WalletPanel() {
   const compactStatusLine = chainRead.error
     ? "Contract read temporarily unavailable"
     : walletStatus === "wrong_network"
-      ? "Switch to Aptos Testnet."
+      ? "Switch to Aptos Testnet in your wallet."
       : walletError
         ? walletError
         : walletBalanceError && connected
@@ -99,6 +145,19 @@ export function WalletPanel() {
             : walletDisplayState === "connecting"
               ? "Waiting for wallet connection."
               : null;
+  const chainPillTone = walletStatus === "wrong_network"
+    ? "error"
+    : connected
+      ? chainRead.status
+      : walletDisplayState === "error"
+        ? "error"
+        : "idle";
+  const chainPillCopy = walletStatus === "wrong_network"
+    ? "Wrong network"
+    : connected
+      ? chainStatusCopy
+      : "Unavailable";
+  const showWrongNetworkAction = walletStatus === "wrong_network";
 
   async function handleConnect(nextWalletName: string) {
     await connectWallet(nextWalletName);
@@ -110,7 +169,12 @@ export function WalletPanel() {
       <aside className="wallet_panel">
         <div className="wallet_panel_header">
           <div className="wallet_identity">
-            <span className="eyebrow">Wallet</span>
+            <span className="wallet_identity_header">
+              <span aria-hidden="true" className={`wallet_status_icon wallet_status_icon_${walletDisplayState === "switching" ? "connecting" : walletDisplayState}`}>
+                <WalletDisplayIcon walletDisplayState={walletDisplayState} />
+              </span>
+              <span className="eyebrow">Wallet</span>
+            </span>
           </div>
           <span className={`wallet_status wallet_status_${walletDisplayState === "switching" ? "connecting" : walletDisplayState}`}>{statusCopy}</span>
         </div>
@@ -119,15 +183,16 @@ export function WalletPanel() {
           <span><strong>Wallet:</strong> {walletBalanceCopy}</span>
           <span><strong>Palate:</strong> {palateBalanceCopy}</span>
         </div>
-        {walletName || networkName || providerReady ? (
+        {showWalletEnvironment && (walletName || networkName || providerReady) ? (
           <div className="wallet_meta">
-            <span>
+            <span className="wallet_meta_line">
               {walletName ?? "Wallet"}
               {" · "}
               {(networkName ?? "Network").toLowerCase()}
               {" · "}
-              <span className={`chain_status_pill chain_status_${connected ? chainRead.status : "ready"}`}>
-                {connected ? chainStatusCopy : providerStatusCopy}
+              <span className={`chain_status_pill chain_status_${chainPillTone}`}>
+                <ChainStatusIcon connected={connected} status={chainRead.status} warning={chainRead.warning} />
+                {chainPillCopy}
               </span>
             </span>
           </div>
@@ -155,10 +220,34 @@ export function WalletPanel() {
         ) : null}
         <div className="wallet_actions">
           {connected ? (
-            <ActionButton className="wallet_compact_button" onClick={disconnectWallet} variant="secondary">Disconnect</ActionButton>
+            <ActionButton className="wallet_compact_button" onClick={disconnectWallet} variant="secondary">
+              <span className="wallet_action_content">
+                <span className="wallet_action_icon_slot">
+                  <Unplug aria-hidden="true" className="wallet_action_icon" strokeWidth={2.2} />
+                </span>
+                <span className="wallet_action_label">Disconnect</span>
+                <span aria-hidden="true" className="wallet_action_spacer" />
+              </span>
+            </ActionButton>
+          ) : showWrongNetworkAction ? (
+            <ActionButton className="wallet_compact_button wallet_compact_button_status" disabled variant="secondary">
+              <span className="wallet_action_content">
+                <span className="wallet_action_icon_slot">
+                  <CircleAlert aria-hidden="true" className="wallet_action_icon" strokeWidth={2.2} />
+                </span>
+                <span className="wallet_action_label">Switch network</span>
+                <span aria-hidden="true" className="wallet_action_spacer" />
+              </span>
+            </ActionButton>
           ) : (
             <ActionButton className="wallet_compact_button" disabled={transitioning || walletStatus === "connecting"} onClick={() => setWalletModalOpen(true)}>
-              {walletDisplayState === "switching" ? "Switching" : walletStatus === "connecting" ? "Connecting" : "Connect"}
+              <span className="wallet_action_content">
+                <span className="wallet_action_icon_slot">
+                  <Plug aria-hidden="true" className={`wallet_action_icon ${transitioning || walletStatus === "connecting" ? "wallet_action_icon_loading" : ""}`} strokeWidth={2.2} />
+                </span>
+                <span className="wallet_action_label">{walletDisplayState === "switching" ? "Switching" : walletStatus === "connecting" ? "Connecting" : "Connect"}</span>
+                <span aria-hidden="true" className="wallet_action_spacer" />
+              </span>
             </ActionButton>
           )}
         </div>

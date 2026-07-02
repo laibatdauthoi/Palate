@@ -46,6 +46,137 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Increased WalletPanel action-button icon and label size without changing the button shell:
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) inside the existing three-column wallet action layout
+  - increased the wallet action icon baseline from `18px` to `20px` (before `var(--icon-scale)`)
+  - increased the wallet action label from inherited `15px` button text to `calc(16.25px * var(--text-scale))`
+  - kept:
+    - existing button height
+    - existing 3-column optical centering layout
+    - consistent Connect / Disconnect / disabled `Switch network` presentation
+- Adjusted WalletPanel action icon-slot alignment inside the optical-centering grid:
+  - kept the existing three-column wallet action layout in [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - made `.wallet_action_icon_slot` explicitly self-center within the left grid column
+  - made `.wallet_action_icon` render as a block with auto margins so the icon sits in the middle of its slot more deterministically
+  - preserved:
+    - centered middle-column label
+    - mirrored right spacer column
+    - wallet logic and markup
+- Fixed WalletPanel action-button optical centering with a deterministic three-column content layout:
+  - the remaining alignment issue was optical rather than mathematical: the icon+label group could be centered as a unit while the label still looked right-shifted because the icon only added visual weight on the left side
+  - updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx) so wallet actions now render:
+    - left icon slot
+    - center label
+    - right spacer slot matching the icon width
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) so `.wallet_action_content` now uses a deterministic three-column inline grid:
+    - icon column
+    - center label column
+    - mirrored spacer column
+  - this keeps:
+    - Connect
+    - Disconnect
+    - disabled `Switch network`
+    visually centered by label while preserving the leading icon
+- Rolled back the broken WalletPanel switch-network action and corrected the root button-centering bug:
+  - removed the runtime `switchWalletToTestnet()` path from [`frontend/providers/wallet_provider.tsx`](./frontend/providers/wallet_provider.tsx) and stopped exposing the temporary switch-network capability fields that were only added for that path
+  - updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx) so wrong-network state now:
+    - keeps the top `WRONG NETWORK` badge
+    - shows the message `Switch to Aptos Testnet in your wallet.`
+    - renders a disabled `Switch network` control instead of a clickable action
+    - never falls back to misleading `Connect`
+  - audited the WalletPanel button structure against the shared ActionButton contract and found the actual centering bug:
+    - `.wallet_compact_button .action_button_label` had been forced to `width: 100%`
+    - that made the button center a stretched intermediate label box instead of centering the actual icon+text group
+    - the wallet content wrapper then centered itself inside that full-width box, producing the persistent right-biased visual alignment
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) so the wallet button now uses intrinsic-width content centering:
+    - `.action_button_label` is `inline-flex` instead of a full-width flex row
+    - the label wrapper no longer owns `width: 100%`
+    - `.wallet_action_content` remains the intrinsic icon+label group
+  - preserved:
+    - connect only for disconnected state
+    - disconnect only for connected state
+    - sidebar width
+    - main layout
+- Fixed WalletPanel root button centering and wired real switch-network support:
+  - audited the installed Aptos wallet adapter surface and confirmed `useWallet()` exposes a real `changeNetwork(...)` API, with per-wallet feature detection through `aptos:changeNetwork`
+  - updated [`frontend/providers/wallet_provider.tsx`](./frontend/providers/wallet_provider.tsx) to expose wallet-network switching through the app provider contract:
+    - `canSwitchNetwork`
+    - `networkSwitching`
+    - `switchWalletToTestnet()`
+  - updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx) so wrong-network state now:
+    - never shows misleading `Connect`
+    - shows a real `Switch network` primary action when the connected wallet supports network switching
+    - falls back to a disabled `Switch network` action when the wallet adapter does not expose switch support
+  - fixed the wallet button alignment structurally instead of by padding tweaks:
+    - added `.wallet_action_content`
+    - added `.wallet_action_icon`
+    - added `.wallet_action_label`
+    - centered the icon+label as a single inline-flex group inside the shared ActionButton shell
+  - preserved:
+    - wallet connection logic
+    - gameplay / contract logic
+    - sidebar width
+    - main layout
+- Completed the earlier WalletPanel wrong-network fallback pass and superseded it with the real adapter-backed switch-network action above:
+  - connected state still keeps `Disconnect`
+  - disconnected state remains the only state that shows `Connect`
+  - the earlier disabled `Switch network` fallback now remains only for wallets that do not expose `aptos:changeNetwork`
+- Polished WalletPanel action/status details:
+  - removed the duplicate lower wrong-network pill from [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx), keeping:
+    - the top `WRONG NETWORK` badge
+    - the explanatory line `Switch to Aptos Testnet.`
+  - added a matching `Unplug` icon to the connected-state Disconnect action
+  - increased WalletPanel action-button icon/label balance in [`frontend/styles/wallet.css`](./frontend/styles/wallet.css):
+    - slightly larger icon shell
+    - slightly larger button text
+    - tighter centered icon+label grouping for both Connect and Disconnect
+  - preserved:
+    - wallet connection logic
+    - provider/network logic
+    - sidebar width
+    - main layout
+- Polished WalletPanel disconnected state and desktop-fit narrowing behavior:
+  - updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx) so disconnected wallets no longer render the misleading chain/network readiness pill
+  - narrowed wallet environment visibility to connected / wrong-network / error states instead of `providerReady` alone
+  - added a `Plug` icon to the wallet connect button without changing wallet logic
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) so the WalletPanel header/body fit behaves deterministically in narrow desktop sidebar widths:
+    - icon stays fixed
+    - title row stays shrinkable with ellipsis
+    - status badge stays fixed and non-wrapping
+    - compact status/meta lines truncate instead of increasing panel height
+  - preserved:
+    - wallet connection logic
+    - provider/network switching logic
+    - sidebar width
+    - desktop navigation/layout ownership
+- Added desktop sidebar icon polish using the existing `lucide-react` dependency:
+  - updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx) to render icon slots before desktop nav labels for:
+    - `Home`
+    - `My Media`
+    - `Profile`
+  - updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx) to render state-aware wallet and chain-status icons for:
+    - connected
+    - disconnected
+    - connecting / switching
+    - wrong network
+    - error / warning
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css) with:
+    - `.nav_link_main`
+    - `.nav_link_icon`
+    - `.nav_link_icon_svg`
+    - hover / active glow treatment scoped to the icon shell
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) with:
+    - `.wallet_identity_header`
+    - `.wallet_status_icon*`
+    - `.wallet_status_icon_svg*`
+    - `.chain_status_icon_svg*`
+    - inline icon alignment inside `.chain_status_pill`
+  - preserved:
+    - sidebar width
+    - main content alignment
+    - primary nav IA (`Home`, `My Media`, `Profile`)
+    - wallet connection logic
+    - mobile bottom-nav structure/behavior
 - Fixed the MatchCard category-tag regression introduced by the desktop footer alignment pass:
   - root cause was the new footer shrink containment clipping the rotated `.match_card_category_tag` through the MatchCard left meta slot
   - updated [`frontend/styles/match-card.css`](./frontend/styles/match-card.css) so MatchCard overrides the shared footer clipping only for its left metadata cluster:
@@ -2429,6 +2560,104 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
+
+## 2026-07-02 - Desktop Sidebar Icon Polish
+
+- Added `lucide-react` to the frontend so Palate can reuse a small consistent icon set instead of hand-rolled SVG or emoji.
+- Updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx):
+  - added icon slots ahead of desktop nav labels for `Home`, `My Media`, and `Profile`
+  - kept primary-nav routes and active-route logic unchanged
+- Updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx):
+  - added state-aware wallet header icons for connected / disconnected / connecting / wrong-network / error states
+  - added chain-status pill icons for ready / loading / error / idle states
+  - preserved wallet connect/disconnect/status logic and copy
+- Updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+  - added neon/glass icon shell styling for desktop nav items
+  - kept nav item height/spacing stable
+  - kept rail/mobile collapse behavior by hiding the desktop nav icon+label group only inside the existing narrow sidebar rail mode
+- Updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css):
+  - added wallet icon shell and status-icon color/loading treatments
+  - aligned chain-status pill icons with existing compact wallet meta layout
+- Preserved:
+  - sidebar width
+  - main content alignment
+  - mobile bottom nav behavior
+  - wallet connection logic
+- Validation status:
+  - `npm.cmd run lint` pending in current session
+  - browser visual verification was **not** performed in this session
+
+## 2026-07-02 - WalletPanel Disconnected-State and Fit Polish
+
+- Updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx):
+  - disconnected state no longer shows a misleading chain/network `READY` pill
+  - wallet environment metadata now renders only for:
+    - connected
+    - wrong-network
+    - error
+  - chain pill copy/tone now reflect the actual wallet state:
+    - `Wrong network` for wrong-network
+    - Aptos read state for connected
+    - `Unavailable` for error fallback
+  - added a `Plug` icon to the connect button while preserving the existing wallet action logic
+- Updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css):
+  - made the WalletPanel header fit deterministic:
+    - `.wallet_identity` is the shrinkable area
+    - `.wallet_status_icon` remains fixed
+    - `.wallet_status` remains fixed and non-wrapping
+    - `.wallet_identity .eyebrow` now ellipsizes when space is tight
+  - made compact body/meta/message text truncate cleanly instead of wrapping taller in the narrow desktop sidebar
+  - aligned the connect-button icon with the shared ActionButton label row without changing button height
+- Preserved:
+  - wallet connection logic
+  - provider logic
+  - network switching logic
+  - sidebar width and main layout
+- Validation status:
+  - `npm.cmd run lint` pending in current session
+  - browser visual verification was **not** performed in this session
+
+## 2026-07-02 - WalletPanel Action / Status Detail Polish
+
+- Updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx):
+  - removed the lower wallet-environment meta row for wrong-network state so `WRONG NETWORK` no longer appears twice
+  - preserved the top status badge and the explanatory `Switch to Aptos Testnet.` message
+  - added an `Unplug` icon to the connected-state Disconnect button
+- Updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css):
+  - increased WalletPanel action-button font size slightly
+  - increased wallet action icon size slightly
+  - centered the icon+label group more tightly for both Connect and Disconnect
+- Preserved:
+  - connected-state chain `READY` pill
+  - connecting/error readability
+  - wallet logic and network/provider behavior
+- Validation status:
+  - `npm.cmd run lint` pending in current session
+  - browser visual verification was **not** performed in this session
+
+## 2026-07-02 - WalletPanel Wrong-Network Action Mapping Fix
+
+- Audited [`frontend/providers/wallet_provider.tsx`](./frontend/providers/wallet_provider.tsx) and confirmed the current wallet surface exposes:
+  - `connectWallet`
+  - `disconnectWallet`
+  - no dedicated switch-network handler
+- Updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx):
+  - wrong-network state no longer renders a misleading `Connect` action
+  - wrong-network now shows a disabled `Switch network` fallback action with a warning icon
+  - disconnected state remains the only state that shows `Connect`
+  - connected state keeps `Disconnect` with the existing icon
+- Updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css):
+  - centered wallet action button content more explicitly at the button shell
+  - increased wallet action label size slightly
+  - increased wallet action icon size slightly
+  - reduced the apparent right shift by removing forced full-width centering pressure on the inner label row
+- Preserved:
+  - provider/network logic
+  - wallet connection logic
+  - sidebar width and overall layout
+- Validation status:
+  - `npm.cmd run lint` pending in current session
+  - browser visual verification was **not** performed in this session
 
 ## 2026-07-02 - Desktop Footer/Action Row Alignment Pass
 
