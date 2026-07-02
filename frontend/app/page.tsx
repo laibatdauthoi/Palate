@@ -10,6 +10,7 @@ import { FilterBar } from "@/components/filter_bar";
 import { LoadingState } from "@/components/loading_state";
 import { MatchCard } from "@/components/match_card";
 import { PageHeader } from "@/components/page_header";
+import { PushCreateWorkflow } from "@/components/push_create_workflow";
 import { TypewriterHeadline } from "@/components/typewriter_headline";
 import { WaitingPushCard } from "@/components/waiting_push_card";
 import { usePalateWallet } from "@/providers/wallet_provider";
@@ -33,6 +34,7 @@ export default function HomePage() {
   const { walletAddress, walletStatus } = usePalateWallet();
   const [activityTab, setActivityTab] = useState<"waiting" | "matches">("waiting");
   const [buffWorkflowOpen, setBuffWorkflowOpen] = useState(false);
+  const [pushWorkflowOpen, setPushWorkflowOpen] = useState(false);
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
   const [challengeMediaId, setChallengeMediaId] = useState("");
   const waitingCount = waitingPushes.length;
@@ -161,7 +163,7 @@ export default function HomePage() {
           <>
             <ActionButton className="home_cta_button hero_primary_cta" onClick={() => setBuffWorkflowOpen(true)}>Buff Random Match</ActionButton>
             <ActionButton className="home_cta_button" href="/my-media/upload" variant="secondary">Upload Media</ActionButton>
-            <ActionButton className="home_cta_button" href="/push" variant="secondary">Push Media</ActionButton>
+            <ActionButton className="home_cta_button" onClick={() => setPushWorkflowOpen(true)} variant="secondary">Push Media</ActionButton>
           </>
         }
       />
@@ -257,6 +259,13 @@ export default function HomePage() {
         open={buffWorkflowOpen}
         presentation="modal"
         sourceContext="home-buff"
+      />
+
+      <PushCreateWorkflow
+        onClose={() => setPushWorkflowOpen(false)}
+        open={pushWorkflowOpen}
+        presentation="modal"
+        sourceContext="home-push"
       />
     </div>
   );

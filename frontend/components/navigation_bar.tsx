@@ -10,9 +10,7 @@ import { WalletPanel } from "./wallet_panel";
 
 const nav_items = [
   { label: "Home", href: "/" },
-  { label: "Buff", href: "/buff" },
   { label: "My Media", href: "/my-media" },
-  { label: "Push", href: "/push" },
   { label: "Profile", href: "/profile" }
 ];
 

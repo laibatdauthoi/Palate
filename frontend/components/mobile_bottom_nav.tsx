@@ -7,9 +7,7 @@ import { logUiPerf, startRouteTransition, uiPerfNow } from "@/utils/ui_perf";
 
 const mobile_items = [
   { label: "Home", href: "/" },
-  { label: "Buff", href: "/buff" },
   { label: "Media", href: "/my-media" },
-  { label: "Push", href: "/push" },
   { label: "Profile", href: "/profile" }
 ];
 

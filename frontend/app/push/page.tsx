@@ -3,21 +3,17 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ActionButton } from "@/components/action_button";
-import { AmountInput } from "@/components/amount_input";
 import { ChallengeFlowModal } from "@/components/challenge_flow_modal";
-import { CustomDropdown, type DropdownOption } from "@/components/custom_dropdown";
-import { EmptyState } from "@/components/empty_state";
 import { FilterBar } from "@/components/filter_bar";
 import { MatchCard } from "@/components/match_card";
 import { LoadingState } from "@/components/loading_state";
 import { PageHeader } from "@/components/page_header";
-import { SectionPanel } from "@/components/section_panel";
+import { PushCreateWorkflow } from "@/components/push_create_workflow";
 import { WaitingPushCard } from "@/components/waiting_push_card";
 import { usePalate } from "@/providers/palate_provider";
 import { usePalateWallet } from "@/providers/wallet_provider";
 import { formatOctasToApt, parseAptToOctas } from "@/services/aptos_service";
 import type { MediaCategory } from "@/types/palate";
-import { getMediaDisplayTitle } from "@/utils/media_display";
 import { getPushEligibility } from "@/utils/push_eligibility";
 import { app_config } from "@/config/app_config";
 import { logPageMount, logUiPerf, uiPerfNow } from "@/utils/ui_perf";
@@ -39,19 +35,16 @@ export default function PushPage() {
 }
 
 function PushPageContent() {
-  const { activeMatches, balance, challengePush, chainRead, clearFeedback, createPush, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes, walletReadCache } = usePalate();
+  const { activeMatches, balance, challengePush, chainRead, clearFeedback, feedback, mediaReadStatus, mediaRecords, processingAction, publicGameReadStatus, readLifecycle, refreshPublicGameState, settleMatch, waitingPushes, walletReadCache } = usePalate();
   const { walletAddress, walletStatus } = usePalateWallet();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<"Waiting" | "Live Matches">("Waiting");
   const [modalOpen, setModalOpen] = useState(false);
-  const [createMediaId, setCreateMediaId] = useState("");
-  const [createAmount, setCreateAmount] = useState("1.000");
   const [challengePushId, setChallengePushId] = useState<number | null>(null);
   const [challengeMediaId, setChallengeMediaId] = useState("");
-  const [prefillReason, setPrefillReason] = useState<string | null>(null);
+  const [routePrefillReason, setRoutePrefillReason] = useState<string | null>(null);
   const [dismissedChallengeId, setDismissedChallengeId] = useState<number | null>(null);
-  const [lastAppliedCreateMediaQuery, setLastAppliedCreateMediaQuery] = useState<string | null>(null);
   const [lastAppliedChallengeQuery, setLastAppliedChallengeQuery] = useState<string | null>(null);
   const createMediaQuery = searchParams.get("mediaId");
   const challengePushQuery = searchParams.get("challengeId") ?? searchParams.get("pushId");
@@ -75,10 +68,9 @@ function PushPageContent() {
   );
   const challengeOptions = selectedPush ? pushableMedia.filter((media) => media.category === selectedPush.media.category) : pushableMedia;
   const selectedPushCategoryLabel = selectedPush ? category_labels[selectedPush.media.category].toUpperCase() : "MEDIA";
-  const pushFeedback = feedback?.scope === "push" ? feedback : null;
   const challengeFeedback = feedback?.scope === "challenge" ? feedback : null;
   const settleFeedback = feedback?.scope === "settle" ? feedback : null;
-  const pushBusy = processingAction === "createPush" || processingAction === "challengePush";
+  const pushBusy = processingAction === "challengePush";
   const walletReady = walletStatus === "connected";
   const minPushOctas = chainRead.protocolConfig?.minPushAmount ? BigInt(chainRead.protocolConfig.minPushAmount) : null;
   const minPushLabel = minPushOctas !== null ? formatOctasToApt(minPushOctas) : "loading";
@@ -89,28 +81,12 @@ function PushPageContent() {
     ? (requiredChallengeOctas > minPushOctas ? requiredChallengeOctas : minPushOctas)
     : null;
   const requiredChallengeLabel = effectiveChallengeOctas !== null ? formatOctasToApt(effectiveChallengeOctas) : minPushLabel;
-  const createAmountValidation = validateAmount(createAmount, minPushOctas, "Minimum Push");
   const availableBalanceOctas = parseAmountOctas(balance.availableBalance);
-  const createAmountOctas = parseAmountOctas(createAmount);
-  const createBalanceValid = createAmountOctas !== null && availableBalanceOctas !== null && createAmountOctas <= availableBalanceOctas;
   const challengeBalanceValid = effectiveChallengeOctas !== null && availableBalanceOctas !== null && effectiveChallengeOctas <= availableBalanceOctas;
-  const createAmountHelperText = !createAmountValidation.valid
-    ? createAmountValidation.message
-    : !createBalanceValid
-      ? "Not enough Palate Balance."
-      : createAmountValidation.message;
-  const canCreatePush = walletReady && !pushBusy && Boolean(createMediaId) && createAmountValidation.valid && createBalanceValid;
-  const createPushLoading = walletReady && (!mediaOwnedByCurrentWallet || ((mediaReadStatus === "idle" || mediaReadStatus === "loading") && !mediaHasCurrentWalletData));
   const isLoadingEligibleMedia = walletReady && (!mediaOwnedByCurrentWallet || ((mediaReadStatus === "idle" || mediaReadStatus === "loading") && !mediaHasCurrentWalletData));
   const waitingSectionLoading = !readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading");
   const activeMatchesSectionLoading = !readLifecycle.hasLoadedPublicGameState && (publicGameReadStatus === "idle" || publicGameReadStatus === "loading");
-  const idleMediaOptions: DropdownOption<string>[] = [
-    { label: "Select idle media", value: "" },
-    ...pushableMedia.map((media) => ({
-      label: `${getMediaDisplayTitle(media)} - ${category_labels[media.category]}`,
-      value: String(media.id)
-    }))
-  ];
+
   useEffect(() => {
     logPageMount("Push");
   }, []);
@@ -173,64 +149,6 @@ function PushPageContent() {
   }
 
   useEffect(() => {
-    if (!createMediaQuery) {
-      setLastAppliedCreateMediaQuery(null);
-      return;
-    }
-
-    if (createMediaQuery === lastAppliedCreateMediaQuery) {
-      return;
-    }
-
-    const nextId = Number(createMediaQuery);
-    if (Number.isNaN(nextId)) {
-      setLastAppliedCreateMediaQuery(createMediaQuery);
-      return;
-    }
-
-    const candidate = mediaRecords.find((item) => item.id === nextId);
-    if (!candidate) {
-      setCreateMediaId("");
-      setPrefillReason("Selected media is no longer available.");
-      setLastAppliedCreateMediaQuery(createMediaQuery);
-      return;
-    }
-
-    const eligibility = getPushEligibility(candidate, { allowExpiredWaitingPush: true });
-    if (eligibility.eligible) {
-      setCreateMediaId(String(candidate.id));
-      setPrefillReason(null);
-      setTab("Waiting");
-      setLastAppliedCreateMediaQuery(createMediaQuery);
-      return;
-    }
-
-    setCreateMediaId("");
-    setPrefillReason(eligibility.reason);
-    setTab("Waiting");
-    setLastAppliedCreateMediaQuery(createMediaQuery);
-  }, [createMediaQuery, lastAppliedCreateMediaQuery, mediaRecords]);
-
-  useEffect(() => {
-    if (!createMediaId) {
-      return;
-    }
-
-    const candidate = mediaRecords.find((item) => String(item.id) === createMediaId);
-    if (!candidate) {
-      setCreateMediaId("");
-      setPrefillReason("Selected media is no longer available.");
-      return;
-    }
-
-    const eligibility = getPushEligibility(candidate, { allowExpiredWaitingPush: true });
-    if (!eligibility.eligible) {
-      setCreateMediaId("");
-      setPrefillReason(eligibility.reason);
-    }
-  }, [createMediaId, mediaRecords]);
-
-  useEffect(() => {
     if (!challengePushQuery) {
       setLastAppliedChallengeQuery(null);
       return;
@@ -253,7 +171,7 @@ function PushPageContent() {
 
     const push = openWaitingPushes.find((candidate) => candidate.id === nextId);
     if (!push) {
-      setPrefillReason("Selected waiting push is no longer available.");
+      setRoutePrefillReason("Selected waiting push is no longer available.");
       setChallengePushId(null);
       setChallengeMediaId("");
       setModalOpen(false);
@@ -275,7 +193,7 @@ function PushPageContent() {
       return;
     }
 
-    setPrefillReason("Selected waiting push is no longer available.");
+    setRoutePrefillReason("Selected waiting push is no longer available.");
     setChallengePushId(null);
     setChallengeMediaId("");
     setModalOpen(false);
@@ -286,7 +204,7 @@ function PushPageContent() {
     const startedAt = uiPerfNow();
     const push = openWaitingPushes.find((candidate) => candidate.id === pushId);
     if (!push) {
-      setPrefillReason("Selected waiting push is no longer available.");
+      setRoutePrefillReason("Selected waiting push is no longer available.");
       clearChallengeQuery();
       logUiPerf("challengeModalOpen:end", {
         pushId,
@@ -298,7 +216,7 @@ function PushPageContent() {
     }
 
     if (normalizedWalletAddress && normalizeAddress(push.pusherAddress) === normalizedWalletAddress) {
-      setPrefillReason("You cannot challenge your own push.");
+      setRoutePrefillReason("You cannot challenge your own push.");
       setDismissedChallengeId(null);
       logUiPerf("challengeModalOpen:end", {
         pushId,
@@ -313,7 +231,7 @@ function PushPageContent() {
     next.set("challengeId", String(pushId));
     next.delete("pushId");
     setDismissedChallengeId(null);
-    setPrefillReason(null);
+    setRoutePrefillReason(null);
     setLastAppliedChallengeQuery(String(pushId));
     setChallengePushId(pushId);
     setChallengeMediaId("");
@@ -340,7 +258,6 @@ function PushPageContent() {
       const eligibility = getPushEligibility(media, { allowExpiredWaitingPush: true });
       console.debug("[Palate Push eligibility debug]", {
         mediaId: media.id,
-        title: getMediaDisplayTitle(media),
         status: media.status,
         storageStatus: media.storageStatus ?? "uploaded",
         category: media.category,
@@ -379,36 +296,12 @@ function PushPageContent() {
         }}
       />
 
-      <SectionPanel title="Create push" copy="Use Palate Balance and mark selected idle media as waiting for a challenger.">
-        {!walletReady ? (
-          <EmptyState
-            variant="section"
-            title="Connect wallet to create a Push."
-            copy="User media selection and Push creation only appear for the connected wallet."
-          />
-        ) : createPushLoading ? (
-          <LoadingState
-            variant="section"
-            label="Loading push inventory"
-            copy="Idle media and protocol minimums are loading from chain."
-          />
-        ) : (
-          <div className="mock_form_grid">
-            <CustomDropdown label="Idle media" onChange={setCreateMediaId} options={idleMediaOptions} value={createMediaId} />
-            <div className="amount_field_stack">
-              <AmountInput label="Push amount" onChange={setCreateAmount} placeholder={`Minimum ${minPushLabel}`} value={createAmount} />
-              <p className={`amount_helper ${createAmountValidation.valid && createBalanceValid ? "" : "amount_helper_error"}`}>
-                {createAmountHelperText}
-              </p>
-            </div>
-            <ActionButton disabled={pushBusy || !canCreatePush} onClick={() => createPush(Number(createMediaId), createAmount)}>
-              {processingAction === "createPush" ? "Creating" : "Create Push"}
-            </ActionButton>
-          </div>
-        )}
-        {prefillReason ? <p className="feedback_text feedback_error">{prefillReason}</p> : null}
-        {pushFeedback ? <p className={`feedback_text feedback_${pushFeedback.type}`}>{pushFeedback.message}</p> : null}
-      </SectionPanel>
+      <PushCreateWorkflow
+        mediaIdQuery={createMediaQuery}
+        onMediaQueryApplied={() => setTab("Waiting")}
+        sourceContext="push"
+      />
+      {routePrefillReason ? <p className="feedback_text feedback_error">{routePrefillReason}</p> : null}
 
       {settleFeedback && tab === "Live Matches" ? <p className={`feedback_text feedback_${settleFeedback.type}`}>{settleFeedback.message}</p> : null}
 
@@ -420,20 +313,20 @@ function PushPageContent() {
             copy="Open waiting pushes are loading from chain."
           />
         ) : (
-        <div className="compact_card_grid compact_card_grid_waiting">
-          {openWaitingPushes.map((push) => (
-            <WaitingPushCard
-              key={push.id}
-              push={push}
-              challengeDisabledReason={
-                normalizedWalletAddress && normalizeAddress(push.pusherAddress) === normalizedWalletAddress
-                  ? "You cannot challenge your own push."
-                  : null
-              }
-              onChallenge={() => openChallenge(push.id)}
-            />
-          ))}
-        </div>
+          <div className="compact_card_grid compact_card_grid_waiting">
+            {openWaitingPushes.map((push) => (
+              <WaitingPushCard
+                key={push.id}
+                push={push}
+                challengeDisabledReason={
+                  normalizedWalletAddress && normalizeAddress(push.pusherAddress) === normalizedWalletAddress
+                    ? "You cannot challenge your own push."
+                    : null
+                }
+                onChallenge={() => openChallenge(push.id)}
+              />
+            ))}
+          </div>
         )
       ) : activeMatchesSectionLoading ? (
         <LoadingState
@@ -486,25 +379,6 @@ function PushPageContent() {
 
 function normalizeAddress(address: string | null | undefined) {
   return address?.trim().toLowerCase() ?? null;
-}
-
-function validateAmount(value: string, minimumOctas: bigint | null, label: string) {
-  if (minimumOctas === null) {
-    return { valid: false, message: `${label}: loading` };
-  }
-
-  const minimumText = formatOctasToApt(minimumOctas);
-
-  try {
-    const parsed = BigInt(parseAptToOctas(value));
-    if (parsed < minimumOctas) {
-      return { valid: false, message: `${label} is ${minimumText}` };
-    }
-
-    return { valid: true, message: `${label}: ${minimumText}` };
-  } catch {
-    return { valid: false, message: `${label} is ${minimumText}` };
-  }
 }
 
 function parseAmountOctas(value: string) {

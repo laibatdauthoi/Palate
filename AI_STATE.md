@@ -9,6 +9,8 @@ We are in the middle of a structured layout/UI scale migration. Mobile UI work i
 
 In parallel, the target product IA is being simplified so Home becomes the primary gameplay surface, while Buff and Push are gradually demoted from primary destinations into reusable workflows.
 
+Primary navigation has now moved to the three-entry model: `Home`, `My Media`, and `Profile`. Buff and Push remain live as legacy routes (`/buff`, `/push`) for direct access, deep links, migration, and debugging, but gameplay entry points are expected to originate from Home CTAs rather than primary navigation.
+
 # Active Files
 
 - [`frontend/styles/globals.css`](./frontend/styles/globals.css)
@@ -26,7 +28,9 @@ In parallel, the target product IA is being simplified so Home becomes the prima
 - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
 - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
 - [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+- [`frontend/components/mobile_bottom_nav.tsx`](./frontend/components/mobile_bottom_nav.tsx)
 - [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx)
+- [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx)
 - [`frontend/app/page.tsx`](./frontend/app/page.tsx)
 - [`frontend/app/buff/page.tsx`](./frontend/app/buff/page.tsx)
 - [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx)
@@ -42,6 +46,21 @@ In parallel, the target product IA is being simplified so Home becomes the prima
 
 # Recent Changes
 
+- Completed IA migration Phase 3 navigation simplification:
+  - removed `Buff` and `Push` from the desktop primary navigation in [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+  - removed `Buff` and `Push` from the mobile bottom navigation in [`frontend/components/mobile_bottom_nav.tsx`](./frontend/components/mobile_bottom_nav.tsx)
+  - primary navigation is now `Home`, `My Media`, and `Profile`
+  - `/buff` and `/push` remain fully functional legacy routes and were not deleted
+  - legacy-route visits intentionally no longer receive a primary-nav active highlight because those routes are no longer primary destinations
+- Completed IA migration Phase 2 entry wiring for Push:
+  - extracted the reusable Push creation workflow into [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx)
+  - Home `Push Media` CTA now launches the shared Push creation workflow directly in a modal
+  - `/push` now reuses the same shared Push creation workflow inline while keeping its legacy Waiting / Live Matches and Challenge flows intact
+- Preserved legacy-route and query compatibility:
+  - `/push` remains fully functional as the legacy route
+  - `/push?mediaId=...` still preselects the create-push media when applicable
+  - `/push?challengeId=...` and `/push?pushId=...` remain route-owned challenge entry paths
+  - Buff workflow, Profile Claims, and public Waiting/Active sections were intentionally untouched
 - Completed IA migration Phase 1 entry wiring for Buff:
   - extracted the reusable Buff workflow into [`frontend/components/buff_workflow.tsx`](./frontend/components/buff_workflow.tsx)
   - Home `Buff Random Match` CTA now launches the shared Buff workflow directly in a modal instead of linking away immediately
@@ -383,6 +402,31 @@ In parallel, the target product IA is being simplified so Home becomes the prima
   - `/buff` remains functional as the legacy route
   - navigation was not changed in this pass
   - Push and Profile flows were untouched
+  - provider / contract logic was not intentionally changed
+- Validation status:
+  - `npm.cmd run lint` passed
+
+## 2026-07-02 - Push Creation Workflow Reuse Pass
+
+- Created [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx) as the shared Push creation entry surface.
+- Reused the same create-push responsibilities in one place:
+  - eligible media selection
+  - route-query media preselection (`mediaId`) when applicable
+  - amount input
+  - minimum-push validation
+  - balance validation
+  - `createPush`
+  - success / error / loading feedback
+- Updated [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx) to render the shared Push creation workflow inline while preserving:
+  - `/push?challengeId=...`
+  - `/push?pushId=...`
+  - Waiting / Live Matches views
+  - Challenge modal flow
+- Updated [`frontend/app/page.tsx`](./frontend/app/page.tsx) so the Home `Push Media` CTA opens the shared Push creation workflow in a modal instead of navigating directly to `/push`.
+- Preserved compatibility:
+  - `/push` remains functional as the legacy route
+  - challenge flow ownership remains route-owned
+  - Waiting Push / Active Matches sections were not redesigned
   - provider / contract logic was not intentionally changed
 - Validation status:
   - `npm.cmd run lint` passed
@@ -2086,6 +2130,30 @@ In parallel, the target product IA is being simplified so Home becomes the prima
   - WaitingPushCard / MatchCard internals beyond page-level width constraints
   - Challenge / Settle selectors and transaction controls
   - sidebar/layout-mode behavior
+- Validation status:
+  - `npm.cmd run lint` passed
+  - browser visual verification was **not** performed in this session by request
+
+## 2026-07-02 - IA Phase 3 Navigation Simplification Pass
+
+- Updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx) so desktop primary navigation now exposes only:
+  - `Home`
+  - `My Media`
+  - `Profile`
+- Updated [`frontend/components/mobile_bottom_nav.tsx`](./frontend/components/mobile_bottom_nav.tsx) so mobile primary navigation matches the same three-entry information architecture:
+  - `Home`
+  - `Media`
+  - `Profile`
+- Preserved `/buff` and `/push` as fully routable legacy paths for direct navigation, deep links, migration, and debugging.
+- Did not change:
+  - Home Buff workflow CTA
+  - Home Push workflow CTA
+  - gameplay/provider/contract logic
+  - Profile or My Media behavior
+  - Waiting Pushes / Active Matches sections
+- Active-route behavior after this change:
+  - `/`, `/my-media*`, and `/profile*` still highlight their primary nav entries
+  - `/buff` and `/push` intentionally render with no primary-nav active state because they are legacy routes, not primary destinations
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
