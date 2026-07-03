@@ -7,6 +7,8 @@
    - Page composition must not restyle wallet internals */
 .wallet_panel {
   display: grid;
+  width: 100%;
+  box-sizing: border-box;
   min-width: 0;
   gap: var(--wallet-gap-scaled);
   margin-top: auto;
@@ -166,6 +168,9 @@
 
 .wallet_message_error {
   color: #ffd7df;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .wallet_choice_list {
@@ -284,13 +289,14 @@
   gap: var(--wallet-gap-scaled, 8px);
   margin-top: auto;
   border-radius: 16px;
-  padding: var(--wallet-padding-scaled, 10px);
+  padding: calc(var(--wallet-padding-scaled, 10px) - 3px);
   box-shadow: var(--shadow-bevel), 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
 .wallet_panel_header {
   align-items: center;
-  gap: var(--wallet-header-gap-scaled, 8px);
+  justify-content: flex-start;
+  gap: 6px;
 }
 
 .wallet_identity {
@@ -304,7 +310,7 @@
   align-items: center;
   width: 100%;
   min-width: 0;
-  gap: 8px;
+  gap: 6px;
 }
 
 .wallet_identity .eyebrow {
@@ -318,13 +324,13 @@
 
 .wallet_status_icon {
   display: inline-flex;
-  width: calc(22px * var(--icon-scale));
-  height: calc(22px * var(--icon-scale));
+  width: calc(20px * var(--icon-scale));
+  height: calc(20px * var(--icon-scale));
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: calc(9px * var(--radius-scale));
+  border-radius: calc(8px * var(--radius-scale));
   background:
     radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.12), transparent 55%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
@@ -359,8 +365,8 @@
 
 .wallet_status_icon_svg,
 .chain_status_icon_svg {
-  width: calc(13px * var(--icon-scale));
-  height: calc(13px * var(--icon-scale));
+  width: calc(12px * var(--icon-scale));
+  height: calc(12px * var(--icon-scale));
   flex: 0 0 auto;
 }
 
@@ -389,24 +395,12 @@
   animation: loading_spinner_rotate 0.9s linear infinite;
 }
 
-.wallet_status {
-  flex: 0 0 auto;
-  max-width: 100%;
-  overflow: hidden;
-  padding: 4px 7px;
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .wallet_compact_body {
   display: grid;
   min-width: 0;
-  gap: var(--wallet-compact-body-gap-scaled, 2px);
+  gap: 1px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 850;
   line-height: 1.2;
 }
@@ -415,7 +409,7 @@
   margin: 0;
   overflow: hidden;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -431,8 +425,8 @@
   display: flex;
   flex-wrap: nowrap;
   min-width: 0;
-  gap: var(--wallet-meta-row-gap-scaled, 5px) var(--wallet-meta-column-gap-scaled, 8px);
-  font-size: 10px;
+  gap: 4px 6px;
+  font-size: 9px;
   line-height: 1.2;
 }
 
@@ -453,7 +447,7 @@
 .wallet_message {
   min-width: 0;
   overflow: hidden;
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -469,10 +463,10 @@
 .wallet_compact_button.action_button {
   justify-content: center;
   width: 100%;
-  min-height: 44px;
-  border-radius: 14px;
-  padding: 9px 12px;
-  font-size: 15px;
+  min-height: 40px;
+  border-radius: 13px;
+  padding: 8px 10px;
+  font-size: 14px;
   line-height: 1;
 }
 
@@ -487,32 +481,17 @@
 }
 
 .wallet_action_content {
-  display: inline-grid;
-  grid-template-columns: var(--wallet-action-icon-slot-size, calc(20px * var(--icon-scale))) minmax(0, 1fr) var(--wallet-action-icon-slot-size, calc(20px * var(--icon-scale)));
-  align-items: center;
-  justify-items: center;
-  min-width: 0;
-  column-gap: 8px;
-}
-
-.wallet_action_icon_slot,
-.wallet_action_spacer {
   display: inline-flex;
-  width: var(--wallet-action-icon-slot-size, calc(20px * var(--icon-scale)));
-  height: var(--wallet-action-icon-slot-size, calc(20px * var(--icon-scale)));
-  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  justify-self: center;
-  align-self: center;
+  min-width: 0;
+  gap: 6px;
 }
 
 .wallet_action_icon {
-  display: block;
-  width: calc(20px * var(--icon-scale));
-  height: calc(20px * var(--icon-scale));
+  width: calc(18px * var(--icon-scale));
+  height: calc(18px * var(--icon-scale));
   flex: 0 0 auto;
-  margin: auto;
 }
 
 .wallet_action_icon_loading {
@@ -521,8 +500,7 @@
 
 .wallet_action_label {
   min-width: 0;
-  grid-column: 2;
-  font-size: calc(16.25px * var(--text-scale));
+  font-size: calc(15px * var(--text-scale));
   font-weight: 800;
   line-height: 1;
   text-align: center;

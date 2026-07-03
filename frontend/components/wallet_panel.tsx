@@ -21,6 +21,21 @@ function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+function formatCompactBalance(value: string) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return value;
+  }
+
+  const maximumFractionDigits = numericValue >= 1000 ? 1 : numericValue >= 1 ? 2 : 4;
+
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits,
+    minimumFractionDigits: 0
+  }).format(numericValue);
+}
+
 function getChainStatusCopy(status: "idle" | "loading" | "ready" | "error", warning: string | null) {
   if (warning) return "Using last read";
   if (status === "ready") return "Ready";
@@ -111,7 +126,9 @@ export function WalletPanel() {
         : statusCopy;
   const walletBalanceCopy = connected
     ? walletBalanceStatus === "ready"
-      ? walletBalance ?? "Unavailable"
+      ? walletBalance
+        ? formatCompactBalance(walletBalance)
+        : "Unavailable"
       : walletBalanceStatus === "loading"
         ? "Loading"
         : walletBalanceStatus === "error"
@@ -122,7 +139,7 @@ export function WalletPanel() {
       : "Disconnected";
   const palateBalanceCopy = connected
     ? palateBalanceReadStatus === "ready"
-      ? balance.availableBalance
+      ? formatCompactBalance(balance.availableBalance)
       : palateBalanceReadStatus === "loading" || palateBalanceReadStatus === "refreshing"
         ? "Syncing..."
         : palateBalanceReadStatus === "error"
@@ -135,7 +152,7 @@ export function WalletPanel() {
   const compactStatusLine = chainRead.error
     ? "Contract read temporarily unavailable"
     : walletStatus === "wrong_network"
-      ? "Switch to Aptos Testnet in your wallet."
+      ? "Switch to Aptos Testnet!"
       : walletError
         ? walletError
         : walletBalanceError && connected
@@ -143,7 +160,7 @@ export function WalletPanel() {
           : walletDisplayState === "switching"
             ? "Waiting for the new wallet account to resolve."
             : walletDisplayState === "connecting"
-              ? "Waiting for wallet connection."
+              ? "Waiting for connection..."
               : null;
   const chainPillTone = walletStatus === "wrong_network"
     ? "error"
@@ -176,7 +193,6 @@ export function WalletPanel() {
               <span className="eyebrow">Wallet</span>
             </span>
           </div>
-          <span className={`wallet_status wallet_status_${walletDisplayState === "switching" ? "connecting" : walletDisplayState}`}>{statusCopy}</span>
         </div>
         <div className="wallet_compact_body">
           <strong>{walletPrimaryCopy}</strong>
@@ -222,31 +238,22 @@ export function WalletPanel() {
           {connected ? (
             <ActionButton className="wallet_compact_button" onClick={disconnectWallet} variant="secondary">
               <span className="wallet_action_content">
-                <span className="wallet_action_icon_slot">
-                  <Unplug aria-hidden="true" className="wallet_action_icon" strokeWidth={2.2} />
-                </span>
+                <Unplug aria-hidden="true" className="wallet_action_icon" strokeWidth={2.2} />
                 <span className="wallet_action_label">Disconnect</span>
-                <span aria-hidden="true" className="wallet_action_spacer" />
               </span>
             </ActionButton>
           ) : showWrongNetworkAction ? (
             <ActionButton className="wallet_compact_button wallet_compact_button_status" disabled variant="secondary">
               <span className="wallet_action_content">
-                <span className="wallet_action_icon_slot">
-                  <CircleAlert aria-hidden="true" className="wallet_action_icon" strokeWidth={2.2} />
-                </span>
+                <CircleAlert aria-hidden="true" className="wallet_action_icon" strokeWidth={2.2} />
                 <span className="wallet_action_label">Switch network</span>
-                <span aria-hidden="true" className="wallet_action_spacer" />
               </span>
             </ActionButton>
           ) : (
             <ActionButton className="wallet_compact_button" disabled={transitioning || walletStatus === "connecting"} onClick={() => setWalletModalOpen(true)}>
               <span className="wallet_action_content">
-                <span className="wallet_action_icon_slot">
-                  <Plug aria-hidden="true" className={`wallet_action_icon ${transitioning || walletStatus === "connecting" ? "wallet_action_icon_loading" : ""}`} strokeWidth={2.2} />
-                </span>
+                <Plug aria-hidden="true" className={`wallet_action_icon ${transitioning || walletStatus === "connecting" ? "wallet_action_icon_loading" : ""}`} strokeWidth={2.2} />
                 <span className="wallet_action_label">{walletDisplayState === "switching" ? "Switching" : walletStatus === "connecting" ? "Connecting" : "Connect"}</span>
-                <span aria-hidden="true" className="wallet_action_spacer" />
               </span>
             </ActionButton>
           )}

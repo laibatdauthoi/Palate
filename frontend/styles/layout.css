@@ -5,6 +5,7 @@
      content frame
    - Component styles must not redefine shell/frame behavior */
 .app_shell {
+  --sidebar-width-scaled: calc(190px * var(--ui-scale-x));
   display: grid;
   grid-template-columns: var(--sidebar-width-scaled) minmax(0, 1fr);
   height: 100dvh;
@@ -80,7 +81,7 @@
 @media (min-width: 640px) and (max-width: 1199px) {
   .app_shell {
     display: grid;
-    grid-template-columns: var(--sidebar-width-scaled, 260px) minmax(0, 1fr);
+    grid-template-columns: var(--sidebar-width-scaled, 190px) minmax(0, 1fr);
   }
 
   main.main_content {

@@ -46,6 +46,389 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Reduced desktop sidebar nav vertical spacing only:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - changed the row-owning selector:
+    - `.nav_link`
+  - reduced vertical row padding from `10px 0 10px 0` to `8px 0 8px 0`
+  - mirrored the same value into the existing desktop-fit overrides so they do not restore the older spacing
+  - preserved:
+    - sidebar width and position
+    - brand
+    - wallet
+    - nav icon size
+    - icon-label gap
+    - mobile nav
+- Rolled back the failed sidebar outer-inset experiment:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - removed the temporary shell positioning token:
+    - `--sidebar-outer-inset`
+  - removed the sidebar shell viewport-edge offsets from the last pass:
+    - `top`
+    - `margin-left`
+    - `margin-bottom`
+    - width reduction tied to the inset
+    - reduced-height calculation tied to the inset
+  - restored the previous accepted sidebar positioning/model:
+    - `top: 0`
+    - `height: 100vh`
+    - no extra shell margins
+  - preserved:
+    - even 4-corner sidebar radius
+    - brand layout
+    - nav spacing
+    - wallet internals
+    - accepted nav/wallet fixes
+- Applied sidebar positioning step using a shell-owned outer inset token:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - effective desktop sidebar shell remains:
+    - `.navigation_bar`
+  - added a single positioning token:
+    - `--sidebar-outer-inset: 20px`
+  - applied the inset to the sidebar shell itself instead of the app shell:
+    - `top: var(--sidebar-outer-inset)`
+    - `margin-left: var(--sidebar-outer-inset)`
+    - `margin-bottom: var(--sidebar-outer-inset)`
+  - adjusted sidebar shell sizing to preserve the right edge and avoid clipping:
+    - `width: calc(100% - var(--sidebar-outer-inset))`
+    - `height: calc(100dvh - (var(--sidebar-outer-inset) * 2))`
+  - mirrored the same behavior into the existing desktop-fit (`640–1199px`) sidebar rules
+  - preserved:
+    - sidebar width owner in the app shell
+    - nav spacing
+    - brand/logo layout
+    - wallet internals
+    - Home/page composition
+- Applied sidebar shape step 1 as a geometry-only pass:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - changed the visible sidebar shell selector:
+    - `.navigation_bar`
+  - removed the special top-right-only corner treatment:
+    - `border-top-right-radius: 72px`
+  - applied an even four-corner radius instead:
+    - `border-radius: 32px`
+  - preserved:
+    - sidebar size
+    - sidebar position
+    - brand/logo layout
+    - nav spacing
+    - wallet placement
+    - colors, shadows, and overall layout
+- Rolled back the failed desktop sidebar floating / curved-brand composition pass:
+  - updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - restored the previous accepted sidebar shell behavior:
+    - removed the outer floating offsets (`top: 22px`, left/bottom margins, reduced shell height)
+    - restored the sidebar shell to the pre-float pinned position and previous top-right-only corner treatment
+  - restored the previous normal brand/logo layout:
+    - removed the curved SVG `Palate` brand cap
+    - restored the horizontal lockup with logo + `Palate` text
+    - restored the prior brand sizing/spacing
+  - restored the previous nav rhythm from the last acceptable state:
+    - restored nav row vertical padding from `8px` back to `10px`
+    - restored the prior nav stack top offset
+  - restored the wallet panel radius from the failed sidebar sync pass so the panel is no longer forced into the larger board radius
+  - intentionally preserved:
+    - 3-tab navigation
+    - accepted nav icon sizing/state work
+    - wallet action state fixes
+    - wallet button centering/sizing work
+    - route removals / IA changes
+    - CSS modularization / cleanup work
+- Refined the desktop sidebar into a more cohesive floating board without changing routes, wallet logic, or content layout:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - floated the sidebar away from the viewport edges with consistent outer spacing on the free edges:
+    - `top: 22px`
+    - `margin-left: 22px`
+    - `margin-bottom: 22px`
+    - sidebar height now uses `calc(100dvh - 44px)` so the board keeps the same width while clearing the viewport edges cleanly
+  - strengthened brand composition while keeping the curved wordmark approach:
+    - widened the curved wordmark container to nearly the full usable sidebar width
+    - increased the arc wordmark text size from `18px` to `21px`
+    - moved the logo upward with `margin-top: -12px`
+    - removed the extra internal gap so the wordmark and logo read as one mark
+  - tightened nav rhythm without changing icons, labels, or icon-label spacing:
+    - reduced nav row vertical padding from `10px` to `8px`
+    - reduced the top offset before the nav stack by `4px`
+  - synchronized the wallet panel radius with the sidebar board exactly:
+    - `.wallet_panel` `border-radius: 32px`
+  - preserved:
+    - sidebar width
+    - nav items/routes
+    - wallet layout/typography/logic
+    - mobile behavior
+- Redesigned the desktop sidebar brand cap without changing routes, wallet behavior, or page layout:
+  - updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - replaced the horizontal `Palate` lockup with a desktop brand cap:
+    - inline SVG arc wordmark using `textPath`
+    - centered logo placed below the curved wordmark
+  - removed the special top-right-only corner treatment on the sidebar shell
+  - applied even rounding on the visible sidebar board with `border-radius: 32px`
+  - preserved:
+    - sidebar width
+    - nav items/routes
+    - wallet panel behavior
+    - main content layout
+    - mobile bottom nav
+- Corrected the water-background task scope so only the page atmosphere remains changed:
+  - updated [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+  - updated [`frontend/styles/layout.css`](./frontend/styles/layout.css)
+  - reverted all non-background water-pass styling:
+    - removed the temporary `body` card/surface variable overrides
+    - removed water-pass overrides for sidebar, wallet panel, cards, modal shell, filter bar surface, and dropdown surfaces
+    - removed the water-pass hover/edge-glow overrides for cards and related panels
+    - removed the temporary `.app_shell` compositing tweaks (`position: relative`, `isolation: isolate`) because they were not required for a background-only change
+  - kept only background-atmosphere work:
+    - dark neon water body gradient
+    - `.route_background` water reflection / haze layers
+    - `.route_fx*` water ripple / particle / mist / bloom layers
+    - slow water-only animation keyframes
+  - preserved:
+    - sidebar styling
+    - wallet styling
+    - card/panel/modal/filter/button styling
+    - layout and mobile behavior
+- Replaced the old space/neon environment with a layered premium water surface while keeping layout and gameplay unchanged:
+  - updated [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+  - updated [`frontend/styles/layout.css`](./frontend/styles/layout.css)
+  - background architecture now uses:
+    - deep underwater body gradient
+    - animated water-reflection and caustic layers on `.route_background::before` / `::after`
+    - independent floating layers on `.route_fx_*` for ripples, highlights, particles, bloom, and mist
+  - motion is now slow and independent across layers through:
+    - `water_reflection_drift`
+    - `water_surface_shift`
+    - `water_caustic_sweep`
+    - `water_ripple_drift`
+    - `water_caustic_glide`
+    - `water_particles_drift`
+    - `water_mist_drift`
+    - `water_bloom_drift`
+  - upgraded shared shell treatment so major surfaces read as floating glass over water without changing layout:
+    - sidebar
+    - cards
+    - modal shell
+    - filter bar surface
+    - dropdown button/menu
+    - wallet panel
+  - preserved:
+    - routes
+    - gameplay
+    - spacing/layout
+    - mobile layout
+  - added `position: relative` + `isolation: isolate` to `.app_shell` so the shell stays composited above the fixed environment layer cleanly
+- Applied the final desktop sidebar/nav spacing and wallet-copy correction pass:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - reverted the sidebar shell top-right corner from the experimental ellipse back to the simpler rounded board shape with `border-top-right-radius: 72px`
+  - reduced the desktop nav icon-label gap from `20px` to `13px`
+  - reduced desktop nav row vertical padding from `12px` to `10px` to tighten inter-tab rhythm slightly without changing icon or shell size
+  - preserved:
+    - sidebar width
+    - current icon shell/icon size
+    - no row rectangles/pills
+  - updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx) so the loading copy now reads exactly `Waiting for connection...`
+- Refined the compact desktop sidebar icon shell and board-corner geometry:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - increased the desktop nav icon shell from `28px` to `35px` so it scales proportionally with the already enlarged SVG
+  - increased the icon-shell corner radius from `10px` to `12px` and slightly strengthened hover/active shell glow to match the larger shell footprint
+  - kept the SVG itself at the existing enlarged `transform: scale(1.5)` size so nav text position, row height, and inter-row spacing remain unchanged
+  - replaced the sidebar shell top-right circular radius with a tall ellipse:
+    - `border-top-right-radius: 60px 140px`
+  - preserved:
+    - sidebar width
+    - wallet logic
+    - nav text position
+    - desktop nav vertical rhythm
+- Applied another explicit desktop sidebar/wallet visual correction pass:
+  - updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx) so the wrong-network copy is now exactly `Switch to Aptos Testnet!`
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+    - increased the visible sidebar shell top-right radius from `44px` to `72px`
+    - enlarged desktop nav icons by scaling the SVG inside the existing icon shell with `transform: scale(1.5)` so text x-position, row height, and nav-item spacing remain unchanged
+    - preserved the current nav label position by leaving the icon slot dimensions untouched
+  - preserved:
+    - sidebar width
+    - wallet logic
+    - nav items/routes
+    - mobile bottom nav
+- Applied the latest desktop sidebar/wallet visual-review corrections:
+  - updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx) so the wrong-network copy is now exactly `Switch to Aptos Testnet.`
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) so desktop wrong-network/error wallet messages are no longer ellipsized in the normal sidebar state
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+    - forced the desktop / desktop-fit nav icon-label gap to `20px`
+    - increased the visible sidebar shell top-right radius from `28px` to `44px`
+  - preserved:
+    - sidebar width
+    - routes / nav items
+    - wallet logic
+    - mobile bottom nav
+- Revised the compact desktop sidebar brand alignment and board shape:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - moved the brand lockup back to the left content axis:
+    - removed brand centering
+    - aligned `.brand_lockup` with `justify-content: flex-start`
+    - kept logo/text spacing balanced without reintroducing a custom left offset
+  - removed the previous top-left cut/corner pseudo-elements completely, eliminating the black-triangle / chipped-corner artifact
+  - changed the sidebar board shape to use a visible rounded top-right corner on the shell itself
+  - preserved:
+    - sidebar width
+    - nav states and colors
+    - wallet logic
+    - desktop-fit behavior
+- Polished the compact desktop sidebar board treatment after the `190px` width pass:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - reduced sidebar bottom shell padding so the WalletPanel now sits near the bottom with spacing equal to the shared `--sidebar-content-inset`
+  - increased the compact nav icon-label gap slightly from `3px` to `5px` so labels no longer feel cramped against the icon shell
+  - added a raised board treatment to the desktop sidebar shell:
+    - slightly richer internal highlight/shadow layering
+    - subtle decorative top-left cut/corner accent using sidebar pseudo-elements
+    - kept the treatment CSS-only with no assets
+  - kept the brand centered and raised above the decorative layer so the logo/text do not collide with the cut-corner effect
+  - desktop-fit sidebar padding now preserves the same bottom spacing and board treatment
+- Aggressively compacted the desktop sidebar to a `190px` baseline:
+  - confirmed the single effective sidebar-width owner is [`frontend/styles/layout.css`](./frontend/styles/layout.css) via `.app_shell { --sidebar-width-scaled: ... }`
+  - reduced the desktop / desktop-fit sidebar baseline from `216px` to `190px`
+  - kept the desktop-fit grid-template fallback aligned to the same `190px` width so it does not restore the older shell width
+  - compacted nav internals in [`frontend/styles/navigation.css`](./frontend/styles/navigation.css) to fit the narrower column:
+    - tightened `--sidebar-content-inset`
+    - reduced overall sidebar stack gap further
+    - reduced nav vertical gap to `0`
+    - reduced nav row padding to `12px 0`
+    - reduced nav icon shell from `30px` to `28px`
+    - reduced nav icon glyph from `18px` to `17px`
+    - reduced nav label font baseline from `18.9px` to `17.5px`
+    - reduced icon-label gap from `4px` to `3px`
+  - compacted WalletPanel in [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) so `190px` remains viable without increasing sidebar width:
+    - reduced wallet panel padding further
+    - reduced wallet header icon shell and glyph size slightly
+    - reduced compact body, meta, and message text sizes slightly
+    - reduced wallet action button min-height, padding, icon size, and label size slightly while keeping readability
+  - preserved:
+    - brand centered in the sidebar
+    - routes / nav items
+    - wallet logic
+    - no nav row rectangle/pill
+- Compacted the desktop sidebar shell further and centered the brand group:
+  - updated [`frontend/styles/layout.css`](./frontend/styles/layout.css) so the desktop / desktop-fit sidebar baseline moved from `236px` down to `216px`
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+    - `--sidebar-content-inset` tightened further so the shell feels slimmer
+    - sidebar vertical stack gap reduced further
+    - nav item vertical gap reduced from `6px` to `2px`
+    - brand lockup now centers as a whole with `justify-content: center` and `margin-inline: auto`
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) to help WalletPanel fit the narrower column:
+    - reduced wallet panel padding slightly
+    - tightened compact body row spacing slightly
+  - preserved:
+    - nav items and routes
+    - current nav hover/active color system
+    - wallet logic
+    - no nav row rectangle/pill
+- Fixed desktop sidebar content inset with a single shared alignment token:
+  - root cause was that desktop sidebar spacing was still owned by multiple independent insets:
+    - asymmetric `.navigation_bar` padding
+    - separate `.brand_lockup` horizontal offset
+    - `.nav_link` internal left padding
+    - later desktop-fit restoration rules repeating their own padding values
+  - this meant changing `.nav_link` alone could not move the nav group enough, because the sidebar shell itself still kept brand/nav/wallet on different horizontal rhythms
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css) to introduce and use one shared desktop inset contract:
+    - `--sidebar-content-inset`
+  - applied `--sidebar-content-inset` consistently to:
+    - `.navigation_bar` left/right padding
+    - desktop-fit `.navigation_bar` padding
+    - desktop-fit `.navigation_bar.desktop_only` padding
+  - removed the extra brand-specific horizontal offset so brand lockup now sits on the same inset rhythm
+  - reduced nav-row internal horizontal padding to let the icon shell start near the shared content edge
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) so `.wallet_panel` explicitly fills the available sidebar content width with symmetrical left/right spacing
+  - desktop-fit override is now aligned to the same inset contract instead of restoring the old offset pattern
+  - preserved:
+    - sidebar width
+    - nav colors/states
+    - wallet content logic
+    - no row rectangle/pill
+- Forced a visibly tighter desktop sidebar nav alignment after finding the real override:
+  - root cause of the previous “no visible change” was the later desktop-fit restoration block in [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - specifically, `@media (min-width: 640px) and (max-width: 1199px)` was still resetting:
+    - `.nav_link` padding back to the older `18px/16px` style
+    - `.navigation_bar` padding back to the full sidebar inset
+    - `.navigation_bar.desktop_only .nav_link` to the same older spacing
+  - updated the actual winning desktop selectors in [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+    - `.navigation_bar`
+    - `.nav_link`
+    - `.nav_link_main`
+    - `@media (min-width: 640px) and (max-width: 1199px) .navigation_bar`
+    - `@media (min-width: 640px) and (max-width: 1199px) .nav_link`
+    - `@media (min-width: 640px) and (max-width: 1199px) .navigation_bar.desktop_only .nav_link`
+  - visible desktop changes:
+    - nav row left inset reduced further to `4px`
+    - nav row right inset reduced to `8px`
+    - icon-label gap reduced to `4px`
+    - sidebar left padding reduced so the icon shell shifts further left overall
+  - preserved:
+    - sidebar width
+    - nav colors/states
+    - click target height
+    - wallet panel and mobile nav
+- Tightened desktop sidebar nav alignment further without changing width or state styling:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - reduced desktop nav left inset on `.nav_link` from `10px` to `8px`
+  - reduced the desktop icon-label gap on `.nav_link` / `.nav_link_main` from `8px` to `6px`
+  - preserved:
+    - current click target height
+    - nav colors/icons
+    - row-background-free hover/active treatment
+    - sidebar width and wallet panel
+- Compacted the desktop sidebar and reduced WalletPanel width pressure:
+  - updated [`frontend/styles/layout.css`](./frontend/styles/layout.css) so desktop and desktop-fit sidebar width now uses a narrower `236px` baseline instead of the previous `260px`
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css) to tighten desktop nav rhythm without changing routes or click targets:
+    - reduced nav-link vertical gap
+    - reduced nav left/right insets so nav content starts closer to the wallet card’s inner content rhythm
+    - reduced overall sidebar padding/gap slightly to support the narrower column
+  - updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx) to simplify wallet header/state presentation:
+    - removed the redundant header status badge text (`DISCONNECTED`, `CONNECTED`, `WRONG NETWORK`)
+    - kept state communication through icon, primary text, and explanatory message
+    - preserved wrong-network explanatory copy
+  - shortened sidebar wallet balances for display only:
+    - compact numeric formatting now reduces long wallet / Palate balance strings in the sidebar
+    - full underlying values remain unchanged elsewhere
+  - removed the wallet action button’s temporary 3-column spacer layout and returned it to a simple centered inline-flex icon + label group in [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - preserved:
+    - wallet connection logic
+    - routes / nav items
+    - mobile bottom nav
+    - main content alignment behavior via the updated sidebar grid width
+- Removed desktop sidebar nav row-rectangle hover/active treatment:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - neutralized row-level hover/active chrome on `.nav_link`:
+    - no visible background tint
+    - no visible border highlight
+    - no row-level box shadow/glow
+  - removed the remaining active left bar by neutralizing `.nav_link.active::before`
+  - kept the state treatment on icon/text only:
+    - hover = bright cyan icon + label
+    - active = pink icon + label
+    - icon shell remains the main premium/neon state surface
+  - preserved:
+    - sidebar spacing
+    - click target
+    - alignment
+    - routes, nav items, wallet panel, and mobile nav
+- Polished desktop sidebar navigation states toward a lighter neon icon/text system:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css) without changing nav items, routes, or layout
+  - increased desktop nav icon shell size from `26px` to `30px` and icon glyph size from `15px` to `18px` (both still scaled by `var(--icon-scale)`)
+  - replaced the bulky shared hover/active rectangular treatment with lighter state-specific styling:
+    - hover now uses bright cyan icon + label emphasis with a subtle cyan shell glow
+    - active now uses pink icon + label emphasis with a smaller pink shell glow
+  - greatly reduced the old bulky active chrome:
+    - nav border reduced from `2px` to `1px`
+    - large framed active background replaced by a very light tint
+    - active left rail reduced from `3px` to `1px` and softened with opacity
+  - preserved:
+    - nav row click target
+    - desktop spacing and alignment
+    - mobile bottom nav behavior
+    - sidebar width and main content alignment
 - Increased WalletPanel action-button icon and label size without changing the button shell:
   - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) inside the existing three-column wallet action layout
   - increased the wallet action icon baseline from `18px` to `20px` (before `var(--icon-scale)`)

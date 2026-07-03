@@ -5,6 +5,7 @@
      switching
    - Pages must not restyle navigation internals */
 .navigation_bar {
+  --sidebar-content-inset: calc(var(--sidebar-padding-scaled) - 14px);
   position: sticky;
   top: 0;
   align-self: start;
@@ -12,24 +13,35 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--sidebar-gap-scaled);
+  gap: calc(var(--sidebar-gap-scaled) - 10px);
   height: 100vh;
-  padding: var(--sidebar-padding-scaled);
+  padding:
+    calc(var(--sidebar-padding-scaled) - 4px)
+    var(--sidebar-content-inset)
+    var(--sidebar-content-inset)
+    var(--sidebar-content-inset);
   border-right: 2px solid rgba(255, 47, 159, 0.2);
+  border-radius: 32px;
   background:
     linear-gradient(90deg, rgba(255, 47, 159, 0.12), transparent 8%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%),
     rgba(9, 7, 11, 0.84);
   backdrop-filter: blur(22px);
-  box-shadow: 18px 0 70px rgba(0, 0, 0, 0.3), inset -1px 0 0 rgba(255, 255, 255, 0.06);
+  box-shadow:
+    18px 0 70px rgba(0, 0, 0, 0.3),
+    inset -1px 0 0 rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.025);
 }
 
 .brand_lockup {
   display: flex;
   align-items: center;
-  gap: var(--brand-gap-scaled, var(--spacing-md));
+  justify-content: flex-start;
+  gap: var(--brand-gap-scaled, 8px);
   margin-top: var(--brand-offset-y-scaled, -12px);
-  padding-left: var(--brand-offset-x-scaled, 24px);
+  margin-inline: 0;
+  padding-left: 0;
   font-size: var(--font-size-heading-3);
   font-weight: 900;
   letter-spacing: -0.02em;
@@ -55,7 +67,8 @@
 .nav_links {
   display: grid;
   margin-top: var(--sidebar-nav-offset-y-scaled, 10px);
-  gap: var(--sidebar-nav-gap-scaled, var(--spacing-sm));
+  margin-inline: 0;
+  gap: 0;
 }
 
 .nav_link {
@@ -63,51 +76,53 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--nav-link-gap-scaled, 10px);
-  border: 2px solid transparent;
+  gap: 13px;
+  border: 1px solid transparent;
   border-radius: var(--radius-lg-scaled, 18px);
   color: var(--text-secondary);
-  padding: var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-right-scaled, 16px) var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-left-scaled, 18px);
-  transition: var(--transition-fast);
+  padding: 8px 0 8px 0;
+  transition: color var(--transition-fast), transform var(--transition-fast);
 }
 
 .nav_link_main {
   display: inline-flex;
   align-items: center;
   min-width: 0;
-  gap: var(--nav-link-gap-scaled, 10px);
+  gap: 13px;
 }
 
 .nav_link_icon {
   display: inline-flex;
-  width: calc(26px * var(--icon-scale));
-  height: calc(26px * var(--icon-scale));
+  width: calc(35px * var(--icon-scale));
+  height: calc(35px * var(--icon-scale));
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: calc(10px * var(--radius-scale));
+  border-radius: calc(12px * var(--radius-scale));
   background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.12), transparent 55%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
-    rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transition: var(--transition-fast);
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.1), transparent 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.008)),
+    rgba(255, 255, 255, 0.022);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
 }
 
 .nav_link_icon_svg {
-  width: calc(15px * var(--icon-scale));
-  height: calc(15px * var(--icon-scale));
+  width: calc(17px * var(--icon-scale));
+  height: calc(17px * var(--icon-scale));
   color: currentColor;
-  filter: drop-shadow(0 0 10px rgba(255, 47, 159, 0));
-  transition: var(--transition-fast);
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0));
+  transform: scale(1.5);
+  transform-origin: center;
+  transition: color var(--transition-fast), filter var(--transition-fast), transform var(--transition-fast);
 }
 
 .nav_link_label {
   min-width: 0;
   overflow: hidden;
   color: inherit;
-  font-size: var(--nav-link-font-size-scaled, calc(18.9px * var(--text-scale)));
+  font-size: var(--nav-link-font-size-scaled, calc(17.5px * var(--text-scale)));
   font-weight: 800;
   line-height: 1;
   text-overflow: ellipsis;
@@ -116,41 +131,55 @@
 
 .nav_link::before {
   position: absolute;
-  inset: var(--nav-link-rail-pad-y-scaled, 12px) auto var(--nav-link-rail-pad-y-scaled, 12px) var(--nav-link-rail-inset-scaled, 8px);
-  width: 3px;
+  inset: var(--nav-link-rail-pad-y-scaled, 14px) auto var(--nav-link-rail-pad-y-scaled, 14px) 0;
+  width: 1px;
   border-radius: var(--radius-pill);
   background: transparent;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
   content: "";
 }
 
-.nav_link:hover,
+.nav_link:hover {
+  color: #86efff;
+}
+
 .nav_link.active {
+  color: #ff7fc0;
+}
+
+.nav_link:hover .nav_link_icon {
+  border-color: rgba(59, 218, 255, 0.34);
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.13), transparent 56%),
+    linear-gradient(180deg, rgba(59, 218, 255, 0.14), rgba(59, 218, 255, 0.035)),
+    rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 20px rgba(59, 218, 255, 0.16);
+}
+
+.nav_link.active .nav_link_icon {
   border-color: rgba(255, 47, 159, 0.34);
   background:
-    linear-gradient(90deg, rgba(255, 47, 159, 0.17), rgba(143, 85, 255, 0.04)),
-    var(--surface-glass);
-  color: var(--text-primary);
-  box-shadow: 0 0 28px var(--glow-pink-soft), var(--shadow-bevel);
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.14), transparent 56%),
+    linear-gradient(180deg, rgba(255, 47, 159, 0.18), rgba(255, 126, 192, 0.045)),
+    rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 20px rgba(255, 47, 159, 0.16);
 }
 
-.nav_link:hover .nav_link_icon,
-.nav_link.active .nav_link_icon {
-  border-color: rgba(255, 47, 159, 0.28);
-  background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.16), transparent 55%),
-    linear-gradient(180deg, rgba(255, 47, 159, 0.22), rgba(143, 85, 255, 0.08)),
-    rgba(255, 255, 255, 0.045);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 0 20px rgba(255, 47, 159, 0.16);
+.nav_link:hover .nav_link_icon_svg {
+  color: #86efff;
+  filter: drop-shadow(0 0 10px rgba(59, 218, 255, 0.42));
+  transform: scale(1.545);
 }
 
-.nav_link:hover .nav_link_icon_svg,
 .nav_link.active .nav_link_icon_svg {
-  filter: drop-shadow(0 0 10px rgba(255, 47, 159, 0.38));
+  color: #ff7fc0;
+  filter: drop-shadow(0 0 10px rgba(255, 47, 159, 0.42));
+  transform: scale(1.545);
 }
 
 .nav_link.active::before {
-  background: var(--accent-primary);
-  box-shadow: 0 0 18px var(--glow-pink);
+  opacity: 0;
 }
 
 .nav_link_attention {
@@ -289,7 +318,11 @@
 
 @media (min-width: 640px) and (max-width: 1199px) {
   .navigation_bar {
-    padding: var(--sidebar-padding-scaled);
+    padding:
+      calc(var(--sidebar-padding-scaled) - 4px)
+      var(--sidebar-content-inset)
+      var(--sidebar-content-inset)
+      var(--sidebar-content-inset);
   }
 
   .brand_lockup span:last-child {
@@ -306,13 +339,15 @@
     height: auto;
     place-items: initial;
     overflow: visible;
-    padding: var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-right-scaled, 16px) var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-left-scaled, 18px);
+    gap: 13px;
+    padding: 8px 0 8px 0;
     white-space: nowrap;
     color: var(--text-secondary);
   }
 
   .nav_link_main {
     display: inline-flex;
+    gap: 13px;
   }
 
   .nav_claim_badge {
@@ -324,7 +359,7 @@
   }
 
   .nav_link::before {
-    inset: var(--nav-link-rail-pad-y-scaled, 12px) auto var(--nav-link-rail-pad-y-scaled, 12px) var(--nav-link-rail-inset-scaled, 8px);
+    inset: var(--nav-link-rail-pad-y-scaled, 12px) auto var(--nav-link-rail-pad-y-scaled, 12px) 0;
     width: 3px;
     height: auto;
     transform: none;
@@ -332,7 +367,11 @@
 
   .navigation_bar.desktop_only {
     display: flex;
-    padding: var(--sidebar-padding-scaled);
+    padding:
+      calc(var(--sidebar-padding-scaled) - 4px)
+      var(--sidebar-content-inset)
+      var(--sidebar-content-inset)
+      var(--sidebar-content-inset);
   }
 
   .navigation_bar.desktop_only .brand_lockup span:last-child {
@@ -349,13 +388,15 @@
     height: auto;
     place-items: initial;
     overflow: visible;
-    padding: var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-right-scaled, 16px) var(--nav-link-pad-y-scaled, 14px) var(--nav-link-pad-left-scaled, 18px);
+    gap: 13px;
+    padding: 8px 0 8px 0;
     white-space: nowrap;
     color: var(--text-secondary);
   }
 
   .navigation_bar.desktop_only .nav_link_main {
     display: inline-flex;
+    gap: 13px;
   }
 
   .navigation_bar.desktop_only .nav_claim_badge {
@@ -367,7 +408,7 @@
   }
 
   .navigation_bar.desktop_only .nav_link::before {
-    inset: var(--nav-link-rail-pad-y-scaled, 12px) auto var(--nav-link-rail-pad-y-scaled, 12px) var(--nav-link-rail-inset-scaled, 8px);
+    inset: var(--nav-link-rail-pad-y-scaled, 12px) auto var(--nav-link-rail-pad-y-scaled, 12px) 0;
     width: 3px;
     height: auto;
     transform: none;
