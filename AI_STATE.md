@@ -46,6 +46,65 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Reduced the compensated desktop floating-sidebar gutter by half while preserving the accepted layout model:
+  - updated [`frontend/styles/layout.css`](./frontend/styles/layout.css)
+  - reduced the shell-owned gutter token:
+    - `--sidebar-shell-gutter: 16px -> 8px`
+  - preserved:
+    - unchanged app-shell grid math
+    - main content x-position
+    - sidebar width
+    - brand/nav/wallet internals
+    - desktop-fit compensation model
+    - mobile `<640px` behavior
+- Applied a compensated desktop floating-sidebar layout that preserves Home/content alignment:
+  - updated [`frontend/styles/layout.css`](./frontend/styles/layout.css)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - added a shell-owned token without reintroducing app-shell padding:
+    - `--sidebar-shell-gutter: 16px`
+  - kept the app-shell grid math unchanged so the main content column still starts at the same x-position
+  - moved the visible desktop sidebar board inward inside its existing grid column by making `.navigation_bar`:
+    - `justify-self: end`
+    - `top: var(--sidebar-shell-gutter)`
+    - `width: calc(100% - var(--sidebar-shell-gutter))`
+    - `height: calc(100dvh - (var(--sidebar-shell-gutter) * 2))`
+  - mirrored the same sizing model into the desktop-fit (`640–1199px`) desktop sidebar override
+  - preserved:
+    - sidebar column width
+    - Home hero/filter/cards alignment
+    - wallet/nav internals
+    - mobile `<640px` behavior
+- Rolled back the failed desktop shell gutter layout pass:
+  - updated [`frontend/styles/layout.css`](./frontend/styles/layout.css)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - removed the temporary shell-level gutter token:
+    - `--sidebar-shell-gutter`
+  - removed app-shell padding/gutter changes that pushed the main content horizontally
+  - restored the pre-gutter shell sizing behavior:
+    - `.main_content { height: 100dvh; }`
+    - `.navigation_bar { height: 100vh; }`
+  - restored the previous sidebar/content grid relationship without shell inset padding
+  - preserved:
+    - even sidebar corner radius
+    - nav spacing and icon-state work
+    - wallet fixes
+    - 3-tab information architecture
+- Applied desktop shell gutter layout for the floating sidebar without using sidebar-local margin hacks:
+  - updated [`frontend/styles/layout.css`](./frontend/styles/layout.css)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - added a shell-level gutter token on the app-shell owner:
+    - `--sidebar-shell-gutter: 16px`
+  - moved desktop and desktop-fit sidebar edge spacing into `.app_shell` with:
+    - `padding: var(--sidebar-shell-gutter) 0 var(--sidebar-shell-gutter) var(--sidebar-shell-gutter)`
+  - made shell children size to the guttered content box instead of raw viewport height:
+    - `.main_content { height: 100%; }`
+    - `.navigation_bar { height: 100%; max-height: 100%; }`
+  - kept mobile `<640px` unchanged by resetting the shell padding inside the existing mobile layout-mode block
+  - preserved:
+    - sidebar width
+    - brand/nav/wallet internals
+    - Home/page composition
+    - routes and gameplay behavior
 - Reduced desktop sidebar nav vertical spacing only:
   - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
   - changed the row-owning selector:

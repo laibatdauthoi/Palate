@@ -7,14 +7,18 @@
 .navigation_bar {
   --sidebar-content-inset: calc(var(--sidebar-padding-scaled) - 14px);
   position: sticky;
-  top: 0;
+  top: var(--sidebar-shell-gutter, 16px);
   align-self: start;
+  justify-self: end;
   overflow-x: hidden;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: calc(var(--sidebar-gap-scaled) - 10px);
-  height: 100vh;
+  width: calc(100% - var(--sidebar-shell-gutter, 16px));
+  height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
+  max-height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
+  box-sizing: border-box;
   padding:
     calc(var(--sidebar-padding-scaled) - 4px)
     var(--sidebar-content-inset)
@@ -367,6 +371,9 @@
 
   .navigation_bar.desktop_only {
     display: flex;
+    width: calc(100% - var(--sidebar-shell-gutter, 16px));
+    height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
+    max-height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
     padding:
       calc(var(--sidebar-padding-scaled) - 4px)
       var(--sidebar-content-inset)

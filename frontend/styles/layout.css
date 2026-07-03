@@ -5,6 +5,7 @@
      content frame
    - Component styles must not redefine shell/frame behavior */
 .app_shell {
+  --sidebar-shell-gutter: 8px;
   --sidebar-width-scaled: calc(190px * var(--ui-scale-x));
   display: grid;
   grid-template-columns: var(--sidebar-width-scaled) minmax(0, 1fr);
