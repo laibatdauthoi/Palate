@@ -15,6 +15,8 @@ const nav_items = [
   { label: "Profile", href: "/profile", icon: UserRound }
 ];
 
+const BRAND_LOGO_SOURCE_SIZE = 96;
+
 export function NavigationBar() {
   const pathname = usePathname();
   const [logoAvailable, setLogoAvailable] = useState(true);
@@ -23,12 +25,21 @@ export function NavigationBar() {
   return (
     <nav className="navigation_bar desktop_only" aria-label="Main navigation">
       <Link className="brand_lockup" href="/">
+        <svg aria-hidden="true" className="brand_wordmark" viewBox="0 0 160 42" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <path d="M 10 33 C 36 8, 124 8, 150 33" id="palate-brand-arc" />
+          </defs>
+          <text className="brand_wordmark_text">
+            <textPath href="#palate-brand-arc" startOffset="50%" textAnchor="middle">
+              PALATE
+            </textPath>
+          </text>
+        </svg>
         {logoAvailable ? (
           <span className="brand_mark">
-            <Image alt="Palate logo" height={32} onError={() => setLogoAvailable(false)} priority src="/brand/palate_logo.png" width={32} />
+            <Image alt="Palate logo" height={BRAND_LOGO_SOURCE_SIZE} onError={() => setLogoAvailable(false)} priority src="/brand/palate_logo.png" width={BRAND_LOGO_SOURCE_SIZE} />
           </span>
         ) : null}
-        <span>Palate</span>
       </Link>
       <div className="nav_links">
         {nav_items.map((item) => {

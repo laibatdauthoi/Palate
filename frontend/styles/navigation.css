@@ -6,6 +6,9 @@
    - Pages must not restyle navigation internals */
 .navigation_bar {
   --sidebar-content-inset: calc(var(--sidebar-padding-scaled) - 14px);
+  --brand-cap-height-scaled: calc(62px * var(--ui-scale-y));
+  --brand-logo-size-scaled: calc(64px * var(--ui-scale-uniform));
+  --brand-logo-top-scaled: calc(24px * var(--ui-scale-y));
   position: sticky;
   top: var(--sidebar-shell-gutter, 16px);
   align-self: start;
@@ -39,22 +42,44 @@
 }
 
 .brand_lockup {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--brand-gap-scaled, 8px);
-  margin-top: var(--brand-offset-y-scaled, -12px);
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  margin-top: 0;
   margin-inline: 0;
   padding-left: 0;
-  font-size: var(--font-size-heading-3);
+  width: min(100%, 160px);
+  height: var(--brand-cap-height-scaled);
+  text-decoration: none;
+}
+
+.brand_wordmark {
+  display: block;
+  width: min(100%, 160px);
+  height: 42px;
+  max-height: 42px;
+  overflow: visible;
+}
+
+.brand_wordmark_text {
+  fill: rgba(255, 247, 251, 0.96);
+  font-size: 23px;
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  filter: drop-shadow(0 0 10px rgba(255, 47, 159, 0.18));
 }
 
 .brand_mark {
+  position: absolute;
+  top: var(--brand-logo-top-scaled);
+  left: 50%;
   display: block;
-  width: var(--brand-mark-size-scaled, 42px);
-  height: var(--brand-mark-size-scaled, 42px);
+  width: var(--brand-logo-size-scaled);
+  height: var(--brand-logo-size-scaled);
+  margin-top: 0;
+  transform: translateX(-50%);
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -63,14 +88,15 @@
 }
 
 .brand_mark img {
-  width: var(--brand-mark-size-scaled, 42px);
-  height: var(--brand-mark-size-scaled, 42px);
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
 .nav_links {
   display: grid;
-  margin-top: var(--sidebar-nav-offset-y-scaled, 10px);
+  margin-top: calc(var(--sidebar-nav-offset-y-scaled, 10px) + 22px);
+  margin-left: 5px;
   margin-inline: 0;
   gap: 0;
 }
@@ -84,7 +110,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius-lg-scaled, 18px);
   color: var(--text-secondary);
-  padding: 8px 0 8px 0;
+  padding: 7px 0 7px 0;
   transition: color var(--transition-fast), transform var(--transition-fast);
 }
 
@@ -97,13 +123,13 @@
 
 .nav_link_icon {
   display: inline-flex;
-  width: calc(35px * var(--icon-scale));
-  height: calc(35px * var(--icon-scale));
+  width: calc(33px * var(--icon-scale));
+  height: calc(33px * var(--icon-scale));
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: calc(12px * var(--radius-scale));
+  border-radius: calc(11px * var(--radius-scale));
   background:
     radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.1), transparent 56%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.008)),
@@ -113,8 +139,8 @@
 }
 
 .nav_link_icon_svg {
-  width: calc(17px * var(--icon-scale));
-  height: calc(17px * var(--icon-scale));
+  width: calc(15.5px * var(--icon-scale));
+  height: calc(15.5px * var(--icon-scale));
   color: currentColor;
   filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0));
   transform: scale(1.5);
@@ -126,7 +152,7 @@
   min-width: 0;
   overflow: hidden;
   color: inherit;
-  font-size: var(--nav-link-font-size-scaled, calc(17.5px * var(--text-scale)));
+  font-size: var(--nav-link-font-size-scaled, calc(16.5px * var(--text-scale)));
   font-weight: 800;
   line-height: 1;
   text-overflow: ellipsis;
@@ -280,7 +306,7 @@
     padding: var(--spacing-md);
   }
 
-  .brand_lockup span:last-child,
+  .brand_wordmark,
   .wallet_panel {
     display: none;
   }
@@ -329,8 +355,8 @@
       var(--sidebar-content-inset);
   }
 
-  .brand_lockup span:last-child {
-    display: inline;
+  .brand_wordmark {
+    display: block;
   }
 
   .wallet_panel {
@@ -344,7 +370,7 @@
     place-items: initial;
     overflow: visible;
     gap: 13px;
-    padding: 8px 0 8px 0;
+    padding: 7px 0 7px 0;
     white-space: nowrap;
     color: var(--text-secondary);
   }
@@ -381,8 +407,8 @@
       var(--sidebar-content-inset);
   }
 
-  .navigation_bar.desktop_only .brand_lockup span:last-child {
-    display: inline;
+  .navigation_bar.desktop_only .brand_wordmark {
+    display: block;
   }
 
   .navigation_bar.desktop_only .wallet_panel {
@@ -396,7 +422,7 @@
     place-items: initial;
     overflow: visible;
     gap: 13px;
-    padding: 8px 0 8px 0;
+    padding: 7px 0 7px 0;
     white-space: nowrap;
     color: var(--text-secondary);
   }

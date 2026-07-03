@@ -46,6 +46,271 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Nudged the desktop sidebar nav group slightly to the right as a single block:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - changed the nav-group container:
+    - `.nav_links`
+  - added a small horizontal offset:
+    - `margin-left: 5px`
+  - preserved:
+    - nav item size
+    - icon-label gap
+    - vertical gap
+    - active/hover states
+    - brand/logo
+    - wallet panel
+    - sidebar width
+    - mobile nav
+- Made desktop sidebar nav items slightly more compact without changing their design rhythm:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - reduced nav row padding:
+    - `.nav_link` from `8px 0 8px 0` to `7px 0 7px 0`
+    - mirrored into the desktop-fit desktop nav overrides
+  - reduced icon shell size slightly:
+    - from `35px` to `33px`
+    - border radius from `12px` to `11px`
+  - reduced icon glyph size slightly:
+    - from `17px` to `15.5px`
+  - reduced nav label size slightly:
+    - fallback font size from `17.5px` to `16.5px`
+    - kept the same font weight
+  - preserved:
+    - icon/text gap
+    - inter-item gap
+    - active/hover colors
+    - sidebar width
+    - wallet panel
+    - brand/logo area
+    - mobile navigation
+- Moved the whole desktop sidebar nav group lower by one more visible step:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - changed the nav-group owner:
+    - `.nav_links`
+  - increased the pre-nav top offset from:
+    - `calc(var(--sidebar-nav-offset-y-scaled, 10px) + 10px)`
+    - to `calc(var(--sidebar-nav-offset-y-scaled, 10px) + 22px)`
+  - preserved:
+    - gap between nav items
+    - icon-label gap
+    - icon and label sizing
+    - brand/logo
+    - wallet panel
+    - sidebar width/gutter
+    - mobile nav
+- Tuned sidebar brand/nav vertical placement with two small downward adjustments:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - moved the shrimp logo slightly lower inside the fixed brand cap:
+    - `--brand-logo-top-scaled: calc(20px * var(--ui-scale-y)) -> calc(24px * var(--ui-scale-y))`
+  - moved the full desktop nav tab group lower by increasing the pre-nav offset:
+    - `.nav_links` `margin-top: var(--sidebar-nav-offset-y-scaled, 10px) -> calc(var(--sidebar-nav-offset-y-scaled, 10px) + 10px)`
+  - preserved:
+    - nav item gaps
+    - icon-label spacing
+    - nav icon size
+    - sidebar width/gutter
+    - brand cap height and curved wordmark
+    - wallet panel, routes, and mobile nav
+- Tuned the sidebar shrimp logo position and responsive scaling inside the fixed brand cap:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - moved the layered logo lower inside the cap by changing:
+    - `--brand-logo-top-scaled: calc(10px * var(--ui-scale-y)) -> calc(20px * var(--ui-scale-y))`
+  - changed logo scaling from icon-only scaling to the general desktop UI scale:
+    - `--brand-logo-size-scaled: calc(64px * var(--icon-scale)) -> calc(64px * var(--ui-scale-uniform))`
+  - reason:
+    - `--ui-scale-uniform` follows the shared desktop UI scaling contract across viewport changes, while `--icon-scale` is tuned for iconography and can diverge from the larger shell/card/layout rhythm
+  - preserved:
+    - fixed brand cap height
+    - curved wordmark/path
+    - nav spacing
+    - wallet/sidebar width
+    - routes and mobile nav
+- Fixed the sidebar brand-cap height regression and made the shrimp logo scale through the existing UI scale system:
+  - updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - root cause:
+    - the enlarged logo wrapper still participated in normal flow, so its `64px` box increased the brand block height and pushed nav items down
+    - `transform` preserved the visual overlap, but it did not reduce the layout height contribution
+  - brand cap height contract:
+    - `.brand_lockup` is now an explicit positioning context with:
+      - `width: min(100%, 160px)`
+      - `height: var(--brand-cap-height-scaled)`
+    - `--brand-cap-height-scaled: calc(62px * var(--ui-scale-y))`
+  - logo scaling variable:
+    - `--brand-logo-size-scaled: calc(64px * var(--icon-scale))`
+    - `--brand-logo-top-scaled: calc(10px * var(--ui-scale-y))`
+  - logo overlap model:
+    - `.brand_mark` is positioned inside the cap only:
+      - `position: absolute`
+      - `top: var(--brand-logo-top-scaled)`
+      - `left: 50%`
+      - `transform: translateX(-50%)`
+    - this keeps the current larger logo visual while preventing it from increasing cap layout height
+  - Next Image behavior:
+    - intrinsic source size increased to `96px`
+    - CSS now controls rendered size through `--brand-logo-size-scaled`
+  - preserved:
+    - curved wordmark/path
+    - sidebar width/gutter
+    - nav spacing
+    - wallet and mobile nav behavior
+- Fixed the sidebar shrimp logo sizing no-op by replacing the conflicting fallback with a single explicit logo-size source of truth:
+  - updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - root cause:
+    - the attempted `54px -> 60px` CSS change never became effective because the global token `--brand-mark-size-scaled: calc(42px * var(--ui-scale-uniform))` was already defined upstream in [`frontend/styles/globals.css`](./frontend/styles/globals.css), so the fallback value in `.brand_mark` was ignored
+    - as a result, the wrapper stayed constrained to the global token size, so increasing `Image` props alone did not produce a visible logo-size increase
+  - single source of truth now used:
+    - `const BRAND_LOGO_SIZE = 64` in [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+    - `.brand_mark` receives `--brand-logo-size` inline from that constant
+    - `.brand_mark` width/height now use `var(--brand-logo-size, 64px)`
+    - `Image` width/height props now also use `BRAND_LOGO_SIZE`
+  - effective rendered logo size:
+    - `64px`
+  - preserved:
+    - current upward overlap behavior (`translateY(-12px)`)
+    - curved wordmark/path
+    - sidebar width, nav, wallet, routes, and mobile behavior
+- Slightly increased the sidebar shrimp logo size while preserving the successful overlap with the curved wordmark:
+  - updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - increased the effective logo size from `54px` to `60px`
+  - preserved:
+    - centered logo alignment
+    - `.brand_mark` upward overlap behavior (`translateY(-12px)`)
+    - unchanged curved wordmark SVG/path
+    - unchanged brand-block placement and nav position
+- Adjusted the sidebar brand mark to overlap upward into the curved wordmark area without moving nav placement:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - removed the whole-brand downward move:
+    - `.brand_lockup` no longer uses `transform: translateY(16px)`
+  - kept the larger shrimp logo size and moved only the logo upward visually:
+    - `.brand_mark { transform: translateY(-12px); }`
+  - preserved:
+    - curved wordmark SVG path/viewBox
+    - brand block height
+    - nav item position/spacing
+    - sidebar width, wallet, routes, and mobile nav
+- Forced the sidebar brand-block offset and logo-size fix after confirming the previous change was not hitting the effective owners:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+  - root cause of the no-op:
+    - the shrimp mark was rendered by `next/image` with inline `width={32}` / `height={32}`, so increasing `.brand_mark` in CSS did not visibly enlarge the actual image
+    - moving `.brand_lockup` with margin was visually weak compared with the brand cap's internal SVG box, so the offset change did not read clearly enough
+  - applied deterministic visible owners instead:
+    - `.brand_lockup` now uses `transform: translateY(16px)` with `margin-top: 0`
+    - `Image` size updated from `32x32` to `54x54`
+    - `.brand_mark img` now follows the wrapper with `width: 100%` / `height: 100%`
+  - preserved:
+    - curved wordmark and current spacing
+    - sidebar width and gutter
+    - nav spacing/states
+    - wallet/sidebar layout
+    - mobile nav
+- Adjusted sidebar brand placement only:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - moved the full curved-wordmark + shrimp block downward together by changing:
+    - `.brand_lockup` `margin-top` from `-2px` to `12px`
+  - increased the shrimp logo size without changing the current SVG wordmark geometry:
+    - `.brand_mark` and `.brand_mark img` from `42px` to `54px`
+  - preserved:
+    - current curved wordmark path/viewBox
+    - wordmark/logo spacing
+    - sidebar width and floating gutter layout
+    - nav layout
+    - wallet layout
+    - mobile behavior
+- Rolled back the latest sidebar brand-cap absolute-positioning experiment:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - removed the temporary fixed-height / absolute-positioning model from `.brand_lockup`
+  - restored the previous stacked-flow curved brand layout:
+    - `.brand_lockup` back to grid with centered stacking
+    - `.brand_wordmark` back to normal flow sizing
+    - `.brand_mark` back to small negative top offset instead of absolute placement
+  - preserved:
+    - curved `PALATE` wordmark
+    - sidebar width and gutter
+    - nav spacing/states
+    - wallet and overall layout behavior
+- Fixed the sidebar brand-cap layout root cause by taking the curved wordmark and logo out of normal stacked flow:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - root cause:
+    - the SVG wordmark box still occupied layout height, so the shrimp logo was being placed below the SVG box rather than visually below the curved text path
+  - new positioning model:
+    - `.brand_lockup` is now a fixed-height positioning context instead of a normal grid stack
+    - `.brand_wordmark` is absolutely positioned near the top of the cap
+    - `.brand_mark` is absolutely positioned directly below the visible wordmark
+  - exact geometry:
+    - `.brand_lockup { width: min(100%, 160px); height: 72px; }`
+    - `.brand_wordmark { top: 0; left: 50%; width: 160px; height: 42px; }`
+    - `.brand_mark { top: 34px; left: 50%; }`
+  - preserved:
+    - sidebar width and gutter
+    - nav spacing
+    - wallet/sidebar layout
+    - routes and mobile nav
+- Cleaned up the desktop sidebar curved brand mark geometry instead of relying on large negative margins:
+  - updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - reduced unnecessary SVG vertical reserve:
+    - `viewBox` from `0 0 160 58` to `0 0 160 42`
+    - added `preserveAspectRatio="xMidYMid meet"`
+  - lowered the arc path inside the SVG so the wordmark sits closer to the logo:
+    - path from `M 10 42 C 36 6, 124 6, 150 42`
+    - to `M 10 33 C 36 8, 124 8, 150 33`
+  - replaced fragile spacing hacks with a cleaner stacked brand layout:
+    - `.brand_lockup` now uses `row-gap: 2px`
+    - `.brand_wordmark` now uses an explicit `42px` block height
+    - `.brand_mark` `margin-top` reduced from `-20px` to `-2px`
+  - preserved:
+    - sidebar width and gutter
+    - nav/wallet/routes
+    - mobile nav
+- Tuned the desktop sidebar curved brand cap spacing so the wordmark/logo read more like one mark:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - moved the whole brand cap slightly down from the top edge:
+    - `.brand_lockup` `margin-top` from `-10px` to `-2px`
+  - increased the curved wordmark slightly again:
+    - `.brand_wordmark` width from `152px` to `160px`
+    - `.brand_wordmark_text` font size from `21px` to `23px`
+  - pulled the shrimp logo materially closer underneath:
+    - `.brand_mark` `margin-top` from `-14px` to `-20px`
+  - preserved:
+    - sidebar width and gutter
+    - nav spacing/states
+    - wallet layout
+    - routes and mobile nav
+- Tuned the desktop sidebar curved brand cap for stronger presence and a tighter logo lockup:
+  - updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - enlarged the wordmark footprint:
+    - SVG `viewBox` from `140 x 52` to `160 x 58`
+    - arc path widened from `M 12 38 C 36 8, 104 8, 128 38` to `M 10 42 C 36 6, 124 6, 150 42`
+    - `.brand_wordmark` width from `132px` to `152px`
+    - `.brand_wordmark_text` font size from `15px` to `21px`
+  - tightened the shrimp logo attachment under the arc:
+    - `.brand_mark` `margin-top` from `-6px` to `-14px`
+  - preserved:
+    - sidebar width and gutter
+    - nav states/spacing
+    - wallet panel
+    - routes and mobile nav
+- Redesigned the desktop sidebar brand area into a compact curved brand cap:
+  - updated [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - replaced the horizontal brand lockup with:
+    - an inline SVG curved `PALATE` wordmark using `textPath`
+    - the centered shrimp logo directly underneath
+  - kept the brand cap compact by:
+    - stacking the wordmark and logo in a tight grid
+    - reducing the text-to-logo gap with a small negative logo offset
+    - limiting the wordmark width to the usable sidebar cap area
+  - preserved:
+    - sidebar width
+    - floating sidebar gutter
+    - nav items/states
+    - wallet panel
+    - routes
+    - mobile bottom nav
 - Reduced the compensated desktop floating-sidebar gutter by half while preserving the accepted layout model:
   - updated [`frontend/styles/layout.css`](./frontend/styles/layout.css)
   - reduced the shell-owned gutter token:
