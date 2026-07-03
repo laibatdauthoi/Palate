@@ -6,9 +6,13 @@
    - Pages must not restyle navigation internals */
 .navigation_bar {
   --sidebar-content-inset: calc(var(--sidebar-padding-scaled) - 14px);
+  --sidebar-radius-scaled: clamp(18px, calc(32px * var(--ui-scale-uniform)), 32px);
   --brand-cap-height-scaled: calc(62px * var(--ui-scale-y));
+  --brand-wordmark-width-scaled: calc(160px * var(--ui-scale-uniform));
+  --brand-wordmark-height-scaled: calc(42px * var(--ui-scale-y));
   --brand-logo-size-scaled: calc(64px * var(--ui-scale-uniform));
   --brand-logo-top-scaled: calc(24px * var(--ui-scale-y));
+  --brand-nav-gap-scaled: clamp(14px, calc(22px * var(--ui-scale-uniform)), 22px);
   position: sticky;
   top: var(--sidebar-shell-gutter, 16px);
   align-self: start;
@@ -28,7 +32,7 @@
     var(--sidebar-content-inset)
     var(--sidebar-content-inset);
   border-right: 2px solid rgba(255, 47, 159, 0.2);
-  border-radius: 32px;
+  border-radius: var(--sidebar-radius-scaled);
   background:
     linear-gradient(90deg, rgba(255, 47, 159, 0.12), transparent 8%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%),
@@ -56,9 +60,9 @@
 
 .brand_wordmark {
   display: block;
-  width: min(100%, 160px);
-  height: 42px;
-  max-height: 42px;
+  width: min(100%, var(--brand-wordmark-width-scaled));
+  height: var(--brand-wordmark-height-scaled);
+  max-height: var(--brand-wordmark-height-scaled);
   overflow: visible;
 }
 
@@ -95,7 +99,7 @@
 
 .nav_links {
   display: grid;
-  margin-top: calc(var(--sidebar-nav-offset-y-scaled, 10px) + 22px);
+  margin-top: calc(var(--sidebar-nav-offset-y-scaled, 10px) + var(--brand-nav-gap-scaled));
   margin-left: 5px;
   margin-inline: 0;
   gap: 0;

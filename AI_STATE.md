@@ -46,6 +46,67 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Made the desktop sidebar corner radius scale safely with viewport while preserving the approved default desktop appearance:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - radius owner:
+    - `.navigation_bar`
+  - replaced the old sidebar radius token:
+    - `--sidebar-board-radius-scaled: calc(32px * var(--radius-scale))`
+    - with `--sidebar-radius-scaled: clamp(18px, calc(32px * var(--ui-scale-uniform)), 32px)`
+  - applied only to the visible sidebar shell:
+    - `.navigation_bar { border-radius: var(--sidebar-radius-scaled); }`
+  - default desktop radius preserved exactly:
+    - `32px`
+  - WalletPanel intentionally untouched in this pass
+- Restored the WalletPanel default radius and tightened desktop-fit brand/nav drift:
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - bad radius token/selector found:
+    - `.wallet_panel { border-radius: var(--sidebar-board-radius-scaled, calc(32px * var(--radius-scale))) }`
+    - this coupled WalletPanel to the sidebar board radius and changed its default appearance immediately at the default viewport
+  - WalletPanel default radius restored by decoupling it from the sidebar token:
+    - added `--wallet-panel-radius-scaled: clamp(14px, calc(16px * var(--radius-scale)), 16px)`
+    - applied `border-radius: var(--wallet-panel-radius-scaled)` to both wallet shell blocks
+    - default viewport value is restored to `16px`
+  - nav drift fix:
+    - narrowed the brand-to-nav gap contract from a fixed-scale path to a clamp that preserves default while shrinking on desktop-fit
+    - `--brand-nav-gap-scaled: calc(22px * var(--ui-scale-y)) -> clamp(14px, calc(22px * var(--ui-scale-uniform)), 22px)`
+    - this keeps the default desktop nav position but prevents the logo-to-nav spacing from feeling too deep as the viewport narrows
+  - preserved:
+    - wallet layout/content/logic
+    - sidebar width and brand SVG/path/logo size
+    - nav item size and icon-label gap
+    - mobile nav and page composition
+- Made desktop sidebar brand/nav spacing and sidebar/wallet radius responsive to viewport scale:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - root cause:
+    - the sidebar brand area mixed scaled tokens with fixed values:
+      - fixed wordmark size (`160px` / `42px`)
+      - fixed extra brand-to-nav gap (`22px`)
+      - fixed sidebar shell radius (`32px`)
+      - fixed wallet panel radius (`16px`)
+    - as desktop-fit got narrower, the scaled shell shrank but those fixed values did not, so the brand/nav spacing and board radii felt visually too large
+  - brand/nav spacing scale changes:
+    - added `--brand-wordmark-width-scaled: calc(160px * var(--ui-scale-uniform))`
+    - added `--brand-wordmark-height-scaled: calc(42px * var(--ui-scale-y))`
+    - added `--brand-nav-gap-scaled: calc(22px * var(--ui-scale-y))`
+    - `.brand_wordmark` now uses the scaled width/height variables
+    - `.nav_links` `margin-top` now uses `var(--brand-nav-gap-scaled)` instead of a fixed `22px`
+  - shared radius variable:
+    - added `--sidebar-board-radius-scaled: calc(32px * var(--radius-scale))`
+    - applied to:
+      - `.navigation_bar`
+      - `.wallet_panel`
+  - old/new radius behavior:
+    - sidebar: `32px` fixed -> `calc(32px * var(--radius-scale))`
+    - wallet: fixed `16px` override -> `calc(32px * var(--radius-scale))`
+  - preserved:
+    - sidebar width/gutter
+    - brand SVG/path
+    - nav items and spacing behavior
+    - wallet logic
+    - routes and mobile nav
 - Nudged the desktop sidebar nav group slightly to the right as a single block:
   - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
   - changed the nav-group container:
