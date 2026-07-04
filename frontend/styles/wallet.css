@@ -303,6 +303,7 @@
   gap: var(--wallet-panel-gap);
   margin-top: auto;
   margin-inline: calc(var(--wallet-shell-inline-bleed) * -1);
+  margin-bottom: calc(var(--wallet-shell-inline-bleed) * -1);
   border-radius: var(--wallet-panel-radius-scaled);
   padding: var(--wallet-panel-padding);
   box-shadow: var(--shadow-bevel), 0 12px 30px rgba(0, 0, 0, 0.28);

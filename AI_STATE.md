@@ -79,6 +79,29 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
       [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
       and [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx)
     - routes, wallet logic, Home/cards/mobile, and scale architecture
+- Applied a follow-up desktop sidebar spacing polish:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+    and [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - wallet bottom spacing:
+    - effective placement remained owned by `.navigation_bar` bottom padding plus
+      `.wallet_panel { margin-top: auto; }`
+    - the panel already used inline bleed to match the visual side inset, but it
+      had no matching bottom bleed, so the bottom gap read larger than the side
+      edges
+    - added `.wallet_panel { margin-bottom: calc(var(--wallet-shell-inline-bleed) * -1); }`
+      so the visible bottom inset now matches the panel's side inset more closely
+      without changing wallet width, internals, or logic
+  - brand-to-nav spacing:
+    - the vertical handoff remains owned by `--nav-group-offset-y` in
+      `.navigation_bar`
+    - increased the brand-to-nav gap from `28px` to `56px` to move the whole nav
+      group down without changing the gap between individual nav items
+  - preserved:
+    - sidebar width/gutter
+    - nav item size and icon-label spacing
+    - wallet internals and logic
+    - mobile nav
+    - Home/cards/globals scale cleanup
 - Completed scale cleanup Phase 5 for desktop card-family sizing:
   - updated:
     - [`frontend/styles/cards.css`](./frontend/styles/cards.css)
