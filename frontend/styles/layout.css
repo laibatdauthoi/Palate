@@ -6,9 +6,9 @@
    - Component styles must not redefine shell/frame behavior */
 .app_shell {
   --sidebar-shell-gutter: 8px;
-  --sidebar-width-scaled: calc(190px * var(--ui-scale-x));
+  --sidebar-width-bounded: clamp(210px, 12vw, 250px);
   display: grid;
-  grid-template-columns: var(--sidebar-width-scaled) minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-width-bounded) minmax(0, 1fr);
   height: 100dvh;
   min-height: 100dvh;
   overflow: hidden;
@@ -18,7 +18,8 @@
 }
 
 .main_content {
-  width: min(100%, var(--main-frame-width-scaled));
+  width: 100%;
+  max-width: none;
   height: 100dvh;
   min-height: 0;
   margin: 0;
@@ -36,16 +37,6 @@
 
 .mobile_only {
   display: none;
-}
-
-@media (max-width: 1023px) {
-  .app_shell {
-    grid-template-columns: 76px minmax(0, 1fr);
-  }
-
-  .main_content {
-    padding: var(--spacing-lg);
-  }
 }
 
 @media (max-width: 639px) {
@@ -76,21 +67,5 @@
     min-height: 0;
     overflow: visible;
     padding: var(--spacing-md) var(--spacing-md) calc(var(--spacing-2xl) + 96px);
-  }
-}
-
-@media (min-width: 640px) and (max-width: 1199px) {
-  .app_shell {
-    display: grid;
-    grid-template-columns: var(--sidebar-width-scaled, 190px) minmax(0, 1fr);
-  }
-
-  main.main_content {
-    width: min(100%, var(--main-frame-width-scaled));
-    max-width: none;
-    min-width: 0;
-    padding: var(--main-padding-top-scaled) var(--main-padding-x-scaled) var(--main-padding-bottom-scaled);
-    margin-top: 0;
-    top: auto;
   }
 }

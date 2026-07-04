@@ -142,31 +142,10 @@
   --match-detail-button-size-mobile-scaled: calc(44px * var(--icon-scale));
   --match-detail-button-font-size-mobile-scaled: calc(18px * var(--text-scale));
   --match-settle-height-mobile-scaled: calc(44px * var(--ui-scale-y));
-  /* Shell-only scaled tokens. Stage 2 consumes these for sidebar and main
-     wrapper rhythm while preserving the approved layout at ui-scale = 1. */
-  --sidebar-width-scaled: calc(var(--sidebar-width) * var(--ui-scale-x));
-  --sidebar-padding-scaled: calc(var(--spacing-xl) * var(--ui-scale-y));
-  --sidebar-gap-scaled: calc(var(--spacing-lg) * var(--ui-scale-y));
-  --sidebar-nav-gap-scaled: calc(var(--spacing-sm) * var(--ui-scale-y));
-  --sidebar-nav-offset-y-scaled: calc(10px * var(--ui-scale-y));
-  --brand-gap-scaled: calc(var(--spacing-md) * var(--ui-scale-uniform));
-  --brand-offset-x-scaled: calc(24px * var(--ui-scale-x));
-  --brand-offset-y-scaled: calc(-12px * var(--ui-scale-y));
-  --brand-mark-size-scaled: calc(42px * var(--ui-scale-uniform));
-  --nav-link-gap-scaled: calc(10px * var(--ui-scale-uniform));
-  --nav-link-font-size-scaled: calc(18.9px * var(--text-scale));
-  --nav-link-pad-y-scaled: calc(14px * var(--ui-scale-y));
-  --nav-link-pad-right-scaled: calc(16px * var(--ui-scale-x));
-  --nav-link-pad-left-scaled: calc(18px * var(--ui-scale-x));
-  --nav-link-rail-pad-y-scaled: calc(12px * var(--ui-scale-y));
-  --nav-link-rail-inset-scaled: calc(8px * var(--ui-scale-x));
-  --wallet-padding-scaled: calc(10px * var(--ui-scale-y));
-  --wallet-gap-scaled: calc(8px * var(--ui-scale-y));
-  --wallet-header-gap-scaled: calc(8px * var(--ui-scale-y));
-  --wallet-compact-body-gap-scaled: calc(2px * var(--ui-scale-y));
-  --wallet-meta-row-gap-scaled: calc(5px * var(--ui-scale-y));
-  --wallet-meta-column-gap-scaled: calc(8px * var(--ui-scale-x));
-  --main-frame-width-scaled: calc(1005px * var(--ui-scale-x));
+  /* Legacy scale bridge:
+     root `--ui-scale-*` variables still feed shared card/page families that are
+     outside the current shell cleanup scope. Shell/nav/wallet owners no longer
+     depend on the old desktop proportional sizing tokens. */
   --waiting-grid-gap-scaled: calc(27px * var(--ui-scale-x));
   --waiting-card-width-scaled: calc(296px * var(--ui-scale-x));
   --waiting-card-height-scaled: calc(328px * var(--ui-scale-y));
@@ -193,6 +172,36 @@
   --main-padding-top-scaled: calc(var(--spacing-xl) * var(--ui-scale-y));
   --main-padding-x-scaled: calc(var(--spacing-2xl) * var(--ui-scale-x));
   --main-padding-bottom-scaled: calc(var(--spacing-3xl) * var(--ui-scale-y));
+}
+
+@media (min-width: 1200px) {
+  :root {
+    /* Phase 1 stable breakpoint scaling:
+       freeze root desktop component scales at the approved desktop-wide
+       baseline while leaving layout-scale primitives available for later
+       shell/card/page migration phases. */
+    --text-scale: 1;
+    --text-scale-display: 0.98;
+    --text-scale-secondary: 0.9;
+    --button-scale: 1;
+    --icon-scale: 1;
+    --radius-scale: 1;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1199px) {
+  :root {
+    /* Legacy root compatibility layer:
+       shared component families still consume these root-scale tokens. The
+       bounded-fluid shell no longer uses desktop-fit-specific shell/nav/wallet
+       resizing here. */
+    --text-scale: 0.9;
+    --text-scale-display: 0.882;
+    --text-scale-secondary: 0.81;
+    --button-scale: 0.9;
+    --icon-scale: 0.9;
+    --radius-scale: 0.92;
+  }
 }
 
 html {
@@ -3735,12 +3744,10 @@ select.input_control option:checked,
   background: var(--gradient-primary);
 }
 
-/* Emergency cleanup: keep the GameFi weight while removing noisy double frames. */
+/* Legacy shell cleanup:
+   navigation shell geometry now lives in `navigation.css`; keep only shared
+   scroll polish here until the mixed cleanup block is retired. */
 .navigation_bar {
-  height: 100dvh;
-  min-height: 0;
-  gap: var(--sidebar-gap-scaled, var(--spacing-lg));
-  overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
 }
@@ -4320,23 +4327,6 @@ select.input_control,
 }
 
 @media (min-width: 640px) and (max-width: 1199px) {
-  /* ==========================
-     Application Layout
-     ========================== */
-  .app_shell {
-    grid-template-columns: var(--sidebar-width-scaled) minmax(0, 1fr);
-  }
-
-  /* ==========================
-     Application Layout
-     ========================== */
-  .main_content {
-    width: min(100%, var(--main-frame-width-scaled));
-    max-width: none;
-    min-width: 0;
-    padding: var(--main-padding-top-scaled) var(--main-padding-x-scaled) var(--main-padding-bottom-scaled);
-  }
-
   /* ==========================
      Temporary composition bridges
      Home owns the grid composition here, but these selectors still reach into

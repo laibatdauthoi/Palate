@@ -89,13 +89,20 @@ Do not make the UI cute, childish, meme-like, or overly playful.
 
 Prefer premium dark GameFi elegance.
 
-## Layout scale contract
+## Layout shell contract
 
 For any UI layout, spacing, sizing, grid, card, sidebar, modal, or button dimension change, follow `docs/Layout_scale_rules.md`.
 
-Do not introduce layout values that bypass the scale system.
+Do not introduce layout values that bypass the current shell/component ownership model.
 
-If a UI change cannot be mapped to the scale system, stop and ask before implementing.
+Desktop policy:
+
+- use the bounded-fluid desktop shell
+- let main content consume remaining width
+- keep sidebar/nav/wallet/component internals stable
+- do not use continuous desktop component scaling as the default solution
+
+If a UI change cannot be mapped to the current shell/component contract, stop and ask before implementing.
 
 ## 7. Responsive Rule
 

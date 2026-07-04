@@ -46,6 +46,240 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Added CSS ownership hierarchy and selector-ownership guardrails to
+  [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md):
+  - active hierarchy now documented as:
+    - `globals.css`
+    - `layout.css`
+    - page CSS
+    - component CSS
+    - primitive CSS
+  - direction of ownership is now explicit:
+    - layout places pages/components
+    - pages arrange components
+    - components own internals
+    - primitives own material/interaction
+  - selector rule is now explicit:
+    - one selector family, one canonical owner
+    - duplicate selectors across files are forbidden unless documented as a
+      bridge with a removal path
+  - page/component boundary is now explicit:
+    - pages may set component contract variables
+    - pages may not target deep component internals directly
+  - this ownership policy is now the active guardrail for the remaining
+    `--ui-scale-*` cleanup and future CSS movement
+- Adopted the bounded-fluid desktop shell model across docs and shell owners:
+  - updated [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md)
+  - updated [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md)
+  - updated [`docs/frontend_rules.md`](./docs/frontend_rules.md)
+  - updated shell CSS in:
+    - [`frontend/styles/layout.css`](./frontend/styles/layout.css)
+    - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+    - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+    - [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+  - final shell policy now recorded as:
+    - desktop sidebar width: `clamp(210px, 12vw, 250px)`
+    - sidebar/nav/wallet internals stay stable across desktop ranges
+    - main content consumes the remaining viewport width
+    - too-narrow desktop should eventually use explicit collapse/drawer states,
+      not proportional component shrinking
+  - cleaned obsolete shell-era UI scale leftovers:
+    - removed fixed desktop `190px` / desktop-fit `176px` sidebar shell widths
+    - removed desktop-fit nav/wallet shrink blocks that only existed to resize
+      sidebar internals
+    - removed obsolete shell/nav/wallet root token references from
+      [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+    - removed duplicate desktop-fit app-shell/main-content ownership from
+      `globals.css`
+  - intentionally deferred legacy scale debt:
+    - root `--ui-scale-*` compatibility remains for shared card/page families
+    - mobile `<640px` remains unchanged
+    - explicit sidebar collapse/drawer implementation still needs a later shell
+      phase
+- Finalized the written desktop shell policy across:
+  - [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md)
+  - [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md)
+  - stable desktop shell:
+    - sidebar sizing is fixed per desktop state
+    - main content uses remaining viewport width
+  - intentional collapse policy:
+    - when the full desktop shell no longer fits, the shell must transition
+      explicitly to:
+      - compact rail
+      - overlay drawer
+      - or mobile navigation
+    - component squeeze is not the fallback mechanism
+  - component resilience policy:
+    - `min-width: 0` on shrinkable text containers
+    - explicit min/max ownership
+    - component-owned overflow/ellipsis/wrapping
+    - no uncontrolled shrink/wrap/stretch
+  - next implementation implication:
+    - convert remaining shell behavior from legacy scale formulas to explicit
+      sidebar-collapse states before further desktop polish
+- Documented the final desktop shell policy in:
+  - [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md)
+  - [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md)
+- policy shift now recorded explicitly:
+  - desktop uses stable shell states, not continuous proportional scaling
+  - sidebar is fixed per desktop breakpoint state
+  - main content uses remaining viewport space
+  - narrow viewport behavior must be an intentional shell transition:
+    - full sidebar
+    - compact rail
+    - overlay/drawer
+    - mobile bottom nav
+  - components must use resilience contracts:
+    - `min-width: 0`
+    - explicit min/max constraints
+    - overflow/ellipsis/wrapping owned by the component
+    - no uncontrolled shrink/wrap/stretch
+  - breakpoints are now the approved tool for shell changes and structural
+    layout changes, not ad hoc component-size patching
+- next architecture implication:
+  - remaining CSS migration work should prioritize explicit shell-collapse
+    implementation and removal of legacy desktop continuous-scale formulas
+- Phase 2 stable breakpoint scaling landed for shell/nav/wallet owners:
+  - updated [`frontend/styles/layout.css`](./frontend/styles/layout.css)
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - shell freeze:
+    - `.app_shell` sidebar column no longer scales continuously with `--ui-scale-x`
+    - desktop-wide sidebar width is now a fixed `190px`
+    - desktop-fit sidebar width is now a fixed `176px`
+  - navigation freeze:
+    - sidebar inner padding, shell radius, brand cap geometry, logo sizing, nav offsets, nav icon shell size, nav icon size, nav row gap, and nav label size are now breakpoint-owned constants instead of continuous `--ui-scale-*` formulas
+    - desktop-wide keeps the approved desktop shell as baseline
+    - desktop-fit now uses a stable compact set rather than proportional drift
+  - wallet freeze:
+    - WalletPanel radius, shell bleed, gap, padding, status-icon size/radius, and compact action sizing are now breakpoint-owned constants
+    - desktop-wide keeps the approved wallet shell baseline
+    - desktop-fit now uses a stable compact wallet contract
+  - intentionally untouched in Phase 2:
+    - cards
+    - Home page composition
+    - shared button contract files
+    - mobile (`<640px`) behavior
+  - remaining scale debt after Phase 2:
+    - root `--ui-scale-*` still drive card-family and page-composition `*-scaled` tokens
+    - later phases should freeze shared control shells and card-family/page tokens so desktop layout responds mostly through width/grid rather than component drift
+- Added a CSS ownership index to [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md):
+  - documents every current file under `frontend/styles/`
+  - records the live import order from [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+  - defines what each file owns and must not own
+  - records when to create a new CSS file and when not to
+  - classifies current files into:
+    - stable primary owners
+    - files that still contain architecture debt
+  - this index is now the working reference for safe multi-file CSS maintenance while the remaining debt stays intentionally staged
+- Phase 1 stable breakpoint scaling refactor landed at the root scale layer:
+  - updated [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+  - root scale philosophy changed:
+    - desktop component scales are no longer continuously derived from viewport size inside desktop ranges
+    - desktop-wide (`>=1200px`) now freezes the approved root component baseline:
+      - `--text-scale: 1`
+      - `--text-scale-display: 0.98`
+      - `--text-scale-secondary: 0.9`
+      - `--button-scale: 1`
+      - `--icon-scale: 1`
+      - `--radius-scale: 1`
+    - desktop-fit (`640–1199px`) now uses a stable compact root component set:
+      - `--text-scale: 0.9`
+      - `--text-scale-display: 0.882`
+      - `--text-scale-secondary: 0.81`
+      - `--button-scale: 0.9`
+      - `--icon-scale: 0.9`
+      - `--radius-scale: 0.92`
+  - intentionally left unchanged in Phase 1:
+    - runtime `--ui-scale`, `--ui-scale-x`, `--ui-scale-y`, and `--ui-scale-uniform` still come from [`frontend/components/layout_scale_controller.tsx`](./frontend/components/layout_scale_controller.tsx)
+    - mobile (`<640px`) still uses the previous continuous root scale formulas
+    - component-level `*-scaled` tokens remain in place and continue consuming the root values until later phases migrate shell/component families to stable breakpoint tokens
+  - next implication:
+    - desktop shell/component drift should reduce for typography, icon sizing, button sizing, and radius behavior
+    - shell width, card-family dimensions, and page-composition offsets still need later breakpoint-token cleanup because they continue to consume `--ui-scale-*`
+- Restored WalletPanel visual width after the nav-anchor cleanup without undoing the stable nav model:
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - root cause:
+    - the nav-anchor cleanup widened `.navigation_bar` internal x padding through `--sidebar-inner-pad-x`
+    - `WalletPanel` is still a `width: 100%` child of that content box, so the wider shell padding made the panel visually narrower even though the wallet itself was not intentionally resized
+  - wallet size restored by wallet-local shell bleed:
+    - added `--wallet-shell-inline-bleed: calc(var(--sidebar-inner-pad-x, 0px) - (var(--sidebar-padding-scaled, 24px) - 14px))`
+    - `.wallet_panel` now uses:
+      - `width: calc(100% + (2 * var(--wallet-shell-inline-bleed)))`
+      - `margin-inline: calc(var(--wallet-shell-inline-bleed) * -1)`
+    - this restores the panel to the previous accepted visual width relative to the sidebar while keeping it centered/aligned inside the current shell
+  - nav anchoring preserved:
+    - no changes to `.navigation_bar`
+    - no changes to `.nav_links`
+    - no changes to nav offsets
+- Fixed remaining desktop sidebar nav drift by separating nav anchoring from shell padding and container gap:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - root cause of remaining drift:
+    - nav position was still an indirect sum of:
+      - scaled shell padding on `.navigation_bar`
+      - flex-column `gap` on `.navigation_bar`
+      - explicit `.nav_links` top offset
+      - explicit `.nav_links` left inset
+    - desktop-fit overrides also re-declared shell padding, so the nav group still depended on more than one owner for the same axes
+  - shell padding conflicts removed:
+    - replaced `--sidebar-content-inset`/mixed padding math with explicit shell vars:
+      - `--sidebar-inner-pad-x: calc(18px * var(--ui-scale-x))`
+      - `--sidebar-inner-pad-top: calc(20px * var(--ui-scale-y))`
+      - `--sidebar-inner-pad-bottom: calc(18px * var(--ui-scale-y))`
+    - `.navigation_bar` now uses those vars directly for padding
+    - removed the repeated desktop-fit padding overrides on:
+      - `.navigation_bar`
+      - `.navigation_bar.desktop_only`
+    - removed the competing shell-to-child vertical spacing owner:
+      - `.navigation_bar { gap: 0; }`
+  - final nav anchor model:
+    - shell owner:
+      - `.navigation_bar` internal padding via `--sidebar-inner-pad-*`
+    - nav-group owner:
+      - `.nav_links`
+      - `margin-top: var(--nav-group-offset-y)`
+      - `padding-left: var(--nav-group-offset-x)`
+      - `width: 100%`
+      - `box-sizing: border-box`
+    - no competing shell gap or responsive padding override now shifts the nav group
+  - preserved:
+    - routes/nav items
+    - wallet
+    - brand/logo
+    - sidebar width
+    - mobile nav
+- Audited and fixed desktop sidebar nav group anchoring with one explicit top/left contract:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - root cause:
+    - nav group top offset was being derived from a compound margin:
+      - `var(--sidebar-nav-offset-y-scaled, 10px)`
+      - plus `var(--brand-nav-gap-scaled)`
+    - nav group horizontal anchoring used a separate fixed `margin-left: 5px`
+    - at the same time, `.navigation_bar` shell padding was independently scaled
+    - this mixed shell padding, scaled spacing, and a fixed margin for the same axes, which made the nav group feel too low at narrower desktop widths and too far left relative to the shell at wider widths
+  - conflicting selectors found:
+    - `.navigation_bar`
+    - `.nav_links`
+    - inherited shell padding in desktop and desktop-fit
+  - new nav anchoring contract:
+    - `--nav-group-offset-y: 32px`
+    - `--nav-group-offset-x: 5px`
+    - `.nav_links` now uses:
+      - `margin-top: var(--nav-group-offset-y)`
+      - `padding-left: var(--nav-group-offset-x)`
+      - `width: 100%`
+      - `box-sizing: border-box`
+    - removed competing left margin and compound top-offset formula
+  - desktop-wide behavior:
+    - nav group now anchors to a fixed top offset from the brand block and a fixed left inset inside the shell
+  - desktop-fit behavior:
+    - uses the same contract with no extra override restoring alternative offsets
+  - preserved:
+    - nav item size
+    - icon-label gap
+    - brand/logo
+    - wallet panel
+    - sidebar width and mobile nav
 - Made the desktop sidebar corner radius scale safely with viewport while preserving the approved default desktop appearance:
   - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
   - radius owner:

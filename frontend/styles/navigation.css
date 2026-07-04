@@ -5,14 +5,26 @@
      switching
    - Pages must not restyle navigation internals */
 .navigation_bar {
-  --sidebar-content-inset: calc(var(--sidebar-padding-scaled) - 14px);
-  --sidebar-radius-scaled: clamp(18px, calc(32px * var(--ui-scale-uniform)), 32px);
-  --brand-cap-height-scaled: calc(62px * var(--ui-scale-y));
-  --brand-wordmark-width-scaled: calc(160px * var(--ui-scale-uniform));
-  --brand-wordmark-height-scaled: calc(42px * var(--ui-scale-y));
-  --brand-logo-size-scaled: calc(64px * var(--ui-scale-uniform));
-  --brand-logo-top-scaled: calc(24px * var(--ui-scale-y));
-  --brand-nav-gap-scaled: clamp(14px, calc(22px * var(--ui-scale-uniform)), 22px);
+  --sidebar-inner-pad-x: 18px;
+  --sidebar-inner-pad-top: 20px;
+  --sidebar-inner-pad-bottom: 18px;
+  --sidebar-radius-scaled: 32px;
+  --brand-cap-height-scaled: 62px;
+  --brand-wordmark-width-scaled: 160px;
+  --brand-wordmark-height-scaled: 42px;
+  --brand-logo-size-scaled: 64px;
+  --brand-logo-top-scaled: 24px;
+  --nav-group-offset-y: 32px;
+  --nav-group-offset-x: 5px;
+  --nav-link-row-gap: 13px;
+  --nav-link-pad-y: 7px;
+  --nav-link-icon-shell-size: 33px;
+  --nav-link-icon-shell-radius: 11px;
+  --nav-link-icon-size: 15.5px;
+  --nav-link-label-size: 18.9px;
+  --nav-claim-badge-size: 20px;
+  --nav-claim-badge-pad-x: 6px;
+  --nav-claim-badge-font-size: 11px;
   position: sticky;
   top: var(--sidebar-shell-gutter, 16px);
   align-self: start;
@@ -21,16 +33,16 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--sidebar-gap-scaled) - 10px);
+  gap: 0;
   width: calc(100% - var(--sidebar-shell-gutter, 16px));
   height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
   max-height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
   box-sizing: border-box;
   padding:
-    calc(var(--sidebar-padding-scaled) - 4px)
-    var(--sidebar-content-inset)
-    var(--sidebar-content-inset)
-    var(--sidebar-content-inset);
+    var(--sidebar-inner-pad-top)
+    var(--sidebar-inner-pad-x)
+    var(--sidebar-inner-pad-bottom)
+    var(--sidebar-inner-pad-x);
   border-right: 2px solid rgba(255, 47, 159, 0.2);
   border-radius: var(--sidebar-radius-scaled);
   background:
@@ -99,9 +111,11 @@
 
 .nav_links {
   display: grid;
-  margin-top: calc(var(--sidebar-nav-offset-y-scaled, 10px) + var(--brand-nav-gap-scaled));
-  margin-left: 5px;
-  margin-inline: 0;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: var(--nav-group-offset-y);
+  margin-left: 0;
+  padding-left: var(--nav-group-offset-x);
   gap: 0;
 }
 
@@ -110,11 +124,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 13px;
+  gap: var(--nav-link-row-gap);
   border: 1px solid transparent;
   border-radius: var(--radius-lg-scaled, 18px);
   color: var(--text-secondary);
-  padding: 7px 0 7px 0;
+  padding: var(--nav-link-pad-y) 0 var(--nav-link-pad-y) 0;
   transition: color var(--transition-fast), transform var(--transition-fast);
 }
 
@@ -122,18 +136,18 @@
   display: inline-flex;
   align-items: center;
   min-width: 0;
-  gap: 13px;
+  gap: var(--nav-link-row-gap);
 }
 
 .nav_link_icon {
   display: inline-flex;
-  width: calc(33px * var(--icon-scale));
-  height: calc(33px * var(--icon-scale));
+  width: var(--nav-link-icon-shell-size);
+  height: var(--nav-link-icon-shell-size);
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: calc(11px * var(--radius-scale));
+  border-radius: var(--nav-link-icon-shell-radius);
   background:
     radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.1), transparent 56%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.008)),
@@ -143,8 +157,8 @@
 }
 
 .nav_link_icon_svg {
-  width: calc(15.5px * var(--icon-scale));
-  height: calc(15.5px * var(--icon-scale));
+  width: var(--nav-link-icon-size);
+  height: var(--nav-link-icon-size);
   color: currentColor;
   filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0));
   transform: scale(1.5);
@@ -156,7 +170,7 @@
   min-width: 0;
   overflow: hidden;
   color: inherit;
-  font-size: var(--nav-link-font-size-scaled, calc(16.5px * var(--text-scale)));
+  font-size: var(--nav-link-label-size);
   font-weight: 800;
   line-height: 1;
   text-overflow: ellipsis;
@@ -165,7 +179,7 @@
 
 .nav_link::before {
   position: absolute;
-  inset: var(--nav-link-rail-pad-y-scaled, 14px) auto var(--nav-link-rail-pad-y-scaled, 14px) 0;
+  inset: 12px auto 12px 0;
   width: 1px;
   border-radius: var(--radius-pill);
   background: transparent;
@@ -224,16 +238,16 @@
 
 .nav_claim_badge {
   display: inline-grid;
-  min-width: calc(20px * var(--button-scale));
-  min-height: calc(20px * var(--button-scale));
+  min-width: var(--nav-claim-badge-size);
+  min-height: var(--nav-claim-badge-size);
   place-items: center;
   border-radius: var(--radius-pill-scaled, 999px);
   background: linear-gradient(135deg, rgba(255, 47, 159, 0.95), rgba(255, 126, 192, 0.9));
   color: #fff7fb;
-  font-size: calc(11px * var(--text-scale));
+  font-size: var(--nav-claim-badge-font-size);
   font-weight: 900;
   line-height: 1;
-  padding: 0 calc(6px * var(--button-scale));
+  padding: 0 var(--nav-claim-badge-pad-x);
   box-shadow: 0 0 14px rgba(255, 47, 159, 0.28);
 }
 
@@ -303,151 +317,4 @@
   line-height: 1;
   padding: 0 calc(4px * var(--button-scale));
   box-shadow: 0 0 12px rgba(255, 47, 159, 0.24);
-}
-
-@media (max-width: 1023px) {
-  .navigation_bar {
-    padding: var(--spacing-md);
-  }
-
-  .brand_wordmark,
-  .wallet_panel {
-    display: none;
-  }
-
-  .nav_link {
-    display: grid;
-    width: 48px;
-    height: 48px;
-    place-items: center;
-    overflow: hidden;
-    padding: 0;
-    white-space: nowrap;
-    color: transparent;
-  }
-
-  .nav_link_main,
-  .nav_claim_badge {
-    display: none;
-  }
-
-  .nav_link::after {
-    color: var(--text-secondary);
-    content: attr(data-short);
-    font-size: var(--font-size-body);
-    font-weight: 900;
-  }
-
-  .nav_link.active::after {
-    color: var(--text-primary);
-  }
-
-  .nav_link::before {
-    inset: auto auto 6px 50%;
-    width: 16px;
-    height: 3px;
-    transform: translateX(-50%);
-  }
-}
-
-@media (min-width: 640px) and (max-width: 1199px) {
-  .navigation_bar {
-    padding:
-      calc(var(--sidebar-padding-scaled) - 4px)
-      var(--sidebar-content-inset)
-      var(--sidebar-content-inset)
-      var(--sidebar-content-inset);
-  }
-
-  .brand_wordmark {
-    display: block;
-  }
-
-  .wallet_panel {
-    display: grid;
-  }
-
-  .nav_link {
-    display: flex;
-    width: auto;
-    height: auto;
-    place-items: initial;
-    overflow: visible;
-    gap: 13px;
-    padding: 7px 0 7px 0;
-    white-space: nowrap;
-    color: var(--text-secondary);
-  }
-
-  .nav_link_main {
-    display: inline-flex;
-    gap: 13px;
-  }
-
-  .nav_claim_badge {
-    display: inline-grid;
-  }
-
-  .nav_link::after {
-    content: none;
-  }
-
-  .nav_link::before {
-    inset: var(--nav-link-rail-pad-y-scaled, 12px) auto var(--nav-link-rail-pad-y-scaled, 12px) 0;
-    width: 3px;
-    height: auto;
-    transform: none;
-  }
-
-  .navigation_bar.desktop_only {
-    display: flex;
-    width: calc(100% - var(--sidebar-shell-gutter, 16px));
-    height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
-    max-height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
-    padding:
-      calc(var(--sidebar-padding-scaled) - 4px)
-      var(--sidebar-content-inset)
-      var(--sidebar-content-inset)
-      var(--sidebar-content-inset);
-  }
-
-  .navigation_bar.desktop_only .brand_wordmark {
-    display: block;
-  }
-
-  .navigation_bar.desktop_only .wallet_panel {
-    display: grid;
-  }
-
-  .navigation_bar.desktop_only .nav_link {
-    display: flex;
-    width: auto;
-    height: auto;
-    place-items: initial;
-    overflow: visible;
-    gap: 13px;
-    padding: 7px 0 7px 0;
-    white-space: nowrap;
-    color: var(--text-secondary);
-  }
-
-  .navigation_bar.desktop_only .nav_link_main {
-    display: inline-flex;
-    gap: 13px;
-  }
-
-  .navigation_bar.desktop_only .nav_claim_badge {
-    display: inline-grid;
-  }
-
-  .navigation_bar.desktop_only .nav_link::after {
-    content: none;
-  }
-
-  .navigation_bar.desktop_only .nav_link::before {
-    inset: var(--nav-link-rail-pad-y-scaled, 12px) auto var(--nav-link-rail-pad-y-scaled, 12px) 0;
-    width: 3px;
-    height: auto;
-    transform: none;
-  }
 }

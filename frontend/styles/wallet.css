@@ -6,13 +6,26 @@
      tune compact fit inside the panel but must not replace the shared button contract
    - Page composition must not restyle wallet internals */
 .wallet_panel {
-  --wallet-panel-radius-scaled: clamp(14px, calc(16px * var(--radius-scale)), 16px);
+  --wallet-panel-radius-scaled: 16px;
+  --wallet-shell-inline-bleed: 8px;
+  --wallet-panel-gap: 8px;
+  --wallet-panel-padding: 7px;
+  --wallet-header-gap: 6px;
+  --wallet-status-icon-size: 20px;
+  --wallet-status-icon-radius: 8px;
+  --wallet-compact-button-min-height: 40px;
+  --wallet-compact-button-radius: 13px;
+  --wallet-compact-button-pad-y: 8px;
+  --wallet-compact-button-pad-x: 10px;
+  --wallet-action-icon-size: 18px;
+  --wallet-action-label-size: 15px;
   display: grid;
-  width: 100%;
+  width: calc(100% + (2 * var(--wallet-shell-inline-bleed)));
   box-sizing: border-box;
   min-width: 0;
-  gap: var(--wallet-gap-scaled);
+  gap: var(--wallet-panel-gap);
   margin-top: auto;
+  margin-inline: calc(var(--wallet-shell-inline-bleed) * -1);
   border: 2px solid rgba(255, 47, 159, 0.2);
   border-radius: var(--wallet-panel-radius-scaled);
   background:
@@ -20,7 +33,7 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
     var(--gradient-surface),
     var(--surface-primary);
-  padding: var(--wallet-padding-scaled);
+  padding: var(--wallet-panel-padding);
   box-shadow: var(--shadow-panel), var(--shadow-bevel);
 }
 
@@ -287,17 +300,18 @@
 }
 
 .wallet_panel {
-  gap: var(--wallet-gap-scaled, 8px);
+  gap: var(--wallet-panel-gap);
   margin-top: auto;
+  margin-inline: calc(var(--wallet-shell-inline-bleed) * -1);
   border-radius: var(--wallet-panel-radius-scaled);
-  padding: calc(var(--wallet-padding-scaled, 10px) - 3px);
+  padding: var(--wallet-panel-padding);
   box-shadow: var(--shadow-bevel), 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
 .wallet_panel_header {
   align-items: center;
   justify-content: flex-start;
-  gap: 6px;
+  gap: var(--wallet-header-gap);
 }
 
 .wallet_identity {
@@ -325,13 +339,13 @@
 
 .wallet_status_icon {
   display: inline-flex;
-  width: calc(20px * var(--icon-scale));
-  height: calc(20px * var(--icon-scale));
+  width: var(--wallet-status-icon-size);
+  height: var(--wallet-status-icon-size);
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: calc(8px * var(--radius-scale));
+  border-radius: var(--wallet-status-icon-radius);
   background:
     radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.12), transparent 55%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
@@ -366,8 +380,8 @@
 
 .wallet_status_icon_svg,
 .chain_status_icon_svg {
-  width: calc(12px * var(--icon-scale));
-  height: calc(12px * var(--icon-scale));
+  width: 12px;
+  height: 12px;
   flex: 0 0 auto;
 }
 
@@ -464,9 +478,9 @@
 .wallet_compact_button.action_button {
   justify-content: center;
   width: 100%;
-  min-height: 40px;
-  border-radius: 13px;
-  padding: 8px 10px;
+  min-height: var(--wallet-compact-button-min-height);
+  border-radius: var(--wallet-compact-button-radius);
+  padding: var(--wallet-compact-button-pad-y) var(--wallet-compact-button-pad-x);
   font-size: 14px;
   line-height: 1;
 }
@@ -490,8 +504,8 @@
 }
 
 .wallet_action_icon {
-  width: calc(18px * var(--icon-scale));
-  height: calc(18px * var(--icon-scale));
+  width: var(--wallet-action-icon-size);
+  height: var(--wallet-action-icon-size);
   flex: 0 0 auto;
 }
 
@@ -501,7 +515,7 @@
 
 .wallet_action_label {
   min-width: 0;
-  font-size: calc(15px * var(--text-scale));
+  font-size: var(--wallet-action-label-size);
   font-weight: 800;
   line-height: 1;
   text-align: center;
