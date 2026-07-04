@@ -46,6 +46,38 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Completed scale cleanup Phase 4 for true global/header primitives in
+  [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - frozen at the global owner level for `>=640px`:
+    - shared typography roles:
+      - `.eyebrow`
+      - `.hero_title`
+      - `.hero_copy`
+    - page-header primitives:
+      - `.page_header`
+      - `.page_header_floating .page_header_content`
+      - `.page_header .page_header_title`
+      - `.page_header_density_compact .page_header_title`
+      - `.page_header .page_header_copy`
+      - `.page_header_actions`
+      - `.typewriter_cursor`
+  - audited but left unchanged because they were already stable and not driven by
+    desktop continuous scaling:
+    - surface utilities
+    - stack/cluster/spread helpers
+    - input/select/custom dropdown primitives
+    - feedback/loading/state helpers
+  - token cleanup result:
+    - no root/global legacy token was removed in this phase because the
+      remaining `*-scaled` tokens still feed other selectors outside the
+      approved Phase 4 ownership scope
+  - preserved:
+    - mobile `<640px`
+    - Home composition
+    - WaitingPushCard / MatchCard
+    - Challenge / Settle controls
+    - Buff/Profile/Activity feature families
+    - wallet/navigation/layout owners
 - Completed scale cleanup Phase 3 for shared controls:
   - updated:
     - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)

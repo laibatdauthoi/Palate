@@ -4037,6 +4037,60 @@ select.input_control,
   box-shadow: 0 0 22px rgba(255, 47, 159, 0.14);
 }
 
+@media (min-width: 640px) {
+  /* Phase 4 stable desktop globals:
+     freeze true global typography/header primitives at the global owner level.
+     Utilities/forms/state helpers that are already stable remain unchanged. */
+  .eyebrow {
+    font-size: var(--font-size-caption);
+  }
+
+  .hero_title {
+    max-width: 800px;
+    font-size: var(--font-size-display-large);
+  }
+
+  .hero_copy {
+    font-size: var(--font-size-body-large);
+  }
+
+  .page_header {
+    gap: var(--spacing-xl);
+  }
+
+  .page_header_floating .page_header_content {
+    gap: var(--spacing-sm);
+  }
+
+  .page_header .page_header_title {
+    max-width: 780px;
+    font-size: var(--font-size-display-medium);
+  }
+
+  .page_header_density_compact .page_header_content {
+    gap: 6px;
+  }
+
+  .page_header.page_header_density_compact .page_header_title {
+    max-width: 760px;
+    font-size: 30px;
+  }
+
+  .typewriter_cursor {
+    margin-left: 2px;
+  }
+
+  .page_header .page_header_copy,
+  .section_panel_header p {
+    max-width: 720px;
+    font-size: var(--font-size-body-large);
+  }
+
+  .page_header_actions {
+    gap: var(--spacing-sm);
+  }
+}
+
 /* F4H visibility pass: page atmospheres use brighter foreground effects behind dark panels. */
 .route_background {
   background:
