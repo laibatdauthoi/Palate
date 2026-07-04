@@ -402,3 +402,91 @@
   color: rgba(233, 250, 255, 0.96);
   filter: drop-shadow(0 0 12px rgba(0, 213, 247, 0.16));
 }
+
+@media (min-width: 640px) {
+  .waiting_push_meta {
+    gap: 7px;
+  }
+
+  .waiting_push_card_compact {
+    max-width: 296px;
+    min-height: 328px;
+  }
+
+  .waiting_grid .waiting_push_card_compact {
+    max-width: 296px;
+  }
+
+  .waiting_push_card_compact .waiting_media {
+    min-height: 176px;
+    height: 176px;
+    max-height: 176px;
+  }
+
+  .waiting_push_card_compact .waiting_push_body {
+    gap: 10px;
+    padding: var(--spacing-md);
+  }
+
+  .waiting_push_compact_title_row {
+    gap: 10px;
+  }
+
+  .waiting_push_card_compact .status_badge {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .waiting_push_compact_chip_row {
+    gap: 6px;
+  }
+
+  .waiting_push_meta_compact {
+    gap: 12px;
+  }
+
+  .waiting_push_required_meta {
+    gap: 2px;
+  }
+
+  .waiting_push_required_meta span {
+    font-size: 11px;
+  }
+
+  .waiting_push_required_meta strong {
+    font-size: 16px;
+  }
+
+  .waiting_push_card_compact .waiting_push_actions {
+    --action-button-min-width: 118px;
+    --action-button-min-height: 40px;
+    --action-button-pad-y: 10px;
+    --action-button-pad-x: 14px;
+  }
+
+  .waiting_push_stats {
+    gap: 8px 8px;
+  }
+
+  .waiting_push_stat {
+    gap: 3px;
+    border-radius: var(--radius-medium);
+    padding: 8px 10px;
+  }
+
+  .waiting_push_stat dt {
+    font-size: 11px;
+  }
+
+  .waiting_push_stat dd {
+    font-size: var(--font-size-body-small);
+  }
+
+  .waiting_push_detail_stack {
+    gap: 3px;
+  }
+
+  .waiting_push_actions {
+    --action-button-min-width: 136px;
+  }
+}

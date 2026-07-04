@@ -46,6 +46,79 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Completed a small desktop sidebar polish pass after the shell/nav/wallet scale
+  migration:
+  - audited:
+    - sidebar shell width / gutter / radius
+    - brand wordmark + shrimp logo placement
+    - nav group vertical and horizontal rhythm
+    - wallet panel size / radius / position
+    - desktop-wide and desktop-fit shell behavior
+  - findings:
+    - shell geometry in [`frontend/styles/layout.css`](./frontend/styles/layout.css)
+      was already stable and did not need new gutter or width changes
+    - WalletPanel width/radius positioning in
+      [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) was already
+      aligned with the current sidebar shell and did not need a new sizing pass
+    - the main remaining polish issue was inside
+      [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+      the brand cap read slightly undersized relative to the sidebar width, and
+      the transition from brand cap to nav group still carried more vertical
+      slack than needed
+  - applied the smallest safe CSS-only polish in
+    [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+    - widened the brand wordmark token from `160px` to `166px`
+    - increased the wordmark block height from `42px` to `44px`
+    - made `.brand_lockup` consume the shared brand-width token directly
+    - reduced `--nav-group-offset-y` from `32px` to `28px`
+    - reduced `--nav-link-pad-y` from `7px` to `6px`
+  - intentionally untouched:
+    - [`frontend/styles/layout.css`](./frontend/styles/layout.css)
+    - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+    - component markup in
+      [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+      and [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx)
+    - routes, wallet logic, Home/cards/mobile, and scale architecture
+- Completed scale cleanup Phase 5 for desktop card-family sizing:
+  - updated:
+    - [`frontend/styles/cards.css`](./frontend/styles/cards.css)
+    - [`frontend/styles/waiting-push.css`](./frontend/styles/waiting-push.css)
+    - [`frontend/styles/match-card.css`](./frontend/styles/match-card.css)
+  - Card Foundation desktop `>=640px` freeze:
+    - `.card_status` font sizing
+    - `.card_footer` gap
+  - WaitingPushCard desktop `>=640px` freeze:
+    - compact card width / min-height
+    - compact media height
+    - compact body gap / padding
+    - meta / chip / required-meta spacing
+    - required-meta typography
+    - stats tile spacing / padding / typography
+    - waiting-action button sizing hooks
+  - MatchCard desktop `>=640px` freeze:
+    - media block height
+    - audio preview glyph sizing
+    - meta/footer gap
+    - category tag sizing
+    - match-ID typography / spacing
+    - shell min-height
+    - Home bridge max-width / min-height values kept stable through the family owner
+  - token cleanup result:
+    - no card-family root token was removed from
+      [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+    - preserved intentionally because remaining root compatibility still feeds:
+      - protected transaction controls
+      - shared bridges
+      - mobile paths
+  - preserved:
+    - mobile `<640px`
+    - Home page composition selectors
+    - protected transaction controls:
+      - `.match_card_footer_actions`
+      - `.match_card_countdown_slot`
+      - `.match_card_detail_button`
+      - `.match_card_settle_button`
+      - `.action_button_cardMain`
 - Completed scale cleanup Phase 4 for true global/header primitives in
   [`frontend/styles/globals.css`](./frontend/styles/globals.css):
   - frozen at the global owner level for `>=640px`:

@@ -142,3 +142,13 @@
 .media_card_actions > * {
   flex: 0 0 auto;
 }
+
+@media (min-width: 640px) {
+  .card_status {
+    font-size: var(--font-size-body-small);
+  }
+
+  .card_footer {
+    gap: var(--spacing-md);
+  }
+}

@@ -10,14 +10,14 @@
   --sidebar-inner-pad-bottom: 18px;
   --sidebar-radius-scaled: 32px;
   --brand-cap-height-scaled: 62px;
-  --brand-wordmark-width-scaled: 160px;
-  --brand-wordmark-height-scaled: 42px;
+  --brand-wordmark-width-scaled: 166px;
+  --brand-wordmark-height-scaled: 44px;
   --brand-logo-size-scaled: 64px;
   --brand-logo-top-scaled: 24px;
-  --nav-group-offset-y: 32px;
+  --nav-group-offset-y: 28px;
   --nav-group-offset-x: 5px;
   --nav-link-row-gap: 13px;
-  --nav-link-pad-y: 7px;
+  --nav-link-pad-y: 6px;
   --nav-link-icon-shell-size: 33px;
   --nav-link-icon-shell-radius: 11px;
   --nav-link-icon-size: 15.5px;
@@ -65,7 +65,7 @@
   margin-top: 0;
   margin-inline: 0;
   padding-left: 0;
-  width: min(100%, 160px);
+  width: min(100%, var(--brand-wordmark-width-scaled));
   height: var(--brand-cap-height-scaled);
   text-decoration: none;
 }

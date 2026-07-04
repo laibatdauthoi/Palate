@@ -221,3 +221,59 @@
   font-weight: 700;
   overflow-wrap: anywhere;
 }
+
+@media (min-width: 640px) {
+  .match_media_pair .mini_media {
+    min-block-size: 168px;
+    block-size: 168px;
+  }
+
+  .media_renderer_audio_match .audio_preview_glyph_shell {
+    width: 88px;
+    height: 88px;
+  }
+
+  .media_renderer_audio_match .audio_preview_glyph_icon {
+    width: 52px;
+    height: 52px;
+  }
+
+  .match_card_meta_row {
+    gap: 10px 12px;
+  }
+
+  .match_card_footer_meta {
+    gap: 8px;
+  }
+
+  .match_card_category_tag {
+    min-width: 82px;
+    padding: 8px 13px;
+    font-size: 11px;
+  }
+
+  .match_card_match_id {
+    gap: 2px;
+  }
+
+  .match_card_match_id_label {
+    font-size: 16px;
+  }
+
+  .match_card_match_id_value {
+    font-size: 22px;
+  }
+
+  .match_card {
+    min-height: 248px;
+  }
+
+  .matches_grid .match_card {
+    max-width: 462.5px;
+  }
+
+  .matches_grid .match_card,
+  .compact_card_grid_matches.matches_grid .match_card {
+    min-height: 256px;
+  }
+}
