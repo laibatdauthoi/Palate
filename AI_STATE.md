@@ -102,6 +102,17 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
     - wallet internals and logic
     - mobile nav
     - Home/cards/globals scale cleanup
+- Applied a small desktop sidebar nav-size trim in
+  [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+  - reduced `--nav-link-icon-shell-size` from `33px` to `31px`
+  - reduced `--nav-link-icon-size` from `15.5px` to `14.5px`
+  - reduced `--nav-link-label-size` from `18.9px` to `17.9px`
+  - reduced `--nav-link-pad-y` from `6px` to `5px`
+  - preserved:
+    - `--nav-group-offset-y`
+    - nav group spacing rhythm
+    - icon-label gap
+    - brand/logo, wallet, sidebar width/gutter, mobile nav, and non-nav owners
 - Completed scale cleanup Phase 5 for desktop card-family sizing:
   - updated:
     - [`frontend/styles/cards.css`](./frontend/styles/cards.css)
