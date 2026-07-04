@@ -174,3 +174,57 @@
     flex: 1 1 auto;
   }
 }
+
+@media (min-width: 640px) {
+  .tabs {
+    --tabs-shell-pad: 4px;
+    border-radius: var(--radius-pill);
+    padding: var(--tabs-shell-pad);
+  }
+
+  .tab_button {
+    --tab-button-gap: 8px;
+    --tab-button-pad-y: 9px;
+    --tab-button-pad-x: 16px;
+    --tab-button-font-size: 14px;
+    gap: var(--tab-button-gap);
+    padding: var(--tab-button-pad-y) var(--tab-button-pad-x);
+    font-size: var(--tab-button-font-size);
+  }
+
+  .tab_badge {
+    --tab-badge-size: 22px;
+    --tab-badge-pad-x: 6px;
+    --tab-badge-font-size: 12px;
+    min-width: var(--tab-badge-size);
+    min-height: var(--tab-badge-size);
+    font-size: var(--tab-badge-font-size);
+    padding: 0 var(--tab-badge-pad-x);
+  }
+
+  .filter_bar {
+    --filter-bar-gap: var(--spacing-lg);
+    --filter-bar-shell-pad-y: 2px;
+    --filter-bar-shell-pad-x: 2px;
+    gap: var(--filter-bar-gap);
+    padding: var(--filter-bar-shell-pad-y) var(--filter-bar-shell-pad-x);
+  }
+
+  .filter_bar_surface {
+    --filter-bar-surface-radius: var(--radius-pill);
+    --filter-bar-surface-pad-y-default: 4px;
+    --filter-bar-surface-pad-x-default: 6px;
+    border-radius: var(--filter-bar-surface-radius);
+    padding:
+      var(--filter-bar-surface-pad-y, var(--filter-bar-surface-pad-y-default))
+      var(--filter-bar-surface-pad-x, var(--filter-bar-surface-pad-x-default));
+  }
+
+  .filter_bar .tabs {
+    --filter-bar-tabs-pad-y-default: 8px;
+    --filter-bar-tabs-pad-x-default: 8px;
+    padding:
+      var(--filter-bar-tabs-pad-y, var(--filter-bar-tabs-pad-y-default))
+      var(--filter-bar-tabs-pad-x, var(--filter-bar-tabs-pad-x-default));
+  }
+}

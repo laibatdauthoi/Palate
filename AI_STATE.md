@@ -46,6 +46,32 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Completed scale cleanup Phase 3 for shared controls:
+  - updated:
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css)
+    - [`frontend/styles/badges.css`](./frontend/styles/badges.css)
+    - [`frontend/styles/modal.css`](./frontend/styles/modal.css)
+  - shared control desktop sizing is now frozen at the owner level for
+    `>=640px`:
+    - ActionButton shell and ghost sizing
+    - Tabs / FilterBar shell and badge sizing
+    - shared badge padding/radius/font sizing
+    - shared modal shell spacing/radius/subtitle sizing
+  - ownership respected:
+    - no selectors were moved across owners
+    - page-owned FilterBar variable assignments were left alone
+    - Home/cards/wallet/navigation were untouched
+  - token cleanup result:
+    - root control-scale tokens in [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+      were preserved for now because they still feed other selectors and mobile
+      paths outside this phase
+    - no shared-control root token was removed unless clearly unused
+  - remaining legacy debt after Phase 3:
+    - root `--ui-scale-*` compatibility still feeds globals, card families, and
+      page-level desktop/mobile bridges
+    - later phases should freeze shared content/header/global utility sizing
+      without violating the CSS ownership hierarchy
 - Added CSS ownership hierarchy and selector-ownership guardrails to
   [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md):
   - active hierarchy now documented as:

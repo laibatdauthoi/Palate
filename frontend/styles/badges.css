@@ -117,3 +117,15 @@
   background: var(--surface-secondary);
   color: var(--text-muted);
 }
+
+@media (min-width: 640px) {
+  .badge {
+    --badge-radius: 14px;
+    --badge-pad-y: 6px;
+    --badge-pad-x: 10px;
+    --badge-font-size: var(--font-size-caption);
+    border-radius: var(--badge-radius);
+    padding: var(--badge-pad-y) var(--badge-pad-x);
+    font-size: var(--badge-font-size);
+  }
+}

@@ -404,3 +404,30 @@
 .app_action_button:disabled:active {
   transform: none;
 }
+
+@media (min-width: 640px) {
+  .action_button,
+  .app_action_button {
+    --action-button-gap: 8px;
+    --action-button-min-height: 48px;
+    --action-button-pad-y: 12px;
+    --action-button-pad-x: 18px;
+    --action-button-radius: 16px;
+    --action-button-font-size: 14px;
+    gap: var(--action-button-gap);
+    min-height: var(--action-button-min-height);
+    padding: var(--action-button-pad-y) var(--action-button-pad-x);
+    border-radius: var(--action-button-radius);
+    font-size: var(--action-button-font-size);
+  }
+
+  .action_button_ghost {
+    --action-button-compact-height: 40px;
+    --action-button-compact-pad-y: 10px;
+    --action-button-compact-pad-x: 14px;
+    --action-button-compact-radius: 14px;
+    min-height: var(--action-button-compact-height);
+    padding: var(--action-button-compact-pad-y) var(--action-button-compact-pad-x);
+    border-radius: var(--action-button-compact-radius);
+  }
+}

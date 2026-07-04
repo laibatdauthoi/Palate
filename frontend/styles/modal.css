@@ -75,3 +75,42 @@
   -webkit-overflow-scrolling: touch;
   padding-right: calc(4px * var(--ui-scale-x));
 }
+
+@media (min-width: 640px) {
+  .modal_backdrop {
+    --modal-backdrop-pad-y: var(--spacing-lg);
+    --modal-backdrop-pad-x: var(--spacing-lg);
+    padding: var(--modal-backdrop-pad-y) var(--modal-backdrop-pad-x);
+  }
+
+  .modal_shell {
+    --modal-shell-gap: 10px;
+    --modal-shell-radius: var(--radius-xl);
+    --modal-shell-pad: 14px;
+    gap: var(--modal-shell-gap);
+    border-radius: var(--modal-shell-radius);
+    padding: var(--modal-shell-pad);
+  }
+
+  .modal_shell_header {
+    --modal-shell-header-gap: 10px;
+    gap: var(--modal-shell-header-gap);
+  }
+
+  .modal_shell_header_text {
+    --modal-shell-header-text-gap: 4px;
+    gap: var(--modal-shell-header-text-gap);
+  }
+
+  .modal_shell_subtitle {
+    --modal-shell-subtitle-size: 13px;
+    font-size: var(--modal-shell-subtitle-size);
+  }
+
+  .modal_shell_body {
+    --modal-shell-body-gap: var(--spacing-md);
+    --modal-shell-body-pad-right: 4px;
+    gap: var(--modal-shell-body-gap);
+    padding-right: var(--modal-shell-body-pad-right);
+  }
+}
