@@ -46,6 +46,35 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Refined the desktop sidebar material definition without changing layout or the
+  current visual language:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+    - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - added explicit chassis tokens so the sidebar reads as a more solid mounted
+    shell without getting brighter or more saturated:
+    - `--sidebar-chassis-border`
+    - `--sidebar-chassis-rim-top`
+    - `--sidebar-chassis-rim-left`
+    - `--sidebar-chassis-cut-edge`
+    - `--sidebar-chassis-shadow`
+    - `--sidebar-chassis-bevel`
+    - `--wallet-mount-shadow`
+  - sidebar shell treatment in
+    [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+    - replaced the single `border-right` edge with a subtle full chassis border
+    - strengthened top rim readability through a dedicated inset top highlight
+    - strengthened left rim readability through a faint inset left highlight
+    - strengthened the lower cut edge with a darker inset bottom edge
+    - preserved the same dark gradient, width, spacing, nav layout, brand, and
+      overall brightness
+  - wallet mounting refinement in
+    [`frontend/styles/wallet.css`](./frontend/styles/wallet.css):
+    - added a small contact-shadow layer so the panel reads more like a module
+      mounted onto the sidebar chassis instead of a floating card
+    - kept wallet position, sizing, radius, internals, and typography unchanged
+
 - Recentered the static page illumination in
   [`frontend/styles/globals.css`](./frontend/styles/globals.css) without
   reintroducing motion or decorative background effects:

@@ -30,7 +30,7 @@
   border-radius: var(--wallet-panel-radius-scaled);
   background: var(--rail-material-gradient-raised);
   padding: var(--wallet-panel-padding);
-  box-shadow: var(--rail-material-shadow), var(--rail-material-bevel);
+  box-shadow: var(--rail-material-shadow), var(--rail-material-bevel), var(--wallet-mount-shadow);
 }
 
 .wallet_panel_header {
@@ -305,7 +305,7 @@
   margin-bottom: calc(var(--wallet-shell-inline-bleed) * -1);
   border-radius: var(--wallet-panel-radius-scaled);
   padding: var(--wallet-panel-padding);
-  box-shadow: var(--rail-material-bevel), 0 12px 30px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--rail-material-bevel), var(--wallet-mount-shadow), 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
 .wallet_panel_header {
