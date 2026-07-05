@@ -46,6 +46,24 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Tightened WalletPanel placement inside the desktop sidebar without changing
+  wallet internals:
+  - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - confirmed the effective wallet-to-sidebar border gap is owned by
+    `.wallet_panel` through `--wallet-shell-inline-bleed`, not by global sidebar
+    padding in [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - increased `--wallet-shell-inline-bleed` from `8px` to `10px`
+    so the panel extends slightly farther toward the sidebar inner edge
+  - bottom spacing stayed visually consistent because
+    `.wallet_panel { margin-bottom: calc(var(--wallet-shell-inline-bleed) * -1); }`
+    already uses the same bleed variable
+  - intentionally untouched:
+    - wallet content layout
+    - wallet typography
+    - wallet buttons
+    - sidebar width/padding
+    - nav/brand spacing
+
 - Extracted the current FilterBar / tab rail material recipe and started using it
   as the shared desktop surface language instead of inventing a new material:
   - audited the accepted rail treatment in

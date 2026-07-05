@@ -7,7 +7,7 @@
    - Page composition must not restyle wallet internals */
 .wallet_panel {
   --wallet-panel-radius-scaled: 16px;
-  --wallet-shell-inline-bleed: 8px;
+  --wallet-shell-inline-bleed: 10px;
   --wallet-panel-gap: 8px;
   --wallet-panel-padding: 7px;
   --wallet-header-gap: 6px;
