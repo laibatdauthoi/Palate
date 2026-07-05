@@ -46,6 +46,28 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Recentered the static page illumination in
+  [`frontend/styles/globals.css`](./frontend/styles/globals.css) without
+  reintroducing motion or decorative background effects:
+  - moved the dominant `body` light field from approximately:
+    - old center: `58% 30%`
+    - new center: `52% 52%`
+  - changed the primary light field from a smaller circular glow to a larger,
+    softer elliptical field with feathered falloff:
+    - old intensity/size: `rgba(95, 120, 150, 0.12)` fading by `42%`
+    - new intensity/size:
+      - `rgba(135, 165, 190, 0.14)` at center
+      - softened through `36%` / `62%`
+      - fully feathered by `82%`
+  - reduced the route-level support light so it stays secondary:
+    - old route light center: `56% 32%`
+    - new route light center: `53% 54%`
+    - opacity reduced from `0.08` to `0.05` at the core
+  - preserved:
+    - static background behavior
+    - dark edges/corners
+    - all component colors, layout, and surface styling
+
 - Replaced the animated/decorative page atmosphere with a fully static contrast
   stage in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
   - removed the active water-style background override as the effective visual
