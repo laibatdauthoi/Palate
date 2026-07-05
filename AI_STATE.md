@@ -46,6 +46,31 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Replaced the animated/decorative page atmosphere with a fully static contrast
+  stage in [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+  - removed the active water-style background override as the effective visual
+    owner
+  - disabled remaining route background motion by neutralizing:
+    - `.route_background::before`
+    - `.route_background::after`
+    - `.route_fx`
+    - `.route_fx_one` through `.route_fx_six`
+  - replaced the page backdrop with a static low-noise stage:
+    - near-black / deep-charcoal base
+    - one broad cool blue-gray light field behind main content
+    - no particles, blobs, ripples, caustics, stars, or moving overlays
+  - contrast intent:
+    - background now stays darker than the sidebar, cards, and filter rail
+    - avoided magenta/purple and cyan-heavy fills behind accent borders so
+      widgets read more clearly against the page
+  - intentionally untouched:
+    - sidebar
+    - wallet
+    - cards
+    - buttons
+    - filter rail
+    - layout and mobile behavior
+
 - Tightened WalletPanel placement inside the desktop sidebar without changing
   wallet internals:
   - updated [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
