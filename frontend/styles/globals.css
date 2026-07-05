@@ -226,16 +226,18 @@ body {
   line-height: var(--line-height-body);
   overflow-x: hidden;
   --palate-card-bg:
-    radial-gradient(circle at top right, rgba(255, 47, 159, 0.18), transparent 36%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 24%),
-    var(--surface-elevated);
-  --palate-card-border: rgba(255, 47, 159, 0.28);
-  --palate-card-inner-highlight: rgba(255, 240, 250, 0.06);
-  --palate-card-shadow: var(--shadow-card), var(--shadow-bevel);
-  --palate-card-hover-border: rgba(88, 235, 255, 0.68);
-  --palate-card-hover-shadow: var(--shadow-card-hover), var(--shadow-bevel), 0 0 18px rgba(59, 218, 255, 0.18);
+    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.08), transparent 22%),
+    var(--rail-material-gradient-raised);
+  --palate-card-border: var(--rail-material-border-soft);
+  --palate-card-inner-highlight: var(--rail-material-top-highlight);
+  --palate-card-shadow: var(--rail-material-shadow), var(--rail-material-bevel);
+  --palate-card-hover-border: var(--rail-material-active-cyan);
+  --palate-card-hover-shadow:
+    var(--rail-material-shadow-hover),
+    var(--rail-material-bevel),
+    0 0 18px rgba(59, 218, 255, 0.14);
   --media-preview-surface-bg:
-    linear-gradient(135deg, rgba(28, 42, 58, 0.92), rgba(9, 15, 24, 0.98)),
+    linear-gradient(135deg, rgba(30, 35, 46, 0.96), rgba(14, 16, 23, 0.98)),
     radial-gradient(circle at 26% 18%, rgba(255, 255, 255, 0.16), transparent 22%),
     radial-gradient(circle at 74% 78%, rgba(0, 213, 247, 0.18), transparent 32%);
   --audio-preview-badge-size: var(--audio-preview-badge-size-scaled, 104px);

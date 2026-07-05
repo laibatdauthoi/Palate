@@ -26,15 +26,11 @@
   gap: var(--wallet-panel-gap);
   margin-top: auto;
   margin-inline: calc(var(--wallet-shell-inline-bleed) * -1);
-  border: 2px solid rgba(255, 47, 159, 0.2);
+  border: 1px solid var(--rail-material-border);
   border-radius: var(--wallet-panel-radius-scaled);
-  background:
-    radial-gradient(circle at top right, rgba(255, 47, 159, 0.18), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
-    var(--gradient-surface),
-    var(--surface-primary);
+  background: var(--rail-material-gradient-raised);
   padding: var(--wallet-panel-padding);
-  box-shadow: var(--shadow-panel), var(--shadow-bevel);
+  box-shadow: var(--rail-material-shadow), var(--rail-material-bevel);
 }
 
 .wallet_panel_header {
@@ -113,20 +109,25 @@
 }
 
 .wallet_balance {
-  border: 1px solid rgba(255, 47, 159, 0.18);
+  border: 1px solid var(--rail-material-border-soft);
   border-radius: var(--radius-medium);
-  background: rgba(0, 0, 0, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 36%, rgba(0, 0, 0, 0.06) 100%),
+    linear-gradient(145deg, rgba(39, 45, 57, 0.94), rgba(23, 27, 36, 0.96));
   padding: var(--spacing-sm);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  box-shadow: var(--rail-material-bevel);
 }
 
 .wallet_balance_controls {
   display: grid;
   gap: var(--spacing-sm);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--rail-material-border-soft);
   border-radius: var(--radius-medium);
-  background: rgba(0, 0, 0, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 36%, rgba(0, 0, 0, 0.05) 100%),
+    linear-gradient(145deg, rgba(37, 43, 55, 0.94), rgba(22, 26, 35, 0.96));
   padding: var(--spacing-sm);
+  box-shadow: var(--rail-material-bevel);
 }
 
 .wallet_balance_buttons {
@@ -142,7 +143,7 @@
 
 .wallet_details_toggle {
   justify-self: start;
-  border: 1px solid rgba(255, 47, 159, 0.18);
+  border: 1px solid var(--rail-material-border-soft);
   border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-muted);
@@ -153,7 +154,7 @@
 }
 
 .wallet_details_toggle:hover {
-  border-color: rgba(255, 47, 159, 0.34);
+  border-color: var(--rail-material-active-pink);
   color: var(--text-primary);
 }
 
@@ -200,11 +201,9 @@
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  border: 1px solid rgba(255, 47, 159, 0.2);
+  border: 1px solid var(--rail-material-border-soft);
   border-radius: var(--radius-medium);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.016)),
-    rgba(255, 47, 159, 0.06);
+  background: var(--rail-material-control-gradient);
   color: var(--text-primary);
   padding: 9px 10px;
   font-size: var(--font-size-body-small);
@@ -221,8 +220,8 @@
 }
 
 .wallet_choice:hover {
-  border-color: rgba(255, 47, 159, 0.42);
-  box-shadow: 0 0 20px rgba(255, 47, 159, 0.16), var(--shadow-bevel);
+  border-color: var(--rail-material-active-pink);
+  box-shadow: var(--rail-material-shadow-hover), var(--rail-material-bevel);
 }
 
 .wallet_choice small,
@@ -234,8 +233,8 @@
 }
 
 .wallet_option_card:hover {
-  border-color: rgba(255, 47, 159, 0.42);
-  box-shadow: 0 0 24px rgba(255, 47, 159, 0.18), var(--shadow-bevel);
+  border-color: var(--rail-material-active-pink);
+  box-shadow: var(--rail-material-shadow-hover), var(--rail-material-bevel);
 }
 
 .wallet_option_icon {
@@ -306,7 +305,7 @@
   margin-bottom: calc(var(--wallet-shell-inline-bleed) * -1);
   border-radius: var(--wallet-panel-radius-scaled);
   padding: var(--wallet-panel-padding);
-  box-shadow: var(--shadow-bevel), 0 12px 30px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--rail-material-bevel), 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
 .wallet_panel_header {
@@ -345,13 +344,12 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--rail-material-border-soft);
   border-radius: var(--wallet-status-icon-radius);
   background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.12), transparent 55%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
-    rgba(255, 255, 255, 0.035);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 38%, rgba(0, 0, 0, 0.06) 100%),
+    linear-gradient(145deg, rgba(43, 48, 60, 0.94), rgba(20, 23, 31, 0.96));
+  box-shadow: var(--rail-material-bevel);
 }
 
 .wallet_status_icon_connected {
@@ -530,12 +528,13 @@
 .chain_status_panel {
   display: grid;
   gap: 5px;
-  border: 1px solid rgba(255, 47, 159, 0.18);
+  border: 1px solid var(--rail-material-border-soft);
   border-radius: 13px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
-    rgba(0, 0, 0, 0.2);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 36%, rgba(0, 0, 0, 0.06) 100%),
+    linear-gradient(145deg, rgba(37, 43, 55, 0.94), rgba(22, 26, 35, 0.96));
   padding: 8px;
+  box-shadow: var(--rail-material-bevel);
 }
 
 .chain_status_network {

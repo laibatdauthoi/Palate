@@ -21,9 +21,9 @@
   padding:
     var(--action-button-pad-y, var(--button-pad-y-scaled, 12px))
     var(--action-button-pad-x, var(--button-pad-x-scaled, 18px));
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--rail-material-border);
   border-radius: var(--button-radius-scaled, 16px);
-  background-color: rgba(18, 24, 31, 0.96);
+  background: var(--rail-material-control-gradient);
   color: var(--text-primary);
   font-size: var(--button-font-size-scaled, 14px);
   font-weight: 850;
@@ -36,9 +36,8 @@
   transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
   will-change: transform;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.16),
-    0 10px 22px rgba(0, 0, 0, 0.24);
+    var(--rail-material-bevel),
+    var(--rail-material-shadow-soft);
 }
 
 .action_button_label {
@@ -56,12 +55,14 @@
 .action_button:hover,
 .app_action_button:hover {
   transform: scale(1.025);
-  border-color: rgba(0, 213, 247, 0.34);
-  background-color: rgba(22, 31, 39, 0.99);
+  border-color: var(--rail-material-active-cyan);
+  background: var(--rail-material-control-hover);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
-    0 14px 24px rgba(0, 0, 0, 0.28);
+    inset 0 1px 0 var(--rail-material-top-highlight-strong),
+    inset 0 -1px 0 var(--rail-material-cut-edge-strong),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(0, 0, 0, 0.22),
+    var(--rail-material-shadow-hover);
 }
 
 .action_button:active,
@@ -72,50 +73,53 @@
 .action_button:focus-visible,
 .app_action_button:focus-visible {
   outline: none;
-  border-color: rgba(0, 213, 247, 0.48);
-  box-shadow: 0 0 0 3px rgba(0, 213, 247, 0.16), 0 10px 24px rgba(0, 0, 0, 0.28);
+  border-color: rgba(67, 215, 255, 0.48);
+  box-shadow: 0 0 0 3px rgba(67, 215, 255, 0.16), var(--rail-material-shadow-hover);
 }
 
 .action_button_primary,
 .app_action_primary {
   background:
-    linear-gradient(180deg, rgba(18, 58, 68, 0.88), rgba(7, 21, 32, 0.92));
-  border-color: rgba(88, 235, 255, 0.55);
+    linear-gradient(180deg, rgba(175, 247, 255, 0.2), rgba(67, 215, 255, 0.08) 28%, rgba(0, 0, 0, 0.12) 100%),
+    linear-gradient(145deg, rgba(41, 78, 92, 0.98), rgba(13, 29, 40, 0.99) 62%, rgba(8, 18, 27, 1));
+  border-color: rgba(67, 215, 255, 0.58);
   color: #f7fbff;
   box-shadow:
-    inset 0 1px 0 rgba(233, 252, 255, 0.18),
-    inset 0 0 0 1px rgba(64, 213, 245, 0.14),
-    inset 0 -1px 0 rgba(3, 12, 18, 0.52),
-    0 12px 24px rgba(0, 0, 0, 0.32),
-    0 0 14px rgba(59, 218, 255, 0.18);
+    inset 0 1px 0 rgba(233, 252, 255, 0.22),
+    inset 1px 0 0 rgba(255, 255, 255, 0.05),
+    inset -1px 0 0 rgba(0, 0, 0, 0.22),
+    inset 0 -1px 0 rgba(3, 12, 18, 0.56),
+    0 12px 24px rgba(0, 0, 0, 0.32);
 }
 
 .action_button_primary:hover,
 .app_action_primary:hover {
   color: #fbfdff;
-  border-color: rgba(119, 243, 255, 0.68);
+  border-color: rgba(67, 215, 255, 0.72);
   background:
-    linear-gradient(180deg, rgba(21, 67, 79, 0.92), rgba(8, 26, 39, 0.96));
+    linear-gradient(180deg, rgba(196, 250, 255, 0.22), rgba(67, 215, 255, 0.1) 28%, rgba(0, 0, 0, 0.12) 100%),
+    linear-gradient(145deg, rgba(48, 90, 105, 0.99), rgba(15, 33, 46, 1) 62%, rgba(10, 22, 32, 1));
   box-shadow:
-    inset 0 1px 0 rgba(241, 254, 255, 0.2),
-    inset 0 0 0 1px rgba(74, 223, 255, 0.18),
-    inset 0 -1px 0 rgba(4, 14, 21, 0.54),
-    0 16px 28px rgba(0, 0, 0, 0.34),
-    0 0 18px rgba(59, 218, 255, 0.24);
+    inset 0 1px 0 rgba(241, 254, 255, 0.26),
+    inset 1px 0 0 rgba(255, 255, 255, 0.055),
+    inset -1px 0 0 rgba(0, 0, 0, 0.24),
+    inset 0 -1px 0 rgba(4, 14, 21, 0.6),
+    0 16px 28px rgba(0, 0, 0, 0.34);
 }
 
 .action_button_primary:active,
 .app_action_primary:active {
   color: #ddf6fb;
-  border-color: rgba(72, 209, 232, 0.44);
+  border-color: rgba(67, 215, 255, 0.44);
   background:
-    linear-gradient(180deg, rgba(13, 45, 53, 0.94), rgba(6, 18, 27, 0.98));
+    linear-gradient(180deg, rgba(140, 243, 255, 0.14), rgba(67, 215, 255, 0.05) 26%, rgba(0, 0, 0, 0.14) 100%),
+    linear-gradient(145deg, rgba(31, 61, 72, 0.98), rgba(10, 22, 32, 0.99) 62%, rgba(7, 17, 24, 1));
   box-shadow:
-    inset 0 1px 0 rgba(220, 252, 255, 0.12),
-    inset 0 0 0 1px rgba(54, 196, 219, 0.1),
-    inset 0 -1px 0 rgba(2, 10, 16, 0.56),
-    0 8px 16px rgba(0, 0, 0, 0.28),
-    0 0 10px rgba(59, 218, 255, 0.14);
+    inset 0 1px 0 rgba(220, 252, 255, 0.14),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(0, 0, 0, 0.22),
+    inset 0 -1px 0 rgba(2, 10, 16, 0.58),
+    0 8px 16px rgba(0, 0, 0, 0.28);
 }
 
 .action_button_primary:focus-visible,
@@ -143,30 +147,28 @@
 
 .action_button_secondary,
 .app_action_secondary {
-  background:
-    linear-gradient(180deg, rgba(35, 28, 52, 0.78), rgba(13, 14, 28, 0.88));
-  border-color: rgba(190, 160, 255, 0.34);
+  background: var(--rail-material-control-gradient);
+  border-color: rgba(190, 160, 255, 0.22);
   color: #f5efff;
   box-shadow:
-    inset 0 1px 0 rgba(246, 240, 255, 0.12),
-    inset 0 0 0 1px rgba(182, 146, 255, 0.08),
-    inset 0 -1px 0 rgba(8, 8, 20, 0.46),
-    0 10px 22px rgba(0, 0, 0, 0.28),
-    0 0 12px rgba(170, 120, 255, 0.12);
+    var(--rail-material-bevel),
+    var(--rail-material-shadow-soft);
 }
 
 .action_button_secondary:hover,
 .app_action_secondary:hover {
   color: #ffffff;
-  border-color: rgba(210, 184, 255, 0.46);
+  border-color: rgba(190, 160, 255, 0.34);
   background:
-    linear-gradient(180deg, rgba(42, 34, 62, 0.84), rgba(16, 17, 33, 0.94));
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(182, 146, 255, 0.02) 38%, rgba(0, 0, 0, 0.1) 100%),
+    linear-gradient(145deg, rgba(56, 60, 73, 0.95), rgba(24, 27, 36, 0.97) 58%, rgba(16, 18, 25, 0.99));
   box-shadow:
-    inset 0 1px 0 rgba(250, 245, 255, 0.16),
-    inset 0 0 0 1px rgba(196, 160, 255, 0.1),
-    inset 0 -1px 0 rgba(10, 10, 22, 0.5),
-    0 14px 24px rgba(0, 0, 0, 0.3),
-    0 0 16px rgba(170, 120, 255, 0.16);
+    inset 0 1px 0 var(--rail-material-top-highlight-strong),
+    inset 0 -1px 0 var(--rail-material-cut-edge-strong),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(0, 0, 0, 0.22),
+    var(--rail-material-shadow-hover);
 }
 
 .action_button_secondary:active,
@@ -212,33 +214,30 @@
   height: auto;
   min-height: var(--button-compact-height-scaled, 40px);
   padding: var(--button-compact-pad-y-scaled, 10px) var(--button-compact-pad-x-scaled, 14px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--rail-material-border);
   border-radius: var(--button-compact-radius-scaled, 14px);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.025));
+  background: var(--rail-material-control-gradient);
   color: rgba(238, 242, 247, 0.84);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.14),
-    0 8px 18px rgba(0, 0, 0, 0.18);
+    var(--rail-material-bevel),
+    var(--rail-material-shadow-soft);
 }
 
 .action_button_ghost:hover {
   border-color: rgba(255, 255, 255, 0.26);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
+  background: var(--rail-material-control-hover);
   color: #ffffff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.16),
-    0 12px 22px rgba(0, 0, 0, 0.22),
-    0 0 12px rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 var(--rail-material-top-highlight-strong),
+    inset 0 -1px 0 var(--rail-material-cut-edge-strong),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(0, 0, 0, 0.22),
+    var(--rail-material-shadow-hover);
 }
 
 .action_button_ghost:active {
   border-color: rgba(255, 255, 255, 0.2);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.022));
+  background: var(--rail-material-control-gradient);
   color: rgba(244, 248, 252, 0.94);
 }
 
@@ -389,7 +388,9 @@
 .app_action_button:disabled {
   transform: none;
   border-color: rgba(255, 255, 255, 0.08);
-  background-color: rgba(255, 255, 255, 0.045);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.012) 38%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(145deg, rgba(31, 35, 44, 0.9), rgba(17, 20, 28, 0.94));
   color: rgba(233, 240, 245, 0.44);
   opacity: 0.5;
   cursor: not-allowed;

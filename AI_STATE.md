@@ -46,6 +46,64 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Extracted the current FilterBar / tab rail material recipe and started using it
+  as the shared desktop surface language instead of inventing a new material:
+  - audited the accepted rail treatment in
+    [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css):
+    - layered dark metal background gradients
+    - soft top highlight
+    - darker inset cut edge
+    - faint side shine
+    - compact contact shadow
+    - pink/cyan accent treatment only on active or interactive states
+  - added shared rail-material tokens in
+    [`frontend/styles/tokens.css`](./frontend/styles/tokens.css):
+    - `--rail-material-gradient`
+    - `--rail-material-gradient-raised`
+    - `--rail-material-gradient-dark`
+    - `--rail-material-control-gradient`
+    - `--rail-material-control-hover`
+    - `--rail-material-control-active`
+    - `--rail-material-border`
+    - `--rail-material-border-soft`
+    - `--rail-material-top-highlight`
+    - `--rail-material-top-highlight-strong`
+    - `--rail-material-cut-edge`
+    - `--rail-material-cut-edge-strong`
+    - `--rail-material-side-shine`
+    - `--rail-material-shadow`
+    - `--rail-material-shadow-soft`
+    - `--rail-material-shadow-hover`
+    - `--rail-material-bevel`
+    - `--rail-material-active-pink`
+    - `--rail-material-active-cyan`
+  - refactored [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css)
+    to consume the shared recipe without changing the accepted visual result of
+    the existing rail/tabs surface
+  - applied the same recipe incrementally by owner:
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css):
+      - base button shell now uses the rail control gradient, bevel, and shadow
+      - primary keeps a stronger cyan-led pressable treatment
+      - secondary and ghost variants now stay in the same metal-control family
+    - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css):
+      - WalletPanel, balance modules, chain status panel, and wallet option cards
+        now use the raised/module version of the rail material
+      - wallet layout, sizing, and behavior were intentionally preserved
+    - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css):
+      - sidebar shell now uses the darker/chassis version of the rail material
+      - desktop nav icon shells use the same control recipe with cyan/pink state
+        accents only on hover/active
+    - [`frontend/styles/globals.css`](./frontend/styles/globals.css):
+      - updated shared `--palate-card-*` surface variables so card families can
+        consume the rail-derived material without changing card layout owners
+  - intentionally preserved:
+    - background atmosphere
+    - layout / spacing / radius / typography
+    - filter-rail shape and behavior
+    - brand/nav/wallet placement
+    - mobile layout
+    - routes and gameplay logic
+
 - Completed a small desktop sidebar polish pass after the shell/nav/wallet scale
   migration:
   - audited:
