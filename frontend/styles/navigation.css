@@ -8,7 +8,7 @@
   --sidebar-inner-pad-x: 18px;
   --sidebar-inner-pad-top: 20px;
   --sidebar-inner-pad-bottom: 18px;
-  --sidebar-radius-scaled: 32px;
+  --sidebar-radius-scaled: var(--corner-chassis-radius);
   --brand-cap-height-scaled: 62px;
   --brand-wordmark-width-scaled: 166px;
   --brand-wordmark-height-scaled: 44px;

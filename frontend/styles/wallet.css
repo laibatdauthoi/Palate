@@ -6,7 +6,7 @@
      tune compact fit inside the panel but must not replace the shared button contract
    - Page composition must not restyle wallet internals */
 .wallet_panel {
-  --wallet-panel-radius-scaled: 16px;
+  --wallet-panel-radius-scaled: var(--corner-module-radius);
   --wallet-shell-inline-bleed: 10px;
   --wallet-panel-gap: 8px;
   --wallet-panel-padding: 7px;

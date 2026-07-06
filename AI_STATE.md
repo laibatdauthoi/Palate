@@ -46,6 +46,50 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Aligned Sidebar and WalletPanel corner language by optical ratio instead of
+  forcing identical pixel radii:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+    - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - introduced explicit family tokens:
+    - `--corner-chassis-radius: 24px`
+    - `--corner-module-radius: 16px`
+  - WalletPanel radius preserved:
+    - wallet keeps the existing `16px` module radius
+    - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css) now derives it
+      from `--corner-module-radius`
+  - Sidebar radius adjusted optically:
+    - old sidebar radius: `16px`
+    - new sidebar radius: `24px`
+    - rationale:
+      - the wallet is the smaller mounted module, so `16px` reads correctly at
+        its width
+      - the sidebar is the much larger chassis, so it needs a slightly larger
+        absolute radius while staying lower in proportion than a one-to-one
+        pixel match would imply
+      - `24px` keeps the sidebar in the same rounded-rectangle family without
+        making it look pill-like or overly squared
+  - preserved:
+    - wallet size and position
+    - sidebar size
+    - border/shadow/material
+    - layout and mobile behavior
+
+- Reduced only the desktop Sidebar outer radius to match the current WalletPanel
+  radius:
+  - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - effective wallet desktop radius verified and preserved at `16px` from
+    [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - effective sidebar desktop radius changed from `32px` to `16px`
+  - intentionally untouched:
+    - WalletPanel radius
+    - wallet size and position
+    - sidebar width and padding
+    - border treatment
+    - shadows
+    - background and component colors
+
 - Refined the desktop sidebar material definition without changing layout or the
   current visual language:
   - updated:

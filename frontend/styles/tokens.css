@@ -85,6 +85,8 @@
     linear-gradient(135deg, rgba(255, 47, 159, 0.1), rgba(143, 85, 255, 0.03));
   --rail-material-active-pink: rgba(255, 47, 159, 0.34);
   --rail-material-active-cyan: rgba(59, 218, 255, 0.34);
+  --corner-chassis-radius: 24px;
+  --corner-module-radius: 16px;
   --sidebar-chassis-border: rgba(255, 255, 255, 0.1);
   --sidebar-chassis-rim-top: rgba(255, 255, 255, 0.085);
   --sidebar-chassis-rim-left: rgba(255, 255, 255, 0.05);
