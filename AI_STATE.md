@@ -46,6 +46,54 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Strengthened the sidebar brushed-metal read and raised WalletPanel surface
+  brightness while preserving layout and geometry:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - sidebar metal reflection old/new treatment:
+    - old `--sidebar-metal-surface` used a very faint diagonal reflection, a
+      soft top-left highlight, and a light top-plane sheen
+    - new `--sidebar-metal-surface` strengthens all three layers:
+      - more visible directional reflection
+      - stronger broad specular highlight from the top-left
+      - slightly clearer top-plane metal sheen
+    - finish remains low-contrast and stripe-free, with no glass shine or noisy
+      texture
+  - wallet surface brightness old/new treatment:
+    - old wallet shell background used `var(--rail-material-gradient-raised)`
+    - new wallet shell background uses `--wallet-module-surface`
+    - the new module surface keeps the same dark metal family but is visibly
+      brighter than the sidebar surface so the wallet reads one elevation above
+      the chassis
+  - preserved:
+    - sidebar layout, radius, width, and nav spacing
+    - wallet radius, position, size, and internals
+    - current background, cards, buttons, filter rail, Home layout, and mobile
+
+- Tuned the Sidebar surface to read more like dark brushed/anodized metal
+  without changing its shape, radius, layout, or edge construction:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - added sidebar-only surface token:
+    - `--sidebar-metal-surface`
+  - surface reflection changes:
+    - added a very low-opacity directional linear reflection layer
+    - added one broad soft specular highlight toward the top-left / upper-mid
+      surface
+    - added a restrained top-plane sheen layer to help the anodized metal read
+      without brightening the whole object
+  - grain / brush treatment:
+    - no explicit noisy grain pattern was added
+    - used only soft layered gradients so the finish suggests brushed metal
+      without introducing visible stripes, texture noise, or carbon-fiber artifacts
+  - preserved:
+    - existing sidebar border/rim/cut-edge work
+    - current radius
+    - current layout and dimensions
+    - wallet, nav, brand, cards, buttons, filter rail, and background
+
 - Rebuilt the Sidebar and WalletPanel edge construction from the same filter-rail
   surface language without changing layout, spacing, radius, dimensions, or color
   palette:

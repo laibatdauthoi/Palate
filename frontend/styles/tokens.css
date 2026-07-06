@@ -71,6 +71,18 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015) 22%, transparent 100%),
     linear-gradient(145deg, rgba(24, 29, 38, 0.96), rgba(17, 20, 28, 0.95)),
     rgba(17, 20, 28, 0.96);
+  --sidebar-metal-surface:
+    linear-gradient(112deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.016) 22%, rgba(255, 255, 255, 0.004) 38%, transparent 54%),
+    radial-gradient(ellipse at 24% 11%, rgba(255, 255, 255, 0.085) 0%, rgba(255, 255, 255, 0.028) 22%, rgba(255, 255, 255, 0.01) 38%, transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.036), rgba(255, 255, 255, 0.012) 16%, transparent 40%),
+    linear-gradient(145deg, rgba(24, 29, 38, 0.96), rgba(17, 20, 28, 0.95)),
+    rgba(17, 20, 28, 0.96);
+  --wallet-module-surface:
+    linear-gradient(112deg, rgba(255, 255, 255, 0.042) 0%, rgba(255, 255, 255, 0.018) 24%, rgba(255, 255, 255, 0.005) 40%, transparent 56%),
+    radial-gradient(ellipse at 24% 12%, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.034) 24%, rgba(255, 255, 255, 0.012) 40%, transparent 64%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.018) 20%, transparent 42%),
+    linear-gradient(145deg, rgba(39, 45, 57, 0.97), rgba(25, 30, 39, 0.96)),
+    rgba(24, 29, 38, 0.97);
   --sidebar-chassis-surface:
     linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02) 22%, transparent 100%),
     linear-gradient(145deg, rgba(28, 34, 43, 0.97), rgba(18, 22, 30, 0.96)),

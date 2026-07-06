@@ -45,7 +45,7 @@
     var(--sidebar-inner-pad-x);
   border: 1px solid var(--rail-material-border-strong);
   border-radius: var(--sidebar-radius-scaled);
-  background: var(--rail-material-gradient-dark);
+  background: var(--sidebar-metal-surface);
   box-shadow:
     0 20px 34px rgba(0, 0, 0, 0.3),
     0 3px 0 rgba(5, 7, 12, 0.3),

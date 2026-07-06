@@ -28,7 +28,7 @@
   margin-inline: calc(var(--wallet-shell-inline-bleed) * -1);
   border: 1px solid var(--rail-material-border);
   border-radius: var(--wallet-panel-radius-scaled);
-  background: var(--rail-material-gradient-raised);
+  background: var(--wallet-module-surface);
   padding: var(--wallet-panel-padding);
   box-shadow:
     0 12px 22px rgba(0, 0, 0, 0.24),
