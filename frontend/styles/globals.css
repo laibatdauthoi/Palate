@@ -208,6 +208,7 @@ html {
   min-height: 100%;
   background: var(--background-primary);
   color-scheme: dark;
+  overflow-x: auto;
 }
 
 body {
@@ -224,7 +225,7 @@ body {
   font-family: var(--font-family-ui);
   font-size: var(--font-size-body-scaled, var(--font-size-body));
   line-height: var(--line-height-body);
-  overflow-x: hidden;
+  overflow-x: visible;
   --palate-card-bg:
     radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.08), transparent 22%),
     var(--rail-material-gradient-raised);
@@ -243,6 +244,63 @@ body {
   --audio-preview-badge-size: var(--audio-preview-badge-size-scaled, 104px);
   --audio-preview-icon-size: var(--audio-preview-icon-size-scaled, 60px);
   --audio-preview-hover-scale: 1.02;
+}
+
+@media (min-width: 640px) {
+  html,
+  .main_content,
+  .navigation_bar {
+    scrollbar-color: rgba(122, 132, 148, 0.82) rgba(8, 11, 17, 0.94);
+    scrollbar-width: thin;
+  }
+
+  html::-webkit-scrollbar,
+  .main_content::-webkit-scrollbar,
+  .navigation_bar::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  html::-webkit-scrollbar-track,
+  .main_content::-webkit-scrollbar-track,
+  .navigation_bar::-webkit-scrollbar-track {
+    border-radius: 999px;
+    background: rgba(8, 11, 17, 0.9);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+      inset 0 1px 3px rgba(0, 0, 0, 0.42);
+  }
+
+  html::-webkit-scrollbar-thumb,
+  .main_content::-webkit-scrollbar-thumb,
+  .navigation_bar::-webkit-scrollbar-thumb {
+    border: 2px solid rgba(8, 11, 17, 0.92);
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(148, 158, 173, 0.92), rgba(88, 96, 109, 0.96));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.34);
+  }
+
+  html::-webkit-scrollbar-thumb:hover,
+  .main_content::-webkit-scrollbar-thumb:hover,
+  .navigation_bar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(168, 179, 194, 0.95), rgba(102, 112, 127, 0.98));
+  }
+
+  html::-webkit-scrollbar-corner,
+  .main_content::-webkit-scrollbar-corner,
+  .navigation_bar::-webkit-scrollbar-corner {
+    background: rgba(8, 11, 17, 0.94);
+  }
+
+  html::-webkit-scrollbar-button,
+  .main_content::-webkit-scrollbar-button,
+  .navigation_bar::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 h1,

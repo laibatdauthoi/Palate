@@ -38,6 +38,8 @@
   height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
   max-height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
   box-sizing: border-box;
+  scrollbar-color: rgba(122, 132, 148, 0.82) rgba(8, 11, 17, 0.94);
+  scrollbar-width: thin;
   padding:
     var(--sidebar-inner-pad-top)
     var(--sidebar-inner-pad-x)

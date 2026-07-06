@@ -46,6 +46,39 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Restored desktop shell min-width locking and explicit dark-metal scrollbar
+  ownership after those rules drifted out of the live CSS:
+  - updated:
+    - [`frontend/styles/layout.css`](./frontend/styles/layout.css)
+    - [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+    - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - scrollbar selectors changed:
+    - `html`
+    - `.main_content`
+    - `.navigation_bar`
+    - plus explicit `::-webkit-scrollbar`, `track`, `thumb`, `corner`, and
+      `button` selectors for those containers
+  - main content min-width behavior:
+    - restored `--main-frame-min-width-desktop: 1040px` at the shell owner
+    - `.app_shell` now keeps a minimum width of
+      `calc(var(--sidebar-width-bounded) + var(--main-frame-min-width-desktop))`
+    - `.main_content` now keeps `min-width: var(--main-frame-min-width-desktop)`
+    - desktop shell columns now use
+      `minmax(var(--main-frame-min-width-desktop), 1fr)` so the desktop frame
+      no longer compresses below its intended width
+  - overflow behavior:
+    - root horizontal overflow is owned by `html { overflow-x: auto; }`
+    - `body` no longer hides the desktop horizontal overflow path
+    - when the viewport is narrower than sidebar + content minimum width, the
+      desktop shell now overflows horizontally instead of squeezing components
+  - preserved:
+    - sidebar width
+    - nav/wallet layout
+    - Home/page composition
+    - card sizing
+    - mobile layout behavior
+
 - Strengthened the sidebar brushed-metal read and raised WalletPanel surface
   brightness while preserving layout and geometry:
   - updated:

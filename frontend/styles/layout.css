@@ -7,9 +7,12 @@
 .app_shell {
   --sidebar-shell-gutter: 8px;
   --sidebar-width-bounded: clamp(210px, 12vw, 250px);
+  --main-frame-min-width-desktop: 1040px;
   display: grid;
   grid-template-columns: var(--sidebar-width-bounded) minmax(0, 1fr);
   height: 100dvh;
+  width: max(100%, calc(var(--sidebar-width-bounded) + var(--main-frame-min-width-desktop)));
+  min-width: calc(var(--sidebar-width-bounded) + var(--main-frame-min-width-desktop));
   min-height: 100dvh;
   overflow: hidden;
   opacity: 1;
@@ -21,6 +24,7 @@
   width: 100%;
   max-width: none;
   height: 100dvh;
+  min-width: var(--main-frame-min-width-desktop);
   min-height: 0;
   margin: 0;
   padding: var(--main-padding-top-scaled) var(--main-padding-x-scaled) var(--main-padding-bottom-scaled);
@@ -33,6 +37,12 @@
 .page_stack {
   display: grid;
   gap: var(--spacing-xl);
+}
+
+@media (min-width: 640px) {
+  .app_shell {
+    grid-template-columns: var(--sidebar-width-bounded) minmax(var(--main-frame-min-width-desktop), 1fr);
+  }
 }
 
 .mobile_only {
