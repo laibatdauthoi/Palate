@@ -46,6 +46,102 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Rebuilt the Sidebar and WalletPanel edge construction from the same filter-rail
+  surface language without changing layout, spacing, radius, dimensions, or color
+  palette:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+    - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - added one rail-family silhouette token:
+    - `--rail-material-border-strong: rgba(255, 255, 255, 0.16)`
+  - Sidebar rebuild:
+    - border changed from sidebar-specific chassis border logic to the brighter
+      neutral rail-family silhouette border
+    - background returned to `var(--rail-material-gradient-dark)` so the shell
+      uses the same surface family as the rail instead of a custom sidebar-only
+      surface recipe
+    - removed `backdrop-filter` so the metal read comes from edge construction,
+      not blur/glass treatment
+    - rebuilt the shell shadow stack using rail-style construction:
+      - top bevel from `var(--rail-material-bevel)`
+      - darker lower contact/cut edge via `0 3px 0 rgba(5, 7, 12, 0.3)`
+      - subtle inner rim via `inset 0 0 0 1px rgba(255, 255, 255, 0.024)`
+      - direct mounting/contact shadow via `0 20px 34px rgba(0, 0, 0, 0.3)`
+  - Wallet rebuild:
+    - kept current radius, size, and position
+    - rebuilt the wallet shell using the same edge construction language:
+      - `var(--rail-material-bevel)`
+      - darker lower edge via `0 2px 0 rgba(5, 7, 12, 0.28)`
+      - subtle inner rim via `inset 0 0 0 1px rgba(255, 255, 255, 0.024)`
+      - mounted-module contact shadow preserved through `var(--wallet-mount-shadow)`
+  - preserved:
+    - layout
+    - spacing
+    - dimensions
+    - radius
+    - colors
+    - cards/buttons/filter/background/mobile
+
+- Increased Sidebar visual hierarchy against the application background without
+  changing its geometry or design language:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - techniques used together instead of relying on one property:
+    - slightly brighter but same-hue sidebar chassis surface
+    - stronger silhouette border
+    - clearer top and left rim light
+    - stronger outer/contact shadow
+    - preserved darker lower cut edge
+  - material changes:
+    - added `--sidebar-chassis-surface` as a sidebar-only surface layer that is
+      slightly brighter than the page background while staying in the same dark
+      metal family
+    - `.navigation_bar` now uses `var(--sidebar-chassis-surface)` instead of the
+      generic darker rail surface
+    - strengthened chassis definition tokens:
+      - `--sidebar-chassis-border`: `0.11` -> `0.12`
+      - `--sidebar-chassis-rim-top`: `0.10` -> `0.115`
+      - `--sidebar-chassis-rim-left`: `0.06` -> `0.07`
+      - `--sidebar-chassis-shadow` strengthened from:
+        - `22px 0 78px rgba(0, 0, 0, 0.34), 0 10px 24px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(255, 255, 255, 0.024)`
+        to:
+        - `26px 0 88px rgba(0, 0, 0, 0.38), 0 14px 30px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.028)`
+  - visual hierarchy intent:
+    - sidebar should now register faster as a separate chassis from the page
+      background
+    - wallet remains one elevation above the sidebar in the same material family
+
+- Increased Sidebar and WalletPanel elevation while preserving their current
+  shape, radius, layout, and material family:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - sidebar elevation changes through shared chassis tokens:
+    - `--sidebar-chassis-border`: `rgba(255, 255, 255, 0.10)` -> `rgba(255, 255, 255, 0.11)`
+    - `--sidebar-chassis-rim-top`: `rgba(255, 255, 255, 0.085)` -> `rgba(255, 255, 255, 0.10)`
+    - `--sidebar-chassis-rim-left`: `rgba(255, 255, 255, 0.05)` -> `rgba(255, 255, 255, 0.06)`
+    - `--sidebar-chassis-cut-edge`: `rgba(0, 0, 0, 0.34)` -> `rgba(0, 0, 0, 0.38)`
+    - `--sidebar-chassis-shadow` strengthened from:
+      - `18px 0 70px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.02)`
+      to:
+      - `22px 0 78px rgba(0, 0, 0, 0.34), 0 10px 24px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(255, 255, 255, 0.024)`
+  - wallet elevation changes:
+    - `--wallet-mount-shadow` strengthened from:
+      - `0 1px 0 rgba(255, 255, 255, 0.04), 0 -1px 0 rgba(0, 0, 0, 0.22), 0 8px 18px rgba(0, 0, 0, 0.22)`
+      to:
+      - `0 1px 0 rgba(255, 255, 255, 0.05), 0 -1px 0 rgba(0, 0, 0, 0.26), 0 10px 22px rgba(0, 0, 0, 0.24)`
+    - `.wallet_panel` outer shadow increased from the generic panel shadow to:
+      - `0 20px 42px rgba(0, 0, 0, 0.3)`
+      while keeping the same bevel/mount logic
+  - preserved:
+    - sidebar radius
+    - wallet radius
+    - spacing/gap
+    - nav/brand layout
+    - component colors, material hue, and layout
+
 - Aligned Sidebar and WalletPanel corner language by optical ratio instead of
   forcing identical pixel radii:
   - updated:

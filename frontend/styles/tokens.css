@@ -44,6 +44,7 @@
   --gradient-hero-secondary: radial-gradient(circle at 80% 20%, rgba(143, 85, 255, 0.08), transparent 38%);
   --gradient-card-hover: linear-gradient(180deg, rgba(255, 47, 159, 0.14) 0%, rgba(255, 255, 255, 0.02) 100%);
   --rail-material-border: rgba(255, 255, 255, 0.12);
+  --rail-material-border-strong: rgba(255, 255, 255, 0.16);
   --rail-material-border-soft: rgba(255, 255, 255, 0.08);
   --rail-material-top-highlight: rgba(255, 255, 255, 0.08);
   --rail-material-top-highlight-strong: rgba(255, 255, 255, 0.12);
@@ -70,6 +71,10 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015) 22%, transparent 100%),
     linear-gradient(145deg, rgba(24, 29, 38, 0.96), rgba(17, 20, 28, 0.95)),
     rgba(17, 20, 28, 0.96);
+  --sidebar-chassis-surface:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02) 22%, transparent 100%),
+    linear-gradient(145deg, rgba(28, 34, 43, 0.97), rgba(18, 22, 30, 0.96)),
+    rgba(18, 22, 30, 0.97);
   --rail-material-control-gradient:
     radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.12), transparent 26%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 38%, rgba(0, 0, 0, 0.08) 100%),
@@ -87,22 +92,23 @@
   --rail-material-active-cyan: rgba(59, 218, 255, 0.34);
   --corner-chassis-radius: 24px;
   --corner-module-radius: 16px;
-  --sidebar-chassis-border: rgba(255, 255, 255, 0.1);
-  --sidebar-chassis-rim-top: rgba(255, 255, 255, 0.085);
-  --sidebar-chassis-rim-left: rgba(255, 255, 255, 0.05);
-  --sidebar-chassis-cut-edge: rgba(0, 0, 0, 0.34);
+  --sidebar-chassis-border: rgba(255, 255, 255, 0.12);
+  --sidebar-chassis-rim-top: rgba(255, 255, 255, 0.115);
+  --sidebar-chassis-rim-left: rgba(255, 255, 255, 0.07);
+  --sidebar-chassis-cut-edge: rgba(0, 0, 0, 0.38);
   --sidebar-chassis-shadow:
-    18px 0 70px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.02);
+    26px 0 88px rgba(0, 0, 0, 0.38),
+    0 14px 30px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.028);
   --sidebar-chassis-bevel:
     inset 0 1px 0 var(--sidebar-chassis-rim-top),
     inset 1px 0 0 var(--sidebar-chassis-rim-left),
     inset 0 -1px 0 var(--sidebar-chassis-cut-edge),
     inset -1px 0 0 rgba(0, 0, 0, 0.18);
   --wallet-mount-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.04),
-    0 -1px 0 rgba(0, 0, 0, 0.22),
-    0 8px 18px rgba(0, 0, 0, 0.22);
+    0 1px 0 rgba(255, 255, 255, 0.05),
+    0 -1px 0 rgba(0, 0, 0, 0.26),
+    0 10px 22px rgba(0, 0, 0, 0.24);
   --font-size-display-large: 56px;
   --font-size-display-medium: 44px;
   --font-size-heading-1: 36px;

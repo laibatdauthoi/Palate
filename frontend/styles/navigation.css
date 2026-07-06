@@ -43,13 +43,14 @@
     var(--sidebar-inner-pad-x)
     var(--sidebar-inner-pad-bottom)
     var(--sidebar-inner-pad-x);
-  border: 1px solid var(--sidebar-chassis-border);
+  border: 1px solid var(--rail-material-border-strong);
   border-radius: var(--sidebar-radius-scaled);
   background: var(--rail-material-gradient-dark);
-  backdrop-filter: blur(22px);
   box-shadow:
-    var(--sidebar-chassis-shadow),
-    var(--sidebar-chassis-bevel);
+    0 20px 34px rgba(0, 0, 0, 0.3),
+    0 3px 0 rgba(5, 7, 12, 0.3),
+    var(--rail-material-bevel),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.024);
 }
 
 .brand_lockup {

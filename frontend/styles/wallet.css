@@ -30,7 +30,12 @@
   border-radius: var(--wallet-panel-radius-scaled);
   background: var(--rail-material-gradient-raised);
   padding: var(--wallet-panel-padding);
-  box-shadow: var(--rail-material-shadow), var(--rail-material-bevel), var(--wallet-mount-shadow);
+  box-shadow:
+    0 12px 22px rgba(0, 0, 0, 0.24),
+    0 2px 0 rgba(5, 7, 12, 0.28),
+    var(--rail-material-bevel),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.024),
+    var(--wallet-mount-shadow);
 }
 
 .wallet_panel_header {
