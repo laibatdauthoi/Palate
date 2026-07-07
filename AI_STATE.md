@@ -46,6 +46,38 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Strengthened ActionButton primary/secondary contrast and edge definition
+  within the existing metal UI:
+  - updated:
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - primary old/new color and border treatment:
+    - old primary used a muted cyan-tinted gradient with
+      `rgba(67, 215, 255, 0.58)` border contrast
+    - new primary uses shared `--button-primary-*` surface tokens with a
+      brighter cyan top plane, darker lower metal plane, and stronger cyan
+      borders:
+      - base border: `rgba(67, 215, 255, 0.74)`
+      - hover border: `rgba(115, 232, 255, 0.82)`
+      - active border: `rgba(67, 215, 255, 0.56)`
+  - secondary old/new border treatment:
+    - old secondary used a softer lavender border at
+      `rgba(190, 160, 255, 0.22)`
+    - new secondary keeps the darker fill but raises the rim/edge contrast:
+      - base border: `rgba(212, 223, 242, 0.26)`
+      - hover border: `rgba(224, 232, 248, 0.36)`
+      - active border: `rgba(184, 166, 231, 0.38)`
+  - edge / shadow changes:
+    - added shared `--button-contact-shadow*` tokens for clearer grounded
+      contact shadows
+    - strengthened top highlight, side shine, and bottom cut edge on primary
+      and secondary variants
+    - kept the effect metal and pressable without introducing neon-heavy glow
+  - preserved:
+    - button size, radius, spacing, layout, component structure, and mobile
+      behavior
+
 - Rebalanced the compact desktop hero title after the previous overshrink:
   - updated:
     - [`frontend/styles/globals.css`](./frontend/styles/globals.css)

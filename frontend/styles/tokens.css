@@ -102,6 +102,34 @@
     linear-gradient(135deg, rgba(255, 47, 159, 0.1), rgba(143, 85, 255, 0.03));
   --rail-material-active-pink: rgba(255, 47, 159, 0.34);
   --rail-material-active-cyan: rgba(59, 218, 255, 0.34);
+  --button-primary-surface:
+    linear-gradient(180deg, rgba(214, 252, 255, 0.28), rgba(67, 215, 255, 0.14) 26%, rgba(0, 0, 0, 0.14) 100%),
+    linear-gradient(145deg, rgba(52, 99, 116, 0.99), rgba(18, 40, 54, 1) 60%, rgba(10, 22, 32, 1));
+  --button-primary-surface-hover:
+    linear-gradient(180deg, rgba(229, 254, 255, 0.3), rgba(67, 215, 255, 0.17) 26%, rgba(0, 0, 0, 0.14) 100%),
+    linear-gradient(145deg, rgba(59, 111, 129, 1), rgba(20, 45, 60, 1) 60%, rgba(11, 24, 35, 1));
+  --button-primary-surface-active:
+    linear-gradient(180deg, rgba(176, 247, 255, 0.18), rgba(67, 215, 255, 0.08) 24%, rgba(0, 0, 0, 0.16) 100%),
+    linear-gradient(145deg, rgba(40, 77, 90, 0.99), rgba(14, 31, 43, 1) 60%, rgba(8, 19, 28, 1));
+  --button-primary-border: rgba(67, 215, 255, 0.74);
+  --button-primary-border-hover: rgba(115, 232, 255, 0.82);
+  --button-primary-border-active: rgba(67, 215, 255, 0.56);
+  --button-secondary-surface:
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.13), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.082), rgba(255, 255, 255, 0.02) 38%, rgba(0, 0, 0, 0.1) 100%),
+    linear-gradient(145deg, rgba(59, 64, 79, 0.96), rgba(27, 31, 41, 0.98) 58%, rgba(18, 21, 29, 1));
+  --button-secondary-surface-hover:
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.16), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(190, 160, 255, 0.028) 38%, rgba(0, 0, 0, 0.11) 100%),
+    linear-gradient(145deg, rgba(66, 72, 88, 0.97), rgba(30, 34, 45, 0.99) 58%, rgba(20, 23, 31, 1));
+  --button-secondary-surface-active:
+    linear-gradient(180deg, rgba(41, 34, 57, 0.9), rgba(15, 16, 28, 0.98));
+  --button-secondary-border: rgba(212, 223, 242, 0.26);
+  --button-secondary-border-hover: rgba(224, 232, 248, 0.36);
+  --button-secondary-border-active: rgba(184, 166, 231, 0.38);
+  --button-contact-shadow: 0 14px 24px rgba(0, 0, 0, 0.34);
+  --button-contact-shadow-hover: 0 18px 30px rgba(0, 0, 0, 0.38);
+  --button-contact-shadow-active: 0 9px 16px rgba(0, 0, 0, 0.3);
   --corner-chassis-radius: 24px;
   --corner-module-radius: 16px;
   --sidebar-chassis-border: rgba(255, 255, 255, 0.12);
