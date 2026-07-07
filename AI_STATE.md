@@ -46,6 +46,45 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Rebalanced the compact desktop hero title after the previous overshrink:
+  - updated:
+    - [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - CSS owner:
+    - `.page_header.page_header_density_compact .page_header_title`
+      in the desktop `@media (min-width: 640px)` block of
+      [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+  - font size change:
+    - old desktop font size: `20px`
+    - new desktop font size: `24px`
+  - line height:
+    - unchanged
+  - preserved:
+    - font family, weight, color, and text treatment
+    - layout position
+    - mobile behavior
+
+- Reduced the Home desktop hero title after confirming its real component and
+  CSS owners:
+  - updated:
+    - [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - hero component owner found:
+    - [`frontend/app/page.tsx`](./frontend/app/page.tsx) passes the Home hero
+      headline into [`frontend/components/page_header.tsx`](./frontend/components/page_header.tsx)
+      as a `TypewriterHeadline`
+    - `PageHeader` renders that title in `<h1 className="page_header_title">`
+  - CSS selector owner found:
+    - [`frontend/styles/globals.css`](./frontend/styles/globals.css)
+    - selector:
+      `.page_header.page_header_density_compact .page_header_title`
+      inside the desktop `@media (min-width: 640px)` block
+  - font size change:
+    - old desktop font size: `30px`
+    - new desktop font size: `20px`
+  - preserved:
+    - style, color, shadow treatment, layout position, and mobile behavior
+
 - Restored desktop shell min-width locking and explicit dark-metal scrollbar
   ownership after those rules drifted out of the live CSS:
   - updated:
