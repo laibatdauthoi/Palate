@@ -79,16 +79,55 @@
 
 .action_button_primary,
 .app_action_primary {
+  position: relative;
+  isolation: isolate;
   background: var(--button-primary-surface);
   border-color: var(--button-primary-border);
+  border-radius: 8px;
   color: #f7fbff;
   box-shadow:
-    inset 0 1px 0 rgba(241, 254, 255, 0.28),
-    inset 1px 0 0 rgba(255, 255, 255, 0.07),
-    inset -1px 0 0 rgba(0, 0, 0, 0.24),
-    inset 0 -1px 0 rgba(4, 14, 21, 0.66),
-    inset 0 0 0 1px rgba(111, 234, 255, 0.12),
-    var(--button-contact-shadow);
+    inset 0 1px 0 rgba(244, 251, 254, 0.14),
+    inset 0 -1px 0 rgba(4, 8, 12, 0.92),
+    0 1px 0 rgba(232, 246, 251, 0.08),
+    0 16px 28px rgba(0, 0, 0, 0.42);
+}
+
+.action_button_primary::before,
+.app_action_primary::before,
+.action_button_primary::after,
+.app_action_primary::after {
+  content: "";
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.action_button_primary::before,
+.app_action_primary::before {
+  inset: 1px;
+  z-index: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 1px 0 0 rgba(150, 235, 255, 0.16),
+    inset -1px 0 0 rgba(0, 0, 0, 0.42),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.76),
+    inset 0 0 0 1px rgba(120, 230, 255, 0.16);
+}
+
+.action_button_primary::after,
+.app_action_primary::after {
+  inset: 0;
+  z-index: 0;
+  box-shadow:
+    0 0 0 1px rgba(80, 210, 240, 0.42),
+    0 0 0 2px rgba(40, 115, 138, 0.18),
+    inset 0 0 0 1px rgba(126, 232, 255, 0.2);
+}
+
+.action_button_primary > *,
+.app_action_primary > * {
+  position: relative;
+  z-index: 1;
 }
 
 .action_button_primary:hover,
@@ -97,37 +136,53 @@
   border-color: var(--button-primary-border-hover);
   background: var(--button-primary-surface-hover);
   box-shadow:
-    inset 0 1px 0 rgba(247, 255, 255, 0.32),
-    inset 1px 0 0 rgba(255, 255, 255, 0.075),
-    inset -1px 0 0 rgba(0, 0, 0, 0.24),
-    inset 0 -1px 0 rgba(5, 15, 22, 0.68),
-    inset 0 0 0 1px rgba(138, 239, 255, 0.14),
-    var(--button-contact-shadow-hover);
+    inset 0 1px 0 rgba(248, 253, 255, 0.18),
+    inset 0 -1px 0 rgba(4, 8, 12, 0.96),
+    0 1px 0 rgba(238, 250, 255, 0.1),
+    0 20px 34px rgba(0, 0, 0, 0.46);
+}
+
+.action_button_primary:hover::before,
+.app_action_primary:hover::before {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 1px 0 0 rgba(172, 241, 255, 0.2),
+    inset -1px 0 0 rgba(0, 0, 0, 0.46),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.82),
+    inset 0 0 0 1px rgba(142, 236, 255, 0.22);
+}
+
+.action_button_primary:hover::after,
+.app_action_primary:hover::after {
+  box-shadow:
+    0 0 0 1px rgba(118, 226, 248, 0.56),
+    0 0 0 2px rgba(55, 143, 169, 0.24),
+    0 0 10px rgba(86, 198, 223, 0.14),
+    inset 0 0 0 1px rgba(150, 239, 255, 0.26);
 }
 
 .action_button_primary:active,
 .app_action_primary:active {
-  color: #ddf6fb;
+  color: #e6eef7;
   border-color: var(--button-primary-border-active);
   background: var(--button-primary-surface-active);
   box-shadow:
-    inset 0 1px 0 rgba(220, 252, 255, 0.16),
-    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 rgba(219, 235, 242, 0.1),
+    inset 1px 0 0 rgba(148, 201, 217, 0.055),
     inset -1px 0 0 rgba(0, 0, 0, 0.22),
-    inset 0 -1px 0 rgba(3, 11, 17, 0.62),
-    inset 0 0 0 1px rgba(95, 226, 250, 0.1),
-    var(--button-contact-shadow-active);
+    inset 0 -1px 0 rgba(4, 8, 12, 0.82),
+    inset 0 0 0 1px rgba(58, 156, 181, 0.12),
+    0 11px 18px rgba(0, 0, 0, 0.34);
 }
 
 .action_button_primary:focus-visible,
 .app_action_primary:focus-visible {
-  border-color: rgba(114, 242, 255, 0.72);
+  border-color: rgba(96, 198, 223, 0.68);
   box-shadow:
-    0 0 0 3px rgba(59, 218, 255, 0.18),
-    0 0 0 6px rgba(16, 49, 59, 0.32),
-    inset 0 1px 0 rgba(241, 254, 255, 0.16),
-    0 12px 24px rgba(0, 0, 0, 0.32),
-    0 0 16px rgba(59, 218, 255, 0.22);
+    0 0 0 3px rgba(72, 184, 211, 0.18),
+    0 0 0 6px rgba(18, 36, 45, 0.28),
+    inset 0 1px 0 rgba(232, 244, 249, 0.14),
+    0 14px 24px rgba(0, 0, 0, 0.34);
 }
 
 .action_button_primary:disabled,

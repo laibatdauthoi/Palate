@@ -46,6 +46,240 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Rebuilt the primary button edge as a true 3D beveled rim instead of a flat
+  border-driven effect:
+  - updated:
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - pseudo-elements used:
+    - yes
+    - `::before` builds the inner bevel/cut-edge stack
+    - `::after` builds the outer cyan rim and tight edge ring
+    - both use `pointer-events: none`
+    - primary button children are explicitly lifted above the rim with `z-index: 1`
+  - rim layers added in the default primary state:
+    - outer cyan edge:
+      - `0 0 0 1px rgba(80, 210, 240, 0.42)`
+    - secondary outer edge ring:
+      - `0 0 0 2px rgba(40, 115, 138, 0.18)`
+    - subtle inner cyan line:
+      - `inset 0 0 0 1px rgba(126, 232, 255, 0.2)`
+    - bright top bevel:
+      - `inset 0 1px 0 rgba(255, 255, 255, 0.2)`
+    - bright left bevel:
+      - `inset 1px 0 0 rgba(150, 235, 255, 0.16)`
+    - darker right cut edge:
+      - `inset -1px 0 0 rgba(0, 0, 0, 0.42)`
+    - darker bottom cut edge:
+      - `inset 0 -1px 0 rgba(0, 0, 0, 0.76)`
+  - default vs hover rim behavior:
+    - default now shows a visible beveled cyan rim in the resting state
+    - hover strengthens the same structure instead of switching to a different effect:
+      - brighter outer cyan edge:
+        - `0 0 0 1px rgba(118, 226, 248, 0.56)`
+      - stronger secondary edge:
+        - `0 0 0 2px rgba(55, 143, 169, 0.24)`
+      - stronger top/left bevel
+      - deeper bottom/right cut
+      - slightly tighter cyan edge glow:
+        - `0 0 10px rgba(86, 198, 223, 0.14)`
+  - preserved:
+    - current reduced primary radius
+    - button size, padding, text, and layout
+    - secondary buttons untouched
+
+- Rebuilt the primary-button visible rim stack so the default state now matches
+  the previously desired hover-like cyan edge read instead of relying on a thin
+  border alone:
+  - updated:
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - exact rim stack old/new:
+    - old default rim stack:
+      - border color: `rgba(116, 212, 235, 0.76)`
+      - inner rim only:
+        - `inset 0 0 0 1px rgba(116, 212, 235, 0.18)`
+    - new default rim stack:
+      - border color unchanged: `rgba(116, 212, 235, 0.76)`
+      - stronger inner cyan rim:
+        - `inset 0 0 0 1px rgba(116, 212, 235, 0.24)`
+      - added darker inner body separation:
+        - `inset 0 0 0 2px rgba(33, 92, 114, 0.28)`
+      - added visible outer cyan rim:
+        - `0 0 0 1px rgba(116, 212, 235, 0.38)`
+      - added tight secondary edge:
+        - `0 0 0 2px rgba(60, 155, 182, 0.16)`
+      - added very small edge glow:
+        - `0 0 10px rgba(74, 177, 204, 0.12)`
+  - default now uses a visible outer/inner cyan rim:
+    - yes, via both inset and outer zero-blur edge layers rather than border
+      alone
+  - hover stronger than default:
+    - stronger inner rim:
+      - `inset 0 0 0 1px rgba(138, 223, 244, 0.3)`
+    - stronger inner separation:
+      - `inset 0 0 0 2px rgba(41, 110, 134, 0.3)`
+    - brighter outer rim:
+      - `0 0 0 1px rgba(138, 223, 244, 0.5)`
+    - stronger outer edge:
+      - `0 0 0 2px rgba(77, 178, 205, 0.22)`
+    - slightly stronger tight edge glow:
+      - `0 0 12px rgba(96, 198, 223, 0.16)`
+  - preserved:
+    - current reduced primary radius
+    - button size, padding, typography, and layout
+    - secondary buttons untouched
+
+- Copied the live primary hover recipe exactly into the default primary state,
+  then built a stronger hover and reduced the primary corner radius further:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - exact hover values copied into default:
+    - surface:
+      - `linear-gradient(112deg, rgba(255, 255, 255, 0.052) 0%, rgba(255, 255, 255, 0.02) 22%, rgba(255, 255, 255, 0.006) 38%, transparent 54%)`
+      - `radial-gradient(ellipse at 24% 11%, rgba(132, 207, 232, 0.19) 0%, rgba(132, 207, 232, 0.066) 20%, rgba(132, 207, 232, 0.024) 36%, transparent 60%)`
+      - `linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.016) 14%, transparent 38%)`
+      - `linear-gradient(145deg, rgba(39, 122, 146, 0.97), rgba(28, 88, 112, 0.99) 46%, rgba(16, 41, 54, 1) 78%, rgba(10, 21, 29, 1))`
+      - `rgba(24, 62, 78, 0.99)`
+    - border:
+      - `rgba(116, 212, 235, 0.76)`
+    - default box-shadow now exactly matches the previous hover shadow:
+      - `inset 0 1px 0 rgba(244, 251, 254, 0.2)`
+      - `inset 1px 0 0 rgba(196, 232, 242, 0.11)`
+      - `inset -1px 0 0 rgba(0, 0, 0, 0.22)`
+      - `inset 0 -1px 0 rgba(5, 9, 14, 0.88)`
+      - `inset 0 0 0 1px rgba(116, 212, 235, 0.18)`
+      - `0 22px 34px rgba(0, 0, 0, 0.44)`
+  - exact new hover values:
+    - surface:
+      - `linear-gradient(112deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.022) 22%, rgba(255, 255, 255, 0.007) 38%, transparent 54%)`
+      - `radial-gradient(ellipse at 24% 11%, rgba(152, 221, 244, 0.22) 0%, rgba(152, 221, 244, 0.078) 20%, rgba(152, 221, 244, 0.028) 36%, transparent 60%)`
+      - `linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018) 14%, transparent 38%)`
+      - `linear-gradient(145deg, rgba(45, 136, 162, 0.975), rgba(32, 100, 126, 0.995) 46%, rgba(18, 46, 60, 1) 78%, rgba(11, 24, 33, 1))`
+      - `rgba(27, 69, 87, 0.995)`
+    - border:
+      - `rgba(138, 223, 244, 0.86)`
+    - box-shadow:
+      - `inset 0 1px 0 rgba(248, 253, 255, 0.24)`
+      - `inset 1px 0 0 rgba(210, 238, 246, 0.13)`
+      - `inset -1px 0 0 rgba(0, 0, 0, 0.22)`
+      - `inset 0 -1px 0 rgba(5, 9, 14, 0.9)`
+      - `inset 0 0 0 1px rgba(138, 223, 244, 0.22)`
+      - `0 24px 38px rgba(0, 0, 0, 0.48)`
+  - radius:
+    - old primary radius: `11px`
+    - new primary radius: `8px`
+  - preserved:
+    - secondary buttons untouched
+    - button height, padding, typography, spacing, and layout
+
+- Promoted the previous primary-button hover recipe to the default state, then
+  made hover one step stronger while tightening the primary corner radius:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - old/new primary default values:
+    - old default surface used:
+      - `rgba(31, 100, 122, 0.96)` -> `rgba(22, 70, 90, 0.98)` ->
+        `rgba(12, 31, 42, 1)` -> `rgba(8, 17, 24, 1)`
+      - border `rgba(72, 184, 211, 0.56)`
+      - inner rim `rgba(72, 184, 211, 0.14)`
+      - contact shadow `0 18px 28px rgba(0, 0, 0, 0.4)`
+    - new default surface now uses the old hover recipe:
+      - `rgba(35, 110, 133, 0.965)` -> `rgba(25, 80, 102, 0.985)` ->
+        `rgba(14, 36, 48, 1)` -> `rgba(9, 19, 27, 1)`
+      - border `rgba(96, 198, 223, 0.66)`
+      - inner rim `rgba(96, 198, 223, 0.16)`
+      - contact shadow `0 20px 30px rgba(0, 0, 0, 0.42)`
+  - old/new hover values:
+    - old hover:
+      - matched the values now used by default
+    - new hover:
+      - brighter face `rgba(39, 122, 146, 0.97)` ->
+        `rgba(28, 88, 112, 0.99)` -> `rgba(16, 41, 54, 1)` ->
+        `rgba(10, 21, 29, 1)`
+      - border `rgba(116, 212, 235, 0.76)`
+      - stronger inner rim `rgba(116, 212, 235, 0.18)`
+      - deeper contact shadow `0 22px 34px rgba(0, 0, 0, 0.44)`
+  - radius:
+    - old primary radius: `13px`
+    - new primary radius: `11px`
+  - preserved:
+    - secondary buttons unchanged
+    - button height, padding, typography, and spacing
+
+- Restored primary-button hierarchy while keeping the new machined metal
+  direction:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - primary fill values:
+    - old base surface used a near-graphite metal stack:
+      - lower plane anchored around `rgba(31, 38, 49, 0.98)` ->
+        `rgba(18, 23, 31, 0.97)` -> `rgba(10, 14, 20, 1)`
+    - new base surface restores a clearly steel-blue metal face:
+      - raised face `rgba(31, 100, 122, 0.96)`
+      - mid plane `rgba(22, 70, 90, 0.98)`
+      - lower plane `rgba(12, 31, 42, 1)` -> `rgba(8, 17, 24, 1)`
+      - anchored by `rgba(18, 49, 63, 0.98)`
+  - primary border values:
+    - old base/hover/active:
+      - `rgba(119, 151, 182, 0.42)`
+      - `rgba(139, 171, 204, 0.5)`
+      - `rgba(104, 132, 160, 0.4)`
+    - new base/hover/active:
+      - `rgba(72, 184, 211, 0.56)`
+      - `rgba(96, 198, 223, 0.66)`
+      - `rgba(58, 156, 181, 0.5)`
+  - preserved:
+    - reduced primary radius
+    - machined bevel / cut-edge language
+    - button size, spacing, and typography
+    - secondary button darker graphite styling unchanged
+
+- Rebuilt primary buttons into the same machined dark-metal family as the
+  sidebar while leaving secondary buttons untouched:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - radius change:
+    - old primary radius: inherited base button radius `16px`
+    - new primary radius: `13px` via
+      `calc(var(--button-radius-scaled, 16px) - 3px)`
+  - accent color change:
+    - old primary accent border family:
+      - base `rgba(67, 215, 255, 0.74)`
+      - hover `rgba(115, 232, 255, 0.82)`
+      - active `rgba(67, 215, 255, 0.56)`
+    - new steel-blue rim family:
+      - base `rgba(119, 151, 182, 0.42)`
+      - hover `rgba(139, 171, 204, 0.5)`
+      - active `rgba(104, 132, 160, 0.4)`
+  - material change:
+    - replaced the pale cyan-wash primary surface with a darker sidebar-derived
+      metal stack:
+      - directional metal reflection
+      - broad cool top-left highlight
+      - restrained top-plane sheen
+      - darker lower plane and cut edge
+    - strengthened the machined feel through:
+      - narrower bright top highlight
+      - darker lower cut edge
+      - stronger grounded contact shadow
+      - integrated blue-steel rim instead of a uniform cyan outline
+  - preserved:
+    - button height
+    - padding
+    - typography
+    - spacing
+    - secondary button styling
+    - surrounding layout and component structure
+
 - Strengthened ActionButton primary/secondary contrast and edge definition
   within the existing metal UI:
   - updated:
