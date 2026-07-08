@@ -46,6 +46,42 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Thickened the primary button rim/bezel while preserving the current radial
+  center face:
+  - updated:
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - center face preserved confirmation:
+    - `--button-primary-surface` unchanged
+    - `--button-primary-surface-hover` unchanged
+    - only the rim/bevel stack in [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) was adjusted
+  - rim / bezel old/new thickness:
+    - root cut edge:
+      - old: `inset 0 -1px 0 rgba(4, 8, 12, 0.92)`
+      - new: `inset 0 -2px 0 rgba(4, 8, 12, 0.94)`
+    - inner bevel layer:
+      - old top/side/bottom thickness:
+        - `1px` / `1px` / `1px`
+      - new top/side/bottom thickness:
+        - `2px` / `2px` / `2px`
+      - added second inner rim:
+        - `inset 0 0 0 2px rgba(24, 78, 98, 0.28)`
+    - outer rim layer:
+      - old outer rings:
+        - `0 0 0 1px rgba(80, 210, 240, 0.42)`
+        - `0 0 0 2px rgba(40, 115, 138, 0.18)`
+      - new outer rings:
+        - `0 0 0 1px rgba(80, 210, 240, 0.48)`
+        - `0 0 0 2px rgba(40, 115, 138, 0.24)`
+        - `0 0 0 3px rgba(15, 59, 78, 0.14)`
+  - hover behavior:
+    - keeps the same radial center face
+    - slightly brightens and thickens the same rim model with stronger 2px
+      bevels and a slightly stronger 3-layer outer edge
+  - preserved:
+    - button size, padding, text, and layout
+    - secondary buttons untouched
+
 - Inverted the primary button face lighting so the outer area stays dark and
   the center reads brighter, while preserving the accepted rim/edge stack:
   - updated:
