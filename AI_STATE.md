@@ -46,6 +46,43 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Applied the primary button effect architecture to secondary buttons while
+  preserving the secondary color family and lower hierarchy:
+  - updated:
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - primary effect architecture reused:
+    - rounded clipped root shell
+    - centered radial face lighting
+    - thicker beveled rim via layered root / `::before` / `::after` shadows
+    - balanced top/bottom bevel treatment
+    - hover strengthens the same structure instead of switching styles
+  - secondary colors preserved:
+    - remained in graphite / cool lavender-gray tones
+    - no cyan primary face treatment was introduced
+    - border family stays secondary-owned:
+      - base `rgba(212, 223, 242, 0.26)` / visible rim stack around it
+      - hover `rgba(224, 232, 248, 0.36)`
+  - secondary default / hover changes:
+    - default:
+      - face moved to a centered radial metal surface:
+        - `radial-gradient(ellipse at 50% 50%, rgba(176, 188, 214, 0.22) 0%, rgba(76, 88, 116, 0.22) 34%, rgba(24, 28, 38, 0.94) 68%, rgba(11, 14, 21, 1) 100%)`
+      - added thicker bevel/rim structure with `::before` and `::after`
+    - hover:
+      - same effect architecture
+      - brighter but still quieter than primary:
+        - `radial-gradient(ellipse at 50% 50%, rgba(196, 206, 228, 0.26) 0%, rgba(90, 101, 130, 0.25) 34%, rgba(27, 31, 42, 0.95) 68%, rgba(12, 15, 22, 1) 100%)`
+      - slightly brighter outer shell and rim stack
+  - primary unchanged confirmation:
+    - primary selectors and tokens were not modified in this pass
+  - preserved:
+    - button sizes
+    - padding
+    - font size
+    - layout
+    - sidebar/wallet/cards/filter/background untouched
+
 - Balanced the primary button top and bottom rim treatment so both edges read
   as one coordinated bevel system:
   - updated:

@@ -203,15 +203,58 @@
 
 .action_button_secondary,
 .app_action_secondary {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   background: var(--button-secondary-surface);
   border-color: var(--button-secondary-border);
+  border-radius: 8px;
   color: #f5efff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 1px 0 0 rgba(255, 255, 255, 0.05),
-    inset -1px 0 0 rgba(0, 0, 0, 0.2),
-    inset 0 -1px 0 rgba(8, 10, 16, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    inset 0 -2px 0 rgba(8, 11, 18, 0.76),
+    0 1px 0 rgba(234, 239, 248, 0.06),
     var(--button-contact-shadow);
+}
+
+.action_button_secondary::before,
+.app_action_secondary::before,
+.action_button_secondary::after,
+.app_action_secondary::after {
+  content: "";
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.action_button_secondary::before,
+.app_action_secondary::before {
+  inset: 1px;
+  z-index: 0;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.13),
+    inset 2px 0 0 rgba(214, 220, 236, 0.08),
+    inset -2px 0 0 rgba(214, 220, 236, 0.08),
+    inset 0 -2px 0 rgba(9, 11, 18, 0.62),
+    inset 0 0 0 1px rgba(208, 216, 236, 0.14),
+    inset 0 0 0 2px rgba(43, 48, 66, 0.26);
+}
+
+.action_button_secondary::after,
+.app_action_secondary::after {
+  inset: 0;
+  z-index: 0;
+  box-shadow:
+    0 0 0 1px rgba(212, 223, 242, 0.28),
+    0 0 0 2px rgba(73, 82, 109, 0.18),
+    0 0 0 3px rgba(18, 22, 34, 0.12),
+    inset 0 0 0 1px rgba(224, 232, 248, 0.12);
+}
+
+.action_button_secondary > *,
+.app_action_secondary > * {
+  position: relative;
+  z-index: 1;
 }
 
 .action_button_secondary:hover,
@@ -220,11 +263,31 @@
   border-color: var(--button-secondary-border-hover);
   background: var(--button-secondary-surface-hover);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    inset 1px 0 0 rgba(255, 255, 255, 0.055),
-    inset -1px 0 0 rgba(0, 0, 0, 0.22),
-    inset 0 -1px 0 rgba(8, 10, 16, 0.66),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -2px 0 rgba(8, 11, 18, 0.8),
+    0 1px 0 rgba(242, 246, 252, 0.08),
     var(--button-contact-shadow-hover);
+}
+
+.action_button_secondary:hover::before,
+.app_action_secondary:hover::before {
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.16),
+    inset 2px 0 0 rgba(224, 230, 244, 0.1),
+    inset -2px 0 0 rgba(224, 230, 244, 0.1),
+    inset 0 -2px 0 rgba(10, 12, 20, 0.68),
+    inset 0 0 0 1px rgba(220, 228, 244, 0.16),
+    inset 0 0 0 2px rgba(50, 57, 76, 0.3);
+}
+
+.action_button_secondary:hover::after,
+.app_action_secondary:hover::after {
+  box-shadow:
+    0 0 0 1px rgba(224, 232, 248, 0.36),
+    0 0 0 2px rgba(89, 98, 128, 0.22),
+    0 0 0 3px rgba(22, 27, 40, 0.14),
+    0 0 10px rgba(182, 194, 222, 0.08),
+    inset 0 0 0 1px rgba(234, 240, 252, 0.15);
 }
 
 .action_button_secondary:active,
