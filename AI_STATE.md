@@ -46,6 +46,57 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Inverted the primary button face lighting so the outer area stays dark and
+  the center reads brighter, while preserving the accepted rim/edge stack:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - rim preserved confirmation:
+    - primary border/rim unchanged
+    - primary box-shadow rim stack unchanged
+    - primary radius unchanged
+    - primary size, padding, text, and layout unchanged
+    - secondary buttons untouched
+  - old/new primary radial gradient:
+    - old:
+      - `radial-gradient(ellipse at 34% 24%, rgba(138, 232, 255, 0.24) 0%, rgba(88, 178, 206, 0.11) 26%, rgba(42, 104, 128, 0.035) 44%, transparent 60%)`
+      - `radial-gradient(ellipse at 68% 78%, rgba(3, 14, 22, 0.16) 0%, rgba(3, 14, 22, 0.08) 30%, transparent 60%)`
+      - `linear-gradient(180deg, rgba(32, 101, 126, 0.985) 0%, rgba(22, 72, 93, 0.995) 48%, rgba(14, 42, 55, 1) 76%, rgba(9, 21, 29, 1) 100%)`
+    - new:
+      - `radial-gradient(ellipse at 50% 50%, rgba(72, 175, 205, 0.42) 0%, rgba(30, 100, 125, 0.34) 34%, rgba(13, 38, 52, 0.96) 68%, rgba(5, 13, 20, 1) 100%)`
+      - `linear-gradient(180deg, rgba(20, 63, 82, 0.28) 0%, rgba(7, 18, 26, 0.18) 100%)`
+  - hover radial gradient:
+    - `radial-gradient(ellipse at 50% 50%, rgba(92, 196, 224, 0.48) 0%, rgba(38, 116, 142, 0.37) 34%, rgba(15, 43, 58, 0.97) 68%, rgba(5, 13, 20, 1) 100%)`
+    - `linear-gradient(180deg, rgba(24, 72, 93, 0.3) 0%, rgba(8, 20, 28, 0.18) 100%)`
+
+- Kept the current accepted primary-button rim/edge stack and changed only the
+  face to radial-gradient lighting:
+  - updated:
+    - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - rim preserved confirmation:
+    - primary border unchanged
+    - primary rim/edge box-shadow stack unchanged
+    - primary radius unchanged
+    - primary size, padding, text, and layout unchanged
+    - secondary buttons untouched
+  - old/new primary face gradient:
+    - old face:
+      - `linear-gradient(112deg, rgba(255, 255, 255, 0.052) 0%, rgba(255, 255, 255, 0.02) 22%, rgba(255, 255, 255, 0.006) 38%, transparent 54%)`
+      - `radial-gradient(ellipse at 24% 11%, rgba(132, 207, 232, 0.19) 0%, rgba(132, 207, 232, 0.066) 20%, rgba(132, 207, 232, 0.024) 36%, transparent 60%)`
+      - `linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.016) 14%, transparent 38%)`
+      - `linear-gradient(145deg, rgba(39, 122, 146, 0.97), rgba(28, 88, 112, 0.99) 46%, rgba(16, 41, 54, 1) 78%, rgba(10, 21, 29, 1))`
+    - new face:
+      - `radial-gradient(ellipse at 34% 24%, rgba(138, 232, 255, 0.24) 0%, rgba(88, 178, 206, 0.11) 26%, rgba(42, 104, 128, 0.035) 44%, transparent 60%)`
+      - `radial-gradient(ellipse at 68% 78%, rgba(3, 14, 22, 0.16) 0%, rgba(3, 14, 22, 0.08) 30%, transparent 60%)`
+      - `linear-gradient(180deg, rgba(32, 101, 126, 0.985) 0%, rgba(22, 72, 93, 0.995) 48%, rgba(14, 42, 55, 1) 76%, rgba(9, 21, 29, 1) 100%)`
+  - hover face change:
+    - rim behavior unchanged
+    - only face lighting brightens:
+      - `radial-gradient(ellipse at 34% 24%, rgba(160, 241, 255, 0.29) 0%, rgba(104, 194, 221, 0.13) 26%, rgba(50, 118, 143, 0.04) 44%, transparent 60%)`
+      - `radial-gradient(ellipse at 68% 78%, rgba(3, 14, 22, 0.18) 0%, rgba(3, 14, 22, 0.09) 30%, transparent 60%)`
+      - `linear-gradient(180deg, rgba(38, 118, 145, 0.99) 0%, rgba(26, 84, 107, 0.998) 48%, rgba(16, 47, 61, 1) 76%, rgba(10, 23, 32, 1) 100%)`
+
 - Rebuilt the primary button edge as a true 3D beveled rim instead of a flat
   border-driven effect:
   - updated:

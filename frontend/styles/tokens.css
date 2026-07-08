@@ -103,16 +103,12 @@
   --rail-material-active-pink: rgba(255, 47, 159, 0.34);
   --rail-material-active-cyan: rgba(59, 218, 255, 0.34);
   --button-primary-surface:
-    linear-gradient(112deg, rgba(255, 255, 255, 0.052) 0%, rgba(255, 255, 255, 0.02) 22%, rgba(255, 255, 255, 0.006) 38%, transparent 54%),
-    radial-gradient(ellipse at 24% 11%, rgba(132, 207, 232, 0.19) 0%, rgba(132, 207, 232, 0.066) 20%, rgba(132, 207, 232, 0.024) 36%, transparent 60%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.016) 14%, transparent 38%),
-    linear-gradient(145deg, rgba(39, 122, 146, 0.97), rgba(28, 88, 112, 0.99) 46%, rgba(16, 41, 54, 1) 78%, rgba(10, 21, 29, 1)),
+    radial-gradient(ellipse at 50% 50%, rgba(72, 175, 205, 0.42) 0%, rgba(30, 100, 125, 0.34) 34%, rgba(13, 38, 52, 0.96) 68%, rgba(5, 13, 20, 1) 100%),
+    linear-gradient(180deg, rgba(20, 63, 82, 0.28) 0%, rgba(7, 18, 26, 0.18) 100%),
     rgba(24, 62, 78, 0.99);
   --button-primary-surface-hover:
-    linear-gradient(112deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.022) 22%, rgba(255, 255, 255, 0.007) 38%, transparent 54%),
-    radial-gradient(ellipse at 24% 11%, rgba(152, 221, 244, 0.22) 0%, rgba(152, 221, 244, 0.078) 20%, rgba(152, 221, 244, 0.028) 36%, transparent 60%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018) 14%, transparent 38%),
-    linear-gradient(145deg, rgba(45, 136, 162, 0.975), rgba(32, 100, 126, 0.995) 46%, rgba(18, 46, 60, 1) 78%, rgba(11, 24, 33, 1)),
+    radial-gradient(ellipse at 50% 50%, rgba(92, 196, 224, 0.48) 0%, rgba(38, 116, 142, 0.37) 34%, rgba(15, 43, 58, 0.97) 68%, rgba(5, 13, 20, 1) 100%),
+    linear-gradient(180deg, rgba(24, 72, 93, 0.3) 0%, rgba(8, 20, 28, 0.18) 100%),
     rgba(27, 69, 87, 0.995);
   --button-primary-surface-active:
     linear-gradient(112deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 22%, rgba(255, 255, 255, 0.003) 38%, transparent 54%),
