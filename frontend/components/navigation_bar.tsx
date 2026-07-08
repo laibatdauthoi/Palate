@@ -74,7 +74,7 @@ export function NavigationBar() {
                 </span>
                 <span className="nav_link_label">{item.label}</span>
               </span>
-              {showClaimReminder && claimReminderKnown ? <span className="nav_claim_badge">{claimableRewardsSummary.claimableCount}</span> : null}
+              {showClaimReminder && claimReminderKnown ? <span aria-hidden="true" className="nav_claim_indicator" /> : null}
             </Link>
           );
         })}

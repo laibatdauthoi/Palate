@@ -1,6 +1,6 @@
 /* Navigation contract:
    - Navigation owns the reusable sidebar shell, brand lockup, nav list, nav
-     item shell, label, indicator rails, active/hover states, and claim badge
+     item shell, label, indicator rails, active/hover states, and claim indicator
    - App shell and layout modes own overall placement, visibility, and mode
      switching
    - Pages must not restyle navigation internals */
@@ -22,9 +22,7 @@
   --nav-link-icon-shell-radius: 11px;
   --nav-link-icon-size: 14.5px;
   --nav-link-label-size: 17.9px;
-  --nav-claim-badge-size: 20px;
-  --nav-claim-badge-pad-x: 6px;
-  --nav-claim-badge-font-size: 11px;
+  --nav-claim-indicator-size: 8px;
   position: sticky;
   top: var(--sidebar-shell-gutter, 16px);
   align-self: start;
@@ -226,24 +224,38 @@
 }
 
 .nav_link_attention {
-  border-color: rgba(255, 47, 159, 0.18);
-  box-shadow: 0 0 18px rgba(255, 47, 159, 0.14);
-  animation: claim_tab_pulse 1.8s ease-in-out infinite;
+  border-color: transparent;
+  box-shadow: none;
 }
 
-.nav_claim_badge {
-  display: inline-grid;
-  min-width: var(--nav-claim-badge-size);
-  min-height: var(--nav-claim-badge-size);
-  place-items: center;
+.nav_link_attention .nav_link_main {
+  min-width: 0;
+}
+
+.nav_claim_indicator {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: var(--nav-claim-indicator-size);
+  height: var(--nav-claim-indicator-size);
   border-radius: var(--radius-pill-scaled, 999px);
-  background: linear-gradient(135deg, rgba(255, 47, 159, 0.95), rgba(255, 126, 192, 0.9));
-  color: #fff7fb;
-  font-size: var(--nav-claim-badge-font-size);
-  font-weight: 900;
-  line-height: 1;
-  padding: 0 var(--nav-claim-badge-pad-x);
-  box-shadow: 0 0 14px rgba(255, 47, 159, 0.28);
+  background: rgba(118, 226, 248, 0.88);
+  box-shadow:
+    0 0 0 1px rgba(24, 58, 70, 0.8),
+    0 0 8px rgba(96, 216, 242, 0.18);
+  animation: nav_claim_cyan_pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes nav_claim_cyan_pulse {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.48;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 0.88;
+  }
 }
 
 .mobile_bottom_nav {

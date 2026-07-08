@@ -46,6 +46,60 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Restored the original desktop sidebar nav hover/active styling while keeping
+  the small cyan notification dot:
+  - updated:
+    - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - hover / active restoration summary:
+    - removed notification-specific icon-shell tinting from
+      `.nav_link_attention .nav_link_icon`
+    - removed notification-specific label recoloring from
+      `.nav_link_attention .nav_link_label`
+    - removed the notification-specific cyan ring pseudo-element from
+      `.nav_link_attention .nav_link_icon::after`
+    - this returns desktop nav row, icon, and label hover/active behavior to
+      the base `.nav_link:hover` and `.nav_link.active` rules
+  - notification dot kept confirmation:
+    - desktop nav still renders `nav_claim_indicator` in
+      [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+    - numeric badge remains removed
+    - the dot still pulses gently on its own
+  - row ring / glow removed confirmation:
+    - no notification-specific row border, row glow, icon shell ring, or label
+      color override remains in the desktop sidebar notification state
+  
+- Replaced the desktop sidebar claim notification badge/glow with a subtle cyan
+  pulse that fits the current metal UI:
+  - updated:
+    - [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+    - [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - badge removal location:
+    - desktop sidebar render path in
+      [`frontend/components/navigation_bar.tsx`](./frontend/components/navigation_bar.tsx)
+    - replaced `nav_claim_badge` numeric output with a decorative
+      `nav_claim_indicator`
+    - mobile notification badge path in
+      [`frontend/components/mobile_bottom_nav.tsx`](./frontend/components/mobile_bottom_nav.tsx)
+      was intentionally left untouched
+  - old pink glow removed:
+    - removed `nav_link_attention` pink border tint
+    - removed `nav_link_attention` pink row glow
+    - removed the old claim-badge pink pill styling from the desktop sidebar path
+  - new cyan pulse treatment:
+    - added a small cyan indicator dot:
+      - `.nav_claim_indicator`
+    - added a gentle cyan pulse ring on the nav icon shell:
+      - `.nav_link_attention .nav_link_icon::after`
+    - pulse behavior:
+      - low opacity
+      - slow `2.2s` cycle
+      - small scale range only
+      - no large glow cloud
+    - kept nav item size, icon size, label layout, active state, hover state,
+      sidebar layout, and mobile behavior unchanged
+
 - Applied the primary button effect architecture to secondary buttons while
   preserving the secondary color family and lower hierarchy:
   - updated:
