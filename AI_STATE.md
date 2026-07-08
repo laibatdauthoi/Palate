@@ -46,6 +46,47 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Balanced the primary button rim lighting while preserving the current
+  geometry, radial center face, and rim thickness:
+  - updated:
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - rim lighting old/new behavior:
+    - old default rim leaned more directional:
+      - brighter left inner edge than right
+      - stronger top highlight
+      - heavier bottom cut edge
+    - new default rim is more centered:
+      - outer cyan rim kept but evened out
+      - inner cyan rim kept with lower directional contrast
+      - top bevel softened
+      - bottom cut edge still present but less heavy
+  - left/right balance changes:
+    - old `::before` side bevels:
+      - left `inset 2px 0 0 rgba(150, 235, 255, 0.14)`
+      - right `inset -2px 0 0 rgba(0, 0, 0, 0.32)`
+    - new `::before` side bevels:
+      - left `inset 2px 0 0 rgba(158, 228, 242, 0.11)`
+      - right `inset -2px 0 0 rgba(158, 228, 242, 0.11)`
+    - hover side bevels now also match left/right intensity instead of favoring
+      one side
+  - top/bottom bevel changes:
+    - default top highlight softened:
+      - `rgba(244, 251, 254, 0.18)` -> `rgba(244, 251, 254, 0.14)`
+      - inner top bevel `rgba(255, 255, 255, 0.2)` -> `rgba(255, 255, 255, 0.17)`
+    - default bottom cut edge softened:
+      - root `rgba(4, 8, 12, 0.94)` -> `rgba(4, 8, 12, 0.88)`
+      - inner `rgba(0, 0, 0, 0.78)` -> `rgba(0, 0, 0, 0.72)`
+    - hover keeps the same 3D structure but brightens the whole rim more
+      evenly instead of adding directional glare
+  - preserved:
+    - current button size
+    - current 8px radius
+    - current radial center face
+    - rim thickness
+    - text and layout
+    - secondary buttons untouched
+
 - Thickened the primary button rim/bezel while preserving the current radial
   center face:
   - updated:

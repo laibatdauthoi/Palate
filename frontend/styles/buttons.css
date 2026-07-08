@@ -86,8 +86,8 @@
   border-radius: 8px;
   color: #f7fbff;
   box-shadow:
-    inset 0 1px 0 rgba(244, 251, 254, 0.18),
-    inset 0 -2px 0 rgba(4, 8, 12, 0.94),
+    inset 0 1px 0 rgba(244, 251, 254, 0.14),
+    inset 0 -2px 0 rgba(4, 8, 12, 0.88),
     0 1px 0 rgba(232, 246, 251, 0.08),
     0 16px 28px rgba(0, 0, 0, 0.42);
 }
@@ -107,12 +107,12 @@
   inset: 1px;
   z-index: 0;
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.2),
-    inset 2px 0 0 rgba(150, 235, 255, 0.14),
-    inset -2px 0 0 rgba(0, 0, 0, 0.32),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.78),
-    inset 0 0 0 1px rgba(120, 230, 255, 0.18),
-    inset 0 0 0 2px rgba(24, 78, 98, 0.28);
+    inset 0 2px 0 rgba(255, 255, 255, 0.17),
+    inset 2px 0 0 rgba(158, 228, 242, 0.11),
+    inset -2px 0 0 rgba(158, 228, 242, 0.11),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.72),
+    inset 0 0 0 1px rgba(120, 230, 255, 0.17),
+    inset 0 0 0 2px rgba(24, 78, 98, 0.24);
 }
 
 .action_button_primary::after,
@@ -120,10 +120,10 @@
   inset: 0;
   z-index: 0;
   box-shadow:
-    0 0 0 1px rgba(80, 210, 240, 0.48),
-    0 0 0 2px rgba(40, 115, 138, 0.24),
-    0 0 0 3px rgba(15, 59, 78, 0.14),
-    inset 0 0 0 1px rgba(126, 232, 255, 0.22);
+    0 0 0 1px rgba(92, 214, 242, 0.46),
+    0 0 0 2px rgba(48, 126, 149, 0.22),
+    0 0 0 3px rgba(15, 59, 78, 0.12),
+    inset 0 0 0 1px rgba(126, 232, 255, 0.2);
 }
 
 .action_button_primary > *,
@@ -138,8 +138,8 @@
   border-color: var(--button-primary-border-hover);
   background: var(--button-primary-surface-hover);
   box-shadow:
-    inset 0 1px 0 rgba(248, 253, 255, 0.2),
-    inset 0 -2px 0 rgba(4, 8, 12, 0.98),
+    inset 0 1px 0 rgba(248, 253, 255, 0.16),
+    inset 0 -2px 0 rgba(4, 8, 12, 0.9),
     0 1px 0 rgba(238, 250, 255, 0.1),
     0 20px 34px rgba(0, 0, 0, 0.46);
 }
@@ -147,22 +147,22 @@
 .action_button_primary:hover::before,
 .app_action_primary:hover::before {
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.24),
-    inset 2px 0 0 rgba(172, 241, 255, 0.18),
-    inset -2px 0 0 rgba(0, 0, 0, 0.36),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.82),
-    inset 0 0 0 1px rgba(142, 236, 255, 0.24),
-    inset 0 0 0 2px rgba(28, 89, 111, 0.32);
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
+    inset 2px 0 0 rgba(176, 236, 248, 0.13),
+    inset -2px 0 0 rgba(176, 236, 248, 0.13),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.74),
+    inset 0 0 0 1px rgba(142, 236, 255, 0.21),
+    inset 0 0 0 2px rgba(28, 89, 111, 0.26);
 }
 
 .action_button_primary:hover::after,
 .app_action_primary:hover::after {
   box-shadow:
-    0 0 0 1px rgba(118, 226, 248, 0.6),
-    0 0 0 2px rgba(55, 143, 169, 0.3),
-    0 0 0 3px rgba(18, 72, 94, 0.16),
+    0 0 0 1px rgba(122, 228, 249, 0.56),
+    0 0 0 2px rgba(61, 150, 175, 0.26),
+    0 0 0 3px rgba(18, 72, 94, 0.14),
     0 0 10px rgba(86, 198, 223, 0.12),
-    inset 0 0 0 1px rgba(150, 239, 255, 0.28);
+    inset 0 0 0 1px rgba(150, 239, 255, 0.24);
 }
 
 .action_button_primary:active,
