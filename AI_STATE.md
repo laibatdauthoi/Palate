@@ -46,6 +46,42 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 # Recent Changes
 
+- Balanced the primary button top and bottom rim treatment so both edges read
+  as one coordinated bevel system:
+  - updated:
+    - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - [`AI_STATE.md`](./AI_STATE.md)
+  - top rim old/new treatment:
+    - root top highlight:
+      - old: `inset 0 1px 0 rgba(244, 251, 254, 0.14)`
+      - new: `inset 0 1px 0 rgba(244, 251, 254, 0.15)`
+    - inner top bevel:
+      - old: `inset 0 2px 0 rgba(255, 255, 255, 0.17)`
+      - new: `inset 0 2px 0 rgba(252, 254, 255, 0.16)`
+  - bottom rim old/new treatment:
+    - root bottom cut:
+      - old: `inset 0 -2px 0 rgba(4, 8, 12, 0.88)`
+      - new: `inset 0 -2px 0 rgba(8, 18, 26, 0.72)`
+    - inner bottom cut:
+      - old: `inset 0 -2px 0 rgba(0, 0, 0, 0.72)`
+      - new: `inset 0 -2px 0 rgba(10, 20, 28, 0.58)`
+    - the bottom edge stays darker, but is now closer in material character to
+      the top bevel instead of reading like a separate hard strip
+  - hover behavior:
+    - preserves the same balanced rim model
+    - top edge brightens slightly:
+      - `rgba(248, 253, 255, 0.16)` -> `rgba(248, 253, 255, 0.17)`
+      - inner `rgba(255, 255, 255, 0.2)` -> `rgba(252, 254, 255, 0.18)`
+    - bottom edge remains darker but is softened into the same bevel family:
+      - root `rgba(4, 8, 12, 0.9)` -> `rgba(10, 20, 28, 0.76)`
+      - inner `rgba(0, 0, 0, 0.74)` -> `rgba(12, 22, 31, 0.62)`
+  - preserved:
+    - button size, radius, text, spacing
+    - radial center face
+    - current rim thickness
+    - left/right balance
+    - secondary buttons untouched
+
 - Balanced the primary button rim lighting while preserving the current
   geometry, radial center face, and rim thickness:
   - updated:
