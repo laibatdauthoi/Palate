@@ -205,12 +205,13 @@
 
 .action_button_secondary,
 .app_action_secondary {
+  --button-secondary-visible-rim-radius: var(--button-secondary-radius);
   position: relative;
   isolation: isolate;
   overflow: hidden;
   background: var(--button-secondary-surface);
   border-color: var(--button-secondary-border);
-  border-radius: 8px;
+  border-radius: var(--button-secondary-radius);
   color: #f5efff;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.13),
@@ -225,13 +226,13 @@
 .app_action_secondary::after {
   content: "";
   position: absolute;
-  border-radius: inherit;
   pointer-events: none;
 }
 
 .action_button_secondary::before,
 .app_action_secondary::before {
-  inset: 1px;
+  inset: var(--button-secondary-rim-inset);
+  border-radius: var(--button-secondary-inner-radius);
   z-index: 0;
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.13),
@@ -245,6 +246,7 @@
 .action_button_secondary::after,
 .app_action_secondary::after {
   inset: 0;
+  border-radius: var(--button-secondary-visible-rim-radius);
   z-index: 0;
   box-shadow:
     0 0 0 1px rgba(212, 223, 242, 0.28),

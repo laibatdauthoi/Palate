@@ -122,6 +122,9 @@
   --button-primary-radius: 13px;
   --button-primary-rim-inset: 1px;
   --button-primary-inner-radius: calc(var(--button-primary-radius) - var(--button-primary-rim-inset));
+  --button-secondary-radius: 13px;
+  --button-secondary-rim-inset: 1px;
+  --button-secondary-inner-radius: calc(var(--button-secondary-radius) - var(--button-secondary-rim-inset));
   --button-secondary-surface:
     radial-gradient(ellipse at 50% 50%, rgba(176, 188, 214, 0.22) 0%, rgba(76, 88, 116, 0.22) 34%, rgba(24, 28, 38, 0.94) 68%, rgba(11, 14, 21, 1) 100%),
     linear-gradient(180deg, rgba(58, 66, 85, 0.26) 0%, rgba(16, 19, 28, 0.16) 100%);
