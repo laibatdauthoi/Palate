@@ -79,11 +79,12 @@
 
 .action_button_primary,
 .app_action_primary {
+  --button-primary-visible-rim-radius: var(--button-primary-radius);
   position: relative;
   isolation: isolate;
   background: var(--button-primary-surface);
   border-color: var(--button-primary-border);
-  border-radius: 8px;
+  border-radius: var(--button-primary-radius);
   color: #f7fbff;
   box-shadow:
     inset 0 1px 0 rgba(244, 251, 254, 0.15),
@@ -98,13 +99,13 @@
 .app_action_primary::after {
   content: "";
   position: absolute;
-  border-radius: inherit;
   pointer-events: none;
 }
 
 .action_button_primary::before,
 .app_action_primary::before {
-  inset: 1px;
+  inset: var(--button-primary-rim-inset);
+  border-radius: var(--button-primary-inner-radius);
   z-index: 0;
   box-shadow:
     inset 0 2px 0 rgba(252, 254, 255, 0.16),
@@ -118,6 +119,7 @@
 .action_button_primary::after,
 .app_action_primary::after {
   inset: 0;
+  border-radius: var(--button-primary-visible-rim-radius);
   z-index: 0;
   box-shadow:
     0 0 0 1px rgba(92, 214, 242, 0.46),

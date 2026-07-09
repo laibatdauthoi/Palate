@@ -1,5 +1,9 @@
 # Current Sprint
 
+# Recent Changes
+
+- Fixed the primary desktop button rim geometry to follow the same concentric rounded-layer logic as the sidebar chassis. The visible outer rim owner was the primary button `::after`, not the root border alone, so the geometry was moved to explicit tokens in [`frontend/styles/tokens.css`](./frontend/styles/tokens.css): `--button-primary-radius: 13px`, `--button-primary-rim-inset: 1px`, and `--button-primary-inner-radius: calc(var(--button-primary-radius) - var(--button-primary-rim-inset))`. [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) now applies those tokens directly to the root, `::before`, and `::after` instead of relying on inherited radii, which keeps the outer shell and inner face concentric with an even 1px rim gap through both straight edges and corners.
+
 - Stabilize the staged UI scale migration with PC/desktop-first polish while preserving the approved Palate layout and existing gameplay flows.
 - Record and stage the navigation / information-architecture simplification that makes Home the single gameplay entry point.
 
