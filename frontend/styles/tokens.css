@@ -103,19 +103,17 @@
   --rail-material-active-pink: rgba(255, 47, 159, 0.34);
   --rail-material-active-cyan: rgba(59, 218, 255, 0.34);
   --button-primary-surface:
-    radial-gradient(ellipse at 50% 50%, rgba(72, 175, 205, 0.42) 0%, rgba(30, 100, 125, 0.34) 34%, rgba(13, 38, 52, 0.96) 68%, rgba(5, 13, 20, 1) 100%),
-    linear-gradient(180deg, rgba(20, 63, 82, 0.28) 0%, rgba(7, 18, 26, 0.18) 100%),
-    rgba(24, 62, 78, 0.99);
+    radial-gradient(circle at 18% 16%, rgba(214, 244, 252, 0.12), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 38%, rgba(7, 24, 33, 0.08) 100%),
+    linear-gradient(145deg, rgba(48, 87, 108, 0.95), rgba(23, 47, 61, 0.97) 58%, rgba(14, 23, 31, 0.99));
   --button-primary-surface-hover:
-    radial-gradient(ellipse at 50% 50%, rgba(92, 196, 224, 0.48) 0%, rgba(38, 116, 142, 0.37) 34%, rgba(15, 43, 58, 0.97) 68%, rgba(5, 13, 20, 1) 100%),
-    linear-gradient(180deg, rgba(24, 72, 93, 0.3) 0%, rgba(8, 20, 28, 0.18) 100%),
-    rgba(27, 69, 87, 0.995);
+    radial-gradient(circle at 18% 16%, rgba(224, 248, 255, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.02) 38%, rgba(9, 28, 38, 0.1) 100%),
+    linear-gradient(145deg, rgba(58, 101, 124, 0.96), rgba(28, 54, 69, 0.98) 58%, rgba(16, 25, 34, 0.995));
   --button-primary-surface-active:
-    linear-gradient(112deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 22%, rgba(255, 255, 255, 0.003) 38%, transparent 54%),
-    radial-gradient(ellipse at 24% 11%, rgba(86, 162, 189, 0.11) 0%, rgba(86, 162, 189, 0.038) 20%, rgba(86, 162, 189, 0.014) 34%, transparent 58%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.024), rgba(255, 255, 255, 0.008) 14%, transparent 36%),
-    linear-gradient(145deg, rgba(26, 82, 101, 0.98), rgba(17, 53, 68, 0.985) 46%, rgba(10, 27, 36, 1) 78%, rgba(7, 15, 21, 1)),
-    rgba(14, 40, 52, 0.99);
+    radial-gradient(circle at 18% 16%, rgba(198, 234, 246, 0.1), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 34%, rgba(8, 21, 29, 0.09) 100%),
+    linear-gradient(145deg, rgba(38, 69, 86, 0.95), rgba(19, 38, 49, 0.98) 58%, rgba(12, 20, 27, 1));
   --button-primary-border: rgba(116, 212, 235, 0.76);
   --button-primary-border-hover: rgba(138, 223, 244, 0.86);
   --button-primary-border-active: rgba(58, 156, 181, 0.5);
@@ -126,13 +124,17 @@
   --button-secondary-rim-inset: 1px;
   --button-secondary-inner-radius: calc(var(--button-secondary-radius) - var(--button-secondary-rim-inset));
   --button-secondary-surface:
-    radial-gradient(ellipse at 50% 50%, rgba(176, 188, 214, 0.22) 0%, rgba(76, 88, 116, 0.22) 34%, rgba(24, 28, 38, 0.94) 68%, rgba(11, 14, 21, 1) 100%),
-    linear-gradient(180deg, rgba(58, 66, 85, 0.26) 0%, rgba(16, 19, 28, 0.16) 100%);
+    radial-gradient(circle at 18% 16%, rgba(235, 240, 252, 0.08), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.014) 38%, rgba(18, 18, 32, 0.08) 100%),
+    linear-gradient(145deg, rgba(56, 60, 75, 0.94), rgba(29, 31, 43, 0.97) 58%, rgba(18, 19, 29, 0.99));
   --button-secondary-surface-hover:
-    radial-gradient(ellipse at 50% 50%, rgba(196, 206, 228, 0.26) 0%, rgba(90, 101, 130, 0.25) 34%, rgba(27, 31, 42, 0.95) 68%, rgba(12, 15, 22, 1) 100%),
-    linear-gradient(180deg, rgba(66, 74, 94, 0.28) 0%, rgba(18, 21, 30, 0.16) 100%);
+    radial-gradient(circle at 18% 16%, rgba(244, 247, 255, 0.1), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018) 38%, rgba(21, 21, 37, 0.1) 100%),
+    linear-gradient(145deg, rgba(64, 69, 86, 0.95), rgba(34, 37, 50, 0.98) 58%, rgba(21, 22, 33, 0.995));
   --button-secondary-surface-active:
-    linear-gradient(180deg, rgba(41, 34, 57, 0.9), rgba(15, 16, 28, 0.98));
+    radial-gradient(circle at 18% 16%, rgba(224, 220, 248, 0.07), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01) 34%, rgba(22, 16, 34, 0.09) 100%),
+    linear-gradient(145deg, rgba(48, 42, 68, 0.94), rgba(26, 24, 40, 0.98) 58%, rgba(18, 17, 28, 1));
   --button-secondary-border: rgba(212, 223, 242, 0.26);
   --button-secondary-border-hover: rgba(224, 232, 248, 0.36);
   --button-secondary-border-active: rgba(184, 166, 231, 0.38);

@@ -87,10 +87,10 @@
   border-radius: var(--button-primary-radius);
   color: #f7fbff;
   box-shadow:
-    inset 0 1px 0 rgba(244, 251, 254, 0.15),
-    inset 0 -2px 0 rgba(8, 18, 26, 0.72),
-    0 1px 0 rgba(232, 246, 251, 0.08),
-    0 16px 28px rgba(0, 0, 0, 0.42);
+    var(--rail-material-bevel),
+    -1px -1px 0 rgba(255, 255, 255, 0.03),
+    var(--button-contact-shadow),
+    0 2px 0 rgba(5, 7, 12, 0.32);
 }
 
 .action_button_primary::before,
@@ -140,10 +140,13 @@
   border-color: var(--button-primary-border-hover);
   background: var(--button-primary-surface-hover);
   box-shadow:
-    inset 0 1px 0 rgba(248, 253, 255, 0.17),
-    inset 0 -2px 0 rgba(10, 20, 28, 0.76),
-    0 1px 0 rgba(238, 250, 255, 0.1),
-    0 20px 34px rgba(0, 0, 0, 0.46);
+    inset 0 1px 0 var(--rail-material-top-highlight-strong),
+    inset 0 -1px 0 rgba(10, 30, 40, 0.52),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(7, 18, 26, 0.22),
+    -1px -1px 0 rgba(255, 255, 255, 0.032),
+    var(--button-contact-shadow-hover),
+    0 0 10px rgba(77, 214, 255, 0.06);
 }
 
 .action_button_primary:hover::before,
@@ -173,12 +176,12 @@
   border-color: var(--button-primary-border-active);
   background: var(--button-primary-surface-active);
   box-shadow:
-    inset 0 1px 0 rgba(219, 235, 242, 0.1),
-    inset 1px 0 0 rgba(148, 201, 217, 0.055),
+    inset 0 1px 0 rgba(220, 237, 244, 0.1),
+    inset 0 -1px 0 rgba(6, 18, 24, 0.6),
+    inset 1px 0 0 rgba(120, 172, 188, 0.06),
     inset -1px 0 0 rgba(0, 0, 0, 0.22),
-    inset 0 -1px 0 rgba(4, 8, 12, 0.82),
-    inset 0 0 0 1px rgba(58, 156, 181, 0.12),
-    0 11px 18px rgba(0, 0, 0, 0.34);
+    -1px -1px 0 rgba(255, 255, 255, 0.022),
+    var(--button-contact-shadow-active);
 }
 
 .action_button_primary:focus-visible,
@@ -214,10 +217,10 @@
   border-radius: var(--button-secondary-radius);
   color: #f5efff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.13),
-    inset 0 -2px 0 rgba(8, 11, 18, 0.76),
-    0 1px 0 rgba(234, 239, 248, 0.06),
-    var(--button-contact-shadow);
+    var(--rail-material-bevel),
+    -1px -1px 0 rgba(255, 255, 255, 0.03),
+    var(--button-contact-shadow),
+    0 2px 0 rgba(5, 7, 12, 0.32);
 }
 
 .action_button_secondary::before,
@@ -267,10 +270,13 @@
   border-color: var(--button-secondary-border-hover);
   background: var(--button-secondary-surface-hover);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -2px 0 rgba(8, 11, 18, 0.8),
-    0 1px 0 rgba(242, 246, 252, 0.08),
-    var(--button-contact-shadow-hover);
+    inset 0 1px 0 var(--rail-material-top-highlight-strong),
+    inset 0 -1px 0 rgba(19, 18, 31, 0.52),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(10, 10, 18, 0.22),
+    -1px -1px 0 rgba(255, 255, 255, 0.032),
+    var(--button-contact-shadow-hover),
+    0 0 10px rgba(210, 214, 236, 0.04);
 }
 
 .action_button_secondary:hover::before,
@@ -300,9 +306,11 @@
   border-color: var(--button-secondary-border-active);
   background: var(--button-secondary-surface-active);
   box-shadow:
-    inset 0 1px 0 rgba(242, 236, 255, 0.11),
-    inset 0 0 0 1px rgba(170, 136, 236, 0.09),
-    inset 0 -1px 0 rgba(8, 8, 20, 0.58),
+    inset 0 1px 0 rgba(242, 236, 255, 0.1),
+    inset 0 -1px 0 rgba(20, 16, 33, 0.58),
+    inset 1px 0 0 rgba(166, 152, 198, 0.05),
+    inset -1px 0 0 rgba(0, 0, 0, 0.22),
+    -1px -1px 0 rgba(255, 255, 255, 0.022),
     var(--button-contact-shadow-active);
 }
 
