@@ -60,46 +60,38 @@
     inset 1px 0 0 var(--rail-material-side-shine),
     inset -1px 0 0 rgba(0, 0, 0, 0.18);
   --rail-material-gradient:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 22%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018) 26%, rgba(0, 0, 0, 0.025) 100%),
     linear-gradient(145deg, rgba(30, 35, 46, 0.96), rgba(21, 24, 33, 0.94)),
     rgba(20, 23, 31, 0.95);
   --rail-material-gradient-raised:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.024) 24%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.064), rgba(255, 255, 255, 0.022) 28%, rgba(0, 0, 0, 0.03) 100%),
     linear-gradient(145deg, rgba(35, 41, 53, 0.96), rgba(23, 27, 36, 0.95)),
     rgba(22, 26, 35, 0.96);
   --rail-material-gradient-dark:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015) 22%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.014) 24%, rgba(0, 0, 0, 0.028) 100%),
     linear-gradient(145deg, rgba(24, 29, 38, 0.96), rgba(17, 20, 28, 0.95)),
     rgba(17, 20, 28, 0.96);
   --sidebar-metal-surface:
-    linear-gradient(112deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.016) 22%, rgba(255, 255, 255, 0.004) 38%, transparent 54%),
-    radial-gradient(ellipse at 24% 11%, rgba(255, 255, 255, 0.085) 0%, rgba(255, 255, 255, 0.028) 22%, rgba(255, 255, 255, 0.01) 38%, transparent 62%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.036), rgba(255, 255, 255, 0.012) 16%, transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.048), rgba(255, 255, 255, 0.016) 20%, rgba(0, 0, 0, 0.03) 100%),
     linear-gradient(145deg, rgba(24, 29, 38, 0.96), rgba(17, 20, 28, 0.95)),
     rgba(17, 20, 28, 0.96);
   --wallet-module-surface:
-    linear-gradient(112deg, rgba(255, 255, 255, 0.042) 0%, rgba(255, 255, 255, 0.018) 24%, rgba(255, 255, 255, 0.005) 40%, transparent 56%),
-    radial-gradient(ellipse at 24% 12%, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.034) 24%, rgba(255, 255, 255, 0.012) 40%, transparent 64%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.018) 20%, transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02) 22%, rgba(0, 0, 0, 0.028) 100%),
     linear-gradient(145deg, rgba(39, 45, 57, 0.97), rgba(25, 30, 39, 0.96)),
     rgba(24, 29, 38, 0.97);
   --sidebar-chassis-surface:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02) 22%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018) 24%, rgba(0, 0, 0, 0.03) 100%),
     linear-gradient(145deg, rgba(28, 34, 43, 0.97), rgba(18, 22, 30, 0.96)),
     rgba(18, 22, 30, 0.97);
   --rail-material-control-gradient:
-    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.12), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 38%, rgba(0, 0, 0, 0.08) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018) 36%, rgba(0, 0, 0, 0.08) 100%),
     linear-gradient(145deg, rgba(48, 52, 64, 0.94), rgba(20, 23, 31, 0.96) 58%, rgba(14, 16, 23, 0.98));
   --rail-material-control-hover:
-    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.14), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.02) 38%, rgba(0, 0, 0, 0.1) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.022) 38%, rgba(0, 0, 0, 0.09) 100%),
     linear-gradient(145deg, rgba(56, 60, 73, 0.95), rgba(24, 27, 36, 0.97) 58%, rgba(16, 18, 25, 0.99));
   --rail-material-control-active:
-    radial-gradient(circle at 18% 16%, rgba(255, 238, 247, 0.14), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 38%, rgba(55, 16, 40, 0.1) 100%),
-    linear-gradient(145deg, rgba(63, 43, 60, 0.95), rgba(34, 24, 38, 0.96) 56%, rgba(23, 18, 29, 0.98)),
-    linear-gradient(135deg, rgba(255, 47, 159, 0.1), rgba(143, 85, 255, 0.03));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.062), rgba(255, 255, 255, 0.018) 36%, rgba(36, 16, 28, 0.12) 100%),
+    linear-gradient(145deg, rgba(63, 43, 60, 0.95), rgba(34, 24, 38, 0.96) 56%, rgba(23, 18, 29, 0.98));
   --rail-material-active-pink: rgba(255, 47, 159, 0.34);
   --rail-material-active-cyan: rgba(59, 218, 255, 0.34);
   --button-secondary-radius: 999px;
@@ -163,8 +155,8 @@
   --shadow-card-hover: 0 18px 45px rgba(0, 0, 0, 0.36);
   --shadow-modal: 0 30px 90px rgba(0, 0, 0, 0.56);
   --shadow-panel: 0 24px 70px rgba(0, 0, 0, 0.34);
-  --shadow-glow: 0 0 32px rgba(255, 47, 159, 0.22);
-  --shadow-glow-strong: 0 0 52px rgba(255, 47, 159, 0.34);
+  --shadow-glow: 0 12px 30px rgba(0, 0, 0, 0.26);
+  --shadow-glow-strong: 0 18px 42px rgba(0, 0, 0, 0.34);
   --shadow-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.11), inset 0 -1px 0 rgba(0, 0, 0, 0.38);
   --transition-fast: 160ms cubic-bezier(0.22, 1, 0.36, 1);
   --transition-medium: 240ms cubic-bezier(0.22, 1, 0.36, 1);

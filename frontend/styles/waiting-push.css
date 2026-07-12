@@ -365,7 +365,7 @@
 .waiting_audio_preview_button.active .waiting_audio_icon_shell {
   border-color: rgba(0, 213, 247, 0.52);
   box-shadow:
-    0 0 28px rgba(0, 213, 247, 0.2),
+    0 12px 24px rgba(0, 0, 0, 0.26),
     inset 0 0 18px rgba(255, 255, 255, 0.08);
   transform: scale(1.03);
 }
@@ -388,10 +388,9 @@
   border-radius: 50%;
   border: 2px solid rgba(0, 213, 247, 0.34);
   background:
-    radial-gradient(circle at 35% 32%, rgba(255, 255, 255, 0.18), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 213, 247, 0.08));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 213, 247, 0.04) 34%, rgba(0, 0, 0, 0.04) 100%);
   box-shadow:
-    0 0 24px rgba(0, 213, 247, 0.14),
+    0 10px 22px rgba(0, 0, 0, 0.24),
     inset 0 0 18px rgba(255, 255, 255, 0.06);
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
@@ -400,7 +399,7 @@
   width: 52px;
   height: 52px;
   color: rgba(233, 250, 255, 0.96);
-  filter: drop-shadow(0 0 12px rgba(0, 213, 247, 0.16));
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
 }
 
 @media (min-width: 640px) {

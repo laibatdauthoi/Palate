@@ -222,20 +222,19 @@ body {
   line-height: var(--line-height-body);
   overflow-x: visible;
   --palate-card-bg:
-    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.08), transparent 22%),
-    var(--rail-material-gradient-raised);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018) 28%, rgba(0, 0, 0, 0.028) 100%),
+    linear-gradient(145deg, rgba(35, 41, 53, 0.96), rgba(23, 27, 36, 0.95)),
+    rgba(22, 26, 35, 0.96);
   --palate-card-border: var(--rail-material-border-soft);
   --palate-card-inner-highlight: var(--rail-material-top-highlight);
   --palate-card-shadow: var(--rail-material-shadow), var(--rail-material-bevel);
   --palate-card-hover-border: var(--rail-material-active-cyan);
   --palate-card-hover-shadow:
     var(--rail-material-shadow-hover),
-    var(--rail-material-bevel),
-    0 0 18px rgba(59, 218, 255, 0.14);
+    var(--rail-material-bevel);
   --media-preview-surface-bg:
-    linear-gradient(135deg, rgba(30, 35, 46, 0.96), rgba(14, 16, 23, 0.98)),
-    radial-gradient(circle at 26% 18%, rgba(255, 255, 255, 0.16), transparent 22%),
-    radial-gradient(circle at 74% 78%, rgba(0, 213, 247, 0.18), transparent 32%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012) 24%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(135deg, rgba(30, 35, 46, 0.96), rgba(14, 16, 23, 0.98));
   --audio-preview-badge-size: var(--audio-preview-badge-size-scaled, 104px);
   --audio-preview-icon-size: var(--audio-preview-icon-size-scaled, 60px);
   --audio-preview-hover-scale: 1.02;
@@ -639,8 +638,8 @@ img {
 .surface_card {
   border-radius: var(--radius-large);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), transparent 22%),
-    linear-gradient(150deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.01)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018) 24%, rgba(0, 0, 0, 0.022) 100%),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.008)),
     var(--surface-primary);
 }
 
@@ -655,7 +654,7 @@ img {
 .surface_control {
   border-radius: var(--radius-pill);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 22%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018) 26%, rgba(0, 0, 0, 0.026) 100%),
     linear-gradient(145deg, rgba(30, 35, 46, 0.96), rgba(21, 24, 33, 0.94)),
     rgba(20, 23, 31, 0.95);
   box-shadow: var(--shadow-panel), var(--shadow-bevel);
@@ -663,8 +662,7 @@ img {
 
 .surface_metal {
   background:
-    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.12), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 38%, rgba(0, 0, 0, 0.08) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.018) 34%, rgba(0, 0, 0, 0.08) 100%),
     linear-gradient(145deg, rgba(48, 52, 64, 0.94), rgba(20, 23, 31, 0.96) 58%, rgba(14, 16, 23, 0.98));
 }
 
@@ -781,8 +779,7 @@ img {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-medium);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.015)),
-    radial-gradient(circle at 90% 18%, rgba(255, 47, 159, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.018) 26%, rgba(0, 0, 0, 0.03) 100%),
     var(--surface-secondary);
   color: var(--text-primary);
   padding: 13px 14px;
@@ -793,7 +790,7 @@ img {
 
 .input_control:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 4px var(--glow-pink-soft);
+  box-shadow: 0 0 0 3px rgba(255, 47, 159, 0.12), var(--shadow-bevel);
 }
 
 .select_control {
@@ -808,8 +805,7 @@ select.input_control,
   background-image:
     linear-gradient(45deg, transparent 50%, var(--accent-soft) 50%),
     linear-gradient(135deg, var(--accent-soft) 50%, transparent 50%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.015)),
-    radial-gradient(circle at 90% 18%, rgba(255, 47, 159, 0.12), transparent 32%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.018) 26%, rgba(0, 0, 0, 0.03) 100%);
   background-position:
     calc(100% - 22px) 52%,
     calc(100% - 16px) 52%,
@@ -819,14 +815,13 @@ select.input_control,
   background-size:
     6px 6px,
     6px 6px,
-    100% 100%,
     100% 100%;
 }
 
 select.input_control:hover,
 .select_control:hover {
   border-color: rgba(255, 47, 159, 0.36);
-  box-shadow: var(--shadow-glow), var(--shadow-bevel);
+  box-shadow: var(--shadow-panel), var(--shadow-bevel);
 }
 
 select.input_control option,
@@ -840,7 +835,7 @@ select.input_control option,
 
 select.input_control option:checked,
 .select_control option:checked {
-  background: linear-gradient(135deg, rgba(255, 47, 159, 0.42), rgba(143, 85, 255, 0.18));
+  background: rgba(255, 47, 159, 0.16);
   color: var(--text-primary);
 }
 
@@ -1254,8 +1249,8 @@ select.input_control option:checked,
   border: 2px solid rgba(255, 255, 255, 0.095);
   border-radius: var(--radius-large);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), transparent 22%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.014)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018) 24%, rgba(0, 0, 0, 0.022) 100%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
     var(--surface-primary);
   box-shadow: var(--shadow-panel), var(--shadow-bevel);
   padding: var(--spacing-lg);
@@ -1405,13 +1400,8 @@ select.input_control option:checked,
 .waiting_media::before,
 .buff_media_stage::before,
 .mini_media::before {
-  position: absolute;
-  inset: 10%;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: var(--radius-xl);
-  content: "";
-  pointer-events: none;
-  transform: rotate(-8deg);
+  display: none;
+  content: none;
 }
 
 .card_preview::after,
@@ -1419,15 +1409,8 @@ select.input_control option:checked,
 .waiting_media::after,
 .buff_media_stage::after,
 .mini_media::after {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(115deg, transparent 0 42%, rgba(255, 255, 255, 0.08) 43%, transparent 54%),
-    radial-gradient(circle at center, transparent 0 48%, rgba(0, 0, 0, 0.28) 100%);
-  content: "";
-  mix-blend-mode: screen;
-  opacity: 0.66;
-  pointer-events: none;
+  display: none;
+  content: none;
 }
 
 .media_preview_inner,
@@ -1477,8 +1460,7 @@ select.input_control option:checked,
   padding: 12px;
   text-align: center;
   background:
-    radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.14), transparent 20%),
-    radial-gradient(circle at 50% 78%, rgba(0, 213, 247, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.014) 28%, rgba(0, 0, 0, 0.045) 100%),
     rgba(8, 10, 18, 0.22);
 }
 
@@ -1492,7 +1474,7 @@ select.input_control option:checked,
 .media_renderer_audio_match:focus-visible .audio_preview_glyph_shell {
   border-color: rgba(0, 213, 247, 0.52);
   box-shadow:
-    0 0 28px rgba(0, 213, 247, 0.2),
+    0 10px 22px rgba(0, 0, 0, 0.24),
     inset 0 0 18px rgba(255, 255, 255, 0.08);
   transform: scale(var(--audio-preview-hover-scale));
 }
@@ -1518,7 +1500,7 @@ select.input_control option:checked,
   border: 1px solid rgba(255, 143, 199, 0.22);
   border-radius: var(--radius-large);
   background:
-    radial-gradient(circle at 50% 0%, rgba(255, 47, 159, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012) 24%, rgba(0, 0, 0, 0.05) 100%),
     rgba(0, 0, 0, 0.38);
 }
 
@@ -3957,8 +3939,7 @@ select.input_control,
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.018)),
-    radial-gradient(circle at 92% 18%, rgba(255, 47, 159, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.018) 24%, rgba(0, 0, 0, 0.03) 100%),
     var(--surface-secondary);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
   color: var(--text-primary);
@@ -3970,7 +3951,7 @@ select.input_control,
 .custom_dropdown_button:hover,
 .custom_dropdown_button.open {
   border-color: rgba(255, 47, 159, 0.42);
-  box-shadow: 0 0 24px rgba(255, 47, 159, 0.18), 0 10px 22px rgba(0, 0, 0, 0.26);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.26);
 }
 
 .custom_dropdown_button:focus-visible {
@@ -4002,10 +3983,9 @@ select.input_control,
   border: 1px solid rgba(255, 47, 159, 0.3);
   border-radius: 20px;
   background:
-    radial-gradient(circle at top right, rgba(255, 47, 159, 0.2), transparent 36%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.018)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.018) 24%, rgba(0, 0, 0, 0.03) 100%),
     rgba(13, 9, 17, 0.98);
-  box-shadow: var(--shadow-modal), 0 0 34px rgba(255, 47, 159, 0.2);
+  box-shadow: var(--shadow-modal);
   padding: 6px;
   animation: dropdown_reveal 150ms ease-out;
   overscroll-behavior: contain;
@@ -4033,7 +4013,7 @@ select.input_control,
 .custom_dropdown_item:hover,
 .custom_dropdown_item.active {
   border-color: rgba(255, 47, 159, 0.24);
-  background: rgba(255, 47, 159, 0.14);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text-primary);
 }
 

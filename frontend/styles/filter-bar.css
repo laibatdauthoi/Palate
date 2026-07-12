@@ -13,9 +13,7 @@
   gap: var(--spacing-sm);
   border: 1px solid var(--rail-material-border-soft);
   border-radius: var(--radius-pill-scaled, var(--radius-pill));
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.008)),
-    linear-gradient(145deg, rgba(29, 33, 42, 0.92), rgba(18, 21, 29, 0.9));
+  background: var(--rail-material-gradient-dark);
   padding: calc(4px * var(--button-scale));
 }
 
@@ -54,8 +52,7 @@
     inset 1px 0 0 rgba(255, 255, 255, 0.04),
     inset -1px 0 0 rgba(0, 0, 0, 0.22),
     -1px -1px 0 rgba(255, 255, 255, 0.032),
-    var(--rail-material-shadow-hover),
-    0 0 10px rgba(255, 255, 255, 0.03);
+    var(--rail-material-shadow-hover);
 }
 
 .tab_button.active,
@@ -69,13 +66,12 @@
     inset 1px 0 0 rgba(255, 255, 255, 0.04),
     inset -1px 0 0 rgba(76, 24, 52, 0.16),
     -1px -1px 0 rgba(255, 255, 255, 0.035),
-    var(--rail-material-shadow-hover),
-    0 0 14px rgba(255, 47, 159, 0.08);
+    var(--rail-material-shadow-hover);
 }
 
 .tab_button_attention {
   border-color: rgba(255, 47, 159, 0.18);
-  box-shadow: 0 0 18px rgba(255, 47, 159, 0.16);
+  box-shadow: var(--rail-material-shadow-soft);
   animation: claim_tab_pulse 1.8s ease-in-out infinite;
 }
 
@@ -92,7 +88,7 @@
   font-weight: 900;
   line-height: 1;
   padding: 0 calc(6px * var(--button-scale));
-  box-shadow: 0 0 16px rgba(255, 47, 159, 0.32);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
 /* FilterBar shell is page-positionable but component-owned internally.

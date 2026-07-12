@@ -116,9 +116,7 @@
 .wallet_balance {
   border: 1px solid var(--rail-material-border-soft);
   border-radius: var(--radius-medium);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 36%, rgba(0, 0, 0, 0.06) 100%),
-    linear-gradient(145deg, rgba(39, 45, 57, 0.94), rgba(23, 27, 36, 0.96));
+  background: var(--wallet-module-surface);
   padding: var(--spacing-sm);
   box-shadow: var(--rail-material-bevel);
 }
@@ -128,9 +126,7 @@
   gap: var(--spacing-sm);
   border: 1px solid var(--rail-material-border-soft);
   border-radius: var(--radius-medium);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 36%, rgba(0, 0, 0, 0.05) 100%),
-    linear-gradient(145deg, rgba(37, 43, 55, 0.94), rgba(22, 26, 35, 0.96));
+  background: var(--wallet-module-surface);
   padding: var(--spacing-sm);
   box-shadow: var(--rail-material-bevel);
 }
@@ -351,25 +347,21 @@
   justify-content: center;
   border: 1px solid var(--rail-material-border-soft);
   border-radius: var(--wallet-status-icon-radius);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 38%, rgba(0, 0, 0, 0.06) 100%),
-    linear-gradient(145deg, rgba(43, 48, 60, 0.94), rgba(20, 23, 31, 0.96));
+  background: var(--rail-material-control-gradient);
   box-shadow: var(--rail-material-bevel);
 }
 
 .wallet_status_icon_connected {
   border-color: rgba(97, 255, 190, 0.22);
   background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.14), transparent 55%),
-    linear-gradient(180deg, rgba(97, 255, 190, 0.18), rgba(255, 255, 255, 0.012)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(97, 255, 190, 0.08) 34%, rgba(0, 0, 0, 0.06) 100%),
     rgba(255, 255, 255, 0.035);
 }
 
 .wallet_status_icon_connecting {
   border-color: rgba(242, 184, 75, 0.24);
   background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.14), transparent 55%),
-    linear-gradient(180deg, rgba(242, 184, 75, 0.16), rgba(255, 255, 255, 0.012)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(242, 184, 75, 0.075) 34%, rgba(0, 0, 0, 0.06) 100%),
     rgba(255, 255, 255, 0.035);
 }
 
@@ -377,8 +369,7 @@
 .wallet_status_icon_error {
   border-color: rgba(255, 92, 122, 0.24);
   background:
-    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.14), transparent 55%),
-    linear-gradient(180deg, rgba(255, 92, 122, 0.16), rgba(255, 255, 255, 0.012)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 92, 122, 0.075) 34%, rgba(0, 0, 0, 0.06) 100%),
     rgba(255, 255, 255, 0.035);
 }
 
