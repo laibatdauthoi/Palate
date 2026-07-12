@@ -21,9 +21,11 @@
   padding:
     var(--action-button-pad-y, var(--button-pad-y-scaled, 12px))
     var(--action-button-pad-x, var(--button-pad-x-scaled, 18px));
-  border: 1px solid var(--rail-material-border);
+  border: 1px solid transparent;
   border-radius: var(--button-radius-scaled, 16px);
-  background: var(--rail-material-control-gradient);
+  background:
+    var(--button-surface, var(--button-modal-surface)) padding-box,
+    var(--button-edge, var(--button-edge-gradient)) border-box;
   color: var(--text-primary);
   font-size: var(--button-font-size-scaled, 14px);
   font-weight: 850;
@@ -36,8 +38,8 @@
   transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
   will-change: transform;
   box-shadow:
-    var(--rail-material-bevel),
-    var(--rail-material-shadow-soft);
+    var(--button-inset, var(--button-floating-inset)),
+    var(--button-shadow, var(--button-floating-shadow));
 }
 
 .action_button_label {
@@ -55,156 +57,101 @@
 .action_button:hover,
 .app_action_button:hover {
   transform: scale(1.025);
-  border-color: var(--rail-material-active-cyan);
-  background: var(--rail-material-control-hover);
+  background:
+    var(--button-surface-hover, var(--button-surface, var(--button-modal-surface-hover))) padding-box,
+    var(--button-edge-hover, var(--button-edge-gradient-hover)) border-box;
   box-shadow:
-    inset 0 1px 0 var(--rail-material-top-highlight-strong),
-    inset 0 -1px 0 var(--rail-material-cut-edge-strong),
-    inset 1px 0 0 rgba(255, 255, 255, 0.04),
-    inset -1px 0 0 rgba(0, 0, 0, 0.22),
-    var(--rail-material-shadow-hover);
+    var(--button-inset-hover, var(--button-floating-inset-hover)),
+    var(--button-shadow-hover, var(--button-floating-shadow-hover));
 }
 
 .action_button:active,
 .app_action_button:active {
   transform: scale(0.985);
+  background:
+    var(--button-surface-active, var(--button-surface, var(--button-modal-surface-active))) padding-box,
+    var(--button-edge-active, var(--button-edge-gradient-active)) border-box;
+  box-shadow:
+    var(--button-inset-active, var(--button-floating-inset-active)),
+    var(--button-shadow-active, var(--button-floating-shadow-active));
 }
 
 .action_button:focus-visible,
 .app_action_button:focus-visible {
   outline: none;
-  border-color: rgba(67, 215, 255, 0.48);
-  box-shadow: 0 0 0 3px rgba(67, 215, 255, 0.16), var(--rail-material-shadow-hover);
+  box-shadow:
+    0 0 0 3px var(--control-focus-ring, rgba(67, 215, 255, 0.16)),
+    var(--button-inset-hover, var(--button-floating-inset-hover)),
+    var(--button-shadow-hover, var(--button-floating-shadow-hover));
 }
 
 .action_button_primary,
 .app_action_primary {
-  border: 1px solid rgba(150, 158, 188, 0.18);
   border-radius: var(--radius-pill);
-  background: var(--rail-material-control-gradient);
-  color: var(--text-secondary);
-  box-shadow:
-    var(--rail-material-bevel),
-    -1px -1px 0 rgba(255, 255, 255, 0.03),
-    var(--rail-material-shadow-soft),
-    0 2px 0 rgba(5, 7, 12, 0.32);
+  --button-surface: var(--button-primary-surface);
+  --button-surface-hover: var(--button-primary-surface-hover);
+  --button-surface-active: var(--button-primary-surface-active);
+  --button-shadow: 0 16px 30px rgba(0, 0, 0, 0.28), 0 5px 12px rgba(0, 0, 0, 0.18);
+  --button-shadow-hover: 0 20px 36px rgba(0, 0, 0, 0.32), 0 6px 14px rgba(0, 0, 0, 0.2);
+  --button-shadow-active: 0 8px 16px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.16);
+  --control-focus-ring: rgba(67, 215, 255, 0.16);
+  color: #eef3f7;
   transition: var(--transition-fast);
 }
 
 .action_button_primary:hover,
 .app_action_primary:hover {
   color: var(--text-primary);
-  border-color: rgba(186, 194, 224, 0.24);
-  background: var(--rail-material-control-hover);
-  box-shadow:
-    inset 0 1px 0 var(--rail-material-top-highlight-strong),
-    inset 0 -1px 0 var(--rail-material-cut-edge-strong),
-    inset 1px 0 0 rgba(255, 255, 255, 0.04),
-    inset -1px 0 0 rgba(0, 0, 0, 0.22),
-    -1px -1px 0 rgba(255, 255, 255, 0.032),
-    var(--rail-material-shadow-hover);
 }
 
 .action_button_primary:active,
 .app_action_primary:active {
-  transform: none;
   color: var(--text-primary);
-  border-color: var(--border-focus);
-  background: var(--rail-material-control-active);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 245, 250, 0.12),
-    inset 0 -1px 0 rgba(39, 14, 31, 0.52),
-    inset 1px 0 0 rgba(255, 255, 255, 0.04),
-    inset -1px 0 0 rgba(76, 24, 52, 0.16),
-    -1px -1px 0 rgba(255, 255, 255, 0.035),
-    var(--rail-material-shadow-hover);
 }
 
 .action_button_primary:focus-visible,
 .app_action_primary:focus-visible {
-  outline: none;
   color: var(--text-primary);
-  border-color: rgba(186, 194, 224, 0.24);
-  background: var(--rail-material-control-hover);
-  box-shadow:
-    inset 0 1px 0 var(--rail-material-top-highlight-strong),
-    inset 0 -1px 0 var(--rail-material-cut-edge-strong),
-    inset 1px 0 0 rgba(255, 255, 255, 0.04),
-    inset -1px 0 0 rgba(0, 0, 0, 0.22),
-    -1px -1px 0 rgba(255, 255, 255, 0.032),
-    var(--rail-material-shadow-hover);
 }
 
 .action_button_primary:disabled,
 .app_action_primary:disabled {
-  border-color: rgba(150, 158, 188, 0.18);
-  background: var(--rail-material-control-gradient);
   color: rgba(228, 240, 245, 0.56);
-  box-shadow:
-    var(--rail-material-bevel),
-    -1px -1px 0 rgba(255, 255, 255, 0.03),
-    var(--rail-material-shadow-soft),
-    0 2px 0 rgba(5, 7, 12, 0.32);
   opacity: 0.5;
 }
 
 .action_button_secondary,
 .app_action_secondary {
-  background: var(--button-secondary-surface);
-  border-color: var(--button-secondary-border);
   border-radius: var(--button-secondary-radius);
+  --button-surface: var(--button-secondary-surface);
+  --button-surface-hover: var(--button-secondary-surface-hover);
+  --button-surface-active: var(--button-secondary-surface-active);
+  --control-focus-ring: rgba(185, 188, 196, 0.12);
   color: #f5efff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.075),
-    inset 0 -1px 0 rgba(12, 12, 16, 0.24),
-    0 8px 18px rgba(0, 0, 0, 0.26),
-    0 2px 4px rgba(0, 0, 0, 0.17);
 }
 
 .action_button_secondary:hover,
 .app_action_secondary:hover {
   transform: none;
   color: #ffffff;
-  border-color: var(--button-secondary-border-hover);
-  background: var(--button-secondary-surface-hover);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 -1px 0 rgba(14, 14, 19, 0.26),
-    0 12px 22px rgba(0, 0, 0, 0.28),
-    0 3px 6px rgba(0, 0, 0, 0.19);
 }
 
 .action_button_secondary:active,
 .app_action_secondary:active {
   transform: none;
   color: #ece3ff;
-  border-color: var(--button-secondary-border-active);
-  background: var(--button-secondary-surface-active);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    inset 0 2px 4px rgba(0, 0, 0, 0.16),
-    0 4px 10px rgba(0, 0, 0, 0.2),
-    0 1px 2px rgba(0, 0, 0, 0.14);
 }
 
 .action_button_secondary:focus-visible,
 .app_action_secondary:focus-visible {
-  border-color: rgba(192, 196, 204, 0.16);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.075),
-    0 0 0 2px rgba(185, 188, 196, 0.1),
-    0 10px 20px rgba(0, 0, 0, 0.26);
 }
 
 .action_button_secondary:disabled,
 .app_action_secondary:disabled {
-  border-color: rgba(170, 174, 182, 0.07);
-  background: linear-gradient(180deg, rgba(68, 70, 76, 0.62), rgba(38, 40, 45, 0.8));
+  --button-surface:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.014) 24%, rgba(0, 0, 0, 0.03) 100%),
+    linear-gradient(180deg, rgba(52, 54, 60, 0.62) 0%, rgba(36, 38, 43, 0.78) 100%);
   color: rgba(231, 226, 238, 0.5);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.08),
-    0 8px 14px rgba(0, 0, 0, 0.16);
 }
 
 .action_button_ghost {
@@ -213,181 +160,126 @@
   height: auto;
   min-height: var(--button-compact-height-scaled, 40px);
   padding: var(--button-compact-pad-y-scaled, 10px) var(--button-compact-pad-x-scaled, 14px);
-  border: 1px solid var(--rail-material-border);
   border-radius: var(--button-compact-radius-scaled, 14px);
-  background: var(--rail-material-control-gradient);
-  color: rgba(238, 242, 247, 0.84);
-  box-shadow:
-    var(--rail-material-bevel),
-    var(--rail-material-shadow-soft);
+  --button-surface:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.03) 100%),
+    linear-gradient(180deg, rgba(48, 50, 58, 0.68) 0%, rgba(32, 34, 40, 0.82) 100%);
+  --button-surface-hover:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.024) 24%, rgba(0, 0, 0, 0.034) 100%),
+    linear-gradient(180deg, rgba(53, 56, 64, 0.7) 0%, rgba(35, 38, 45, 0.86) 100%);
+  --button-surface-active:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.016) 24%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(180deg, rgba(42, 44, 51, 0.7) 0%, rgba(28, 30, 36, 0.86) 100%);
+  --control-focus-ring: rgba(255, 255, 255, 0.1);
+  color: rgba(228, 235, 241, 0.84);
 }
 
 .action_button_ghost:hover {
-  border-color: rgba(255, 255, 255, 0.26);
-  background: var(--rail-material-control-hover);
   color: #ffffff;
-  box-shadow:
-    inset 0 1px 0 var(--rail-material-top-highlight-strong),
-    inset 0 -1px 0 var(--rail-material-cut-edge-strong),
-    inset 1px 0 0 rgba(255, 255, 255, 0.04),
-    inset -1px 0 0 rgba(0, 0, 0, 0.22),
-    var(--rail-material-shadow-hover);
 }
 
 .action_button_ghost:active {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: var(--rail-material-control-gradient);
   color: rgba(244, 248, 252, 0.94);
 }
 
 .action_button_ghost:focus-visible {
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow:
-    0 0 0 3px rgba(255, 255, 255, 0.08),
-    0 0 0 6px rgba(14, 18, 24, 0.22),
-    0 10px 22px rgba(0, 0, 0, 0.22);
 }
 
 .action_button_ghost:disabled {
-  border-color: rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.012));
+  --button-surface:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.012) 24%, rgba(0, 0, 0, 0.02) 100%),
+    linear-gradient(180deg, rgba(38, 40, 46, 0.58) 0%, rgba(26, 28, 33, 0.72) 100%);
   color: rgba(225, 230, 235, 0.44);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.02),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
 }
 
 .action_button_caution,
 .app_action_caution {
-  border-color: rgba(235, 198, 137, 0.52);
-  background:
-    linear-gradient(180deg, rgba(35, 29, 34, 0.84), rgba(15, 14, 21, 0.94));
+  --button-surface:
+    linear-gradient(180deg, rgba(255, 249, 236, 0.07), rgba(255, 249, 236, 0.02) 24%, rgba(0, 0, 0, 0.035) 100%),
+    linear-gradient(180deg, rgba(66, 55, 44, 0.74) 0%, rgba(40, 33, 28, 0.9) 100%);
+  --button-surface-hover:
+    linear-gradient(180deg, rgba(255, 249, 236, 0.08), rgba(255, 249, 236, 0.024) 24%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(180deg, rgba(72, 60, 48, 0.78) 0%, rgba(44, 36, 30, 0.92) 100%);
+  --button-surface-active:
+    linear-gradient(180deg, rgba(255, 249, 236, 0.05), rgba(255, 249, 236, 0.018) 24%, rgba(0, 0, 0, 0.045) 100%),
+    linear-gradient(180deg, rgba(57, 47, 39, 0.78) 0%, rgba(34, 28, 24, 0.92) 100%);
+  --control-focus-ring: rgba(235, 178, 92, 0.14);
   color: #fff5dc;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 247, 230, 0.12),
-    inset 0 0 0 1px rgba(235, 198, 137, 0.08),
-    inset 0 -1px 0 rgba(10, 9, 14, 0.5),
-    0 10px 22px rgba(0, 0, 0, 0.28);
 }
 
 .action_button_caution:hover,
 .app_action_caution:hover {
   color: #fff8e8;
-  border-color: rgba(255, 220, 160, 0.74);
-  background:
-    linear-gradient(180deg, rgba(41, 33, 39, 0.88), rgba(17, 16, 24, 0.96));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 249, 236, 0.16),
-    inset 0 0 0 1px rgba(245, 207, 148, 0.12),
-    inset 0 -1px 0 rgba(11, 10, 15, 0.54),
-    0 14px 24px rgba(0, 0, 0, 0.3);
 }
 
 .action_button_caution:active,
 .app_action_caution:active {
   color: #f8edd2;
-  border-color: rgba(221, 184, 128, 0.44);
-  background:
-    linear-gradient(180deg, rgba(31, 26, 31, 0.9), rgba(13, 12, 18, 0.98));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 244, 220, 0.1),
-    inset 0 0 0 1px rgba(221, 184, 128, 0.08),
-    inset 0 -1px 0 rgba(9, 8, 12, 0.56),
-    0 8px 16px rgba(0, 0, 0, 0.28);
 }
 
 .action_button_caution:focus-visible,
 .app_action_caution:focus-visible {
-  border-color: rgba(255, 220, 160, 0.72);
-  box-shadow:
-    0 0 0 3px rgba(235, 178, 92, 0.14),
-    0 0 0 6px rgba(48, 37, 24, 0.24),
-    inset 0 1px 0 rgba(255, 249, 236, 0.12),
-    0 12px 24px rgba(0, 0, 0, 0.28);
 }
 
 .action_button_caution:disabled,
 .app_action_caution:disabled {
-  border-color: rgba(134, 118, 92, 0.18);
-  background:
-    linear-gradient(180deg, rgba(27, 24, 28, 0.76), rgba(14, 13, 19, 0.84));
+  --button-surface:
+    linear-gradient(180deg, rgba(255, 249, 236, 0.025), rgba(255, 249, 236, 0.012) 24%, rgba(0, 0, 0, 0.03) 100%),
+    linear-gradient(180deg, rgba(43, 38, 34, 0.62) 0%, rgba(25, 23, 21, 0.78) 100%);
   color: rgba(236, 228, 210, 0.5);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-    0 8px 14px rgba(0, 0, 0, 0.16);
 }
 
 .action_button_danger {
-  border-color: rgba(255, 92, 145, 0.5);
-  background:
-    linear-gradient(180deg, rgba(72, 22, 42, 0.78), rgba(27, 10, 20, 0.92));
+  --button-surface:
+    linear-gradient(180deg, rgba(255, 236, 242, 0.07), rgba(255, 236, 242, 0.02) 24%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(180deg, rgba(79, 38, 55, 0.76) 0%, rgba(43, 20, 31, 0.92) 100%);
+  --button-surface-hover:
+    linear-gradient(180deg, rgba(255, 236, 242, 0.082), rgba(255, 236, 242, 0.024) 24%, rgba(0, 0, 0, 0.042) 100%),
+    linear-gradient(180deg, rgba(86, 42, 60, 0.8) 0%, rgba(48, 22, 34, 0.94) 100%);
+  --button-surface-active:
+    linear-gradient(180deg, rgba(255, 236, 242, 0.05), rgba(255, 236, 242, 0.018) 24%, rgba(0, 0, 0, 0.05) 100%),
+    linear-gradient(180deg, rgba(68, 32, 47, 0.8) 0%, rgba(38, 18, 28, 0.94) 100%);
+  --control-focus-ring: rgba(255, 72, 132, 0.16);
   color: #ffd7df;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 228, 236, 0.12),
-    inset 0 0 0 1px rgba(255, 92, 145, 0.08),
-    inset 0 -1px 0 rgba(18, 6, 12, 0.52),
-    0 10px 22px rgba(0, 0, 0, 0.3);
 }
 
 .action_button_danger:hover {
   color: #ffe4ea;
-  border-color: rgba(255, 128, 172, 0.64);
-  background:
-    linear-gradient(180deg, rgba(82, 26, 48, 0.84), rgba(33, 12, 24, 0.96));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 236, 242, 0.14),
-    inset 0 0 0 1px rgba(255, 112, 162, 0.1),
-    inset 0 -1px 0 rgba(20, 7, 14, 0.54),
-    0 14px 24px rgba(0, 0, 0, 0.32);
 }
 
 .action_button_danger:active {
   color: #ffd7df;
-  border-color: rgba(232, 88, 138, 0.42);
-  background:
-    linear-gradient(180deg, rgba(60, 19, 35, 0.86), rgba(23, 9, 18, 0.98));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 224, 231, 0.1),
-    inset 0 0 0 1px rgba(232, 88, 138, 0.08),
-    inset 0 -1px 0 rgba(16, 5, 10, 0.56),
-    0 8px 16px rgba(0, 0, 0, 0.28);
 }
 
 .action_button_danger:focus-visible {
-  border-color: rgba(255, 136, 176, 0.66);
-  box-shadow:
-    0 0 0 3px rgba(255, 72, 132, 0.16),
-    0 0 0 6px rgba(64, 18, 35, 0.28),
-    inset 0 1px 0 rgba(255, 236, 242, 0.12),
-    0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .action_button_danger:disabled {
-  border-color: rgba(128, 74, 94, 0.18);
-  background:
-    linear-gradient(180deg, rgba(42, 20, 28, 0.72), rgba(18, 10, 14, 0.84));
+  --button-surface:
+    linear-gradient(180deg, rgba(255, 236, 242, 0.025), rgba(255, 236, 242, 0.012) 24%, rgba(0, 0, 0, 0.03) 100%),
+    linear-gradient(180deg, rgba(48, 28, 35, 0.64) 0%, rgba(24, 14, 19, 0.8) 100%);
   color: rgba(237, 217, 224, 0.48);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-    0 8px 14px rgba(0, 0, 0, 0.16);
 }
 
 .action_button:disabled,
 .app_action_button:disabled {
   transform: none;
-  border-color: rgba(255, 255, 255, 0.08);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.012) 38%, rgba(0, 0, 0, 0.04) 100%),
-    linear-gradient(145deg, rgba(31, 35, 44, 0.9), rgba(17, 20, 28, 0.94));
+    var(
+      --button-surface-disabled,
+      var(
+        --button-surface,
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.012) 24%, rgba(0, 0, 0, 0.03) 100%),
+        linear-gradient(180deg, rgba(38, 40, 47, 0.62) 0%, rgba(25, 27, 32, 0.78) 100%)
+      )
+    ) padding-box,
+    var(--button-edge-disabled, var(--button-edge-gradient-disabled)) border-box;
   color: rgba(233, 240, 245, 0.44);
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+    var(--button-inset-disabled, var(--button-floating-inset-disabled)),
+    var(--button-shadow-disabled, var(--button-floating-shadow-disabled));
 }
 
 .action_button:disabled:hover,

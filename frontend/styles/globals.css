@@ -903,19 +903,17 @@ select.input_control option:checked,
   width: 112px;
   height: 112px;
   flex: 0 0 auto;
-  border: 1px solid rgba(128, 240, 255, 0.52);
+  border: 1px solid transparent;
   border-radius: 999px;
   background:
     radial-gradient(circle at 20% 22%, rgba(224, 252, 255, 0.2), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03) 26%, transparent 100%),
-    linear-gradient(140deg, rgba(7, 70, 84, 0.98), rgba(7, 46, 58, 0.99) 58%, rgba(5, 32, 42, 1));
+    linear-gradient(140deg, rgba(7, 70, 84, 0.98), rgba(7, 46, 58, 0.99) 58%, rgba(5, 32, 42, 1)) padding-box,
+    var(--button-edge-gradient) border-box;
   color: #f4feff;
   box-shadow:
-    inset 0 1px 0 rgba(241, 254, 255, 0.18),
-    inset 0 0 0 1px rgba(0, 213, 247, 0.18),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
-    0 16px 30px rgba(0, 0, 0, 0.34),
-    0 0 20px rgba(0, 213, 247, 0.2);
+    var(--button-floating-inset),
+    var(--button-floating-shadow);
   cursor: pointer;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease, color 180ms ease;
   will-change: transform;
@@ -923,51 +921,45 @@ select.input_control option:checked,
 
 .buff_find_match_search_button:hover {
   transform: scale(1.04);
-  border-color: rgba(159, 245, 255, 0.66);
   background:
     radial-gradient(circle at 20% 22%, rgba(232, 252, 255, 0.22), transparent 30%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04) 26%, transparent 100%),
-    linear-gradient(140deg, rgba(9, 80, 96, 1), rgba(8, 55, 68, 1) 58%, rgba(6, 39, 50, 1));
+    linear-gradient(140deg, rgba(9, 80, 96, 1), rgba(8, 55, 68, 1) 58%, rgba(6, 39, 50, 1)) padding-box,
+    var(--button-edge-gradient-hover) border-box;
   box-shadow:
-    inset 0 1px 0 rgba(244, 254, 255, 0.22),
-    inset 0 0 0 1px rgba(0, 213, 247, 0.22),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.24),
-    0 20px 34px rgba(0, 0, 0, 0.36),
-    0 0 26px rgba(0, 213, 247, 0.24);
+    var(--button-floating-inset-hover),
+    var(--button-floating-shadow-hover);
 }
 
 .buff_find_match_search_button:active {
   transform: scale(0.988);
-  border-color: rgba(88, 228, 249, 0.46);
   background:
     radial-gradient(circle at 20% 22%, rgba(208, 248, 255, 0.12), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 22%, transparent 100%),
-    linear-gradient(140deg, rgba(5, 48, 58, 0.99), rgba(5, 34, 43, 1) 60%, rgba(4, 25, 32, 1));
+    linear-gradient(140deg, rgba(5, 48, 58, 0.99), rgba(5, 34, 43, 1) 60%, rgba(4, 25, 32, 1)) padding-box,
+    var(--button-edge-gradient-active) border-box;
   box-shadow:
-    inset 0 1px 0 rgba(226, 252, 255, 0.12),
-    inset 0 0 0 1px rgba(0, 213, 247, 0.1),
-    0 10px 18px rgba(0, 0, 0, 0.28),
-    0 0 12px rgba(0, 213, 247, 0.14);
+    var(--button-floating-inset-active),
+    var(--button-floating-shadow-active);
 }
 
 .buff_find_match_search_button:focus-visible {
   outline: none;
-  border-color: rgba(167, 245, 255, 0.72);
   box-shadow:
     0 0 0 4px rgba(0, 213, 247, 0.16),
-    inset 0 1px 0 rgba(241, 254, 255, 0.18),
-    inset 0 0 0 1px rgba(0, 213, 247, 0.18),
-    0 16px 30px rgba(0, 0, 0, 0.34),
-    0 0 20px rgba(0, 213, 247, 0.2);
+    var(--button-floating-inset-hover),
+    var(--button-floating-shadow-hover);
 }
 
 .buff_find_match_search_button:disabled {
-  border-color: rgba(255, 255, 255, 0.08);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015) 22%, transparent 100%),
-    linear-gradient(145deg, rgba(30, 35, 42, 0.88), rgba(21, 24, 31, 0.92));
+    linear-gradient(145deg, rgba(30, 35, 42, 0.88), rgba(21, 24, 31, 0.92)) padding-box,
+    var(--button-edge-gradient-disabled) border-box;
   color: rgba(233, 240, 245, 0.58);
-  box-shadow: none;
+  box-shadow:
+    var(--button-floating-inset-disabled),
+    var(--button-floating-shadow-disabled);
   cursor: not-allowed;
   transform: none;
 }
@@ -1762,63 +1754,50 @@ select.input_control option:checked,
   padding-top: var(--match-settle-pad-y-scaled, 6px);
   padding-bottom: var(--match-settle-pad-y-scaled, 6px);
   border-radius: var(--match-settle-radius-scaled, 13px);
-  border-color: rgba(255, 214, 145, 0.62);
   background:
-    linear-gradient(180deg, rgba(66, 48, 28, 0.88), rgba(25, 19, 17, 0.94));
+    linear-gradient(180deg, rgba(66, 48, 28, 0.88), rgba(25, 19, 17, 0.94)) padding-box,
+    var(--button-edge-gradient) border-box;
   color: #fff4dc;
   box-shadow:
-    inset 0 1px 0 rgba(255, 238, 190, 0.16),
-    inset 0 0 0 1px rgba(255, 214, 145, 0.16),
-    inset 0 -1px 0 rgba(13, 12, 18, 0.52),
-    0 12px 24px rgba(0, 0, 0, 0.32),
-    0 0 14px rgba(255, 184, 84, 0.24);
+    var(--button-floating-inset),
+    var(--button-floating-shadow);
 }
 
 .match_card_footer_actions > button.action_button.app_action_button.match_card_settle_button:hover {
   color: #fff8e8;
-  border-color: rgba(255, 230, 175, 0.86);
   background:
-    linear-gradient(180deg, rgba(78, 58, 34, 0.92), rgba(29, 22, 18, 0.96));
+    linear-gradient(180deg, rgba(78, 58, 34, 0.92), rgba(29, 22, 18, 0.96)) padding-box,
+    var(--button-edge-gradient-hover) border-box;
   box-shadow:
-    inset 0 1px 0 rgba(255, 244, 206, 0.2),
-    inset 0 0 0 1px rgba(255, 225, 165, 0.18),
-    inset 0 -1px 0 rgba(14, 12, 18, 0.54),
-    0 16px 28px rgba(0, 0, 0, 0.34),
-    0 0 18px rgba(255, 190, 92, 0.34);
+    var(--button-floating-inset-hover),
+    var(--button-floating-shadow-hover);
 }
 
 .match_card_footer_actions > button.action_button.app_action_button.match_card_settle_button:active {
   color: #f8edd2;
-  border-color: rgba(221, 184, 128, 0.44);
   background:
-    linear-gradient(180deg, rgba(53, 39, 24, 0.92), rgba(20, 15, 16, 0.98));
+    linear-gradient(180deg, rgba(53, 39, 24, 0.92), rgba(20, 15, 16, 0.98)) padding-box,
+    var(--button-edge-gradient-active) border-box;
   box-shadow:
-    inset 0 1px 0 rgba(255, 236, 194, 0.12),
-    inset 0 0 0 1px rgba(221, 184, 128, 0.1),
-    inset 0 -1px 0 rgba(12, 10, 14, 0.56),
-    0 8px 16px rgba(0, 0, 0, 0.28),
-    0 0 10px rgba(255, 184, 84, 0.18);
+    var(--button-floating-inset-active),
+    var(--button-floating-shadow-active);
 }
 
 .match_card_footer_actions > button.action_button.app_action_button.match_card_settle_button:focus-visible {
-  border-color: rgba(255, 230, 175, 0.82);
   box-shadow:
     0 0 0 3px rgba(255, 184, 84, 0.18),
-    0 0 0 6px rgba(62, 44, 23, 0.32),
-    inset 0 1px 0 rgba(255, 244, 206, 0.16),
-    0 12px 24px rgba(0, 0, 0, 0.32),
-    0 0 16px rgba(255, 190, 92, 0.28);
+    var(--button-floating-inset-hover),
+    var(--button-floating-shadow-hover);
 }
 
 .match_card_footer_actions > button.action_button.app_action_button.match_card_settle_button:disabled {
-  border-color: rgba(134, 118, 92, 0.18);
   background:
-    linear-gradient(180deg, rgba(27, 24, 28, 0.76), rgba(14, 13, 19, 0.84));
+    linear-gradient(180deg, rgba(27, 24, 28, 0.76), rgba(14, 13, 19, 0.84)) padding-box,
+    var(--button-edge-gradient-disabled) border-box;
   color: rgba(236, 228, 210, 0.5);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-    0 8px 14px rgba(0, 0, 0, 0.16);
+    var(--button-floating-inset-disabled),
+    var(--button-floating-shadow-disabled);
 }
 
 .buff_panel {
@@ -3218,12 +3197,13 @@ select.input_control option:checked,
 
 .audio_player_button {
   min-height: calc(40px * var(--button-scale));
-  border: 1px solid rgba(255, 143, 199, 0.28);
+  border: 1px solid transparent;
   border-radius: var(--radius-pill-scaled, var(--radius-pill));
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.025)),
-    rgba(12, 8, 17, 0.78);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 24px rgba(0, 0, 0, 0.22);
+    rgba(12, 8, 17, 0.78) padding-box,
+    var(--button-edge-gradient) border-box;
+  box-shadow: var(--button-floating-inset), var(--button-floating-shadow);
   color: var(--text-primary);
   cursor: pointer;
   font-family: var(--font-family-body);
@@ -3234,8 +3214,11 @@ select.input_control option:checked,
 
 .audio_player_button:hover,
 .audio_player_button.active {
-  border-color: var(--border-focus);
-  box-shadow: var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.03)),
+    rgba(14, 10, 19, 0.82) padding-box,
+    var(--button-edge-gradient-hover) border-box;
+  box-shadow: var(--button-floating-inset-hover), var(--button-floating-shadow-hover);
 }
 
 .audio_player_button_primary {
@@ -3471,14 +3454,16 @@ select.input_control option:checked,
   width: calc(46px * var(--button-scale));
   height: calc(46px * var(--button-scale));
   place-items: center;
-  border: 1px solid rgba(255, 143, 199, 0.28);
+  border: 1px solid transparent;
   border-radius: var(--radius-pill-scaled, var(--radius-pill));
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.025)),
-    rgba(13, 9, 17, 0.82);
+    rgba(13, 9, 17, 0.82) padding-box,
+    var(--button-edge-gradient) border-box;
   color: var(--text-primary);
   cursor: pointer;
   transition: var(--transition-fast);
+  box-shadow: var(--button-floating-inset), var(--button-floating-shadow);
 }
 
 .media_icon_button svg {
@@ -3503,8 +3488,11 @@ select.input_control option:checked,
 
 .media_icon_button:hover,
 .media_icon_button.active {
-  border-color: var(--border-focus);
-  box-shadow: var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03)),
+    rgba(15, 11, 19, 0.86) padding-box,
+    var(--button-edge-gradient-hover) border-box;
+  box-shadow: var(--button-floating-inset-hover), var(--button-floating-shadow-hover);
 }
 
 .media_icon_button.primary {
@@ -3512,8 +3500,9 @@ select.input_control option:checked,
   height: calc(56px * var(--button-scale));
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.04)),
-    linear-gradient(135deg, rgba(255, 47, 159, 0.96), rgba(196, 35, 122, 0.96));
-  box-shadow: 0 14px 28px rgba(255, 47, 159, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    linear-gradient(135deg, rgba(255, 47, 159, 0.96), rgba(196, 35, 122, 0.96)) padding-box,
+    var(--button-edge-gradient) border-box;
+  box-shadow: var(--button-floating-inset), var(--button-floating-shadow);
 }
 
 .global_media_control_row {
@@ -3654,12 +3643,13 @@ select.input_control option:checked,
   display: inline-grid;
   min-height: 50px;
   place-items: center;
-  border: 1px solid rgba(255, 47, 159, 0.42);
+  border: 1px solid transparent;
   border-radius: var(--radius-medium);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02)),
     radial-gradient(circle at 24% 0%, rgba(255, 143, 199, 0.2), transparent 36%),
-    rgba(255, 47, 159, 0.14);
+    rgba(255, 47, 159, 0.14) padding-box,
+    var(--button-edge-gradient) border-box;
   color: var(--text-primary);
   cursor: pointer;
   font-family: var(--font-family-ui);
@@ -3667,18 +3657,24 @@ select.input_control option:checked,
   padding: 0 var(--spacing-lg);
   text-align: center;
   transition: var(--transition-fast);
-  box-shadow: var(--shadow-bevel), 0 10px 26px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--button-floating-inset), var(--button-floating-shadow);
 }
 
-.file_picker_button:hover,
-.file_picker_button:focus-visible {
-  border-color: var(--border-focus);
+.file_picker_button:hover {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.025)),
     radial-gradient(circle at 24% 0%, rgba(255, 143, 199, 0.26), transparent 36%),
-    rgba(255, 47, 159, 0.2);
+    rgba(255, 47, 159, 0.2) padding-box,
+    var(--button-edge-gradient-hover) border-box;
+  box-shadow: var(--button-floating-inset-hover), var(--button-floating-shadow-hover);
+}
+
+.file_picker_button:focus-visible {
   outline: none;
-  box-shadow: var(--shadow-glow), var(--shadow-bevel);
+  box-shadow:
+    0 0 0 3px rgba(255, 47, 159, 0.14),
+    var(--button-floating-inset-hover),
+    var(--button-floating-shadow-hover);
 }
 
 .file_picker_display {
@@ -3860,17 +3856,6 @@ select.input_control option:checked,
   box-shadow: var(--shadow-bevel);
 }
 
-.action_button_primary,
-.tab_button.active,
-.category_choice.active,
-.nav_link.active {
-  box-shadow: none;
-}
-
-.action_button_primary {
-  box-shadow: none;
-}
-
 .wallet_balance {
   border-color: transparent;
 }
@@ -3936,12 +3921,13 @@ select.input_control,
   gap: var(--spacing-md);
   min-height: 46px;
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid transparent;
   border-radius: 18px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.018) 24%, rgba(0, 0, 0, 0.03) 100%),
-    var(--surface-secondary);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+    var(--surface-secondary) padding-box,
+    var(--button-edge-gradient) border-box;
+  box-shadow: var(--button-floating-inset), var(--button-floating-shadow);
   color: var(--text-primary);
   padding: 12px 14px;
   text-align: left;
@@ -3950,13 +3936,18 @@ select.input_control,
 
 .custom_dropdown_button:hover,
 .custom_dropdown_button.open {
-  border-color: rgba(255, 47, 159, 0.42);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.26);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.078), rgba(255, 255, 255, 0.022) 24%, rgba(0, 0, 0, 0.034) 100%),
+    var(--surface-secondary) padding-box,
+    var(--button-edge-gradient-hover) border-box;
+  box-shadow: var(--button-floating-inset-hover), var(--button-floating-shadow-hover);
 }
 
 .custom_dropdown_button:focus-visible {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 4px var(--glow-pink-soft);
+  box-shadow:
+    0 0 0 4px var(--glow-pink-soft),
+    var(--button-floating-inset-hover),
+    var(--button-floating-shadow-hover);
 }
 
 .custom_dropdown_chevron {
