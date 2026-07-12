@@ -206,7 +206,7 @@
 
 html {
   min-height: 100%;
-  background: var(--background-primary);
+  background: #080c0f;
   color-scheme: dark;
   overflow-x: auto;
 }
@@ -215,12 +215,7 @@ body {
   position: relative;
   min-height: 100%;
   margin: 0;
-  background:
-    radial-gradient(circle at 48% -10%, rgba(255, 47, 159, 0.23), transparent 30%),
-    radial-gradient(circle at 88% 10%, rgba(143, 85, 255, 0.09), transparent 28%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px),
-    linear-gradient(180deg, var(--background-primary) 0%, #0b070f 48%, var(--background-secondary) 100%);
-  background-size: auto, auto, 34px 34px, auto;
+  background: #080c0f;
   color: var(--text-primary);
   font-family: var(--font-family-ui);
   font-size: var(--font-size-body-scaled, var(--font-size-body));
@@ -324,10 +319,7 @@ option,
   overflow: hidden;
   pointer-events: none;
   contain: paint;
-  background:
-    radial-gradient(circle at 18% 16%, rgba(255, 47, 159, 0.12), transparent 18%),
-    radial-gradient(circle at 78% 18%, rgba(255, 143, 199, 0.09), transparent 20%),
-    radial-gradient(circle at 54% 80%, rgba(143, 85, 255, 0.08), transparent 26%);
+  background: #080c0f;
 }
 
 .route_background::before,
@@ -572,22 +564,19 @@ body::after {
 }
 
 body::before {
-  background:
-    radial-gradient(circle at 26% 24%, rgba(255, 47, 159, 0.16), transparent 24%),
-    radial-gradient(circle at 74% 34%, rgba(255, 107, 184, 0.1), transparent 24%),
-    radial-gradient(circle at 58% 86%, rgba(143, 85, 255, 0.075), transparent 28%);
-  filter: blur(6px);
-  animation: aura_drift 22s ease-in-out infinite alternate;
+  display: none;
+  background: none;
+  filter: none;
+  animation: none;
 }
 
 body::after {
-  opacity: 0.13;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 46px 46px;
-  mask-image: radial-gradient(circle at center, black, transparent 70%);
-  animation: texture_drift 34s linear infinite;
+  display: none;
+  opacity: 0;
+  background: none;
+  background-image: none;
+  mask-image: none;
+  animation: none;
 }
 
 @keyframes aura_drift {
@@ -4967,21 +4956,11 @@ select.input_control,
    - removes remaining atmospheric motion/effects
    - keeps background darker than rails/cards/sidebar so UI surfaces stand out */
 body {
-  background:
-    radial-gradient(
-      ellipse at 52% 52%,
-      rgba(135, 165, 190, 0.14) 0%,
-      rgba(95, 120, 150, 0.08) 36%,
-      rgba(40, 55, 75, 0.03) 62%,
-      transparent 82%
-    ),
-    linear-gradient(180deg, #05070b 0%, #080b12 48%, #06080d 100%);
+  background: #080c0f;
 }
 
 .route_background {
-  background:
-    radial-gradient(ellipse at 53% 54%, rgba(118, 138, 160, 0.05) 0%, rgba(118, 138, 160, 0.025) 42%, transparent 78%),
-    linear-gradient(180deg, rgba(5, 8, 13, 0.18), rgba(5, 8, 13, 0.06));
+  background: #080c0f;
 }
 
 .route_background::before,
@@ -5000,6 +4979,13 @@ body {
 .route_fx_six {
   display: none;
   animation: none !important;
+}
+
+html,
+body,
+#__next,
+.route_background {
+  background: #080c0f;
 }
 
 @keyframes water_reflection_drift {

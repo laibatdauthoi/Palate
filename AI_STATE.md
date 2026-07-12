@@ -1,10 +1,18 @@
-# Current Sprint
+﻿# Current Sprint
 
 # Recent Changes
 
-- Finished migrating both primary and secondary desktop buttons onto the filter button’s material construction. The filter reference in [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css) uses the same root-owned system across states: shell/face background on the root, `var(--rail-material-bevel)`, a small top-left lift, grounded contact shadow, and restrained hover/active shadow changes. The primary button had already adopted that structure; this pass brought the secondary button onto the same root shadow hierarchy in [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) and rebuilt the secondary face tokens in [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) to mirror the filter button’s layered surface logic while keeping the existing graphite/lavender palette and lower-emphasis hierarchy. The filter buttons themselves were left unchanged.
+- Replaced the application background atmosphere with a single flat stage color. [`frontend/styles/globals.css`](./frontend/styles/globals.css) no longer renders page-level radial gradients, linear gradients, vignette/spotlight layers, texture overlays, or pseudo-element background effects on `html`, `body`, `body::before`, `body::after`, and `.route_background`. The late-file static-stage override was flattened as well, and all `route_fx*` full-screen decorative layers remain disabled. [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) now normalizes `--background-primary`, `--background-secondary`, and `--background-tertiary` to `#080C0F`, so the full viewport resolves to one uniform solid background color behind the existing UI.
 
-- Rebuilt the primary button root material stack from the live filter-tab construction while preserving the primary blue identity. The filter reference in [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css) uses a root-owned material system: shell/face on the button background (`var(--rail-material-control-gradient)`), bevel from `var(--rail-material-bevel)`, a light top-left lift (`-1px -1px 0 rgba(255,255,255,0.03...)`), a grounded contact shadow, and state-specific border/material shifts on hover and active. [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) now gives the primary button the same root shadow hierarchy and bevel logic, while [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) keeps the surface layers in the existing steel-blue palette instead of the filter button’s graphite gray. The filter buttons themselves were left unchanged.
+- Converted the primary action button into a direct visual copy of the live filter button material system. The source-of-truth selectors are .tab_button, .tab_button:hover, and .tab_button.active in [rontend/styles/filter-bar.css](./frontend/styles/filter-bar.css). [rontend/styles/buttons.css](./frontend/styles/buttons.css) now reuses that exact border color, ar(--radius-pill) radius logic, ar(--rail-material-control-gradient) / hover / active backgrounds, bevel stack, top-left lift, and shadow hierarchy for .action_button_primary / .app_action_primary. Old primary-only blue/cyan surface tokens and borders were removed from [rontend/styles/tokens.css](./frontend/styles/tokens.css), so the primary button no longer carries any distinct primary material styling. The filter buttons themselves were left unchanged.
+
+- Aligned the primary action button to the filter button's live material structure as directly as possible without modifying the filter controls. The source selectors are .tab_button, .tab_button:hover, and .tab_button.active in [rontend/styles/filter-bar.css](./frontend/styles/filter-bar.css), which define the actual structure: root-owned layered background, ar(--rail-material-bevel), top-left lift, ar(--rail-material-shadow-soft) default depth, and the inset hover stack with restrained edge changes. [rontend/styles/buttons.css](./frontend/styles/buttons.css) now gives .action_button_primary / .app_action_primary that same root structure and hover stack, while [rontend/styles/tokens.css](./frontend/styles/tokens.css) keeps the button face in the existing blue/steel palette instead of the filter button's graphite gray. Obsolete primary-only pseudo rim construction remains absent, and the filter buttons themselves were left unchanged.
+
+- Replaced the primary and secondary action button variants with a matte graphite pill system matching the uploaded reference more closely. [rontend/styles/buttons.css](./frontend/styles/buttons.css) no longer uses button-only pseudo-element shells, concentric rim layers, cyan outer rings, hotspot/radial face lighting, or heavy bevel stacks for the primary/secondary variants. Both now render as one continuous capsule with a smooth dark surface, soft upper highlight, subtle neutral edge, and grounded outer shadow. [rontend/styles/tokens.css](./frontend/styles/tokens.css) now provides simpler vertical face gradients and softer border values: primary keeps a restrained blue-graphite tint and stronger contrast, while secondary stays quieter in neutral graphite/lavender-gray. Hover slightly lifts brightness and shadow, active reduces the outer shadow with a restrained inset press, and disabled keeps the same geometry with lower contrast. Filter buttons were left unchanged.
+
+- Finished migrating both primary and secondary desktop buttons onto the filter buttonâ€™s material construction. The filter reference in [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css) uses the same root-owned system across states: shell/face background on the root, `var(--rail-material-bevel)`, a small top-left lift, grounded contact shadow, and restrained hover/active shadow changes. The primary button had already adopted that structure; this pass brought the secondary button onto the same root shadow hierarchy in [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) and rebuilt the secondary face tokens in [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) to mirror the filter buttonâ€™s layered surface logic while keeping the existing graphite/lavender palette and lower-emphasis hierarchy. The filter buttons themselves were left unchanged.
+
+- Rebuilt the primary button root material stack from the live filter-tab construction while preserving the primary blue identity. The filter reference in [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css) uses a root-owned material system: shell/face on the button background (`var(--rail-material-control-gradient)`), bevel from `var(--rail-material-bevel)`, a light top-left lift (`-1px -1px 0 rgba(255,255,255,0.03...)`), a grounded contact shadow, and state-specific border/material shifts on hover and active. [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) now gives the primary button the same root shadow hierarchy and bevel logic, while [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) keeps the surface layers in the existing steel-blue palette instead of the filter buttonâ€™s graphite gray. The filter buttons themselves were left unchanged.
 
 - Applied the corrected primary-button rim geometry system to secondary buttons without changing their quieter graphite/lavender material. [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) now defines `--button-secondary-radius: 13px`, `--button-secondary-rim-inset: 1px`, and `--button-secondary-inner-radius: calc(var(--button-secondary-radius) - var(--button-secondary-rim-inset))`. [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) uses those tokens directly on the secondary root, `::before`, and `::after`, so the visible rim owner stays the secondary `::after` while the inset face now follows the same concentric rounded-layer contract as the primary button.
 
@@ -15,7 +23,7 @@
 
 # Current Objective
 
-We are in the middle of a structured layout/UI scale migration. Mobile UI work is paused for now. The immediate goal is to finish PC/desktop UI polish and stabilization first, keeping desktop-wide (`>=1200px`) and desktop-fit (`640–1199px`) behavior stable while scale-policy work lands incrementally. Mobile (`<640px`) is deferred and should not be changed unless a task is explicitly about a blocker. The current repo state also includes uncommitted UI work, so future tasks should begin by understanding the existing diff before touching adjacent code.
+We are in the middle of a structured layout/UI scale migration. Mobile UI work is paused for now. The immediate goal is to finish PC/desktop UI polish and stabilization first, keeping desktop-wide (`>=1200px`) and desktop-fit (`640â€“1199px`) behavior stable while scale-policy work lands incrementally. Mobile (`<640px`) is deferred and should not be changed unless a task is explicitly about a blocker. The current repo state also includes uncommitted UI work, so future tasks should begin by understanding the existing diff before touching adjacent code.
 
 In parallel, the target product IA has been simplified so Home is the primary gameplay surface, and Buff and Push now exist as reusable workflows rather than standalone routes.
 
@@ -55,6 +63,12 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - **Latest commit:** `fda7f45 scale base action buttons`
 
 # Recent Changes
+
+- Converted the primary action button into a direct visual copy of the live filter button material system. The source-of-truth selectors are .tab_button, .tab_button:hover, and .tab_button.active in [rontend/styles/filter-bar.css](./frontend/styles/filter-bar.css). [rontend/styles/buttons.css](./frontend/styles/buttons.css) now reuses that exact border color, ar(--radius-pill) radius logic, ar(--rail-material-control-gradient) / hover / active backgrounds, bevel stack, top-left lift, and shadow hierarchy for .action_button_primary / .app_action_primary. Old primary-only blue/cyan surface tokens and borders were removed from [rontend/styles/tokens.css](./frontend/styles/tokens.css), so the primary button no longer carries any distinct primary material styling. The filter buttons themselves were left unchanged.
+
+- Aligned the primary action button to the filter button's live material structure as directly as possible without modifying the filter controls. The source selectors are .tab_button, .tab_button:hover, and .tab_button.active in [rontend/styles/filter-bar.css](./frontend/styles/filter-bar.css), which define the actual structure: root-owned layered background, ar(--rail-material-bevel), top-left lift, ar(--rail-material-shadow-soft) default depth, and the inset hover stack with restrained edge changes. [rontend/styles/buttons.css](./frontend/styles/buttons.css) now gives .action_button_primary / .app_action_primary that same root structure and hover stack, while [rontend/styles/tokens.css](./frontend/styles/tokens.css) keeps the button face in the existing blue/steel palette instead of the filter button's graphite gray. Obsolete primary-only pseudo rim construction remains absent, and the filter buttons themselves were left unchanged.
+
+- Replaced the primary and secondary action button variants with a matte graphite pill system matching the uploaded reference more closely. [rontend/styles/buttons.css](./frontend/styles/buttons.css) no longer uses button-only pseudo-element shells, concentric rim layers, cyan outer rings, hotspot/radial face lighting, or heavy bevel stacks for the primary/secondary variants. Both now render as one continuous capsule with a smooth dark surface, soft upper highlight, subtle neutral edge, and grounded outer shadow. [rontend/styles/tokens.css](./frontend/styles/tokens.css) now provides simpler vertical face gradients and softer border values: primary keeps a restrained blue-graphite tint and stronger contrast, while secondary stays quieter in neutral graphite/lavender-gray. Hover slightly lifts brightness and shadow, active reduces the outer shadow with a restrained inset press, and disabled keeps the same geometry with lower contrast. Filter buttons were left unchanged.
 
 - Restored the original desktop sidebar nav hover/active styling while keeping
   the small cyan notification dot:
@@ -1291,7 +1305,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
       - `--button-scale: 1`
       - `--icon-scale: 1`
       - `--radius-scale: 1`
-    - desktop-fit (`640–1199px`) now uses a stable compact root component set:
+    - desktop-fit (`640â€“1199px`) now uses a stable compact root component set:
       - `--text-scale: 0.9`
       - `--text-scale-display: 0.882`
       - `--text-scale-secondary: 0.81`
@@ -1736,7 +1750,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
     - `top: var(--sidebar-shell-gutter)`
     - `width: calc(100% - var(--sidebar-shell-gutter))`
     - `height: calc(100dvh - (var(--sidebar-shell-gutter) * 2))`
-  - mirrored the same sizing model into the desktop-fit (`640–1199px`) desktop sidebar override
+  - mirrored the same sizing model into the desktop-fit (`640â€“1199px`) desktop sidebar override
   - preserved:
     - sidebar column width
     - Home hero/filter/cards alignment
@@ -1819,7 +1833,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - adjusted sidebar shell sizing to preserve the right edge and avoid clipping:
     - `width: calc(100% - var(--sidebar-outer-inset))`
     - `height: calc(100dvh - (var(--sidebar-outer-inset) * 2))`
-  - mirrored the same behavior into the existing desktop-fit (`640–1199px`) sidebar rules
+  - mirrored the same behavior into the existing desktop-fit (`640â€“1199px`) sidebar rules
   - preserved:
     - sidebar width owner in the app shell
     - nav spacing
@@ -2075,7 +2089,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
     - wallet content logic
     - no row rectangle/pill
 - Forced a visibly tighter desktop sidebar nav alignment after finding the real override:
-  - root cause of the previous “no visible change” was the later desktop-fit restoration block in [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
+  - root cause of the previous â€œno visible changeâ€ was the later desktop-fit restoration block in [`frontend/styles/navigation.css`](./frontend/styles/navigation.css)
   - specifically, `@media (min-width: 640px) and (max-width: 1199px)` was still resetting:
     - `.nav_link` padding back to the older `18px/16px` style
     - `.navigation_bar` padding back to the full sidebar inset
@@ -2110,7 +2124,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - updated [`frontend/styles/layout.css`](./frontend/styles/layout.css) so desktop and desktop-fit sidebar width now uses a narrower `236px` baseline instead of the previous `260px`
   - updated [`frontend/styles/navigation.css`](./frontend/styles/navigation.css) to tighten desktop nav rhythm without changing routes or click targets:
     - reduced nav-link vertical gap
-    - reduced nav left/right insets so nav content starts closer to the wallet card’s inner content rhythm
+    - reduced nav left/right insets so nav content starts closer to the wallet cardâ€™s inner content rhythm
     - reduced overall sidebar padding/gap slightly to support the narrower column
   - updated [`frontend/components/wallet_panel.tsx`](./frontend/components/wallet_panel.tsx) to simplify wallet header/state presentation:
     - removed the redundant header status badge text (`DISCONNECTED`, `CONNECTED`, `WRONG NETWORK`)
@@ -2119,7 +2133,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - shortened sidebar wallet balances for display only:
     - compact numeric formatting now reduces long wallet / Palate balance strings in the sidebar
     - full underlying values remain unchanged elsewhere
-  - removed the wallet action button’s temporary 3-column spacer layout and returned it to a simple centered inline-flex icon + label group in [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
+  - removed the wallet action buttonâ€™s temporary 3-column spacer layout and returned it to a simple centered inline-flex icon + label group in [`frontend/styles/wallet.css`](./frontend/styles/wallet.css)
   - preserved:
     - wallet connection logic
     - routes / nav items
@@ -2520,7 +2534,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Added explicit Button / ActionButton ownership comments to [`frontend/styles/globals.css`](./frontend/styles/globals.css) and tightened the shared label safety path without changing intended visuals.
 - Added [`docs/UI_ARCHITECTURE.md`](./docs/UI_ARCHITECTURE.md) as the canonical UI ownership spec for future Palate layout/component refactor work.
 - Lowered the explicit `data-layout-mode` mobile threshold in [`frontend/components/layout_scale_controller.tsx`](./frontend/components/layout_scale_controller.tsx) from `768px` to `640px` so desktop-fit mode remains active longer.
-- Extended the existing desktop-fit repair media queries in [`frontend/styles/globals.css`](./frontend/styles/globals.css) from `768–1199px` to `640–1199px`.
+- Extended the existing desktop-fit repair media queries in [`frontend/styles/globals.css`](./frontend/styles/globals.css) from `768â€“1199px` to `640â€“1199px`.
 - Tightened the true-mobile Home layout in [`frontend/styles/globals.css`](./frontend/styles/globals.css) so the hero/action cluster, filter tabs, and one-column waiting/match grids fit more coherently below the new mobile threshold.
 - Updated [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md) to reflect the new `desktop-fit` / `mobile` threshold contract.
 - Added root-level AI handoff documentation files:
@@ -2561,7 +2575,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - `Pending Result` should become the replacement destination for Buff outcomes that currently live behind `/buff`
 - [ ] Finish PC/desktop UI polish and stabilization first for:
   - desktop-wide: `>=1200px`
-  - desktop-fit: `640–1199px`
+  - desktop-fit: `640â€“1199px`
 - [ ] Avoid touching mobile (`<640px`) blocks unless a future task explicitly requests mobile work or a mobile blocker must be fixed.
 - [ ] Manually verify desktop sidebar pinned behavior, Home composition, card layout, Challenge/Settle behavior, and FilterBar/Tabs behavior at desktop-wide and desktop-fit widths.
 - [ ] Manually verify the shared two-zone footer contract on MediaCard as well as WaitingPushCard and MatchCard, since `card_footer` is now grid-owned globally.
@@ -2686,7 +2700,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - [`frontend/components/buff_panel.tsx`](./frontend/components/buff_panel.tsx)
 - `Pending Result` and Buff follow-up should move toward Profile/Claims rather than staying exposed as a primary-navigation destination.
 
-- Mobile UI work is paused; future UI tasks should default to desktop-wide (`>=1200px`) and desktop-fit (`640–1199px`) unless mobile is explicitly requested.
+- Mobile UI work is paused; future UI tasks should default to desktop-wide (`>=1200px`) and desktop-fit (`640â€“1199px`) unless mobile is explicitly requested.
 - Preserve these during desktop-first work:
   - sidebar pinned behavior
   - Home composition
@@ -2747,7 +2761,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Phase 2 IA implementation: extract the Push create-flow entry so the Home Push CTA can launch it directly while `/push` remains available for deep links and migration.
 - Phase 3 IA implementation: move Buff-result follow-up into `Profile -> Claims` as `Pending Result`, then reduce `/buff` to a legacy/debug container.
 
-- Verify and polish desktop-wide (`>=1200px`) and desktop-fit (`640–1199px`) UI behavior first, especially shared card footer rows, shell alignment, and Home composition.
+- Verify and polish desktop-wide (`>=1200px`) and desktop-fit (`640â€“1199px`) UI behavior first, especially shared card footer rows, shell alignment, and Home composition.
 - Resolve and verify the current CSS scale work in [`frontend/styles/globals.css`](./frontend/styles/globals.css) with actual browser measurement.
 - Add a short documented audit of which Stage 5 selectors are fully migrated versus intentionally still fixed-size.
 - Consider breaking up [`frontend/providers/palate_provider.tsx`](./frontend/providers/palate_provider.tsx) into smaller domain modules once the current UI/layout work stabilizes.
@@ -2854,7 +2868,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - `mediaId` opens the shared modal [`frontend/components/push_create_workflow.tsx`](./frontend/components/push_create_workflow.tsx) on Home
   - `challengeId` / `pushId` open the same challenge modal path previously handled by the legacy `/push` route
   - invalid or unavailable push queries now clear through Home-owned query replacement and surface route-prefill feedback on Home
-- Updated [`frontend/app/my-media/page.tsx`](./frontend/app/my-media/page.tsx) so “Push” actions now route to `/?mediaId=...` instead of `/push?mediaId=...`.
+- Updated [`frontend/app/my-media/page.tsx`](./frontend/app/my-media/page.tsx) so â€œPushâ€ actions now route to `/?mediaId=...` instead of `/push?mediaId=...`.
 - Replaced Home empty-state fallback links to `/push` and `/buff` with Home-owned modal CTA actions so Home no longer depends on those routes for public fallback behavior.
 - Intentionally preserved:
   - [`frontend/app/push/page.tsx`](./frontend/app/push/page.tsx) unchanged
@@ -3097,7 +3111,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 ## 2026-06-30 - Sidebar / Scale Visibility Diagnosis
 
-- Diagnosed the current “UI scaling not visibly responding” complaint as:
+- Diagnosed the current â€œUI scaling not visibly respondingâ€ complaint as:
   - the root scale controller already writes changing scale variables
   - but the most visible desktop shell response was muted because many page/card internals are still fixed-size
   - and the sidebar/navigation cluster remained oversized due to a large base sidebar token plus roomy nav/wallet shell tokens
@@ -3795,7 +3809,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - old threshold: `768px`
   - new threshold: `640px`
 - Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css):
-  - extended the desktop-fit repair blocks from `768–1199px` to `640–1199px`
+  - extended the desktop-fit repair blocks from `768â€“1199px` to `640â€“1199px`
   - moved the true-mobile block from `<=767px` to `<=639px`
   - cleaned up true-mobile Home composition by:
     - making the page-header action cluster a single-column grid
@@ -4384,7 +4398,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Root cause:
   - [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css) was imported before later base grid selectors still living in [`frontend/styles/globals.css`](./frontend/styles/globals.css)
   - the extracted Home rules used the weaker `.matches_grid` selector
-  - the later base `.compact_card_grid_matches` selector then overrode Home’s grid-template-columns on the Home matches container, shrinking cards back toward the generic compact-grid width
+  - the later base `.compact_card_grid_matches` selector then overrode Homeâ€™s grid-template-columns on the Home matches container, shrinking cards back toward the generic compact-grid width
 - Updated [`frontend/styles/pages/home.css`](./frontend/styles/pages/home.css):
   - changed Home match-grid column rules from `.matches_grid` to `.compact_card_grid_matches.matches_grid` in:
     - `@media (min-width: 1200px)`
@@ -4837,7 +4851,7 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
     - `.page_stack.page_home .matches_grid .match_card`
 - Intentionally untouched:
   - desktop Home selectors
-  - desktop-fit `640–1199px` behavior
+  - desktop-fit `640â€“1199px` behavior
   - WaitingPushCard / MatchCard internals beyond page-level width constraints
   - Challenge / Settle selectors and transaction controls
   - sidebar/layout-mode behavior
