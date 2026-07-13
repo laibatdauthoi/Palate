@@ -131,18 +131,14 @@
   --button-floating-lower-falloff-active: rgba(0, 0, 0, 0.24);
   --button-floating-lower-falloff-disabled: rgba(0, 0, 0, 0.12);
   --button-floating-inset:
-    inset 0 1px 0 var(--button-floating-top-highlight),
-    inset 0 -1px 0 var(--button-floating-lower-falloff);
+    inset 0 1px 0 var(--button-floating-top-highlight);
   --button-floating-inset-hover:
-    inset 0 1px 0 var(--button-floating-top-highlight-hover),
-    inset 0 -1px 0 var(--button-floating-lower-falloff-hover);
+    inset 0 1px 0 var(--button-floating-top-highlight-hover);
   --button-floating-inset-active:
     inset 0 1px 0 var(--button-floating-top-highlight-active),
-    inset 0 -1px 0 var(--button-floating-lower-falloff-active),
     inset 0 1px 2px rgba(0, 0, 0, 0.12);
   --button-floating-inset-disabled:
-    inset 0 1px 0 var(--button-floating-top-highlight-disabled),
-    inset 0 -1px 0 var(--button-floating-lower-falloff-disabled);
+    inset 0 1px 0 var(--button-floating-top-highlight-disabled);
   --button-floating-shadow:
     0 16px 28px rgba(0, 0, 0, 0.34),
     0 6px 14px rgba(0, 0, 0, 0.22),

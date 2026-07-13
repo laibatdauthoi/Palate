@@ -2980,6 +2980,32 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Validation status:
   - `npm.cmd run lint` passed
 
+## 2026-07-13 - Shared Button Duplicate Lower Edge Removal
+
+- Audited the shared button/tab lower-edge stack and identified the duplicate bottom rim as the combination of:
+  - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) `--button-edge-gradient*` using a dark lower border-box stop
+  - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) `--button-floating-inset*` adding a second `inset 0 -1px 0 ...` lower cut line
+- Kept the outer physical bottom edge from the shared edge gradient and removed only the redundant inset lower line from:
+  - `--button-floating-inset`
+  - `--button-floating-inset-hover`
+  - `--button-floating-inset-active`
+  - `--button-floating-inset-disabled`
+- Because [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) and [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css) both consume the shared `--button-floating-inset*` tokens, the fix applies consistently to:
+  - primary buttons
+  - secondary buttons
+  - ghost/utility buttons
+  - filter buttons
+  - tabs
+- Preserved:
+  - current button face
+  - current colors
+  - current radius
+  - current dimensions
+  - current shadow depth
+  - current hover/active behavior
+- Validation status:
+  - `npm.cmd run lint` passed
+
 ## 2026-07-02 - IA Phase 6.5 Home Push Query Migration Pass
 
 - Updated [`frontend/app/page.tsx`](./frontend/app/page.tsx) so Home now owns the former `/push` query-entry paths:
