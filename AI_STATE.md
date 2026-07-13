@@ -2952,6 +2952,34 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Validation status:
   - `npm.cmd run lint` passed
 
+## 2026-07-13 - Shared Metallic Button Brightening
+
+- Audited the effective shared button material owners and confirmed the visible button bodies are driven by:
+  - [`frontend/styles/tokens.css`](./frontend/styles/tokens.css)
+    - `--button-primary-surface*`
+    - `--button-secondary-surface*`
+    - `--button-modal-surface*`
+    - shared edge/inset tokens
+  - [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+    - `.action_button_primary`
+    - `.action_button_secondary`
+    - `.action_button_ghost`
+  - [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css)
+    - `.tab_button` consumes the shared modal surface and floating shadow tokens without needing selector changes
+- Brightened the shared metallic surface system for the new `#252B34` page background:
+  - primary now uses a steel-blue metal range centered on `#5C6F7A -> #40515C -> #2A343C` over base `#394852`
+  - secondary now uses a quieter gunmetal range centered on `#666772 -> #494A54 -> #31323A` over base `#43444D`
+  - shared modal/utility surfaces were lifted into the same restrained gunmetal family so tabs and ghost/utility buttons remain consistent
+- Adjusted shared edge lighting toward a cooler neutral metallic finish:
+  - slightly brighter top highlight
+  - restrained sides
+  - darker lower edge
+  - no uniform bright border
+  - no bright lower line
+- Preserved the existing floating architecture and broad soft elevation stack; no glow, no radial hotspots, and no concentric rim system were introduced.
+- Validation status:
+  - `npm.cmd run lint` passed
+
 ## 2026-07-02 - IA Phase 6.5 Home Push Query Migration Pass
 
 - Updated [`frontend/app/page.tsx`](./frontend/app/page.tsx) so Home now owns the former `/push` query-entry paths:

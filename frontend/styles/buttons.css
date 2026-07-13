@@ -182,15 +182,9 @@
   min-height: var(--button-compact-height-scaled, 40px);
   padding: var(--button-compact-pad-y-scaled, 10px) var(--button-compact-pad-x-scaled, 14px);
   border-radius: var(--button-compact-radius-scaled, 14px);
-  --button-surface:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.03) 100%),
-    linear-gradient(180deg, rgba(48, 50, 58, 0.68) 0%, rgba(32, 34, 40, 0.82) 100%);
-  --button-surface-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.024) 24%, rgba(0, 0, 0, 0.034) 100%),
-    linear-gradient(180deg, rgba(53, 56, 64, 0.7) 0%, rgba(35, 38, 45, 0.86) 100%);
-  --button-surface-active:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.016) 24%, rgba(0, 0, 0, 0.04) 100%),
-    linear-gradient(180deg, rgba(42, 44, 51, 0.7) 0%, rgba(28, 30, 36, 0.86) 100%);
+  --button-surface: var(--button-modal-surface);
+  --button-surface-hover: var(--button-modal-surface-hover);
+  --button-surface-active: var(--button-modal-surface-active);
   --control-focus-ring: rgba(255, 255, 255, 0.1);
   color: rgba(228, 235, 241, 0.84);
 }

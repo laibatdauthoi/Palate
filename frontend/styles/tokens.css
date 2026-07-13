@@ -97,22 +97,22 @@
   --button-edge-gradient:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.08) 0%,
-      rgba(255, 255, 255, 0.03) 46%,
-      rgba(0, 0, 0, 0.3) 100%
+      rgba(232, 239, 245, 0.11) 0%,
+      rgba(206, 216, 226, 0.038) 46%,
+      rgba(0, 0, 0, 0.28) 100%
     );
   --button-edge-gradient-hover:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.1) 0%,
-      rgba(255, 255, 255, 0.038) 46%,
-      rgba(0, 0, 0, 0.34) 100%
+      rgba(240, 246, 250, 0.13) 0%,
+      rgba(214, 224, 234, 0.05) 46%,
+      rgba(0, 0, 0, 0.3) 100%
     );
   --button-edge-gradient-active:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.055) 0%,
-      rgba(255, 255, 255, 0.022) 46%,
+      rgba(220, 228, 236, 0.075) 0%,
+      rgba(198, 208, 218, 0.03) 46%,
       rgba(0, 0, 0, 0.36) 100%
     );
   --button-edge-gradient-disabled:
@@ -122,9 +122,9 @@
       rgba(255, 255, 255, 0.016) 46%,
       rgba(0, 0, 0, 0.18) 100%
     );
-  --button-floating-top-highlight: rgba(255, 255, 255, 0.07);
-  --button-floating-top-highlight-hover: rgba(255, 255, 255, 0.09);
-  --button-floating-top-highlight-active: rgba(255, 255, 255, 0.04);
+  --button-floating-top-highlight: rgba(236, 242, 247, 0.085);
+  --button-floating-top-highlight-hover: rgba(244, 248, 251, 0.11);
+  --button-floating-top-highlight-active: rgba(220, 228, 235, 0.052);
   --button-floating-top-highlight-disabled: rgba(255, 255, 255, 0.025);
   --button-floating-lower-falloff: rgba(0, 0, 0, 0.18);
   --button-floating-lower-falloff-hover: rgba(0, 0, 0, 0.2);
@@ -159,42 +159,42 @@
     0 8px 14px rgba(0, 0, 0, 0.2),
     0 0 12px rgba(105, 120, 135, 0.04);
   --button-modal-surface:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.024) 24%, rgba(0, 0, 0, 0.035) 100%),
-    linear-gradient(180deg, rgba(56, 60, 72, 0.72) 0%, rgba(40, 43, 52, 0.86) 44%, rgba(28, 30, 38, 0.96) 100%),
-    rgba(36, 39, 48, 0.96);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.028) 24%, rgba(0, 0, 0, 0.034) 100%),
+    linear-gradient(180deg, #60616b 0%, #44464f 50%, #2f3239 100%),
+    #40434b;
   --button-modal-surface-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.082), rgba(255, 255, 255, 0.028) 24%, rgba(0, 0, 0, 0.038) 100%),
-    linear-gradient(180deg, rgba(61, 66, 79, 0.74) 0%, rgba(44, 47, 57, 0.88) 44%, rgba(31, 33, 41, 0.98) 100%),
-    rgba(39, 42, 51, 0.98);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.088), rgba(255, 255, 255, 0.032) 24%, rgba(0, 0, 0, 0.036) 100%),
+    linear-gradient(180deg, #6a6c77 0%, #4d4f59 50%, #363941 100%),
+    #494c55;
   --button-modal-surface-active:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.018) 24%, rgba(0, 0, 0, 0.045) 100%),
-    linear-gradient(180deg, rgba(46, 49, 59, 0.74) 0%, rgba(34, 36, 44, 0.88) 44%, rgba(24, 26, 33, 0.98) 100%),
-    rgba(31, 33, 40, 0.98);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(180deg, #555761 0%, #3d3f48 50%, #292b31 100%),
+    #383b43;
   --button-primary-surface:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.026) 24%, rgba(0, 0, 0, 0.035) 100%),
-    linear-gradient(180deg, #41525c 0%, #2d3c45 50%, #202b32 100%),
-    #263740;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.078), rgba(255, 255, 255, 0.03) 24%, rgba(0, 0, 0, 0.034) 100%),
+    linear-gradient(180deg, #5c6f7a 0%, #40515c 50%, #2a343c 100%),
+    #394852;
   --button-primary-surface-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.082), rgba(255, 255, 255, 0.03) 24%, rgba(0, 0, 0, 0.036) 100%),
-    linear-gradient(180deg, #4a5d68 0%, #34454f 50%, #253139 100%),
-    #2d3f49;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.034) 24%, rgba(0, 0, 0, 0.035) 100%),
+    linear-gradient(180deg, #667984 0%, #4a5d68 50%, #303b43 100%),
+    #44545f;
   --button-primary-surface-active:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.04) 100%),
-    linear-gradient(180deg, #394953 0%, #28353d 50%, #1d272d 100%),
-    #223038;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.054), rgba(255, 255, 255, 0.022) 24%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(180deg, #52636d 0%, #384853 50%, #252e35 100%),
+    #324048;
   --button-secondary-radius: 999px;
   --button-secondary-surface:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.066), rgba(255, 255, 255, 0.024) 24%, rgba(0, 0, 0, 0.034) 100%),
-    linear-gradient(180deg, #45434d 0%, #34313b 50%, #25232b 100%),
-    #302e38;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.074), rgba(255, 255, 255, 0.028) 24%, rgba(0, 0, 0, 0.034) 100%),
+    linear-gradient(180deg, #666772 0%, #494a54 50%, #31323a 100%),
+    #43444d;
   --button-secondary-surface-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.076), rgba(255, 255, 255, 0.028) 24%, rgba(0, 0, 0, 0.036) 100%),
-    linear-gradient(180deg, #4c4a55 0%, #3a3741 50%, #2a2831 100%),
-    #36333d;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.084), rgba(255, 255, 255, 0.032) 24%, rgba(0, 0, 0, 0.036) 100%),
+    linear-gradient(180deg, #71727d 0%, #52535d 50%, #373941 100%),
+    #4c4d57;
   --button-secondary-surface-active:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.048), rgba(255, 255, 255, 0.018) 24%, rgba(0, 0, 0, 0.04) 100%),
-    linear-gradient(180deg, #3d3b45 0%, #2f2c35 50%, #222028 100%),
-    #2b2932;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(180deg, #5b5c66 0%, #40414a 50%, #2b2d34 100%),
+    #3b3c45;
   --corner-chassis-radius: 24px;
   --corner-module-radius: 16px;
   --sidebar-chassis-border: rgba(255, 255, 255, 0.12);
