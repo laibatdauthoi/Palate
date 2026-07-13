@@ -206,7 +206,7 @@
 
 html {
   min-height: 100%;
-  background: #080c0f;
+  background: var(--background-primary);
   color-scheme: dark;
   overflow-x: auto;
 }
@@ -215,7 +215,7 @@ body {
   position: relative;
   min-height: 100%;
   margin: 0;
-  background: #080c0f;
+  background: var(--background-primary);
   color: var(--text-primary);
   font-family: var(--font-family-ui);
   font-size: var(--font-size-body-scaled, var(--font-size-body));
@@ -318,7 +318,7 @@ option,
   overflow: hidden;
   pointer-events: none;
   contain: paint;
-  background: #080c0f;
+  background: var(--background-primary);
 }
 
 .route_background::before,
@@ -4927,11 +4927,11 @@ select.input_control,
    - removes remaining atmospheric motion/effects
    - keeps background darker than rails/cards/sidebar so UI surfaces stand out */
 body {
-  background: #080c0f;
+  background: var(--background-primary);
 }
 
 .route_background {
-  background: #080c0f;
+  background: var(--background-primary);
 }
 
 .route_background::before,
@@ -4956,7 +4956,7 @@ html,
 body,
 #__next,
 .route_background {
-  background: #080c0f;
+  background: var(--background-primary);
 }
 
 @keyframes water_reflection_drift {

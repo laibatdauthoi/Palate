@@ -2870,6 +2870,88 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
 
+## 2026-07-13 - Action Button Surface Contrast Fix
+
+- Audited the live action button owners from [`frontend/components/action_button.tsx`](./frontend/components/action_button.tsx) and confirmed the rendered CTA controls resolve through:
+  - shared shell: `.action_button.app_action_button`
+  - primary variant: `.action_button_primary.app_action_primary`
+  - secondary variant: `.action_button_secondary.app_action_secondary`
+  - Home-specific class additions such as `.home_cta_button` / `.hero_primary_cta` do not override the actual button face material
+- Confirmed the button body blending came from the effective winning declarations, not the page background:
+  - shared base in [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) renders the face via `background: var(--button-surface) padding-box`
+  - primary/secondary `--button-surface*` tokens in [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) were too dark and too close to the flat page value
+  - primary also used a tighter dark shadow stack that added limited silhouette separation
+  - no pseudo-elements were contributing to these CTA bodies
+- Updated action button surfaces to more opaque, numerically lighter graphite values so the full button body reads before the label:
+  - primary default now centers on `#41525C -> #2D3C45 -> #202B32` over base `#263740`
+  - secondary default now centers on `#45434D -> #34313B -> #25232B` over base `#302E38`
+- Updated primary/secondary shadow stacks to broader soft elevation while preserving:
+  - no bright lower edge
+  - no uniform bright border
+  - no cyan rim
+  - no glow
+  - existing dimensions, radius, typography, spacing, and behavior
+- Validation status:
+  - `npm.cmd run lint` passed
+
+## 2026-07-13 - Floating Button Ambient Separation Pass
+
+- Updated [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) to rebuild the shared floating button elevation stack around ambient separation instead of relying only on black-on-black shadow:
+  - shared controls now use a broad black contact shadow plus a low-opacity cool-gray ambient halo around the silhouette
+  - hover strengthens the same ambient separation symmetrically
+  - active reduces the ambient halo and contact depth without introducing a bright lower rim
+- Updated [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) so primary and secondary action buttons keep the same dark faces but use stronger variant-specific floating stacks:
+  - primary remains the strongest through a slightly stronger ambient halo and deeper contact shadow
+  - secondary remains quieter but still clearly visible above the page
+- Confirmed [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css) already consumes the shared `--button-floating-shadow*` tokens for `.tab_button`, so tabs inherit the same ambient separation update without needing selector changes.
+- Intentionally preserved:
+  - no bright lower edge
+  - no uniform bright border
+  - no detached rings
+  - no cyan/pink glow
+  - existing dimensions, radius, typography, spacing, and layout
+- Validation status:
+  - `npm.cmd run lint` passed
+
+## 2026-07-13 - Global Background Blue-Charcoal Raise
+
+- Updated [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) so the actual global page background token now uses:
+  - `--background-primary: #141A22`
+  - `--background-secondary: #10151C`
+  - `--background-tertiary: #10151C`
+- Updated [`frontend/styles/globals.css`](./frontend/styles/globals.css) so all real full-viewport owners consume `var(--background-primary)` instead of hard-coded near-black literals:
+  - `html`
+  - `body`
+  - `.route_background`
+  - final `html, body, #__next, .route_background` override block
+- Confirmed this pass keeps the page fully flat:
+  - no gradient
+  - no vignette
+  - no spotlight
+  - no texture/noise
+  - route background pseudo-elements remain disabled by the final static-background override
+- Validation status:
+  - `npm.cmd run lint` passed
+
+## 2026-07-13 - Global Background Medium-Dark Slate Raise
+
+- Updated [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) so the shared full-viewport background tokens now use `#252B34` instead of the previous darker blue-charcoal values.
+- Confirmed [`frontend/styles/globals.css`](./frontend/styles/globals.css) already routes the actual final viewport owners through `var(--background-primary)`:
+  - `html`
+  - `body`
+  - `.route_background`
+  - final `html, body, #__next, .route_background` override block
+- Confirmed no additional hard-coded near-black override remains in the final background owner path for the viewport.
+- Preserved:
+  - flat solid background only
+  - no gradient
+  - no vignette
+  - no radial lighting
+  - no noise/overlay
+  - no button/sidebar/wallet/card/filter/layout changes
+- Validation status:
+  - `npm.cmd run lint` passed
+
 ## 2026-07-02 - IA Phase 6.5 Home Push Query Migration Pass
 
 - Updated [`frontend/app/page.tsx`](./frontend/app/page.tsx) so Home now owns the former `/push` query-entry paths:

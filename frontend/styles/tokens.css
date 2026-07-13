@@ -1,8 +1,8 @@
 :root {
   --font-family-ui: "Fredoka Variable", Fredoka, "Arial Rounded MT Bold", "Segoe UI", Arial, sans-serif;
-  --background-primary: #080c0f;
-  --background-secondary: #080c0f;
-  --background-tertiary: #080c0f;
+  --background-primary: #252b34;
+  --background-secondary: #252b34;
+  --background-tertiary: #252b34;
   --surface-primary: #15111a;
   --surface-secondary: #1d1625;
   --surface-tertiary: #261d30;
@@ -144,16 +144,20 @@
     inset 0 1px 0 var(--button-floating-top-highlight-disabled),
     inset 0 -1px 0 var(--button-floating-lower-falloff-disabled);
   --button-floating-shadow:
-    0 18px 34px rgba(0, 0, 0, 0.24),
-    0 10px 24px rgba(0, 0, 0, 0.12);
+    0 16px 28px rgba(0, 0, 0, 0.34),
+    0 6px 14px rgba(0, 0, 0, 0.22),
+    0 0 18px rgba(115, 130, 145, 0.07);
   --button-floating-shadow-hover:
-    0 22px 40px rgba(0, 0, 0, 0.28),
-    0 12px 28px rgba(0, 0, 0, 0.14);
+    0 20px 34px rgba(0, 0, 0, 0.36),
+    0 8px 18px rgba(0, 0, 0, 0.24),
+    0 0 22px rgba(126, 141, 156, 0.09);
   --button-floating-shadow-active:
-    0 10px 20px rgba(0, 0, 0, 0.18),
-    0 4px 10px rgba(0, 0, 0, 0.1);
+    0 10px 18px rgba(0, 0, 0, 0.28),
+    0 4px 10px rgba(0, 0, 0, 0.18),
+    0 0 12px rgba(105, 120, 135, 0.045);
   --button-floating-shadow-disabled:
-    0 10px 18px rgba(0, 0, 0, 0.12);
+    0 8px 14px rgba(0, 0, 0, 0.2),
+    0 0 12px rgba(105, 120, 135, 0.04);
   --button-modal-surface:
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.024) 24%, rgba(0, 0, 0, 0.035) 100%),
     linear-gradient(180deg, rgba(56, 60, 72, 0.72) 0%, rgba(40, 43, 52, 0.86) 44%, rgba(28, 30, 38, 0.96) 100%),
@@ -167,21 +171,30 @@
     linear-gradient(180deg, rgba(46, 49, 59, 0.74) 0%, rgba(34, 36, 44, 0.88) 44%, rgba(24, 26, 33, 0.98) 100%),
     rgba(31, 33, 40, 0.98);
   --button-primary-surface:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.026) 24%, rgba(0, 0, 0, 0.04) 100%),
-    linear-gradient(180deg, rgba(64, 72, 88, 0.74) 0%, rgba(44, 51, 64, 0.88) 44%, rgba(29, 34, 44, 0.98) 100%),
-    rgba(35, 40, 50, 0.98);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.026) 24%, rgba(0, 0, 0, 0.035) 100%),
+    linear-gradient(180deg, #41525c 0%, #2d3c45 50%, #202b32 100%),
+    #263740;
   --button-primary-surface-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03) 24%, rgba(0, 0, 0, 0.04) 100%),
-    linear-gradient(180deg, rgba(71, 80, 97, 0.76) 0%, rgba(49, 57, 72, 0.9) 44%, rgba(32, 38, 48, 0.99) 100%),
-    rgba(39, 45, 56, 0.99);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.082), rgba(255, 255, 255, 0.03) 24%, rgba(0, 0, 0, 0.036) 100%),
+    linear-gradient(180deg, #4a5d68 0%, #34454f 50%, #253139 100%),
+    #2d3f49;
   --button-primary-surface-active:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.05) 100%),
-    linear-gradient(180deg, rgba(52, 58, 71, 0.76) 0%, rgba(37, 42, 53, 0.9) 44%, rgba(25, 29, 38, 0.99) 100%),
-    rgba(31, 35, 44, 0.99);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(180deg, #394953 0%, #28353d 50%, #1d272d 100%),
+    #223038;
   --button-secondary-radius: 999px;
-  --button-secondary-surface: var(--button-modal-surface);
-  --button-secondary-surface-hover: var(--button-modal-surface-hover);
-  --button-secondary-surface-active: var(--button-modal-surface-active);
+  --button-secondary-surface:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.066), rgba(255, 255, 255, 0.024) 24%, rgba(0, 0, 0, 0.034) 100%),
+    linear-gradient(180deg, #45434d 0%, #34313b 50%, #25232b 100%),
+    #302e38;
+  --button-secondary-surface-hover:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.076), rgba(255, 255, 255, 0.028) 24%, rgba(0, 0, 0, 0.036) 100%),
+    linear-gradient(180deg, #4c4a55 0%, #3a3741 50%, #2a2831 100%),
+    #36333d;
+  --button-secondary-surface-active:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.048), rgba(255, 255, 255, 0.018) 24%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(180deg, #3d3b45 0%, #2f2c35 50%, #222028 100%),
+    #2b2932;
   --corner-chassis-radius: 24px;
   --corner-module-radius: 16px;
   --sidebar-chassis-border: rgba(255, 255, 255, 0.12);
