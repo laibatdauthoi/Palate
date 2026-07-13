@@ -25,9 +25,8 @@
   gap: calc(8px * var(--button-scale));
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  background:
-    var(--button-modal-surface) padding-box,
-    var(--button-edge-gradient) border-box;
+  background-color: var(--button-modal-surface-color);
+  background-image: none;
   color: var(--text-secondary);
   padding: var(--tab-pad-y-scaled, 9px) var(--tab-pad-x-scaled, 16px);
   font-size: var(--tab-font-size-scaled, 14px);
@@ -43,9 +42,8 @@
 }
 
 .tab_button:hover {
-  background:
-    var(--button-modal-surface-hover) padding-box,
-    var(--button-edge-gradient-hover) border-box;
+  background-color: var(--button-modal-surface-hover-color);
+  background-image: none;
   color: var(--text-primary);
   box-shadow:
     var(--button-floating-inset-hover),
@@ -53,9 +51,8 @@
 }
 
 .tab_button:active {
-  background:
-    var(--button-modal-surface-active) padding-box,
-    var(--button-edge-gradient-active) border-box;
+  background-color: var(--button-modal-surface-active-color);
+  background-image: none;
   box-shadow:
     var(--button-floating-inset-active),
     var(--button-floating-shadow-active);
@@ -71,9 +68,8 @@
 
 .tab_button.active,
 .tab_button.active:hover {
-  background:
-    var(--rail-material-control-active) padding-box,
-    var(--button-edge-gradient) border-box;
+  background-color: var(--button-modal-surface-active-color);
+  background-image: none;
   color: var(--text-primary);
   box-shadow:
     var(--button-floating-inset),

@@ -2,6 +2,18 @@
 
 # Recent Changes
 
+- Explicitly restored the old dark fallback appearance for shared action buttons
+  and tab controls. Removed the surface and edge-gradient token families from
+  [`frontend/styles/tokens.css`](./frontend/styles/tokens.css), leaving solid
+  modal, primary, and secondary face colors only. [`frontend/styles/buttons.css`](./frontend/styles/buttons.css)
+  now uses `background-color` plus `background-image: none` for default, hover,
+  active, and disabled states; [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css)
+  applies the same solid-face rule to tabs. Existing border, inset-shadow,
+  outer-shadow, geometry, typography, spacing, and interaction mechanics were
+  preserved. The earlier dark fallback face values remain in use: primary
+  `#394852` / `#44545F` / `#324048`, secondary `#43444D` / `#4C4D57` /
+  `#3B3C45`, and modal/tab `#40434B` / `#494C55` / `#383B43`.
+
 - Removed the remaining bright lower edge from the floating shared button system by replacing the visible uniform border with a directional border-box edge gradient. The old owner was the shared visible border declaration in [`frontend/styles/buttons.css`](./frontend/styles/buttons.css): `border-color: var(--button-border, var(--button-floating-border));`, combined with darker lower face gradients. [`frontend/styles/buttons.css`](./frontend/styles/filter-bar.css), [`frontend/styles/globals.css`](./frontend/styles/globals.css), and [`frontend/styles/media-renderer.css`](./frontend/styles/media-renderer.css) now use `border: 1px solid transparent` with `background: <face> padding-box, <edge-gradient> border-box`, so the top edge stays subtly brighter while the bottom edge resolves darker. [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) now defines the shared edge gradient stops and softer floating shadow stack, removing the small crisp positive-Y lower line from the previous shadow recipe.
 
 - Rebuilt the shared button system around the modal surface instead of the older rail/rim construction. The source-of-truth lighting recipe comes from [`frontend/styles/modal.css`](./frontend/styles/modal.css) `.modal_shell`: a restrained white-to-transparent top wash over a dark elevated base with soft ambient shadowing. [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) now provides modal-derived floating-button tokens for border, inset highlight, lower dark falloff, shadow, and default/hover/active surfaces. [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) and [`frontend/styles/filter-bar.css`](./frontend/styles/filter-bar.css) were rebuilt to use one continuous surface with soft upper/center illumination, darker lower falloff, and floating depth instead of directional rim logic. Shared custom button-like owners in [`frontend/styles/globals.css`](./frontend/styles/globals.css) and [`frontend/styles/media-renderer.css`](./frontend/styles/media-renderer.css) were migrated onto the same floating border/inset/shadow system so tabs, media controls, file-picker buttons, dropdown buttons, and wallet/card utility controls all sit in the same ambient lighting model.
