@@ -163,31 +163,13 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.04) 100%),
     linear-gradient(180deg, #555761 0%, #3d3f48 50%, #292b31 100%),
     #383b43;
-  --button-primary-surface:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.078), rgba(255, 255, 255, 0.03) 24%, rgba(0, 0, 0, 0.034) 100%),
-    linear-gradient(180deg, #5c6f7a 0%, #40515c 50%, #2a343c 100%),
-    #394852;
-  --button-primary-surface-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.034) 24%, rgba(0, 0, 0, 0.035) 100%),
-    linear-gradient(180deg, #667984 0%, #4a5d68 50%, #303b43 100%),
-    #44545f;
-  --button-primary-surface-active:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.054), rgba(255, 255, 255, 0.022) 24%, rgba(0, 0, 0, 0.04) 100%),
-    linear-gradient(180deg, #52636d 0%, #384853 50%, #252e35 100%),
-    #324048;
+  --button-primary-surface: linear-gradient(180deg, #303A49 0%, #242C38 28%, #1B212B 100%);
+  --button-primary-surface-hover: linear-gradient(180deg, #354150 0%, #28323F 28%, #1E252F 100%);
+  --button-primary-surface-active: linear-gradient(180deg, #2B3441 0%, #202833 28%, #181E26 100%);
   --button-secondary-radius: 999px;
-  --button-secondary-surface:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.074), rgba(255, 255, 255, 0.028) 24%, rgba(0, 0, 0, 0.034) 100%),
-    linear-gradient(180deg, #666772 0%, #494a54 50%, #31323a 100%),
-    #43444d;
-  --button-secondary-surface-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.084), rgba(255, 255, 255, 0.032) 24%, rgba(0, 0, 0, 0.036) 100%),
-    linear-gradient(180deg, #71727d 0%, #52535d 50%, #373941 100%),
-    #4c4d57;
-  --button-secondary-surface-active:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.04) 100%),
-    linear-gradient(180deg, #5b5c66 0%, #40414a 50%, #2b2d34 100%),
-    #3b3c45;
+  --button-secondary-surface: linear-gradient(180deg, #2D3644 0%, #222A35 28%, #181E27 100%);
+  --button-secondary-surface-hover: linear-gradient(180deg, #323C4B 0%, #27313D 28%, #1C232D 100%);
+  --button-secondary-surface-active: linear-gradient(180deg, #28313E 0%, #1E2630 28%, #161B23 100%);
   --corner-chassis-radius: 24px;
   --corner-module-radius: 16px;
   --sidebar-chassis-border: rgba(255, 255, 255, 0.12);

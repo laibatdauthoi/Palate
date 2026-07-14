@@ -23,9 +23,7 @@
     var(--action-button-pad-x, var(--button-pad-x-scaled, 18px));
   border: 1px solid transparent;
   border-radius: var(--button-radius-scaled, 16px);
-  background:
-    var(--button-surface, var(--button-modal-surface)) padding-box,
-    var(--button-edge, var(--button-edge-gradient)) border-box;
+  background: var(--button-surface, var(--button-primary-surface));
   color: var(--text-primary);
   font-size: var(--button-font-size-scaled, 14px);
   font-weight: 850;
@@ -57,9 +55,7 @@
 .action_button:hover,
 .app_action_button:hover {
   transform: scale(1.025);
-  background:
-    var(--button-surface-hover, var(--button-surface, var(--button-modal-surface-hover))) padding-box,
-    var(--button-edge-hover, var(--button-edge-gradient-hover)) border-box;
+  background: var(--button-surface-hover, var(--button-surface, var(--button-primary-surface-hover)));
   box-shadow:
     var(--button-inset-hover, var(--button-floating-inset-hover)),
     var(--button-shadow-hover, var(--button-floating-shadow-hover));
@@ -68,9 +64,7 @@
 .action_button:active,
 .app_action_button:active {
   transform: scale(0.985);
-  background:
-    var(--button-surface-active, var(--button-surface, var(--button-modal-surface-active))) padding-box,
-    var(--button-edge-active, var(--button-edge-gradient-active)) border-box;
+  background: var(--button-surface-active, var(--button-surface, var(--button-primary-surface-active)));
   box-shadow:
     var(--button-inset-active, var(--button-floating-inset-active)),
     var(--button-shadow-active, var(--button-floating-shadow-active));
@@ -163,9 +157,6 @@
 
 .action_button_secondary:disabled,
 .app_action_secondary:disabled {
-  --button-surface:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.014) 24%, rgba(0, 0, 0, 0.03) 100%),
-    linear-gradient(180deg, rgba(52, 54, 60, 0.62) 0%, rgba(36, 38, 43, 0.78) 100%);
   color: rgba(231, 226, 238, 0.5);
 }
 
@@ -176,9 +167,9 @@
   min-height: var(--button-compact-height-scaled, 40px);
   padding: var(--button-compact-pad-y-scaled, 10px) var(--button-compact-pad-x-scaled, 14px);
   border-radius: var(--button-compact-radius-scaled, 14px);
-  --button-surface: var(--button-modal-surface);
-  --button-surface-hover: var(--button-modal-surface-hover);
-  --button-surface-active: var(--button-modal-surface-active);
+  --button-surface: var(--button-secondary-surface);
+  --button-surface-hover: var(--button-secondary-surface-hover);
+  --button-surface-active: var(--button-secondary-surface-active);
   --control-focus-ring: rgba(255, 255, 255, 0.1);
   color: rgba(228, 235, 241, 0.84);
 }
@@ -195,23 +186,14 @@
 }
 
 .action_button_ghost:disabled {
-  --button-surface:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.012) 24%, rgba(0, 0, 0, 0.02) 100%),
-    linear-gradient(180deg, rgba(38, 40, 46, 0.58) 0%, rgba(26, 28, 33, 0.72) 100%);
   color: rgba(225, 230, 235, 0.44);
 }
 
 .action_button_caution,
 .app_action_caution {
-  --button-surface:
-    linear-gradient(180deg, rgba(255, 249, 236, 0.07), rgba(255, 249, 236, 0.02) 24%, rgba(0, 0, 0, 0.035) 100%),
-    linear-gradient(180deg, rgba(66, 55, 44, 0.74) 0%, rgba(40, 33, 28, 0.9) 100%);
-  --button-surface-hover:
-    linear-gradient(180deg, rgba(255, 249, 236, 0.08), rgba(255, 249, 236, 0.024) 24%, rgba(0, 0, 0, 0.04) 100%),
-    linear-gradient(180deg, rgba(72, 60, 48, 0.78) 0%, rgba(44, 36, 30, 0.92) 100%);
-  --button-surface-active:
-    linear-gradient(180deg, rgba(255, 249, 236, 0.05), rgba(255, 249, 236, 0.018) 24%, rgba(0, 0, 0, 0.045) 100%),
-    linear-gradient(180deg, rgba(57, 47, 39, 0.78) 0%, rgba(34, 28, 24, 0.92) 100%);
+  --button-surface: linear-gradient(180deg, rgb(66, 55, 44) 0%, rgb(40, 33, 28) 52%, rgb(31, 26, 23) 100%);
+  --button-surface-hover: linear-gradient(180deg, rgb(72, 60, 48) 0%, rgb(44, 36, 30) 52%, rgb(35, 29, 24) 100%);
+  --button-surface-active: linear-gradient(180deg, rgb(57, 47, 39) 0%, rgb(34, 28, 24) 52%, rgb(27, 22, 19) 100%);
   --control-focus-ring: rgba(235, 178, 92, 0.14);
   color: #fff5dc;
 }
@@ -232,22 +214,13 @@
 
 .action_button_caution:disabled,
 .app_action_caution:disabled {
-  --button-surface:
-    linear-gradient(180deg, rgba(255, 249, 236, 0.025), rgba(255, 249, 236, 0.012) 24%, rgba(0, 0, 0, 0.03) 100%),
-    linear-gradient(180deg, rgba(43, 38, 34, 0.62) 0%, rgba(25, 23, 21, 0.78) 100%);
   color: rgba(236, 228, 210, 0.5);
 }
 
 .action_button_danger {
-  --button-surface:
-    linear-gradient(180deg, rgba(255, 236, 242, 0.07), rgba(255, 236, 242, 0.02) 24%, rgba(0, 0, 0, 0.04) 100%),
-    linear-gradient(180deg, rgba(79, 38, 55, 0.76) 0%, rgba(43, 20, 31, 0.92) 100%);
-  --button-surface-hover:
-    linear-gradient(180deg, rgba(255, 236, 242, 0.082), rgba(255, 236, 242, 0.024) 24%, rgba(0, 0, 0, 0.042) 100%),
-    linear-gradient(180deg, rgba(86, 42, 60, 0.8) 0%, rgba(48, 22, 34, 0.94) 100%);
-  --button-surface-active:
-    linear-gradient(180deg, rgba(255, 236, 242, 0.05), rgba(255, 236, 242, 0.018) 24%, rgba(0, 0, 0, 0.05) 100%),
-    linear-gradient(180deg, rgba(68, 32, 47, 0.8) 0%, rgba(38, 18, 28, 0.94) 100%);
+  --button-surface: linear-gradient(180deg, rgb(79, 38, 55) 0%, rgb(43, 20, 31) 52%, rgb(35, 16, 25) 100%);
+  --button-surface-hover: linear-gradient(180deg, rgb(86, 42, 60) 0%, rgb(48, 22, 34) 52%, rgb(40, 18, 28) 100%);
+  --button-surface-active: linear-gradient(180deg, rgb(68, 32, 47) 0%, rgb(38, 18, 28) 52%, rgb(30, 14, 22) 100%);
   --control-focus-ring: rgba(255, 72, 132, 0.16);
   color: #ffd7df;
 }
@@ -264,25 +237,13 @@
 }
 
 .action_button_danger:disabled {
-  --button-surface:
-    linear-gradient(180deg, rgba(255, 236, 242, 0.025), rgba(255, 236, 242, 0.012) 24%, rgba(0, 0, 0, 0.03) 100%),
-    linear-gradient(180deg, rgba(48, 28, 35, 0.64) 0%, rgba(24, 14, 19, 0.8) 100%);
   color: rgba(237, 217, 224, 0.48);
 }
 
 .action_button:disabled,
 .app_action_button:disabled {
   transform: none;
-  background:
-    var(
-      --button-surface-disabled,
-      var(
-        --button-surface,
-        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.012) 24%, rgba(0, 0, 0, 0.03) 100%),
-        linear-gradient(180deg, rgba(38, 40, 47, 0.62) 0%, rgba(25, 27, 32, 0.78) 100%)
-      )
-    ) padding-box,
-    var(--button-edge-disabled, var(--button-edge-gradient-disabled)) border-box;
+  background: var(--button-surface-disabled, var(--button-surface, var(--button-primary-surface)));
   color: rgba(233, 240, 245, 0.44);
   opacity: 0.5;
   cursor: not-allowed;
@@ -296,6 +257,20 @@
 .app_action_button:disabled:hover,
 .app_action_button:disabled:active {
   transform: none;
+}
+
+.action_button,
+.app_action_button {
+  background-origin: border-box;
+}
+
+.action_button:hover,
+.app_action_button:hover,
+.action_button:active,
+.app_action_button:active,
+.action_button:disabled,
+.app_action_button:disabled {
+  background-origin: border-box;
 }
 
 @media (min-width: 640px) {
