@@ -2878,6 +2878,30 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
 
+## 2026-07-14 - Action Button Upper Rim Cleanup
+
+- Audited the live `Buff Random Match` Action Button with border, outline, inset,
+  and outer-shadow layers isolated independently.
+- The apparent double upper rim came from two layers:
+  - the transparent `1px` root border area, which was being painted by the
+    `background-origin: border-box` face gradient
+  - `inset 0 1px 0 var(--button-floating-top-highlight)`
+- Removed the root `border: 1px solid transparent` paint layer from
+  `.action_button, .app_action_button`.
+- Kept the single inset top highlight, face gradient, border-box face origin,
+  compact contact shadows, radius, and interaction-state shadow wiring unchanged.
+- Added a one-pixel padding compensation for the removed shell space, including
+  the page-owned home CTA override, preserving rendered button bounds and content
+  placement.
+- Runtime check after cleanup:
+  - `Buff Random Match`: `border: 0px none`, `outline: none`, one inset top
+    highlight plus the existing two outer shadows, `border-radius: 14px`
+  - rendered bounds remained `174.17px x 44px`
+  - upper edge has one highlight row; lower rows remain darker with no bright lip
+- Validation status:
+  - `npm.cmd run lint` passed
+  - `git diff --check` passed
+
 ## 2026-07-14 - Action Button Ambient Halo Removal
 
 - Removed the wide zero-offset ambient halo layer from the shared floating button shadow tokens.

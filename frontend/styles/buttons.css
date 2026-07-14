@@ -9,6 +9,7 @@
      variants, but must not casually redefine base shell/material rules */
 .action_button,
 .app_action_button {
+  --button-border-compensation: 1px;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -19,9 +20,9 @@
   gap: var(--inline-icon-gap-scaled, calc(8px * var(--button-scale)));
   min-height: var(--action-button-min-height, calc(48px * var(--button-scale)));
   padding:
-    var(--action-button-pad-y, var(--button-pad-y-scaled, 12px))
-    var(--action-button-pad-x, var(--button-pad-x-scaled, 18px));
-  border: 1px solid transparent;
+    calc(var(--action-button-pad-y, var(--button-pad-y-scaled, 12px)) + var(--button-border-compensation))
+    calc(var(--action-button-pad-x, var(--button-pad-x-scaled, 18px)) + var(--button-border-compensation));
+  border: 0;
   border-radius: var(--button-radius-scaled, 16px);
   background: var(--button-surface, var(--button-primary-surface));
   color: var(--text-primary);
@@ -165,7 +166,9 @@
   min-width: 0;
   height: auto;
   min-height: var(--button-compact-height-scaled, 40px);
-  padding: var(--button-compact-pad-y-scaled, 10px) var(--button-compact-pad-x-scaled, 14px);
+  padding:
+    calc(var(--button-compact-pad-y-scaled, 10px) + var(--button-border-compensation, 1px))
+    calc(var(--button-compact-pad-x-scaled, 14px) + var(--button-border-compensation, 1px));
   border-radius: var(--button-compact-radius-scaled, 14px);
   --button-surface: var(--button-secondary-surface);
   --button-surface-hover: var(--button-secondary-surface-hover);
@@ -284,7 +287,9 @@
     --action-button-font-size: 14px;
     gap: var(--action-button-gap);
     min-height: var(--action-button-min-height);
-    padding: var(--action-button-pad-y) var(--action-button-pad-x);
+    padding:
+      calc(var(--action-button-pad-y) + var(--button-border-compensation))
+      calc(var(--action-button-pad-x) + var(--button-border-compensation));
     border-radius: var(--action-button-radius);
     font-size: var(--action-button-font-size);
   }
@@ -295,7 +300,23 @@
     --action-button-compact-pad-x: 14px;
     --action-button-compact-radius: 14px;
     min-height: var(--action-button-compact-height);
-    padding: var(--action-button-compact-pad-y) var(--action-button-compact-pad-x);
+    padding:
+      calc(var(--action-button-compact-pad-y) + var(--button-border-compensation, 1px))
+      calc(var(--action-button-compact-pad-x) + var(--button-border-compensation, 1px));
     border-radius: var(--action-button-compact-radius);
+  }
+}
+
+/* Page-owned CTA padding previously included the one-pixel shell space.
+   Keep the rendered CTA bounds unchanged after removing that shell. */
+.action_button.home_cta_button {
+  padding-inline:
+    calc(var(--hero-action-pad-x-scaled, 16px) + var(--button-border-compensation));
+}
+
+@media (max-width: 639px) {
+  .action_button.home_cta_button {
+    padding-inline:
+      calc(var(--action-button-pad-x, var(--hero-action-pad-x-scaled, 16px)) + var(--button-border-compensation));
   }
 }
