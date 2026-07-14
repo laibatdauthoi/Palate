@@ -2870,6 +2870,26 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
 
+## 2026-07-14 - Action Button Ambient Halo Removal
+
+- Removed the wide zero-offset ambient halo layer from the shared floating button shadow tokens.
+- Removed the duplicate ambient layer from primary and secondary Action Button shadow overrides.
+- Preserved the two compact contact-shadow layers, inset shadows, borders, radii, geometry, and state behavior.
+- Shared filter controls that consume the same floating shadow tokens now use the tightened stack as well.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - `git diff --check` passed
+
+## 2026-07-14 - Action Button Downward Shadow Alignment
+
+- Compared shared ActionButton material with the wallet `Disconnect` control; `Disconnect` uses the shared secondary ActionButton shadow and wallet CSS only changes its compact footprint.
+- Replaced the remaining large upward-spreading action shadows with compact positive-Y contact pairs.
+- Kept the crisp one-pixel inset top highlight and existing button face, border, radius, dimensions, typography, and interaction mechanics.
+- Shared utility and filter controls consuming the same floating shadow tokens now follow the same downward lighting direction.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - `git diff --check` passed
+
 ## 2026-07-13 - Action Button Surface Contrast Fix
 
 - Audited the live action button owners from [`frontend/components/action_button.tsx`](./frontend/components/action_button.tsx) and confirmed the rendered CTA controls resolve through:
