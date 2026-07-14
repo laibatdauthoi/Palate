@@ -2878,6 +2878,19 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
 
+## 2026-07-15 - Filter Button Action Material Alignment
+
+- Migrated `.tab_button` to the Action Button rendering contract:
+  - solid borderless shell
+  - shared secondary face and floating inset/contact shadows for inactive tabs
+  - shared primary face for active tabs
+  - `background-origin: border-box` across default and state shorthands
+- Preserved tab-specific labels, badges, attention animation, click behavior,
+  responsive sizing, and rail container styling.
+- Active tabs retain pink identity through accent text and existing pink badges.
+- Added the same disabled and focus-visible material state handling as Action
+  Buttons without changing current tab DOM behavior.
+
 ## 2026-07-14 - Action Button Upper Rim Cleanup
 
 - Audited the live `Buff Random Match` Action Button with border, outline, inset,

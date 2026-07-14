@@ -18,18 +18,24 @@
 }
 
 .tab_button {
+  --button-border-compensation: 1px;
+  --tab-surface: var(--button-secondary-surface);
+  --tab-surface-hover: var(--button-secondary-surface-hover);
+  --tab-surface-active: var(--button-secondary-surface-active);
+  --tab-focus-ring: rgba(185, 188, 196, 0.12);
   display: inline-flex;
   flex: var(--tab-button-flex, 0 1 auto);
   align-items: center;
   min-width: 0;
   gap: calc(8px * var(--button-scale));
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  background:
-    var(--button-modal-surface) padding-box,
-    var(--button-edge-gradient) border-box;
+  border: 0;
+  border-radius: var(--button-secondary-radius);
+  background: var(--tab-surface);
+  background-origin: border-box;
   color: var(--text-secondary);
-  padding: var(--tab-pad-y-scaled, 9px) var(--tab-pad-x-scaled, 16px);
+  padding:
+    calc(var(--tab-pad-y-scaled, 9px) + var(--button-border-compensation))
+    calc(var(--tab-pad-x-scaled, 16px) + var(--button-border-compensation));
   font-size: var(--tab-font-size-scaled, 14px);
   box-shadow:
     var(--button-floating-inset),
@@ -43,9 +49,7 @@
 }
 
 .tab_button:hover {
-  background:
-    var(--button-modal-surface-hover) padding-box,
-    var(--button-edge-gradient-hover) border-box;
+  background: var(--tab-surface-hover);
   color: var(--text-primary);
   box-shadow:
     var(--button-floating-inset-hover),
@@ -53,9 +57,7 @@
 }
 
 .tab_button:active {
-  background:
-    var(--button-modal-surface-active) padding-box,
-    var(--button-edge-gradient-active) border-box;
+  background: var(--tab-surface-active);
   box-shadow:
     var(--button-floating-inset-active),
     var(--button-floating-shadow-active);
@@ -64,20 +66,56 @@
 .tab_button:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 3px rgba(255, 47, 159, 0.14),
+    0 0 0 3px var(--tab-focus-ring),
     var(--button-floating-inset-hover),
     var(--button-floating-shadow-hover);
 }
 
-.tab_button.active,
-.tab_button.active:hover {
-  background:
-    var(--rail-material-control-active) padding-box,
-    var(--button-edge-gradient) border-box;
-  color: var(--text-primary);
+.tab_button.active {
+  --tab-surface: var(--button-primary-surface);
+  --tab-surface-hover: var(--button-primary-surface-hover);
+  --tab-surface-active: var(--button-primary-surface-active);
+  --tab-focus-ring: rgba(255, 47, 159, 0.14);
+  background: var(--tab-surface);
+  color: var(--accent-primary);
   box-shadow:
-    var(--button-floating-inset),
-    var(--button-floating-shadow);
+    var(--button-floating-inset-active),
+    var(--button-floating-shadow-active);
+}
+
+.tab_button.active:hover {
+  background: var(--tab-surface-hover);
+  color: var(--accent-primary-hover);
+  box-shadow:
+    var(--button-floating-inset-hover),
+    var(--button-floating-shadow-hover);
+}
+
+.tab_button.active:active {
+  background: var(--tab-surface-active);
+  color: var(--accent-primary-active);
+  box-shadow:
+    var(--button-floating-inset-active),
+    var(--button-floating-shadow-active);
+}
+
+.tab_button:disabled {
+  background: var(--button-secondary-surface);
+  color: rgba(233, 240, 245, 0.44);
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow:
+    var(--button-floating-inset-disabled),
+    var(--button-floating-shadow-disabled);
+}
+
+.tab_button:disabled:hover,
+.tab_button:disabled:active {
+  background: var(--button-secondary-surface);
+  color: rgba(233, 240, 245, 0.44);
+  box-shadow:
+    var(--button-floating-inset-disabled),
+    var(--button-floating-shadow-disabled);
 }
 
 .tab_button_attention {
@@ -85,6 +123,18 @@
     var(--button-floating-inset),
     var(--button-floating-shadow);
   animation: claim_tab_pulse 1.8s ease-in-out infinite;
+}
+
+.tab_button,
+.tab_button:hover,
+.tab_button:active,
+.tab_button.active,
+.tab_button.active:hover,
+.tab_button.active:active,
+.tab_button:disabled,
+.tab_button:disabled:hover,
+.tab_button:disabled:active {
+  background-origin: border-box;
 }
 
 .tab_badge {
@@ -180,7 +230,9 @@
     --tab-button-pad-x: 16px;
     --tab-button-font-size: 14px;
     gap: var(--tab-button-gap);
-    padding: var(--tab-button-pad-y) var(--tab-button-pad-x);
+    padding:
+      calc(var(--tab-button-pad-y) + var(--button-border-compensation))
+      calc(var(--tab-button-pad-x) + var(--button-border-compensation));
     font-size: var(--tab-button-font-size);
   }
 
