@@ -5148,3 +5148,10 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Reduced perimeter alpha and vertical top wash while strengthening the darker lower falloff, so the center reads lower without creating an inner ring.
 - Applied the same shared primary/secondary material changes to Filter Buttons through their existing token references.
 - Preserved all button geometry, border declarations, inset and outer shadow architecture, text colors, selectors, transforms, transitions, and interaction behavior.
+## 2026-07-16 - Action Button Dark Ceramic Material
+
+- Replaced the bright silver Action Button face tokens in [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) with dark cool-titanium and smoked-ceramic radial palettes.
+- Preserved the concave face geometry: `ellipse 85% 72% at 50% 52%`, with darker centers, restrained perimeter lift, and weak vertical overlays.
+- Kept the existing compact shadow stacks, borders, radii, dimensions, typography, selectors, transitions, transforms, and interaction behavior unchanged.
+- Filter Buttons continue to map inactive state to the secondary material and active state to the primary material; pink identity remains text/badge-driven.
+- Existing light label colors remain in place because the current silver pass already uses readable light text.
