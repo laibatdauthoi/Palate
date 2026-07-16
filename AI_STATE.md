@@ -5134,3 +5134,17 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Validation status:
   - `npm.cmd run lint` passed
   - browser visual verification was **not** performed in this session by request
+## 2026-07-16 - Action Button Concave Keycap Face
+
+- Replaced the primary and secondary Action Button face distributions in [`frontend/styles/tokens.css`](./frontend/styles/tokens.css) with a centered elliptical radial layer at `50% 52%`.
+- Added a weak vertical lighting layer beneath the radial layer so the face keeps only a restrained top-to-bottom direction.
+- Kept the silver/titanium palette family while making the center darker and the perimeter gradually lighter.
+- Reduced the existing Action Button outer shadow stacks in [`frontend/styles/buttons.css`](./frontend/styles/buttons.css) and the shared fallback tokens so separation remains compact and downward-focused.
+- Preserved the existing inset top highlight, border, radius, dimensions, typography, transforms, transitions, and interaction selectors.
+- Filter buttons continue to consume the shared primary/secondary surface and shadow tokens; no filter selectors were changed.
+## 2026-07-16 - Action Button Concavity Refinement
+
+- Deepened the centered radial recession for primary and secondary Action Button surfaces in [`frontend/styles/tokens.css`](./frontend/styles/tokens.css), retaining the `ellipse 85% 72% at 50% 52%` geometry.
+- Reduced perimeter alpha and vertical top wash while strengthening the darker lower falloff, so the center reads lower without creating an inner ring.
+- Applied the same shared primary/secondary material changes to Filter Buttons through their existing token references.
+- Preserved all button geometry, border declarations, inset and outer shadow architecture, text colors, selectors, transforms, transitions, and interaction behavior.
