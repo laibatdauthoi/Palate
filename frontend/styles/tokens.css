@@ -166,94 +166,58 @@
   --button-primary-surface:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.04) 0%,
-      rgba(255, 255, 255, 0.01) 46%,
-      rgba(0, 0, 0, 0.06) 100%
-    ),
-    radial-gradient(
-      ellipse 85% 72% at 50% 52%,
-      #27313a 0%,
-      #35414b 34%,
-      #414e58 68%,
-      #495661 100%
-    ),
-    #202830;
+      #56616c 0%,
+      #4e5964 18%,
+      #46515c 40%,
+      #3d4752 68%,
+      #343e48 100%
+    );
   --button-primary-surface-hover:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.045) 0%,
-      rgba(255, 255, 255, 0.01) 46%,
-      rgba(0, 0, 0, 0.07) 100%
-    ),
-    radial-gradient(
-      ellipse 85% 72% at 50% 52%,
-      #303b45 0%,
-      #3f4c57 34%,
-      #4b5964 68%,
-      #55636f 100%
-    ),
-    #27313a;
+      #60707c 0%,
+      #586470 18%,
+      #4f5b67 40%,
+      #46525d 68%,
+      #3c4853 100%
+    );
   --button-primary-surface-active:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.03) 0%,
-      rgba(255, 255, 255, 0.008) 46%,
-      rgba(0, 0, 0, 0.05) 100%
-    ),
-    radial-gradient(
-      ellipse 85% 72% at 50% 52%,
-      #232c34 0%,
-      #303b45 34%,
-      #3a4651 68%,
-      #404c57 100%
-    ),
-    #1c232a;
+      #4d5964 0%,
+      #46515f 18%,
+      #3e4853 40%,
+      #36414b 68%,
+      #2e3841 100%
+    );
   --button-secondary-radius: 999px;
   --button-secondary-surface:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.03) 0%,
-      rgba(255, 255, 255, 0.008) 46%,
-      rgba(0, 0, 0, 0.06) 100%
-    ),
-    radial-gradient(
-      ellipse 85% 72% at 50% 52%,
-      #282a30 0%,
-      #34363d 34%,
-      #3d3f46 68%,
-      #46484f 100%
-    ),
-    #202228;
+      #505159 0%,
+      #484a52 18%,
+      #40424a 40%,
+      #383a42 68%,
+      #30323a 100%
+    );
   --button-secondary-surface-hover:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.035) 0%,
-      rgba(255, 255, 255, 0.009) 46%,
-      rgba(0, 0, 0, 0.065) 100%
-    ),
-    radial-gradient(
-      ellipse 85% 72% at 50% 52%,
-      #303239 0%,
-      #3c3f47 34%,
-      #474a52 68%,
-      #50535b 100%
-    ),
-    #27292f;
+      #5a5c65 0%,
+      #52545d 18%,
+      #4a4c55 40%,
+      #42444d 68%,
+      #3a3c44 100%
+    );
   --button-secondary-surface-active:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.025) 0%,
-      rgba(255, 255, 255, 0.007) 46%,
-      rgba(0, 0, 0, 0.045) 100%
-    ),
-    radial-gradient(
-      ellipse 85% 72% at 50% 52%,
-      #24262b 0%,
-      #2f3137 34%,
-      #373940 68%,
-      #3d3f46 100%
-    ),
-    #1d1f24;
+      #484a52 0%,
+      #41434a 18%,
+      #393b42 40%,
+      #32343b 68%,
+      #2b2d34 100%
+    );
   --corner-chassis-radius: 24px;
   --corner-module-radius: 16px;
   --sidebar-chassis-border: rgba(255, 255, 255, 0.12);

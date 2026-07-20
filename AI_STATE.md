@@ -5155,3 +5155,15 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Kept the existing compact shadow stacks, borders, radii, dimensions, typography, selectors, transitions, transforms, and interaction behavior unchanged.
 - Filter Buttons continue to map inactive state to the secondary material and active state to the primary material; pink identity remains text/badge-driven.
 - Existing light label colors remain in place because the current silver pass already uses readable light text.
+
+## 2026-07-21 - Action Button Single-Piece Face Lighting
+
+- Kept the root as the sole visible surface owner; no nested face, body shell, `::before`, inset frame, or additional pseudo-element was introduced.
+- Replaced the radial pill-like primary and secondary surface layers with restrained full-root vertical lighting profiles: soft upper illumination, calm center, smooth lower darkening, and no lower rim.
+- Preserved the existing root geometry, radius, padding, typography, palette family, outer/inset shadow architecture, selectors, transitions, and interactions.
+
+## 2026-07-21 - Action Button Wallet-Style Vertical Falloff
+
+- Replaced the rgba-over-base surface profiles with explicit horizontally uniform `180deg` gradients for primary and secondary default, hover, and active states.
+- Kept the profile monotonic from top to bottom: a restrained upper lift, stable middle, gradual lower darkening, and no radial, diagonal, or local highlight layer.
+- Preserved root surface ownership, geometry, radius, padding, typography, text color, shadow direction, selectors, transitions, and interactions.
