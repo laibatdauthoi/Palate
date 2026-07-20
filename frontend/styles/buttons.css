@@ -36,9 +36,21 @@
   transform-origin: center;
   transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
   will-change: transform;
+  --button-action-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.18),
+    0 8px 10px rgba(0, 0, 0, 0.09);
+  --button-action-shadow-hover:
+    0 4px 7px rgba(0, 0, 0, 0.21),
+    0 10px 12px rgba(0, 0, 0, 0.11);
+  --button-action-shadow-active:
+    0 2px 4px rgba(0, 0, 0, 0.15),
+    0 5px 7px rgba(0, 0, 0, 0.06);
+  --button-action-shadow-disabled:
+    0 2px 3px rgba(0, 0, 0, 0.08),
+    0 4px 6px rgba(0, 0, 0, 0.04);
   box-shadow:
     var(--button-inset, var(--button-floating-inset)),
-    var(--button-shadow, var(--button-floating-shadow));
+    var(--button-shadow, var(--button-action-shadow));
 }
 
 .action_button_label {
@@ -59,7 +71,7 @@
   background: var(--button-surface-hover, var(--button-surface, var(--button-primary-surface-hover)));
   box-shadow:
     var(--button-inset-hover, var(--button-floating-inset-hover)),
-    var(--button-shadow-hover, var(--button-floating-shadow-hover));
+    var(--button-shadow-hover, var(--button-action-shadow-hover));
 }
 
 .action_button:active,
@@ -68,7 +80,7 @@
   background: var(--button-surface-active, var(--button-surface, var(--button-primary-surface-active)));
   box-shadow:
     var(--button-inset-active, var(--button-floating-inset-active)),
-    var(--button-shadow-active, var(--button-floating-shadow-active));
+    var(--button-shadow-active, var(--button-action-shadow-active));
 }
 
 .action_button:focus-visible,
@@ -77,7 +89,7 @@
   box-shadow:
     0 0 0 3px var(--control-focus-ring, rgba(67, 215, 255, 0.16)),
     var(--button-inset-hover, var(--button-floating-inset-hover)),
-    var(--button-shadow-hover, var(--button-floating-shadow-hover));
+    var(--button-shadow-hover, var(--button-action-shadow-hover));
 }
 
 .action_button_primary,
@@ -252,7 +264,7 @@
   cursor: not-allowed;
   box-shadow:
     var(--button-inset-disabled, var(--button-floating-inset-disabled)),
-    var(--button-shadow-disabled, var(--button-floating-shadow-disabled));
+    var(--button-shadow-disabled, var(--button-action-shadow-disabled));
 }
 
 .action_button:disabled:hover,

@@ -5167,3 +5167,15 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Replaced the rgba-over-base surface profiles with explicit horizontally uniform `180deg` gradients for primary and secondary default, hover, and active states.
 - Kept the profile monotonic from top to bottom: a restrained upper lift, stable middle, gradual lower darkening, and no radial, diagonal, or local highlight layer.
 - Preserved root surface ownership, geometry, radius, padding, typography, text color, shadow direction, selectors, transitions, and interactions.
+
+## 2026-07-21 - Action Button Flat Wallet-Material Pass
+
+- Flattened primary and secondary default, hover, and active ramps to low-contrast monotonic graphite profiles with unchanged vertical stop positions.
+- Kept the primary top-to-center and center-to-bottom luminance differences restrained, with no local reversals or lower recovery bands.
+- Added Action Button-local compact shadow fallbacks with reduced offsets, blur, and opacity; shared filter/media shadow tokens were not changed.
+
+## 2026-07-21 - Action Button Responsive Vertical Profile
+
+- Updated primary and secondary default, hover, and active surfaces to percentage-only `180deg` five-stop gradients.
+- Kept identical stop positions across states so the lighting scales consistently for icon, standard, wide, filter, and disabled controls without per-selector tuning.
+- Preserved dimensions, radius, typography, spacing, component logic, layout, page surfaces, and the existing no-pseudo-element/no-radial architecture.
