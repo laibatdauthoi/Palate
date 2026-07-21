@@ -5179,3 +5179,14 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Updated primary and secondary default, hover, and active surfaces to percentage-only `180deg` five-stop gradients.
 - Kept identical stop positions across states so the lighting scales consistently for icon, standard, wide, filter, and disabled controls without per-selector tuning.
 - Preserved dimensions, radius, typography, spacing, component logic, layout, page surfaces, and the existing no-pseudo-element/no-radial architecture.
+
+## 2026-07-21 - Action Button Normalized Height Scaling
+
+- Normalized all primary and secondary default, hover, and active gradients to seven percentage stops at `0%/16%/32%/48%/64%/82%/100%`.
+- Kept every profile strictly vertical and continuously darkening so 40px, 56px, 72px, and 120px widgets use the same proportional lighting distribution.
+- Preserved width, height, radius, typography, spacing, selectors, interactions, and component layout.
+
+## 2026-07-21 - Action Button Upper-Middle Falloff Refinement
+
+- Lowered the 32% and 48% stops slightly across primary and secondary default, hover, and active profiles to remove the upper-middle luminance plateau.
+- Preserved the percentage-based `180deg` architecture, palette family, shadows, geometry, spacing, and interaction behavior.

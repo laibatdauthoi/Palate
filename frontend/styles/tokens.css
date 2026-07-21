@@ -166,56 +166,68 @@
   --button-primary-surface:
     linear-gradient(
       180deg,
-      #525c67 0%,
-      #4c5661 22%,
-      #444e59 50%,
-      #3d4752 76%,
-      #37414b 100%
+      #535e69 0%,
+      #4f5964 16%,
+      #49535e 32%,
+      #444e59 48%,
+      #404a55 64%,
+      #3b4550 82%,
+      #36404b 100%
     );
   --button-primary-surface-hover:
     linear-gradient(
       180deg,
-      #58626d 0%,
-      #525c67 22%,
-      #4a5460 50%,
-      #434d58 76%,
-      #3d4752 100%
+      #59646f 0%,
+      #555f6a 16%,
+      #4f5964 32%,
+      #4a545f 48%,
+      #46505b 64%,
+      #414b56 82%,
+      #3c4651 100%
     );
   --button-primary-surface-active:
     linear-gradient(
       180deg,
-      #4d5762 0%,
-      #48525d 22%,
-      #414b56 50%,
-      #3a444f 76%,
-      #343e48 100%
+      #4f5a65 0%,
+      #4b5560 16%,
+      #45505a 32%,
+      #404a55 48%,
+      #3c4651 64%,
+      #37414c 82%,
+      #323c47 100%
     );
   --button-secondary-radius: 999px;
   --button-secondary-surface:
     linear-gradient(
       180deg,
       #4c4e56 0%,
-      #474951 22%,
-      #41434b 50%,
-      #3b3d45 76%,
+      #494b53 16%,
+      #45474e 32%,
+      #40424a 48%,
+      #3d3f47 64%,
+      #393b43 82%,
       #35373e 100%
     );
   --button-secondary-surface-hover:
     linear-gradient(
       180deg,
       #52545c 0%,
-      #4d4f57 22%,
-      #474951 50%,
-      #41434b 76%,
+      #4f5159 16%,
+      #4b4d54 32%,
+      #46484f 48%,
+      #43454d 64%,
+      #3f4149 82%,
       #3b3d45 100%
     );
   --button-secondary-surface-active:
     linear-gradient(
       180deg,
       #484a52 0%,
-      #43454d 22%,
-      #3d3f47 50%,
-      #373941 76%,
+      #45474f 16%,
+      #41434a 32%,
+      #3c3e46 48%,
+      #393b43 64%,
+      #35373f 82%,
       #32343b 100%
     );
   --corner-chassis-radius: 24px;
