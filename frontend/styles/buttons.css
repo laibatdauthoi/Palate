@@ -36,6 +36,10 @@
   transform-origin: center;
   transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
   will-change: transform;
+  --button-inset: var(--action-button-perimeter);
+  --button-inset-hover: var(--action-button-perimeter-hover);
+  --button-inset-active: var(--action-button-perimeter-active);
+  --button-inset-disabled: var(--action-button-perimeter-disabled);
   --button-action-shadow:
     0 3px 6px rgba(0, 0, 0, 0.18),
     0 8px 10px rgba(0, 0, 0, 0.09);

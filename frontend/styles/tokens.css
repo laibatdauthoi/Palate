@@ -139,6 +139,14 @@
     inset 0 1px 2px rgba(0, 0, 0, 0.12);
   --button-floating-inset-disabled:
     inset 0 1px 0 var(--button-floating-top-highlight-disabled);
+  --action-button-perimeter:
+    inset 0 0 0 1px rgba(128, 140, 151, 0.12);
+  --action-button-perimeter-hover:
+    inset 0 0 0 1px rgba(140, 152, 163, 0.14);
+  --action-button-perimeter-active:
+    inset 0 0 0 1px rgba(116, 128, 139, 0.1);
+  --action-button-perimeter-disabled:
+    inset 0 0 0 1px rgba(128, 140, 151, 0.06);
   --button-floating-shadow:
     0 4px 7px rgba(0, 0, 0, 0.2),
     0 9px 12px rgba(0, 0, 0, 0.1);

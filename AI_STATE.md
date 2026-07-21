@@ -5219,3 +5219,12 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 - Validation status:
   - `npm.cmd run lint` passed
   - `git diff --check` passed
+
+## 2026-07-22 - Unified Action Button Perimeter
+
+- Removed Action Button dependence on the directional top-only inset by assigning one low-contrast uniform inset perimeter to default, hover, active, focus-visible, and disabled states.
+- Preserved the main vertical surface gradients, outer shadows, radius, dimensions, typography, spacing, and interaction behavior.
+- Left the shared top-highlight stack unchanged for the sidebar and other non-action consumers.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - `git diff --check` passed
