@@ -5190,3 +5190,32 @@ Primary navigation now uses the three-entry model: `Home`, `My Media`, and `Prof
 
 - Lowered the 32% and 48% stops slightly across primary and secondary default, hover, and active profiles to remove the upper-middle luminance plateau.
 - Preserved the percentage-based `180deg` architecture, palette family, shadows, geometry, spacing, and interaction behavior.
+
+## 2026-07-22 - Sidebar Action-Style Edge Treatment
+
+- Preserved the sidebar fill, gradient, radius, dimensions, layout, outer elevation, branding, navigation, and Wallet placement.
+- Replaced the uniform sidebar border with restrained per-side edge colors: a cool top highlight, quieter left/right edges, and darker bottom edge.
+- Replaced the generic full-perimeter bevel in the sidebar shadow with only a subtle top inset highlight and darker bottom inset, keeping the existing outer shadow layers unchanged.
+- Action Button styles and materials were not modified.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - `git diff --check` passed
+
+## 2026-07-22 - Shared Action Rim Reuse
+
+- Traced the live Action Button rim to `var(--button-floating-inset)`, resolving to `inset 0 1px 0 var(--button-floating-top-highlight)`; no button border, pseudo-element, or edge-gradient layer is active.
+- Replaced the sidebar's custom per-side border and inset approximation with that exact shared inset token.
+- Preserved the sidebar fill, radius, layout, dimensions, outer shadow layers, navigation, and Wallet placement.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - `git diff --check` passed
+
+## 2026-07-22 - Sidebar Complete Action Shadow Stack
+
+- Kept the exact shared `var(--button-floating-inset)` top rim and added a soft lower inset falloff using the same shadow rendering family.
+- Replaced the old sidebar-specific outer shadows with two downward action-style layers: compact contact separation and a broader, lower-opacity shadow scaled for the larger panel.
+- Removed the remaining generic cascade border-width hook for `.navigation_bar`; no hard border, pseudo-element, or separate lower rim remains.
+- Preserved sidebar fill, gradient, radius, dimensions, layout, navigation, Wallet placement, and Wallet internals.
+- Validation status:
+  - `npm.cmd run lint` passed
+  - `git diff --check` passed
