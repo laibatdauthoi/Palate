@@ -25,8 +25,11 @@ from typography, spacing, layout, and contrast rather than decorative rendering.
   outline.
 - Controls, cards, wallet, navigation, media, modal, and input surfaces use the
   same calm visual language.
-- The desktop navigation is an architectural column with a quiet divider, and
-  Wallet is an informational block rather than a secondary surface panel.
+- The desktop primary navigation is an alternating trapezoid carousel: it
+  renders exactly three visible route links from a circular visual belt,
+  wheel/drag/ArrowUp/ArrowDown rotate only the carousel viewport, and the
+  active state is owned solely by the current pathname until a link is clicked.
+  Wallet remains an informational block rather than a secondary surface panel.
 - Home uses a constrained editorial frame with a left hero and right activity
   column on desktop, unequal collection widths, and the existing single-column
   mobile flow with bottom navigation.
