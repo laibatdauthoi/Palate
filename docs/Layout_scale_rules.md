@@ -29,15 +29,15 @@ Desktop shell owns:
 
 - sidebar width
 - sidebar padding
-- sidebar radius
+- sidebar corner geometry
 - sidebar visibility mode
 - sidebar/content relationship
 - content-frame scrolling behavior
 
 Rules:
 
-- desktop sidebar uses bounded-fluid width:
-  - `clamp(210px, 12vw, 250px)`
+- desktop sidebar uses a compact bounded-fluid width:
+  - `clamp(176px, 15vw, 220px)`
 - sidebar internals stay stable
 - main content uses the remaining viewport space
 - floating sidebar presentation may remain part of the design, but it must stay
@@ -77,7 +77,7 @@ Allowed adaptation:
 Not allowed:
 
 - depending on component internals to collapse unpredictably
-- using drifting typography/icon/radius scale as a substitute for layout
+- using drifting typography/icon/corner-geometry scale as a substitute for layout
 - preserving desktop shell by forcing arbitrary component squeeze
 
 ## Component Resilience Policy
@@ -93,7 +93,7 @@ Required contract tools:
   - wrapping
   - clipping
   - line clamp
-- fixed or narrowly clamped typography, icons, and radius
+- fixed or narrowly clamped typography, icons, and corner geometry
 - controlled wrapping or stacking only inside component-owned rules
 
 Core rule:
@@ -128,7 +128,7 @@ Inside desktop breakpoints:
 - typography should be stable
 - icon size should be stable
 - button sizing should be stable
-- corner radius should be stable
+- corner geometry should rely on the square browser default
 - sidebar, nav, and wallet geometry should be stable
 
 Desktop-wide and desktop-fit are viewport ranges, not separate component-sizing

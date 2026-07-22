@@ -79,15 +79,16 @@ Use a design-token-driven styling approach.
 
 Use tokens from docs/design_tokens.md.
 
-Do not hardcode random colors throughout the app.
+Keep all rendered surfaces solid and semantic.
 
-Do not use bright candy pink.
+Do not introduce gradients, bevels, reflections, decorative rims, glow, or
+component-specific shadow families.
 
-Do not create a generic DeFi dashboard style.
+Use pink only for brand, primary actions, active/selected states, rewards, and
+focus. Do not use it as ambient decoration.
 
-Do not make the UI cute, childish, meme-like, or overly playful.
-
-Prefer premium dark GameFi elegance.
+Place visual rules in the stylesheet that owns the component. `globals.css`
+owns document foundations and utilities only.
 
 ## Layout shell contract
 
@@ -480,7 +481,8 @@ Do not add unnecessary tokenomics.
 
 ## 24. Final Frontend Goal
 
-The frontend should make Palate feel like a premium dark GameFi media game.
+The frontend should make Palate feel like a premium editorial media game with
+a clean neutral-light surface system and a restrained pink signature.
 
 The main user path is:
 
@@ -491,3 +493,9 @@ Push media
 Track stats and claim rewards
 
 The UI should feel dynamic, elegant, grand, and cool, with a mature pink visual signature.
+## Geometry
+
+Normal frontend components rely on the browser's square default. Do not add
+radius declarations, local aliases, rounded utility classes, pills, capsules,
+or fallback radius values. Structure comes from alignment, borders, typography,
+and whitespace.

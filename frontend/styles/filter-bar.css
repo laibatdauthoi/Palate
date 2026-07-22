@@ -1,9 +1,8 @@
 /* Tabs / FilterBar contract:
    - FilterBar owns shell, surface, and overflow context
-   - Tabs owns the pill row and shared row behavior
-   - TabButton owns pill shape, label layout, badge layout, and tab interaction
-   - pages may position FilterBar in composition, but must not casually restyle
-     tab internals or make tabs resemble primary action buttons */
+   - TabButton owns label layout, badge layout, and tab interaction
+   - pages may position FilterBar in composition, but must not restyle tab
+     internals from page selectors */
 .tabs {
   display: flex;
   flex-wrap: wrap;
@@ -11,36 +10,27 @@
   min-width: 0;
   max-width: 100%;
   gap: var(--spacing-sm);
-  border: 1px solid var(--rail-material-border-soft);
-  border-radius: var(--radius-pill-scaled, var(--radius-pill));
-  background: var(--rail-material-gradient-dark);
+  border: 0;
+  background: transparent;
   padding: calc(4px * var(--button-scale));
 }
 
 .tab_button {
   --button-border-compensation: 1px;
-  --tab-surface: var(--button-secondary-surface);
-  --tab-surface-hover: var(--button-secondary-surface-hover);
-  --tab-surface-active: var(--button-secondary-surface-active);
-  --tab-focus-ring: rgba(185, 188, 196, 0.12);
   display: inline-flex;
   flex: var(--tab-button-flex, 0 1 auto);
   align-items: center;
   min-width: 0;
   gap: calc(8px * var(--button-scale));
   border: 0;
-  border-radius: var(--button-secondary-radius);
-  background: var(--tab-surface);
-  background-origin: border-box;
-  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ui-text-secondary);
   padding:
     calc(var(--tab-pad-y-scaled, 9px) + var(--button-border-compensation))
-    calc(var(--tab-pad-x-scaled, 16px) + var(--button-border-compensation));
+    0;
   font-size: var(--tab-font-size-scaled, 14px);
-  box-shadow:
-    var(--button-floating-inset),
-    var(--button-floating-shadow);
-  transition: var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
 }
 
 .tab_button_label {
@@ -49,92 +39,39 @@
 }
 
 .tab_button:hover {
-  background: var(--tab-surface-hover);
-  color: var(--text-primary);
-  box-shadow:
-    var(--button-floating-inset-hover),
-    var(--button-floating-shadow-hover);
+  border-bottom-color: var(--ui-border-strong);
+  color: var(--ui-text-primary);
 }
 
 .tab_button:active {
-  background: var(--tab-surface-active);
-  box-shadow:
-    var(--button-floating-inset-active),
-    var(--button-floating-shadow-active);
+  background: var(--ui-surface-1);
 }
 
 .tab_button:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 3px var(--tab-focus-ring),
-    var(--button-floating-inset-hover),
-    var(--button-floating-shadow-hover);
+  outline: 2px solid var(--ui-border-focus);
+  outline-offset: 2px;
 }
 
-.tab_button.active {
-  --tab-surface: var(--button-primary-surface);
-  --tab-surface-hover: var(--button-primary-surface-hover);
-  --tab-surface-active: var(--button-primary-surface-active);
-  --tab-focus-ring: rgba(255, 47, 159, 0.14);
-  background: var(--tab-surface);
-  color: var(--accent-primary);
-  box-shadow:
-    var(--button-floating-inset-active),
-    var(--button-floating-shadow-active);
-}
-
+.tab_button.active,
 .tab_button.active:hover {
-  background: var(--tab-surface-hover);
-  color: var(--accent-primary-hover);
-  box-shadow:
-    var(--button-floating-inset-hover),
-    var(--button-floating-shadow-hover);
+  border-bottom-color: var(--ui-accent);
+  background: transparent;
+  color: var(--ui-accent);
 }
 
 .tab_button.active:active {
-  background: var(--tab-surface-active);
-  color: var(--accent-primary-active);
-  box-shadow:
-    var(--button-floating-inset-active),
-    var(--button-floating-shadow-active);
+  background: var(--ui-surface-1);
+  color: var(--ui-accent-active);
 }
 
-.tab_button:disabled {
-  background: var(--button-secondary-surface);
-  color: rgba(233, 240, 245, 0.44);
-  opacity: 0.5;
-  cursor: not-allowed;
-  box-shadow:
-    var(--button-floating-inset-disabled),
-    var(--button-floating-shadow-disabled);
-}
-
-.tab_button:disabled:hover,
-.tab_button:disabled:active {
-  background: var(--button-secondary-surface);
-  color: rgba(233, 240, 245, 0.44);
-  box-shadow:
-    var(--button-floating-inset-disabled),
-    var(--button-floating-shadow-disabled);
-}
-
-.tab_button_attention {
-  box-shadow:
-    var(--button-floating-inset),
-    var(--button-floating-shadow);
-  animation: claim_tab_pulse 1.8s ease-in-out infinite;
-}
-
-.tab_button,
-.tab_button:hover,
-.tab_button:active,
-.tab_button.active,
-.tab_button.active:hover,
-.tab_button.active:active,
 .tab_button:disabled,
 .tab_button:disabled:hover,
 .tab_button:disabled:active {
-  background-origin: border-box;
+  border-bottom-color: transparent;
+  background: var(--ui-surface-3);
+  color: rgba(233, 240, 245, 0.44);
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .tab_badge {
@@ -143,18 +80,22 @@
   min-width: calc(22px * var(--button-scale));
   min-height: calc(22px * var(--button-scale));
   place-items: center;
-  border-radius: var(--radius-pill-scaled, 999px);
-  background: linear-gradient(135deg, rgba(255, 47, 159, 0.95), rgba(255, 126, 192, 0.9));
-  color: #fff7fb;
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-surface-3);
+  color: var(--ui-text-secondary);
   font-size: var(--chip-font-size-scaled, 12px);
   font-weight: 900;
   line-height: 1;
   padding: 0 calc(6px * var(--button-scale));
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
-/* FilterBar shell is page-positionable but component-owned internally.
-   Keep Home/page-specific positioning separate from these shared shell rules. */
+.tab_button.active .tab_badge {
+  border-color: rgba(240, 108, 168, 0.34);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent);
+}
+
+/* FilterBar shell is page-positionable but component-owned internally. */
 .filter_bar {
   display: flex;
   align-items: center;
@@ -167,10 +108,8 @@
 
 .filter_bar_surface {
   min-width: 0;
-  border: 1px solid var(--rail-material-border);
-  border-radius: var(--radius-pill-scaled, var(--radius-pill));
-  background: var(--rail-material-gradient);
-  box-shadow: var(--rail-material-shadow), var(--rail-material-bevel);
+  border: 0;
+  background: transparent;
   padding:
     var(--filter-bar-surface-pad-y, var(--surface-pad-2xs-y-scaled, 4px))
     var(--filter-bar-surface-pad-x, var(--surface-pad-2xs-x-scaled, 6px));
@@ -186,8 +125,6 @@
 }
 
 .filter_bar_surface .tabs {
-  border: 0;
-  background: transparent;
   padding: 0;
 }
 
@@ -196,7 +133,6 @@
   min-width: var(--filter-bar-tabs-min-width, 0);
   width: var(--filter-bar-tabs-width, auto);
   max-width: 100%;
-  border-radius: var(--radius-large);
   padding:
     var(--filter-bar-tabs-pad-y, var(--surface-gap-xs-y-scaled, 8px))
     var(--filter-bar-tabs-pad-x, var(--surface-gap-xs-x-scaled, 8px));
@@ -209,7 +145,6 @@
 @media (max-width: 1199px) {
   .tabs {
     width: 100%;
-    border-radius: var(--radius-large);
   }
 
   .tab_button {
@@ -220,19 +155,17 @@
 @media (min-width: 640px) {
   .tabs {
     --tabs-shell-pad: 4px;
-    border-radius: var(--radius-pill);
     padding: var(--tabs-shell-pad);
   }
 
   .tab_button {
     --tab-button-gap: 8px;
     --tab-button-pad-y: 9px;
-    --tab-button-pad-x: 16px;
     --tab-button-font-size: 14px;
     gap: var(--tab-button-gap);
     padding:
       calc(var(--tab-button-pad-y) + var(--button-border-compensation))
-      calc(var(--tab-button-pad-x) + var(--button-border-compensation));
+      0;
     font-size: var(--tab-button-font-size);
   }
 
@@ -255,10 +188,8 @@
   }
 
   .filter_bar_surface {
-    --filter-bar-surface-radius: var(--radius-pill);
     --filter-bar-surface-pad-y-default: 4px;
     --filter-bar-surface-pad-x-default: 6px;
-    border-radius: var(--filter-bar-surface-radius);
     padding:
       var(--filter-bar-surface-pad-y, var(--filter-bar-surface-pad-y-default))
       var(--filter-bar-surface-pad-x, var(--filter-bar-surface-pad-x-default));

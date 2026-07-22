@@ -65,7 +65,10 @@ Use Buff as the main user-facing term for supporting one side in a random match.
 
 Use Buff terminology in the main contract spec: `placeBuff`, `claimBuff`, `buff_record`, `buff_pool_a`, `buff_pool_b`, `buff_count_a`, `buff_count_b`, `min_buff_amount`, `buff_commitment_amount`, `calculateBuffScore`, `buff_win_count`, `buff_loss_count`, `buff_profit`, and `total_buffed`.
 
-The UI must feel premium, dark, dynamic, and GameFi-like, with mature pink accents. Do not make it cute, candy-like, generic, or overly flashy.
+The UI must feel calm, editorial, bright, and intentional. Use the semantic
+surface system and reserve pink for brand, primary actions, active states,
+rewards, and focus. Do not add gradients, bevels, gloss, glow, or decorative
+material effects.
 
 ## Layout scale contract
 

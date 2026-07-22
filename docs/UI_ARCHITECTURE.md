@@ -9,12 +9,16 @@ The goals are:
 - preserve the approved Palate composition
 - keep the desktop shell bounded-fluid and shell-owned
 - separate layout, component, and page concerns
-- make legacy cleanup staged and reversible
+- keep visual ownership explicit and durable
 
 Palate is explicitly moving away from desktop continuous viewport scaling. On
 desktop, shell geometry should be bounded-fluid, component internals should stay
 stable, and layout should absorb viewport changes through container fit and
 reflow.
+
+The geometry contract is rectilinear: normal components rely on the browser's
+square default. No radius token, local radius alias, or rounded utility value
+is permitted.
 
 ## 2. Layer Model
 
@@ -25,7 +29,7 @@ Palate UI is organized into five layers.
 Owns:
 
 - design primitives
-- global typography, spacing, radius, color, shadow, and motion vocabulary
+- global typography, spacing, color, focus, and motion vocabulary
 - shared breakpoint-owned token vocabulary
 
 Must not own:
@@ -78,18 +82,6 @@ Must not own:
 - shared component shell internals
 - shell geometry
 
-### Legacy overrides
-
-Owns:
-
-- temporary compatibility selectors
-- staged cleanup bridges while ownership is being migrated
-
-Must not own:
-
-- new long-term UI work
-- broad sweeps used as the default solution
-
 ## 3. Layout Modes
 
 ### Runtime mode source
@@ -114,7 +106,7 @@ Typical range:
 Rules:
 
 - bounded-fluid desktop shell
-- sidebar width uses `clamp(210px, 12vw, 250px)`
+- sidebar width uses `clamp(176px, 15vw, 220px)`
 - full desktop composition
 
 #### desktop-fit
@@ -168,7 +160,7 @@ Desktop shell owns:
 
 - sidebar width
 - sidebar padding
-- sidebar radius
+- sidebar geometry, which relies on the browser's square default
 - sidebar visibility mode
 - main content frame relationship
 
@@ -193,7 +185,7 @@ Allowed adaptation:
 Not allowed:
 
 - relying on component internals collapsing unpredictably
-- using text/icon/radius drift as a substitute for layout decisions
+- using text/icon/corner-geometry drift as a substitute for layout decisions
 - treating desktop-fit as a separate shell-resize system
 
 ## 5. Component Resilience Rule
@@ -210,7 +202,7 @@ Required resilience tools:
   - wrapping
   - clipping
   - line clamp
-- fixed or narrowly clamped typography/icons/radius inside the owner contract
+- fixed or narrowly clamped typography/icons/corner geometry inside the owner contract
 - controlled wrapping or stacking only inside component-owned rules
 
 Core rule:
@@ -490,21 +482,24 @@ Do not introduce:
 
 ### Current import order
 
-`frontend/styles/globals.css` currently imports:
+`frontend/app/layout.tsx` imports global styles in this order:
 
 1. `tokens.css`
-2. `layout.css`
-3. `buttons.css`
-4. `filter-bar.css`
-5. `badges.css`
-6. `cards.css`
-7. `modal.css`
-8. `media-renderer.css`
-9. `waiting-push.css`
-10. `match-card.css`
-11. `wallet.css`
-12. `navigation.css`
-13. `pages/home.css`
+2. `globals.css`
+3. `primitives.css`
+4. `layout.css`
+5. `buttons.css`
+6. `filter-bar.css`
+7. `badges.css`
+8. `cards.css`
+9. `modal.css`
+10. `media-renderer.css`
+11. `waiting-push.css`
+12. `match-card.css`
+13. `wallet.css`
+14. `navigation.css`
+15. `pages/home.css`
+16. `pages/content.css`
 
 ### File index
 
@@ -512,19 +507,19 @@ Do not introduce:
 
 The CSS stack has a strict ownership order:
 
-1. `globals.css`
-2. `layout.css`
-3. page CSS
-4. component CSS
-5. primitive CSS
+1. `tokens.css`
+2. `globals.css`
+3. `primitives.css`
+4. `layout.css`
+5. component CSS
+6. page CSS
 
 Ownership meaning:
 
 - `globals.css` owns:
   - reset
-  - root tokens
+  - document defaults
   - true global utilities
-  - legacy/deferred repair blocks only
 - `layout.css` owns:
   - app shell
   - main content frame
@@ -633,7 +628,7 @@ Do not:
 Owns:
 
 - design primitives
-- color/spacing/shadow vocabulary
+- color and spacing vocabulary
 
 Must not own:
 
@@ -642,7 +637,7 @@ Must not own:
 
 Status:
 
-- stable
+- stable foundation only; component visuals do not belong here
 
 #### `frontend/styles/globals.css`
 
@@ -651,8 +646,8 @@ Owns:
 - import order
 - root defaults
 - root token reservoir
-- background/environment layers
-- legacy mixed responsive repair blocks
+- flat document background
+- global utilities
 
 Must not own:
 
@@ -660,7 +655,24 @@ Must not own:
 
 Status:
 
-- contains debt
+- stable foundation only
+
+#### `frontend/styles/primitives.css`
+
+Owns:
+
+- shared structural surfaces
+- inputs and select controls
+- generic semantic feedback text
+
+Must not own:
+
+- component-family variants
+- page composition
+
+Status:
+
+- stable primitive owner
 
 #### `frontend/styles/layout.css`
 
@@ -841,6 +853,17 @@ Owns:
 Must not own:
 
 - shared component internals
+
+#### `frontend/styles/pages/content.css`
+
+Owns:
+
+- My Media, Upload, and Profile composition frames
+- unequal hero/content placement for those routes
+
+Must not own:
+
+- shared component internals
 - shell ownership
 
 Status:
@@ -850,28 +873,26 @@ Status:
 ### Stable files
 
 - `tokens.css`
+- `primitives.css`
+- `layout.css`
 - `buttons.css`
 - `filter-bar.css`
 - `badges.css`
 - `cards.css`
 - `modal.css`
-
-### Files that still contain debt
-
-- `globals.css`
-- `layout.css`
 - `navigation.css`
 - `wallet.css`
 - `media-renderer.css`
 - `waiting-push.css`
 - `match-card.css`
 - `pages/home.css`
+- `pages/content.css`
 
 Current intentional debt:
 
-- root `--ui-scale-*` compatibility still feeds some card/page families
 - shell-collapse/drawer behavior is not formalized yet for too-narrow desktop
-- mixed responsive repair blocks still remain in `globals.css`
+- `globals.css` still owns several route-family composition rules that predate
+  the final owner split
 
 ### When to create a new CSS file
 
@@ -887,7 +908,8 @@ Create a new file only when:
 Do not create a new file when:
 
 - selectors are still mixed across shell/component/page ownership
-- rules are temporary bridges or cleanup blocks
+- rules are mixed across shell/component/page ownership and the split would not
+  reduce ownership ambiguity
 - the file would only contain a tiny exception
 - the split would rename existing debt without reducing it
 
@@ -897,7 +919,7 @@ When architecture changes:
 
 - update [`AI_STATE.md`](../AI_STATE.md)
 - keep shell policy, ownership policy, and CSS file index aligned
-- do not leave legacy scale language active after the codebase changes
+- keep documentation aligned with token and stylesheet ownership changes
 
 ## 12. Working Rules
 

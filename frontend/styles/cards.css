@@ -8,24 +8,21 @@
 .card_shell {
   min-width: 0;
   position: relative;
-  border: 2px solid var(--palate-card-border);
-  border-radius: var(--radius-large);
-  background: var(--palate-card-bg);
-  box-shadow: var(--palate-card-shadow);
+  border: 2px solid var(--ui-border-subtle);
+  background: var(--ui-surface-2);
   overflow: hidden;
 }
 
 .card_shell_interactive {
   transform-origin: center;
-  transition: var(--transition-medium);
+  transition: border-color var(--transition-medium), transform var(--transition-medium);
   will-change: transform;
 }
 
 .card_shell_interactive:hover,
 .card_shell_interactive:focus-within {
   transform: scale(1.012);
-  border-color: var(--palate-card-hover-border);
-  box-shadow: var(--palate-card-hover-shadow);
+  border-color: var(--ui-border-strong);
 }
 
 .card_preview {
@@ -38,7 +35,7 @@
   width: 100%;
   min-height: 0;
   overflow: hidden;
-  background: var(--media-preview-surface-bg);
+  background: var(--ui-surface-1);
 }
 
 /* Card Foundation header/meta contract:
@@ -81,7 +78,7 @@
 
 .card_status {
   min-width: 0;
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   font-size: var(--font-size-body-small-scaled, var(--font-size-body-small));
   overflow: hidden;
   text-overflow: ellipsis;
@@ -151,4 +148,125 @@
   .card_footer {
     gap: var(--spacing-md);
   }
+}
+
+/* Editorial card foundation: content, not material, carries hierarchy. */
+.surface_panel,
+.surface_card,
+.card_shell,
+.state_card,
+.stat_card,
+.claim_card,
+.match_card,
+.waiting_push_card,
+.buff_decision_card,
+.challenge_pick_card,
+.section_panel,
+.buff_panel,
+.upload_step,
+.claim_history_section,
+.challenge_selected_panel,
+.buff_assignment_banner,
+.media_viewer_audio_card,
+.media_detail_view,
+.match_detail_modal {
+  background: var(--ui-surface-2);
+  border: 1px solid var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+
+.card_shell::before,
+.card_shell::after,
+.section_panel::before,
+.media_card::before,
+.match_card::before,
+.waiting_push_card::before,
+.claim_card::before,
+.state_card::before,
+.buff_panel::before {
+  display: none;
+  content: none;
+}
+
+.card_shell_interactive:hover,
+.card_shell_interactive:focus-within,
+.challenge_pick_card:hover,
+.challenge_pick_card.selected {
+  background: var(--ui-surface-3);
+  border-color: var(--ui-border-strong);
+  transform: none;
+}
+
+.card_preview,
+.media_preview,
+.waiting_media,
+.buff_media_stage,
+.mini_media {
+  background: var(--ui-surface-1);
+}
+
+/* Editorial composition: empty and section states rely on whitespace first. */
+.section_panel,
+.section_panel_accent,
+.buff_panel {
+  background: transparent;
+  border-color: transparent;
+  padding-inline: 0;
+}
+
+.empty_state {
+  max-width: 620px;
+  background: transparent;
+  border: 0;
+  padding: var(--spacing-3xl) 0;
+  text-align: left;
+}
+
+.empty_state .state_mark {
+  color: var(--ui-accent);
+}
+
+/* Buff decision surfaces keep the shared editorial card treatment even when
+   their selected and focus states are owned by more specific rules. */
+.buff_decision_card {
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-surface-2);
+  color: var(--ui-text-primary);
+}
+
+.buff_decision_card:hover,
+.buff_decision_card:focus-visible,
+.buff_decision_card.selected {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-2);
+  transform: none;
+}
+
+.buff_decision_card.selected {
+  border-color: var(--ui-accent);
+}
+
+.buff_side_label,
+.buff_decision_meta h3 {
+  color: var(--ui-text-primary);
+}
+
+.buff_media_stage {
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-surface-1);
+}
+
+.buff_media_stage_button:hover,
+.buff_media_stage_button:focus-visible {
+  border-color: var(--ui-accent-soft);
+}
+
+.buff_vs_token {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+}
+
+.buff_action_bar {
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-surface-2);
 }

@@ -4,13 +4,26 @@ import { LayoutScaleController } from "@/components/layout_scale_controller";
 import { MobileBottomNav } from "@/components/mobile_bottom_nav";
 import { NavigationBar } from "@/components/navigation_bar";
 import { RoutePerfTracker } from "@/components/route_perf_tracker";
-import { RouteBackground } from "@/components/route_background";
 import { MediaViewerProvider } from "@/providers/media_viewer_provider";
 import { MediaPlayerProvider } from "@/providers/media_player_provider";
 import { PalateProvider } from "@/providers/palate_provider";
 import { WalletProvider } from "@/providers/wallet_provider";
 import "@fontsource-variable/fredoka";
 import "@/styles/globals.css";
+import "@/styles/primitives.css";
+import "@/styles/layout.css";
+import "@/styles/buttons.css";
+import "@/styles/filter-bar.css";
+import "@/styles/badges.css";
+import "@/styles/cards.css";
+import "@/styles/modal.css";
+import "@/styles/media-renderer.css";
+import "@/styles/waiting-push.css";
+import "@/styles/match-card.css";
+import "@/styles/wallet.css";
+import "@/styles/navigation.css";
+import "@/styles/pages/home.css";
+import "@/styles/pages/content.css";
 
 export const metadata: Metadata = {
   title: "Palate",
@@ -31,7 +44,6 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
               <MediaViewerProvider>
                 <div className="app_shell">
                   <RoutePerfTracker />
-                  <RouteBackground />
                   <NavigationBar />
                   <main className="main_content">{children}</main>
                   <MobileBottomNav />

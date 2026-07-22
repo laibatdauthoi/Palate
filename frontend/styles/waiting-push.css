@@ -141,7 +141,7 @@
 }
 
 .waiting_push_required_meta span {
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   font-size: calc(11px * var(--text-scale));
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -151,7 +151,7 @@
 .waiting_push_required_meta strong {
   min-width: 0;
   overflow: hidden;
-  color: var(--text-primary);
+  color: var(--ui-text-primary);
   font-size: var(--font-size-title-small-scaled, 16px);
   font-weight: 900;
   text-overflow: ellipsis;
@@ -183,13 +183,12 @@
   display: grid;
   gap: calc(3px * var(--ui-scale-y));
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-md-scaled, 14px);
   background: rgba(255, 255, 255, 0.035);
   padding: calc(8px * var(--ui-scale-y)) calc(10px * var(--ui-scale-x));
 }
 
 .waiting_push_stat dt {
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   font-size: calc(11px * var(--text-scale-secondary));
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -198,7 +197,7 @@
 
 .waiting_push_stat dd {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--ui-text-primary);
   font-size: var(--font-size-body-small-scaled, var(--font-size-body-small));
   font-weight: 900;
 }
@@ -276,12 +275,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  border-radius: 16px;
   outline: none;
 }
 
 .waiting_push_tooltip_anchor:focus-visible {
-  box-shadow: 0 0 0 3px rgba(0, 213, 247, 0.16);
+  outline: 2px solid var(--ui-border-focus);
+  outline-offset: 2px;
 }
 
 .waiting_push_tooltip_anchor::after {
@@ -293,9 +292,7 @@
   min-width: 170px;
   padding: 8px 10px;
   border: 1px solid rgba(0, 213, 247, 0.24);
-  border-radius: 12px;
   background: rgba(10, 15, 20, 0.96);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
   color: #dffaff;
   content: attr(data-tooltip);
   font-size: 11px;
@@ -364,9 +361,6 @@
 .waiting_audio_preview_button:focus-visible .waiting_audio_icon_shell,
 .waiting_audio_preview_button.active .waiting_audio_icon_shell {
   border-color: rgba(0, 213, 247, 0.52);
-  box-shadow:
-    0 12px 24px rgba(0, 0, 0, 0.26),
-    inset 0 0 18px rgba(255, 255, 255, 0.08);
   transform: scale(1.03);
 }
 
@@ -385,21 +379,15 @@
   place-items: center;
   width: 88px;
   height: 88px;
-  border-radius: 50%;
   border: 2px solid rgba(0, 213, 247, 0.34);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 213, 247, 0.04) 34%, rgba(0, 0, 0, 0.04) 100%);
-  box-shadow:
-    0 10px 22px rgba(0, 0, 0, 0.24),
-    inset 0 0 18px rgba(255, 255, 255, 0.06);
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  background: var(--ui-surface-2);
+  transition: border-color 160ms ease, transform 160ms ease;
 }
 
 .waiting_audio_icon {
   width: 52px;
   height: 52px;
   color: rgba(233, 250, 255, 0.96);
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
 }
 
 @media (min-width: 640px) {
@@ -469,7 +457,6 @@
 
   .waiting_push_stat {
     gap: 3px;
-    border-radius: var(--radius-medium);
     padding: 8px 10px;
   }
 
@@ -488,4 +475,26 @@
   .waiting_push_actions {
     --action-button-min-width: 136px;
   }
+}
+
+/* Waiting-push family inherits the card foundation and keeps status semantic. */
+.waiting_push_card,
+.waiting_audio_preview,
+.waiting_audio_preview_static {
+  background: var(--ui-surface-2);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+
+.waiting_audio_preview_button {
+  background: var(--ui-surface-3);
+  border: 1px solid var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+
+.waiting_audio_preview_button:hover,
+.waiting_audio_preview_button:focus-visible,
+.waiting_audio_preview_button.active {
+  background: var(--ui-surface-2);
+  border-color: var(--ui-border-strong);
 }

@@ -4,7 +4,7 @@
      match grid arrangement.
    - Shell/content-frame ownership remains outside Home selectors.
    - Component internals (tabs, cards, button internals) should not be restyled
-     from Home selectors unless a documented legacy exception remains in place. */
+     from Home selectors unless a documented page-level exception remains. */
 
 .page_home.page_stack {
   gap: var(--home-section-gap-scaled, var(--spacing-xl));
@@ -313,7 +313,49 @@
   /* Home-owned responsive selectors stop here.
      The selectors below remain intentionally mixed because they belong to
      card families, Challenge, page-specific mobile composition outside Home,
-     or shared legacy responsive repair. */
+     or shared responsive constraints. */
+}
+
+/* Editorial desktop composition: keep the waiting and match collections
+   related, but give the primary item more room than its companions. */
+@media (min-width: 1200px) {
+  .page_home {
+    width: min(100%, 1180px);
+    margin-inline: auto;
+    grid-template-columns: minmax(260px, 0.74fr) minmax(0, 1.26fr);
+    column-gap: clamp(36px, 5vw, 84px);
+    row-gap: var(--spacing-3xl);
+  }
+
+  .page_home > .page_header {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    align-self: start;
+  }
+
+  .page_home > .filter_bar,
+  .page_home > .feedback_text,
+  .page_home > .home_activity_content {
+    grid-column: 2;
+  }
+
+  .page_home .page_header_content {
+    max-width: 760px;
+  }
+
+  .page_home .waiting_grid {
+    grid-template-columns: minmax(0, 1.16fr) minmax(0, 0.92fr) minmax(0, 0.92fr);
+  }
+
+  .page_home .waiting_grid > .waiting_push_card_compact,
+  .page_home .matches_grid > .match_card {
+    width: 100%;
+    max-width: none;
+  }
+
+  .page_home .matches_grid {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  }
 }
 
 @media (min-width: 640px) and (max-width: 1199px) {

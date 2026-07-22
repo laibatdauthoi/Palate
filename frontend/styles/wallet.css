@@ -6,15 +6,12 @@
      tune compact fit inside the panel but must not replace the shared button contract
    - Page composition must not restyle wallet internals */
 .wallet_panel {
-  --wallet-panel-radius-scaled: var(--corner-module-radius);
   --wallet-shell-inline-bleed: 10px;
   --wallet-panel-gap: 8px;
   --wallet-panel-padding: 7px;
   --wallet-header-gap: 6px;
   --wallet-status-icon-size: 20px;
-  --wallet-status-icon-radius: 8px;
   --wallet-compact-button-min-height: 40px;
-  --wallet-compact-button-radius: 13px;
   --wallet-compact-button-pad-y: 8px;
   --wallet-compact-button-pad-x: 10px;
   --wallet-action-icon-size: 18px;
@@ -23,19 +20,13 @@
   width: calc(100% + (2 * var(--wallet-shell-inline-bleed)));
   box-sizing: border-box;
   min-width: 0;
+  max-height: none;
   gap: var(--wallet-panel-gap);
   margin-top: auto;
   margin-inline: calc(var(--wallet-shell-inline-bleed) * -1);
-  border: 1px solid var(--rail-material-border);
-  border-radius: var(--wallet-panel-radius-scaled);
-  background: var(--wallet-module-surface);
+  border: 1px solid transparent;
+  background: var(--ui-surface-1);
   padding: var(--wallet-panel-padding);
-  box-shadow:
-    0 12px 22px rgba(0, 0, 0, 0.24),
-    0 2px 0 rgba(5, 7, 12, 0.28),
-    var(--rail-material-bevel),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.024),
-    var(--wallet-mount-shadow);
 }
 
 .wallet_panel_header {
@@ -57,7 +48,7 @@
   align-items: center;
   min-width: 0;
   gap: 6px;
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   font-size: var(--font-size-caption);
   font-weight: 800;
   line-height: 1.35;
@@ -70,7 +61,7 @@
 }
 
 .wallet_compact_body span {
-  color: var(--text-secondary);
+  color: var(--ui-text-secondary);
   font-size: var(--font-size-caption);
   line-height: 1.35;
 }
@@ -78,15 +69,14 @@
 .wallet_compact_body span strong {
   display: inline;
   margin: 0;
-  color: var(--text-primary);
+  color: var(--ui-text-primary);
   font-size: inherit;
 }
 
 .wallet_status {
   border: 1px solid rgba(255, 47, 159, 0.34);
-  border-radius: var(--radius-pill);
   background: rgba(255, 47, 159, 0.11);
-  color: var(--accent-soft);
+  color: var(--ui-accent-hover);
   padding: 5px 8px;
   font-size: 10px;
   font-weight: 900;
@@ -96,7 +86,7 @@
 
 .wallet_status_wrong_network,
 .wallet_status_error {
-  border-color: var(--border-danger);
+  border-color: var(--ui-border-danger);
   background: rgba(255, 92, 122, 0.1);
   color: #ffd7df;
 }
@@ -104,7 +94,7 @@
 .wallet_status_connecting {
   border-color: rgba(242, 184, 75, 0.32);
   background: rgba(242, 184, 75, 0.1);
-  color: var(--warning-color);
+  color: var(--ui-warning);
 }
 
 .wallet_actions {
@@ -114,21 +104,17 @@
 }
 
 .wallet_balance {
-  border: 1px solid var(--rail-material-border-soft);
-  border-radius: var(--radius-medium);
-  background: var(--wallet-module-surface);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-surface-1);
   padding: var(--spacing-sm);
-  box-shadow: var(--rail-material-bevel);
 }
 
 .wallet_balance_controls {
   display: grid;
   gap: var(--spacing-sm);
-  border: 1px solid var(--rail-material-border-soft);
-  border-radius: var(--radius-medium);
-  background: var(--wallet-module-surface);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-surface-1);
   padding: var(--spacing-sm);
-  box-shadow: var(--rail-material-bevel);
 }
 
 .wallet_balance_buttons {
@@ -144,26 +130,25 @@
 
 .wallet_details_toggle {
   justify-self: start;
-  border: 1px solid var(--rail-material-border-soft);
-  border-radius: var(--radius-pill);
+  border: 1px solid var(--ui-border-subtle);
   background: rgba(255, 255, 255, 0.03);
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   padding: 4px 10px;
   font-size: var(--font-size-caption);
   font-weight: 800;
-  transition: var(--transition-fast);
+  transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
 }
 
 .wallet_details_toggle:hover {
-  border-color: var(--rail-material-active-pink);
-  color: var(--text-primary);
+  border-color: var(--ui-accent);
+  color: var(--ui-text-primary);
 }
 
 .wallet_details_list {
   display: grid;
   gap: 4px;
   min-width: 0;
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   font-size: var(--font-size-caption);
   line-height: 1.4;
 }
@@ -177,7 +162,7 @@
 
 .wallet_message {
   margin: 0;
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   font-size: var(--font-size-caption);
   line-height: 1.45;
 }
@@ -202,15 +187,14 @@
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  border: 1px solid var(--rail-material-border-soft);
-  border-radius: var(--radius-medium);
-  background: var(--rail-material-control-gradient);
-  color: var(--text-primary);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-surface-2);
+  color: var(--ui-text-primary);
   padding: 9px 10px;
   font-size: var(--font-size-body-small);
   font-weight: 850;
   text-align: left;
-  transition: var(--transition-fast);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .wallet_option_card > span {
@@ -221,28 +205,25 @@
 }
 
 .wallet_choice:hover {
-  border-color: var(--rail-material-active-pink);
-  box-shadow: var(--rail-material-shadow-hover), var(--rail-material-bevel);
+  border-color: var(--ui-accent);
 }
 
 .wallet_choice small,
 .wallet_option_card small {
-  color: var(--accent-soft);
+  color: var(--ui-accent-hover);
   font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
 
 .wallet_option_card:hover {
-  border-color: var(--rail-material-active-pink);
-  box-shadow: var(--rail-material-shadow-hover), var(--rail-material-bevel);
+  border-color: var(--ui-accent);
 }
 
 .wallet_option_icon {
   width: 24px;
   height: 24px;
   flex: 0 0 auto;
-  border-radius: 8px;
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
@@ -269,9 +250,8 @@
 .wallet_modal_empty {
   margin: 0;
   border: 1px solid rgba(255, 47, 159, 0.2);
-  border-radius: var(--radius-large);
   background: rgba(0, 0, 0, 0.22);
-  color: var(--text-secondary);
+  color: var(--ui-text-secondary);
   padding: var(--spacing-lg);
   line-height: 1.5;
 }
@@ -284,17 +264,13 @@
 
 .wallet_not_detected span {
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-pill);
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   padding: 4px 7px;
   font-size: 10px;
   font-weight: 850;
 }
 
-/* Legacy dependency:
-   WalletPanel still inherits shell context from Navigation and broad cleanup rules
-   later in the app stylesheet. Keep these scoped overrides narrow until
-   navigation/shell ownership is migrated explicitly. */
+/* WalletPanel hides feedback text in the compact rail placement. */
 .wallet_panel .feedback_text {
   display: none;
 }
@@ -304,9 +280,7 @@
   margin-top: auto;
   margin-inline: calc(var(--wallet-shell-inline-bleed) * -1);
   margin-bottom: calc(var(--wallet-shell-inline-bleed) * -1);
-  border-radius: var(--wallet-panel-radius-scaled);
   padding: var(--wallet-panel-padding);
-  box-shadow: var(--rail-material-bevel), var(--wallet-mount-shadow), 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
 .wallet_panel_header {
@@ -345,32 +319,24 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--rail-material-border-soft);
-  border-radius: var(--wallet-status-icon-radius);
-  background: var(--rail-material-control-gradient);
-  box-shadow: var(--rail-material-bevel);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-surface-2);
 }
 
 .wallet_status_icon_connected {
   border-color: rgba(97, 255, 190, 0.22);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(97, 255, 190, 0.08) 34%, rgba(0, 0, 0, 0.06) 100%),
-    rgba(255, 255, 255, 0.035);
+  background: var(--ui-surface-2);
 }
 
 .wallet_status_icon_connecting {
   border-color: rgba(242, 184, 75, 0.24);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(242, 184, 75, 0.075) 34%, rgba(0, 0, 0, 0.06) 100%),
-    rgba(255, 255, 255, 0.035);
+  background: var(--ui-surface-2);
 }
 
 .wallet_status_icon_wrong_network,
 .wallet_status_icon_error {
   border-color: rgba(255, 92, 122, 0.24);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 92, 122, 0.075) 34%, rgba(0, 0, 0, 0.06) 100%),
-    rgba(255, 255, 255, 0.035);
+  background: var(--ui-surface-2);
 }
 
 .wallet_status_icon_svg,
@@ -386,7 +352,7 @@
 }
 
 .wallet_status_icon_svg_warning {
-  color: var(--warning-color);
+  color: var(--ui-warning);
 }
 
 .wallet_status_icon_svg_error,
@@ -396,12 +362,12 @@
 
 .wallet_status_icon_svg_idle,
 .chain_status_icon_svg_idle {
-  color: var(--accent-soft);
+  color: var(--ui-accent-hover);
 }
 
 .wallet_status_icon_svg_loading,
 .chain_status_icon_svg_loading {
-  color: var(--warning-color);
+  color: var(--ui-warning);
   animation: loading_spinner_rotate 0.9s linear infinite;
 }
 
@@ -409,7 +375,7 @@
   display: grid;
   min-width: 0;
   gap: 1px;
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   font-size: 11px;
   font-weight: 850;
   line-height: 1.2;
@@ -418,7 +384,7 @@
 .wallet_compact_body strong {
   margin: 0;
   overflow: hidden;
-  color: var(--text-primary);
+  color: var(--ui-text-primary);
   font-size: 13px;
   line-height: 1.15;
   text-overflow: ellipsis;
@@ -467,14 +433,11 @@
   gap: 0;
 }
 
-/* Legacy component-local exception:
-   WalletPanel may tune its own compact button footprint, but should not redefine
-   the shared button material contract outside wallet-specific needs. */
+/* WalletPanel owns only its compact button footprint. */
 .wallet_compact_button.action_button {
   justify-content: center;
   width: 100%;
   min-height: var(--wallet-compact-button-min-height);
-  border-radius: var(--wallet-compact-button-radius);
   padding: var(--wallet-compact-button-pad-y) var(--wallet-compact-button-pad-x);
   font-size: 14px;
   line-height: 1;
@@ -524,18 +487,14 @@
 .chain_status_panel {
   display: grid;
   gap: 5px;
-  border: 1px solid var(--rail-material-border-soft);
-  border-radius: 13px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012) 36%, rgba(0, 0, 0, 0.06) 100%),
-    linear-gradient(145deg, rgba(37, 43, 55, 0.94), rgba(22, 26, 35, 0.96));
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-surface-2);
   padding: 8px;
-  box-shadow: var(--rail-material-bevel);
 }
 
 .chain_status_network {
   overflow: hidden;
-  color: var(--text-primary);
+  color: var(--ui-text-primary);
   font-size: 11px;
   font-weight: 900;
   line-height: 1;
@@ -550,9 +509,8 @@
   flex: 0 0 auto;
   max-width: 100%;
   border: 1px solid rgba(255, 47, 159, 0.28);
-  border-radius: var(--radius-pill);
   background: rgba(255, 47, 159, 0.1);
-  color: var(--accent-soft);
+  color: var(--ui-accent-hover);
   overflow: hidden;
   padding: 3px 6px;
   font-size: 8px;
@@ -579,14 +537,14 @@
 .chain_status_loading {
   border-color: rgba(242, 184, 75, 0.32);
   background: rgba(242, 184, 75, 0.1);
-  color: var(--warning-color);
+  color: var(--ui-warning);
 }
 
 .chain_status_rows {
   display: grid;
   gap: 2px;
   min-width: 0;
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   font-size: 10px;
   font-weight: 800;
   line-height: 1.25;
@@ -605,4 +563,115 @@
   font-size: 10px;
   letter-spacing: 0;
   text-transform: none;
+}
+
+/* Wallet remains structurally important, but uses the shared surface system. */
+.wallet_panel,
+.wallet_balance,
+.wallet_choice,
+.wallet_option_card,
+.chain_status_panel,
+.wallet_details_toggle,
+.wallet_status,
+.wallet_message {
+  background: var(--ui-surface-2);
+  border-color: var(--ui-border-subtle);
+}
+
+.wallet_panel {
+  border: 1px solid var(--ui-border-subtle);
+}
+
+.wallet_choice:hover,
+.wallet_option_card:hover,
+.wallet_details_toggle:hover {
+  background: var(--ui-surface-3);
+  border-color: var(--ui-border-strong);
+}
+
+.chain_status_panel {
+}
+
+.chain_status_pill {
+  background: var(--ui-accent-soft);
+  border-color: rgba(240, 108, 168, 0.34);
+  color: var(--ui-accent);
+}
+
+.chain_status_ready {
+  background: rgba(101, 201, 145, 0.1);
+  border-color: rgba(101, 201, 145, 0.28);
+  color: var(--ui-success);
+}
+
+.chain_status_error {
+  background: rgba(231, 124, 141, 0.1);
+  border-color: rgba(231, 124, 141, 0.28);
+  color: var(--ui-danger);
+}
+
+.chain_status_loading {
+  background: rgba(226, 184, 107, 0.1);
+  border-color: rgba(226, 184, 107, 0.28);
+  color: var(--ui-warning);
+}
+
+/* Wallet is an information block in the architectural rail, not another card. */
+.wallet_panel {
+  background: transparent;
+  border: 0;
+  padding-inline: 0;
+}
+
+.wallet_balance,
+.wallet_status,
+.wallet_message,
+.chain_status_panel,
+.wallet_details_toggle {
+  background: transparent;
+  border-color: transparent;
+}
+
+.wallet_option_card {
+  background: var(--ui-surface-2);
+  border-color: var(--ui-border-subtle);
+}
+
+.wallet_option_card:hover,
+.wallet_details_toggle:hover {
+  background: var(--ui-surface-3);
+  border-color: var(--ui-border-strong);
+}
+
+.wallet_meta,
+.wallet_compact_body span,
+.wallet_details_list {
+  font-weight: 500;
+}
+
+.wallet_status {
+  font-weight: 700;
+}
+
+.wallet_status {
+  background: var(--ui-accent-soft);
+  border-color: rgba(217, 79, 134, 0.28);
+  color: var(--ui-accent);
+}
+
+.wallet_status_wrong_network,
+.wallet_status_error {
+  background: rgba(180, 76, 93, 0.1);
+  border-color: rgba(180, 76, 93, 0.24);
+  color: var(--ui-danger);
+}
+
+.wallet_status_connecting {
+  background: rgba(166, 107, 36, 0.1);
+  border-color: rgba(166, 107, 36, 0.24);
+  color: var(--ui-warning);
+}
+
+.wallet_message_error {
+  color: var(--ui-danger);
 }

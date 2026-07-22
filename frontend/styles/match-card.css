@@ -77,7 +77,6 @@
   flex: 0 0 auto;
   min-width: calc(82px * var(--ui-scale-x));
   padding: calc(8px * var(--ui-scale-y)) calc(13px * var(--ui-scale-x));
-  border-radius: var(--radius-pill-scaled, 999px);
   font-size: calc(11px * var(--text-scale-secondary));
   font-weight: 900;
   letter-spacing: 0.09em;
@@ -85,9 +84,6 @@
   text-transform: uppercase;
   transform: rotate(-30deg);
   transform-origin: center;
-  box-shadow:
-    0 8px 16px rgba(255, 47, 159, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .match_card_match_id {
@@ -99,7 +95,7 @@
 }
 
 .match_card_match_id_label {
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   font-size: calc(16px * var(--text-scale-secondary));
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -182,10 +178,8 @@
   width: 56px;
   min-width: 56px;
   border: 1px solid rgba(255, 47, 159, 0.28);
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 47, 159, 0.06) 32%, rgba(6, 10, 26, 0.9) 100%);
-  color: var(--text-primary);
+  background: var(--ui-surface-2);
+  color: var(--ui-text-primary);
   font-size: 14px;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -205,7 +199,7 @@
 }
 
 .match_detail_row dt {
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -215,7 +209,7 @@
 .match_detail_row dd {
   margin: 0;
   min-width: 0;
-  color: var(--text-primary);
+  color: var(--ui-text-primary);
   font-size: var(--font-size-body-small);
   font-weight: 700;
   overflow-wrap: anywhere;
@@ -275,4 +269,22 @@
   .compact_card_grid_matches.matches_grid .match_card {
     min-height: 256px;
   }
+}
+
+.match_card {
+  background: var(--ui-surface-2);
+  border-color: var(--ui-border-subtle);
+  color: var(--ui-text-primary);
+}
+
+.match_card:hover,
+.match_card:focus-within {
+  background: var(--ui-surface-3);
+  border-color: var(--ui-border-strong);
+  transform: none;
+}
+
+.match_detail_modal {
+  background: var(--ui-surface-2);
+  border: 1px solid var(--ui-border-subtle);
 }

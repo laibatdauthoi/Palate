@@ -90,7 +90,7 @@
   - Cards, modals, renderers, and buttons are split into focused component files under [`frontend/components/`](./frontend/components).
   - Route pages compose shared primitives instead of duplicating shell logic.
 - **Styling:**
-  - Global CSS and tokens live in [`frontend/styles/globals.css`](./frontend/styles/globals.css) and [`frontend/styles/tokens.css`](./frontend/styles/tokens.css).
+  - Document foundations live in [`frontend/styles/globals.css`](./frontend/styles/globals.css) and semantic tokens live in [`frontend/styles/tokens.css`](./frontend/styles/tokens.css); component visuals live in their named owner stylesheets, including [`frontend/styles/primitives.css`](./frontend/styles/primitives.css).
   - Layout scaling follows [`docs/Layout_scale_rules.md`](./docs/Layout_scale_rules.md).
   - Styling is CSS-based rather than Tailwind or CSS-in-JS.
 - **TypeScript:**
@@ -186,4 +186,4 @@ Other required secrets or deployment variables are **Unclear** from the current 
 
 # Last Updated
 
-- 2026-07-02
+- 2026-07-22

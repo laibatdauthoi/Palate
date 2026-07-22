@@ -1,0 +1,57 @@
+/* Editorial route composition. These rules place existing content; component
+   ownership remains in the named stylesheets for each surface. */
+.page_media,
+.page_upload,
+.page_profile {
+  width: min(100%, 1180px);
+  margin-inline: auto;
+}
+
+@media (min-width: 1100px) {
+  .page_media,
+  .page_upload,
+  .page_profile {
+    grid-template-columns: minmax(220px, 0.68fr) minmax(0, 1.32fr);
+    column-gap: clamp(36px, 5vw, 84px);
+    row-gap: var(--spacing-3xl);
+  }
+
+  .page_media > .page_header,
+  .page_upload > .page_header,
+  .page_profile > .page_header {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    align-self: start;
+  }
+
+  .page_media > .filter_bar,
+  .page_media > .feedback_text,
+  .page_media > .empty_state,
+  .page_media > .media_grid,
+  .page_upload > .two_column,
+  .page_profile > .profile_summary_grid,
+  .page_profile > .stack,
+  .page_profile > .panel_grid {
+    grid-column: 2;
+  }
+
+  .page_media .page_header_content,
+  .page_upload .page_header_content,
+  .page_profile .page_header_content {
+    max-width: 560px;
+  }
+
+  .page_media .media_grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-xl);
+  }
+
+  .page_upload .two_column {
+    grid-template-columns: minmax(0, 1.14fr) minmax(220px, 0.86fr);
+    align-items: start;
+  }
+
+  .page_profile .profile_summary_grid {
+    grid-template-columns: minmax(0, 1.16fr) minmax(0, 0.84fr);
+  }
+}

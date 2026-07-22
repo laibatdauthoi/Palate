@@ -10,7 +10,6 @@
   max-width: 100%;
   padding: calc(var(--spacing-lg) * var(--ui-scale-y)) calc(var(--spacing-lg) * var(--ui-scale-x));
   background: rgba(0, 0, 0, 0.64);
-  backdrop-filter: blur(14px);
 }
 
 .modal_shell {
@@ -21,14 +20,10 @@
   min-width: 0;
   max-width: 100%;
   border: 2px solid rgba(255, 47, 159, 0.28);
-  border-radius: var(--radius-xl-scaled, var(--radius-xl));
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02) 24%, rgba(0, 0, 0, 0.03) 100%),
-    var(--surface-elevated);
+  background: var(--ui-surface-2);
   max-height: 84dvh;
   min-height: 0;
   overflow: hidden;
-  box-shadow: var(--shadow-modal), var(--shadow-bevel);
   padding: calc(14px * var(--button-scale));
 }
 
@@ -84,10 +79,8 @@
 
   .modal_shell {
     --modal-shell-gap: 10px;
-    --modal-shell-radius: var(--radius-xl);
     --modal-shell-pad: 14px;
     gap: var(--modal-shell-gap);
-    border-radius: var(--modal-shell-radius);
     padding: var(--modal-shell-pad);
   }
 
@@ -112,4 +105,23 @@
     gap: var(--modal-shell-body-gap);
     padding-right: var(--modal-shell-body-pad-right);
   }
+}
+
+/* Modals are elevated structural surfaces, not special materials. */
+.modal_backdrop {
+  background: rgba(5, 8, 12, 0.78);
+}
+
+.modal_shell {
+  border: 1px solid var(--ui-border-strong);
+  background: var(--ui-surface-2);
+}
+
+.modal_shell_header,
+.modal_shell_body {
+  background: transparent;
+}
+
+.modal_shell_subtitle {
+  color: var(--ui-text-secondary);
 }
