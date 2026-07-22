@@ -292,66 +292,72 @@ export function NavigationBar() {
   };
 
   return (
-    <nav className="navigation_bar desktop_only" aria-label="Main navigation">
-      <Link className="brand_lockup" href="/">
-        <svg aria-hidden="true" className="brand_wordmark" viewBox="0 0 160 42" preserveAspectRatio="xMidYMid meet">
-          <defs>
-            <path d="M 10 33 C 36 8, 124 8, 150 33" id="palate-brand-arc" />
-          </defs>
-          <text className="brand_wordmark_text">
-            <textPath href="#palate-brand-arc" startOffset="50%" textAnchor="middle">
-              PALATE
-            </textPath>
-          </text>
-        </svg>
-        {logoAvailable ? (
-          <span className="brand_mark">
-            <Image alt="Palate logo" height={BRAND_LOGO_SOURCE_SIZE} onError={() => setLogoAvailable(false)} priority src="/brand/palate_logo.png" width={BRAND_LOGO_SOURCE_SIZE} />
-          </span>
-        ) : null}
-      </Link>
-      <div
-        className="nav_links"
-        data-dragging={dragging ? "true" : "false"}
-        data-motion={motionDirection}
-        onClickCapture={handleNavClickCapture}
-        onKeyDown={handleNavKeyDown}
-        onPointerCancel={cancelPointerDrag}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={finishPointerDrag}
-        ref={navLinksRef}
-      >
-        <div className="nav_wheel_stack" style={{ "--nav-carousel-offset": `${dragOffset}px` } as CSSProperties}>
-          {visibleNavItems.map(({ item, itemIndex, sequenceIndex, shapeClass, slot }) => {
-            const active = itemIndex === activeIndex;
-            const showClaimReminder = item.href === "/profile" && claimableRewardsSummary.hasClaimableRewards;
-            const claimReminderKnown = claimReadStatus !== "loading" || claimableRewardsSummary.hasClaimableRewards;
-            const Icon = item.icon;
-            return (
-              <Link
-                aria-current={active ? "page" : undefined}
-                className={`nav_link nav_destination ${shapeClass} ${active ? "active" : ""} ${showClaimReminder ? "nav_link_attention" : ""}`}
-                data-sequence={sequenceIndex}
-                data-slot={slot}
-                href={item.href}
-                key={`${sequenceIndex}-${item.href}`}
-                onClick={() => {
-                  recordNavigation(item.label, item.href);
-                }}
-                onDragStart={(event) => event.preventDefault()}
-              >
-                <span className="nav_link_main">
-                  <Icon aria-hidden="true" className="nav_route_icon" strokeWidth={2.25} />
-                  <span className="nav_link_label">{item.label}</span>
-                </span>
-                {showClaimReminder && claimReminderKnown ? <span aria-hidden="true" className="nav_claim_indicator" /> : null}
-              </Link>
-            );
-          })}
+    <aside className="sidebar navigation_bar desktop_only" aria-label="Sidebar">
+      <section className="sidebar_brand" aria-label="Palate brand">
+        <Link className="brand_lockup" href="/">
+          <svg aria-hidden="true" className="brand_wordmark" viewBox="0 0 160 42" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <path d="M 10 33 C 36 8, 124 8, 150 33" id="palate-brand-arc" />
+            </defs>
+            <text className="brand_wordmark_text">
+              <textPath href="#palate-brand-arc" startOffset="50%" textAnchor="middle">
+                PALATE
+              </textPath>
+            </text>
+          </svg>
+          {logoAvailable ? (
+            <span className="brand_mark">
+              <Image alt="Palate logo" height={BRAND_LOGO_SOURCE_SIZE} onError={() => setLogoAvailable(false)} priority src="/brand/palate_logo.png" width={BRAND_LOGO_SOURCE_SIZE} />
+            </span>
+          ) : null}
+        </Link>
+      </section>
+      <nav className="sidebar_navigation" aria-label="Main navigation">
+        <div
+          className="nav_links"
+          data-dragging={dragging ? "true" : "false"}
+          data-motion={motionDirection}
+          onClickCapture={handleNavClickCapture}
+          onKeyDown={handleNavKeyDown}
+          onPointerCancel={cancelPointerDrag}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={finishPointerDrag}
+          ref={navLinksRef}
+        >
+          <div className="nav_wheel_stack" style={{ "--nav-carousel-offset": `${dragOffset}px` } as CSSProperties}>
+            {visibleNavItems.map(({ item, itemIndex, sequenceIndex, shapeClass, slot }) => {
+              const active = itemIndex === activeIndex;
+              const showClaimReminder = item.href === "/profile" && claimableRewardsSummary.hasClaimableRewards;
+              const claimReminderKnown = claimReadStatus !== "loading" || claimableRewardsSummary.hasClaimableRewards;
+              const Icon = item.icon;
+              return (
+                <Link
+                  aria-current={active ? "page" : undefined}
+                  className={`nav_link nav_destination ${shapeClass} ${active ? "active" : ""} ${showClaimReminder ? "nav_link_attention" : ""}`}
+                  data-sequence={sequenceIndex}
+                  data-slot={slot}
+                  href={item.href}
+                  key={`${sequenceIndex}-${item.href}`}
+                  onClick={() => {
+                    recordNavigation(item.label, item.href);
+                  }}
+                  onDragStart={(event) => event.preventDefault()}
+                >
+                  <span className="nav_link_main">
+                    <Icon aria-hidden="true" className="nav_route_icon" strokeWidth={2.25} />
+                    <span className="nav_link_label">{item.label}</span>
+                  </span>
+                  {showClaimReminder && claimReminderKnown ? <span aria-hidden="true" className="nav_claim_indicator" /> : null}
+                </Link>
+              );
+            })}
+          </div>
         </div>
-      </div>
-      <WalletPanel />
-    </nav>
+      </nav>
+      <section className="sidebar_wallet" aria-label="Wallet">
+        <WalletPanel />
+      </section>
+    </aside>
   );
 }

@@ -1,11 +1,11 @@
 /* Navigation contract:
-   - Navigation owns the sidebar shell, brand lockup, carousel viewport, desktop
-     nav links, active/hover/focus states, and claim indicator
+   - Navigation owns the sidebar shell regions, brand lockup, carousel viewport,
+     desktop nav links, active/hover/focus states, and claim indicator
    - App shell and layout modes own overall placement, visibility, and mode
      switching
    - Pages must not restyle navigation internals */
 .navigation_bar {
-  --sidebar-inner-pad-x: 18px;
+  --sidebar-inner-pad-x: 12px;
   --sidebar-inner-pad-top: 20px;
   --sidebar-inner-pad-bottom: 18px;
   --brand-cap-height-scaled: 62px;
@@ -13,25 +13,36 @@
   --brand-wordmark-height-scaled: 44px;
   --brand-logo-size-scaled: 64px;
   --brand-logo-top-scaled: 24px;
-  --nav-group-offset-y: 56px;
-  --nav-group-offset-x: 5px;
-  --nav-panel-height: 52px;
-  --nav-panel-gap: 9px;
-  --nav-panel-pad-x: 17px;
-  --nav-link-label-size: 18px;
-  --nav-route-icon-size: 17px;
+  --sidebar-brand-clearance: 26px;
+  --nav-composition-width: 154px;
+  --nav-rail-width: 116px;
+  --sidebar-navigation-hit-width: 130px;
+  --nav-panel-width: clamp(88px, 7.1vw, 104px);
+  --nav-panel-height: clamp(118px, 14.5vh, 142px);
+  --nav-panel-gap: 0px;
+  --nav-panel-overlap: -16px;
+  --nav-panel-pad-x: 9px;
+  --nav-panel-pad-y: 14px;
+  --nav-link-label-size: 16px;
+  --nav-route-icon-size: 22px;
   --nav-claim-indicator-size: 7px;
   position: sticky;
   top: var(--sidebar-shell-gutter, 16px);
   align-self: start;
-  justify-self: end;
+  justify-self: start;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-areas:
+    "brand"
+    "navigation"
+    "wallet";
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-content: stretch;
+  justify-items: start;
   gap: 0;
-  width: calc(100% - var(--sidebar-shell-gutter, 16px));
+  width: min(100%, var(--nav-composition-width));
   height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
   max-height: calc(100dvh - (var(--sidebar-shell-gutter, 16px) * 2));
   box-sizing: border-box;
@@ -44,6 +55,33 @@
     var(--sidebar-inner-pad-x);
   border: 0;
   background: transparent;
+}
+
+.sidebar_brand {
+  grid-area: brand;
+  display: grid;
+  width: 100%;
+  min-height: calc(var(--brand-logo-top-scaled) + var(--brand-logo-size-scaled) + var(--sidebar-brand-clearance));
+  align-content: start;
+  justify-items: center;
+}
+
+.sidebar_navigation {
+  grid-area: navigation;
+  display: grid;
+  width: var(--sidebar-navigation-hit-width);
+  min-width: 0;
+  min-height: 0;
+  align-self: start;
+  justify-self: start;
+}
+
+.sidebar_wallet {
+  grid-area: wallet;
+  width: 100%;
+  min-width: 0;
+  align-self: end;
+  justify-self: stretch;
 }
 
 .brand_lockup {
@@ -95,15 +133,17 @@
 }
 
 .nav_links {
-  display: block;
-  flex: 1 1 auto;
+  display: grid;
+  align-content: start;
+  align-items: start;
+  justify-items: start;
   width: 100%;
   min-height: 0;
   box-sizing: border-box;
-  margin-top: var(--nav-group-offset-y);
+  margin-top: 0;
   margin-left: 0;
-  padding-right: 2px;
-  padding-left: var(--nav-group-offset-x);
+  padding-right: 0;
+  padding-left: 0;
   overflow: hidden;
   cursor: grab;
   touch-action: pan-x;
@@ -116,7 +156,9 @@
 
 .nav_wheel_stack {
   display: grid;
-  width: 100%;
+  align-content: start;
+  justify-items: start;
+  width: var(--nav-rail-width);
   gap: var(--nav-panel-gap);
   transform: translateY(var(--nav-carousel-offset, 0px));
   transition: transform 220ms ease-out;
@@ -144,14 +186,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: var(--nav-panel-height);
+  width: var(--nav-panel-width);
+  min-height: 0;
+  height: var(--nav-panel-height);
   box-sizing: border-box;
-  padding: 11px var(--nav-panel-pad-x);
+  padding: var(--nav-panel-pad-y) var(--nav-panel-pad-x);
   color: var(--nav-panel-text);
   text-align: center;
   text-decoration: none;
   clip-path: var(--nav-shape);
   transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.nav_link + .nav_link {
+  margin-top: var(--nav-panel-overlap);
 }
 
 .nav_link::before,
@@ -175,11 +223,11 @@
 }
 
 .nav_shape_a {
-  --nav-shape: polygon(0 0, 100% 9%, 100% 91%, 0 100%);
+  --nav-shape: polygon(0 0, 100% 19%, 100% 81%, 0 100%);
 }
 
 .nav_shape_b {
-  --nav-shape: polygon(0 9%, 100% 0, 100% 100%, 0 91%);
+  --nav-shape: polygon(0 19%, 100% 0, 100% 100%, 0 81%);
 }
 
 .nav_link:hover {
@@ -204,6 +252,8 @@
   z-index: 1;
   display: inline-flex;
   min-width: 0;
+  max-width: 100%;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -221,8 +271,9 @@
   color: inherit;
   font-size: var(--nav-link-label-size);
   font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
+  line-height: 1.08;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .nav_link.active .nav_link_label {
