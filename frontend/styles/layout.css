@@ -1,14 +1,22 @@
 /* Application Layout contract:
-   - App shell owns the viewport shell, sidebar/content relationship, generic
-     layout-mode switching, and content-frame sizing
+   - App shell owns independent brand, navigation, content, and wallet regions,
+     generic layout-mode switching, and content-frame sizing
    - Page composition owns route-specific offsets and composition inside the
      content frame
    - Component styles must not redefine shell/frame behavior */
 .app_shell {
-  --sidebar-shell-gutter: 0px;
-  --sidebar-width-bounded: clamp(176px, 15vw, 220px);
+  --layout-region-column-width: clamp(174px, 12vw, 184px);
+  --layout-brand-row-height: 134px;
+  --layout-wallet-region-width: 154px;
+  --layout-wallet-region-left: 10px;
+  --layout-wallet-region-bottom: 18px;
   display: grid;
-  grid-template-columns: var(--sidebar-width-bounded) minmax(0, 1fr);
+  grid-template-areas:
+    "brand main"
+    "navigation main"
+    "wallet main";
+  grid-template-columns: var(--layout-region-column-width) minmax(0, 1fr);
+  grid-template-rows: var(--layout-brand-row-height) minmax(0, 1fr) auto;
   height: 100dvh;
   width: 100%;
   min-width: 0;
@@ -19,7 +27,38 @@
   transition: opacity 320ms ease, transform 320ms ease, visibility 0s linear 0ms;
 }
 
+.brand_region {
+  grid-area: brand;
+  align-self: start;
+  justify-self: center;
+  margin-top: 20px;
+}
+
+.navigation_region {
+  grid-area: navigation;
+  align-self: start;
+  justify-self: start;
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.navigation_region::-webkit-scrollbar {
+  display: none;
+}
+
+.wallet_region {
+  grid-area: wallet;
+  align-self: end;
+  justify-self: start;
+  width: var(--layout-wallet-region-width);
+  min-width: 0;
+  margin-left: var(--layout-wallet-region-left);
+  margin-bottom: var(--layout-wallet-region-bottom);
+}
+
 .main_content {
+  grid-area: main;
   width: 100%;
   max-width: 1440px;
   height: 100dvh;
@@ -40,7 +79,7 @@
 
 @media (min-width: 640px) {
   .app_shell {
-    grid-template-columns: var(--sidebar-width-bounded) minmax(0, 1fr);
+    grid-template-columns: var(--layout-region-column-width) minmax(0, 1fr);
   }
 }
 

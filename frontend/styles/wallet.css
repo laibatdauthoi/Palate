@@ -1,7 +1,7 @@
 /* WalletPanel contract:
    - WalletPanel owns its internal shell, header, identity, status, compact text,
      meta, feedback, details, actions, and wallet modal option-card layout
-   - Navigation owns sidebar placement and shell context only
+   - App layout owns wallet region placement and shell context only
    - ActionButton owns shared button material; wallet-specific button selectors may
      tune compact fit inside the panel but must not replace the shared button contract
    - Page composition must not restyle wallet internals */

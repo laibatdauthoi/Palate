@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { LayoutScaleController } from "@/components/layout_scale_controller";
 import { MobileBottomNav } from "@/components/mobile_bottom_nav";
-import { NavigationBar } from "@/components/navigation_bar";
+import { BrandRegion, NavigationRegion, WalletRegion } from "@/components/navigation_bar";
 import { RoutePerfTracker } from "@/components/route_perf_tracker";
 import { MediaViewerProvider } from "@/providers/media_viewer_provider";
 import { MediaPlayerProvider } from "@/providers/media_player_provider";
@@ -44,8 +44,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
               <MediaViewerProvider>
                 <div className="app_shell">
                   <RoutePerfTracker />
-                  <NavigationBar />
+                  <BrandRegion />
+                  <NavigationRegion />
                   <main className="main_content">{children}</main>
+                  <WalletRegion />
                   <MobileBottomNav />
                 </div>
               </MediaViewerProvider>
