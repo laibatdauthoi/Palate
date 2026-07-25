@@ -5,8 +5,11 @@
    - Page composition must not restyle wallet internals */
 .wallet_object {
   --wallet-corner-cut: 32px;
+  --wallet-edge-width: 1px;
   --wallet-avatar-size: 42px;
   --wallet-content-top-offset: 50px;
+  --wallet-meta-shift-y: -3px;
+  --wallet-balance-shift-y: -2px;
   --wallet-control-hit-size: 40px;
   --wallet-control-size: 36px;
   --wallet-control-icon-size: 17px;
@@ -32,9 +35,25 @@
   inset: 0;
   z-index: 0;
   box-sizing: border-box;
-  background: var(--ui-surface-3);
-  border: 1px solid var(--ui-border-strong);
+  background: var(--ui-border-strong);
   clip-path: polygon(0 0, calc(100% - var(--wallet-corner-cut)) 0, 100% var(--wallet-corner-cut), 100% 100%, 0 100%);
+  content: "";
+  pointer-events: none;
+}
+
+.wallet_object::after {
+  position: absolute;
+  inset: var(--wallet-edge-width);
+  z-index: 0;
+  box-sizing: border-box;
+  background: var(--ui-surface-3);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--wallet-corner-cut) + var(--wallet-edge-width)) 0,
+    100% calc(var(--wallet-corner-cut) - var(--wallet-edge-width)),
+    100% 100%,
+    0 100%
+  );
   content: "";
   pointer-events: none;
 }
@@ -80,6 +99,7 @@
 .wallet_primary_value {
   min-width: 0;
   margin-top: 0;
+  transform: translateY(var(--wallet-balance-shift-y));
 }
 
 .wallet_balance_value {
@@ -124,6 +144,7 @@
   font-size: 11px;
   font-weight: 500;
   line-height: 1.2;
+  transform: translateY(var(--wallet-meta-shift-y));
   white-space: normal;
 }
 
