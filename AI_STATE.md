@@ -29,7 +29,19 @@ from typography, spacing, layout, and contrast rather than decorative rendering.
   renders exactly three visible route links from a circular visual belt,
   wheel/drag/ArrowUp/ArrowDown rotate only the carousel viewport, and the
   active state is owned solely by the current pathname until a link is clicked.
-  Wallet remains an informational block rather than a secondary surface panel.
+  The navigation boards are 20px wider than the previous rail experiment while
+  keeping the same left anchor, height, trapezoid clip paths, icon/label scale,
+  and carousel behavior. Wallet remains an independent informational block, now
+  identified by a single clipped-corner asset container with a top-centered
+  identity-control row: a square avatar placeholder reserved for future user
+  media and the existing icon-only circular wallet state control. It does not use
+  a folded wallet silhouette, title, or wallet icon. In the connected compact
+  state it renders only the short address,
+  connector/network row with icon-only chain status, and one compact Palate APT
+  balance; wallet actions are exposed through the icon-only circular control.
+  Wrong-network switching uses the Aptos wallet adapter `changeNetwork`
+  Promise path, keeps the adapter network as the source of truth, guards duplicate
+  switch requests, and clears switch pending state in `finally`.
 - Home uses a constrained editorial frame with a left hero and right activity
   column on desktop, unequal collection widths, and the existing single-column
   mobile flow with bottom navigation.

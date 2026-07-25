@@ -25,9 +25,11 @@ type WalletContextValue = {
   availableWallets: ReadonlyArray<AdapterWallet>;
   notDetectedWallets: ReadonlyArray<AdapterNotDetectedWallet>;
   connectingWalletName: string | null;
+  switchNetworkPending: boolean;
   walletError: string | null;
   connectWallet: (walletName: string) => Promise<void>;
   disconnectWallet: () => Promise<void>;
+  switchWalletNetwork: () => Promise<void>;
   signAndSubmitTransaction: (transaction: InputTransactionData) => Promise<string>;
 };
 
@@ -47,6 +49,7 @@ function WalletBridge({ children }: { children: ReactNode }) {
     account,
     connect,
     connected,
+    changeNetwork,
     disconnect,
     isLoading,
     network,
@@ -57,6 +60,7 @@ function WalletBridge({ children }: { children: ReactNode }) {
   } = useWallet();
   const [connectingWalletName, setConnectingWalletName] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
+  const [switchNetworkPending, setSwitchNetworkPending] = useState(false);
   const [walletBalance, setWalletBalance] = useState<string | null>(null);
   const [walletBalanceStatus, setWalletBalanceStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [walletBalanceError, setWalletBalanceError] = useState<string | null>(null);
@@ -69,7 +73,9 @@ function WalletBridge({ children }: { children: ReactNode }) {
   const hasConnectedAccount = connected && Boolean(walletAddress);
   const adapterTransitioning = isLoading || Boolean(connectingWalletName) || (connected && !walletAddress);
 
-  const walletStatus: WalletStatus = walletError
+  const blockingWalletError = walletError && !wrongNetwork;
+
+  const walletStatus: WalletStatus = blockingWalletError
     ? "error"
     : adapterTransitioning
       ? "connecting"
@@ -79,15 +85,15 @@ function WalletBridge({ children }: { children: ReactNode }) {
           ? "connected"
           : "disconnected";
 
-  const walletDisplayState: WalletDisplayState = walletError
+  const walletDisplayState: WalletDisplayState = blockingWalletError
     ? "error"
     : wrongNetwork
       ? "wrong_network"
       : hasConnectedAccount
         ? "connected"
         : adapterTransitioning
-          ? (lastResolvedWalletAddressRef.current ? "switching" : "connecting")
-          : "disconnected";
+        ? (lastResolvedWalletAddressRef.current ? "switching" : "connecting")
+        : "disconnected";
 
   useEffect(() => {
     if (walletAddress) {
@@ -148,6 +154,7 @@ function WalletBridge({ children }: { children: ReactNode }) {
       availableWallets: wallets,
       notDetectedWallets,
       connectingWalletName,
+      switchNetworkPending,
       walletError,
       connectWallet: async (nextWalletName: string) => {
         setWalletError(null);
@@ -164,6 +171,20 @@ function WalletBridge({ children }: { children: ReactNode }) {
         setWalletError(null);
         await Promise.resolve(disconnect());
       },
+      switchWalletNetwork: async () => {
+        if (switchNetworkPending) return;
+
+        setWalletError(null);
+        setSwitchNetworkPending(true);
+        try {
+          await Promise.resolve(changeNetwork(Network.TESTNET));
+        } catch (error) {
+          setWalletError(error instanceof Error ? error.message : "Wallet network switch failed.");
+          throw error;
+        } finally {
+          setSwitchNetworkPending(false);
+        }
+      },
       signAndSubmitTransaction: async (transaction: InputTransactionData) => {
         setWalletError(null);
         const result = await signAndSubmitTransaction(transaction);
@@ -172,17 +193,20 @@ function WalletBridge({ children }: { children: ReactNode }) {
     }),
     [
       connect,
+      changeNetwork,
       connectingWalletName,
       disconnect,
+      network,
       networkName,
       notDetectedWallets,
       providerReady,
       signAndSubmitTransaction,
+      switchNetworkPending,
       walletBalance,
       walletBalanceError,
       walletBalanceStatus,
       walletDisplayState,
-      wallet?.name,
+      wallet,
       walletAddress,
       walletError,
       walletStatus,

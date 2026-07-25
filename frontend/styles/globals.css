@@ -3370,8 +3370,7 @@ img {
   /* ==========================
      Profile / Activity + Wallet
      ========================== */
-  .claim_card,
-  .wallet_balance_buttons {
+  .claim_card {
     grid-template-columns: 1fr;
   }
 

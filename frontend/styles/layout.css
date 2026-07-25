@@ -5,10 +5,13 @@
      content frame
    - Component styles must not redefine shell/frame behavior */
 .app_shell {
-  --layout-region-column-width: clamp(174px, 12vw, 184px);
+  --layout-region-column-width: 184px;
+  --layout-left-column-width: 154px;
+  --layout-navigation-column-width: 174px;
+  --layout-left-column-left: 10px;
   --layout-brand-row-height: 134px;
-  --layout-wallet-region-width: 154px;
-  --layout-wallet-region-left: 10px;
+  --layout-wallet-region-width: var(--layout-left-column-width);
+  --layout-wallet-region-left: var(--layout-left-column-left);
   --layout-wallet-region-bottom: 18px;
   display: grid;
   grid-template-areas:
@@ -30,7 +33,9 @@
 .brand_region {
   grid-area: brand;
   align-self: start;
-  justify-self: center;
+  justify-self: start;
+  width: var(--layout-left-column-width);
+  margin-left: var(--layout-left-column-left);
   margin-top: 20px;
 }
 
@@ -38,6 +43,8 @@
   grid-area: navigation;
   align-self: start;
   justify-self: start;
+  width: var(--layout-navigation-column-width);
+  margin-left: var(--layout-left-column-left);
   max-height: 100%;
   overflow-y: auto;
   scrollbar-width: none;

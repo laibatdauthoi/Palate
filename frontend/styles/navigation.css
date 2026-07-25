@@ -19,10 +19,9 @@
 }
 
 .navigation_bar {
-  --navigation-left-inset: 8px;
-  --navigation-hit-width: 130px;
-  --nav-rail-width: 116px;
-  --nav-panel-width: clamp(88px, 7.1vw, 104px);
+  --navigation-hit-width: 174px;
+  --nav-rail-width: 136px;
+  --nav-panel-width: clamp(108px, calc(7.1vw + 20px), 124px);
   --nav-panel-height: clamp(118px, 14.5vh, 142px);
   --nav-panel-gap: 0px;
   --nav-panel-overlap: -16px;
@@ -32,12 +31,11 @@
   --nav-route-icon-size: 22px;
   --nav-claim-indicator-size: 7px;
   display: grid;
-  width: calc(var(--navigation-left-inset) + var(--navigation-hit-width));
+  width: var(--navigation-hit-width);
   min-width: 0;
   align-content: start;
-  justify-items: start;
+  justify-items: center;
   box-sizing: border-box;
-  padding-left: var(--navigation-left-inset);
   overflow: visible;
   border: 0;
   background: transparent;
@@ -95,7 +93,7 @@
   display: grid;
   align-content: start;
   align-items: start;
-  justify-items: start;
+  justify-items: center;
   width: 100%;
   min-height: 0;
   box-sizing: border-box;
@@ -116,7 +114,7 @@
 .nav_wheel_stack {
   display: grid;
   align-content: start;
-  justify-items: start;
+  justify-items: center;
   width: var(--nav-rail-width);
   gap: var(--nav-panel-gap);
   transform: translateY(var(--nav-carousel-offset, 0px));
