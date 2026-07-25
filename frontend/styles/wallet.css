@@ -9,10 +9,11 @@
   --wallet-content-top-offset: 50px;
   --wallet-control-hit-size: 40px;
   --wallet-control-size: 36px;
+  --wallet-control-icon-size: 17px;
   --wallet-identity-control-gap: 8px;
   position: relative;
   display: grid;
-  width: min(100%, 136px);
+  width: min(100%, var(--layout-wallet-object-width, 136px));
   min-width: 0;
   height: 112px;
   min-height: 112px;
@@ -31,8 +32,8 @@
   inset: 0;
   z-index: 0;
   box-sizing: border-box;
-  background: var(--ui-surface-2);
-  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-surface-3);
+  border: 1px solid var(--ui-border-strong);
   clip-path: polygon(0 0, calc(100% - var(--wallet-corner-cut)) 0, 100% var(--wallet-corner-cut), 100% 100%, 0 100%);
   content: "";
   pointer-events: none;
@@ -126,6 +127,15 @@
   white-space: normal;
 }
 
+.wallet_meta_line .wallet_network_label {
+  color: var(--ui-text-muted);
+}
+
+.wallet_meta_line .wallet_network_value {
+  color: var(--ui-accent);
+  font-weight: 700;
+}
+
 .wallet_state_message {
   display: block;
   min-width: 0;
@@ -179,7 +189,7 @@
   flex: 0 0 auto;
   box-sizing: border-box;
   background: var(--ui-surface-1);
-  border: 1px solid var(--ui-border-subtle);
+  border: 1px solid var(--ui-border-strong);
 }
 
 .wallet_control_button {
@@ -191,7 +201,7 @@
   justify-content: center;
   border: 0;
   background: transparent;
-  color: var(--ui-text-secondary);
+  color: var(--ui-surface-2);
   cursor: pointer;
   padding: 0;
   transition: background-color var(--transition-fast), color var(--transition-fast);
@@ -199,20 +209,26 @@
 
 .wallet_control_button::before {
   position: absolute;
+  top: 50%;
+  left: 50%;
   width: var(--wallet-control-size);
   height: var(--wallet-control-size);
-  background: var(--ui-surface-1);
+  box-sizing: border-box;
+  background: var(--ui-accent);
+  border: 1px solid var(--ui-accent-active);
   clip-path: circle(50% at 50% 50%);
   content: "";
+  transform: translate(-50%, -50%);
   transition: background-color var(--transition-fast);
 }
 
 .wallet_control_button:hover {
-  color: var(--ui-text-primary);
+  color: var(--ui-surface-2);
 }
 
 .wallet_control_button:hover::before {
-  background: var(--ui-surface-3);
+  background: var(--ui-accent-hover);
+  border-color: var(--ui-accent);
 }
 
 .wallet_control_button:focus-visible {
@@ -228,8 +244,8 @@
 .wallet_control_icon {
   position: relative;
   z-index: 1;
-  width: 17px;
-  height: 17px;
+  width: var(--wallet-control-icon-size);
+  height: var(--wallet-control-icon-size);
   flex: 0 0 auto;
 }
 

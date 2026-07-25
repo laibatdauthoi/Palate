@@ -205,9 +205,11 @@ export function WalletPanel() {
               <>
                 <span className="wallet_address_line" title={walletAddress ?? undefined}>{addressCopy}</span>
                 <span className="wallet_meta_line">
-                  {walletName ?? "Wallet"}
-                  {" · "}
-                  {networkName ?? "Network"}
+                  <span className="wallet_network_label">
+                    {walletName ?? "Wallet"}
+                    {" \u00b7 "}
+                  </span>
+                  <span className="wallet_network_value">{networkName ?? "Network"}</span>
                   <span className="chain_status_pill" aria-label={chainStatusCopy}>
                     {renderChainStatusIcon()}
                   </span>

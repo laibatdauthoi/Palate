@@ -196,7 +196,6 @@ function WalletBridge({ children }: { children: ReactNode }) {
       changeNetwork,
       connectingWalletName,
       disconnect,
-      network,
       networkName,
       notDetectedWallets,
       providerReady,

@@ -5,14 +5,12 @@
      content frame
    - Component styles must not redefine shell/frame behavior */
 .app_shell {
-  --layout-region-column-width: 184px;
-  --layout-left-column-width: 154px;
-  --layout-navigation-column-width: 174px;
-  --layout-left-column-left: 10px;
+  --wallet-outer-inset: 9px;
+  --layout-wallet-object-width: 136px;
+  --layout-region-column-width: calc(var(--wallet-outer-inset) + var(--layout-wallet-object-width) + var(--wallet-outer-inset));
   --layout-brand-row-height: 134px;
-  --layout-wallet-region-width: var(--layout-left-column-width);
-  --layout-wallet-region-left: var(--layout-left-column-left);
-  --layout-wallet-region-bottom: 18px;
+  --layout-wallet-region-width: var(--layout-wallet-object-width);
+  --layout-wallet-region-bottom: var(--wallet-outer-inset);
   display: grid;
   grid-template-areas:
     "brand main"
@@ -33,18 +31,14 @@
 .brand_region {
   grid-area: brand;
   align-self: start;
-  justify-self: start;
-  width: var(--layout-left-column-width);
-  margin-left: var(--layout-left-column-left);
+  justify-self: center;
   margin-top: 20px;
 }
 
 .navigation_region {
   grid-area: navigation;
   align-self: start;
-  justify-self: start;
-  width: var(--layout-navigation-column-width);
-  margin-left: var(--layout-left-column-left);
+  justify-self: center;
   max-height: 100%;
   overflow-y: auto;
   scrollbar-width: none;
@@ -57,10 +51,9 @@
 .wallet_region {
   grid-area: wallet;
   align-self: end;
-  justify-self: start;
+  justify-self: center;
   width: var(--layout-wallet-region-width);
   min-width: 0;
-  margin-left: var(--layout-wallet-region-left);
   margin-bottom: var(--layout-wallet-region-bottom);
 }
 
