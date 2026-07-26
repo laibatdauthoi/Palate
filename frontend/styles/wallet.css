@@ -7,7 +7,8 @@
   --wallet-corner-cut: 32px;
   --wallet-edge-width: 1px;
   --wallet-avatar-size: 42px;
-  --wallet-content-top-offset: 50px;
+  --wallet-content-inset-x: 10px;
+  --wallet-content-top-offset: 55px;
   --wallet-meta-shift-y: -3px;
   --wallet-balance-shift-y: -1px;
   --wallet-control-hit-size: 40px;
@@ -18,8 +19,8 @@
   display: grid;
   width: min(100%, var(--layout-wallet-object-width, 136px));
   min-width: 0;
-  height: 128px;
-  min-height: 128px;
+  height: 136px;
+  min-height: 136px;
   gap: 8px;
   margin-top: auto;
   margin-inline: 0;
@@ -27,7 +28,7 @@
   box-sizing: border-box;
   background: transparent;
   border: 0;
-  padding: 0 10px;
+  padding: 0 var(--wallet-content-inset-x);
 }
 
 .wallet_object::before {
@@ -233,8 +234,8 @@
 .wallet_identity_controls {
   position: absolute;
   z-index: 2;
-  top: var(--wallet-identity-control-gap);
-  left: var(--wallet-identity-control-gap);
+  top: var(--wallet-content-inset-x);
+  left: var(--wallet-content-inset-x);
   display: inline-flex;
   align-items: center;
   gap: var(--wallet-identity-control-gap);
