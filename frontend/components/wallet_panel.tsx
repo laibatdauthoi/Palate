@@ -12,6 +12,7 @@ const wallet_status_copy = {
   switching: "Switching",
   connected: "Connected",
   wrong_network: "Wrong network",
+  rejected: "Rejected",
   error: "Error"
 } as const;
 
@@ -71,27 +72,33 @@ function formatExactAssetBalance(value: string, unit?: string) {
 }
 
 type WalletAssetBalanceDisplay = ReturnType<typeof formatExactAssetBalance>;
+type WalletAssetRowStatus = "ready" | "loading" | "warning";
 
 type WalletAssetRow = {
   key: "apt" | "shelby" | "deposited";
   label: string;
   labelTitle?: string;
+  status: WalletAssetRowStatus;
+  statusTitle: string;
   unit?: string;
   value: WalletAssetBalanceDisplay | null;
 };
 
-function getChainStatusCopy(status: "idle" | "loading" | "ready" | "error", warning: string | null) {
-  if (warning) return "Using last read";
-  if (status === "ready") return "Ready";
-  if (status === "loading") return "Loading";
-  if (status === "error") return "Unavailable";
-  return "Idle";
+function getAssetRowStatus(
+  value: WalletAssetBalanceDisplay | null,
+  readStatus: "idle" | "loading" | "refreshing" | "ready" | "error",
+  connectedOnTargetNetwork: boolean
+): WalletAssetRowStatus {
+  if (value) return "ready";
+  if (!connectedOnTargetNetwork || readStatus === "error") return "warning";
+  return "loading";
 }
 
 export function WalletPanel() {
   const { balance, chainRead, palateBalanceReadStatus } = usePalate();
   const {
     availableWallets,
+    clearWalletError,
     connectWallet,
     connectingWalletName,
     disconnectWallet,
@@ -107,7 +114,6 @@ export function WalletPanel() {
     walletBalanceStatus,
     walletAddress,
     walletDisplayState,
-    walletError,
     walletName,
     walletStatus
   } = usePalateWallet();
@@ -118,9 +124,26 @@ export function WalletPanel() {
   const pending = transitioning || walletStatus === "connecting" || switchNetworkPending;
   const statusCopy = wallet_status_copy[walletDisplayState];
   const addressCopy = walletAddress ? shortenAddress(walletAddress) : statusCopy;
-  const chainStatusCopy = getChainStatusCopy(chainRead.status, chainRead.warning);
   const showWrongNetworkAction = walletStatus === "wrong_network";
   const connectedOnTargetNetwork = connected && !showWrongNetworkAction;
+  const walletIssueTitle = walletDisplayState === "rejected"
+    ? "Connection rejected"
+    : walletDisplayState === "error"
+      ? "Connection error"
+      : walletDisplayState === "wrong_network"
+        ? "Wrong network"
+        : walletDisplayState === "connecting" || walletDisplayState === "switching"
+          ? "Wallet connecting"
+          : connectedOnTargetNetwork
+            ? "Wallet connected"
+            : "Wallet not connected";
+  const chainStatusCopy = !connectedOnTargetNetwork
+    ? walletIssueTitle
+    : chainRead.warning
+      ? "Using last read"
+      : chainRead.status === "error"
+        ? "Connection error"
+        : "Wallet connected";
   const formattedAptBalance = connectedOnTargetNetwork && walletBalanceStatus === "ready" && walletBalance ? formatExactAssetBalance(walletBalance, "APT") : null;
   const formattedDepositedBalance = connectedOnTargetNetwork && palateBalanceReadStatus === "ready" ? formatExactAssetBalance(balance.availableBalance, "APT") : null;
   const formattedShelbyTokenBalance = connectedOnTargetNetwork && shelbyTokenBalanceStatus === "ready" && shelbyTokenBalance?.ticker
@@ -134,17 +157,23 @@ export function WalletPanel() {
     {
       key: "apt",
       label: "APT",
+      status: getAssetRowStatus(formattedAptBalance, walletBalanceStatus, connectedOnTargetNetwork),
+      statusTitle: connectedOnTargetNetwork && walletBalanceStatus === "error" ? "APT balance unavailable" : walletIssueTitle,
       value: formattedAptBalance
     },
     {
       key: "shelby",
       label: shelbyTickerLabel,
       labelTitle: shelbyTokenTicker ?? undefined,
+      status: getAssetRowStatus(formattedShelbyTokenBalance, shelbyTokenBalanceStatus, connectedOnTargetNetwork),
+      statusTitle: connectedOnTargetNetwork && shelbyTokenBalanceStatus === "error" ? "SHELBY balance unavailable" : walletIssueTitle,
       value: formattedShelbyTokenBalance
     },
     {
       key: "deposited",
       label: "Deposited",
+      status: getAssetRowStatus(formattedDepositedBalance, palateBalanceReadStatus, connectedOnTargetNetwork),
+      statusTitle: connectedOnTargetNetwork && palateBalanceReadStatus === "error" ? "Deposited balance unavailable" : walletIssueTitle,
       unit: "APT",
       value: formattedDepositedBalance
     }
@@ -162,15 +191,11 @@ export function WalletPanel() {
         : "Connect wallet";
 
   function renderChainStatusIcon() {
-    if (walletStatus === "wrong_network" || chainRead.warning || chainRead.status === "error") {
+    if (!connectedOnTargetNetwork || chainRead.warning || chainRead.status === "error") {
       return <CircleAlert aria-hidden="true" className="chain_status_icon_svg chain_status_icon_svg_error" strokeWidth={2.2} />;
     }
 
-    if (chainRead.status === "ready") {
-      return <CircleCheckBig aria-hidden="true" className="chain_status_icon_svg chain_status_icon_svg_ready" strokeWidth={2.2} />;
-    }
-
-    return null;
+    return <CircleCheckBig aria-hidden="true" className="chain_status_icon_svg chain_status_icon_svg_ready" strokeWidth={2.2} />;
   }
 
   function renderWalletControlIcon() {
@@ -198,16 +223,19 @@ export function WalletPanel() {
       return;
     }
 
+    clearWalletError();
     setWalletModalOpen(true);
   }
 
   async function handleConnect(nextWalletName: string) {
-    await connectWallet(nextWalletName);
-    setWalletModalOpen(false);
+    const connected = await connectWallet(nextWalletName);
+    if (connected) {
+      setWalletModalOpen(false);
+    }
   }
 
-  function renderAssetValue(assetValue: WalletAssetBalanceDisplay | null, unit?: string) {
-    if (!assetValue) {
+  function renderAssetValue(row: WalletAssetRow) {
+    if (row.status === "loading") {
       return (
         <span className="wallet_asset_value wallet_asset_value_loading" aria-label="Loading">
           <LoaderCircle aria-hidden="true" className="wallet_asset_loading_icon" strokeWidth={2.2} />
@@ -215,13 +243,21 @@ export function WalletPanel() {
       );
     }
 
-    const displayValue = middleTruncateAssetValue(assetValue.display);
-    const title = assetValue.title;
+    if (row.status === "warning" || !row.value) {
+      return (
+        <span className="wallet_asset_value wallet_asset_value_warning" aria-label={row.statusTitle} title={row.statusTitle}>
+          <CircleAlert aria-hidden="true" className="wallet_asset_warning_icon" strokeWidth={2.2} />
+        </span>
+      );
+    }
+
+    const displayValue = middleTruncateAssetValue(row.value.display);
+    const title = row.value.title;
 
     return (
       <span className="wallet_asset_value" aria-label={title ?? "Not ready"} title={title}>
         <span className="wallet_asset_number">{displayValue}</span>
-        {unit ? <span className="wallet_asset_unit">{unit}</span> : null}
+        {row.unit ? <span className="wallet_asset_unit">{row.unit}</span> : null}
       </span>
     );
   }
@@ -249,7 +285,7 @@ export function WalletPanel() {
               {" \u00b7 "}
             </span>
             <span className="wallet_network_value">{networkName ?? "Network"}</span>
-            <span className="chain_status_pill" aria-label={chainStatusCopy}>
+            <span className="chain_status_pill" aria-label={chainStatusCopy} title={chainStatusCopy}>
               {renderChainStatusIcon()}
             </span>
           </span>
@@ -258,7 +294,7 @@ export function WalletPanel() {
               {walletAssetRows.map((row) => (
                 <div className="wallet_asset_row" key={row.key}>
                   <span className="wallet_asset_label" title={row.labelTitle}>{row.label}</span>
-                  {renderAssetValue(row.value, row.unit)}
+                  {renderAssetValue(row)}
                 </div>
               ))}
             </div>
@@ -268,7 +304,6 @@ export function WalletPanel() {
 
       <ModalShell open={walletModalOpen} onClose={() => setWalletModalOpen(false)} title="Connect wallet">
         <div className="wallet_modal_content">
-          {walletError ? <p className="wallet_message wallet_message_error">{walletError}</p> : null}
           {availableWallets.length > 0 ? (
             <div className="wallet_modal_grid">
               {availableWallets.map((wallet) => (

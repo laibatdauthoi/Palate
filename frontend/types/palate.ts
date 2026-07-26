@@ -16,8 +16,8 @@ export type UploadStep =
   | "registering_palate_media"
   | "completed"
   | "failed";
-export type WalletStatus = "disconnected" | "connecting" | "connected" | "wrong_network" | "error";
-export type WalletDisplayState = "disconnected" | "connecting" | "switching" | "connected" | "wrong_network" | "error";
+export type WalletStatus = "disconnected" | "connecting" | "connected" | "wrong_network" | "rejected" | "error";
+export type WalletDisplayState = "disconnected" | "connecting" | "switching" | "connected" | "wrong_network" | "rejected" | "error";
 export type BuffSide = "A" | "B";
 export type ChainReadStatus = "idle" | "loading" | "ready" | "error";
 export type FeedbackScope = "push" | "challenge" | "cleanup" | "claim" | "settle" | "buff" | "wallet" | "profile" | "general";

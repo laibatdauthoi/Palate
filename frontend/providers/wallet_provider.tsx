@@ -32,7 +32,8 @@ type WalletContextValue = {
   connectingWalletName: string | null;
   switchNetworkPending: boolean;
   walletError: string | null;
-  connectWallet: (walletName: string) => Promise<void>;
+  clearWalletError: () => void;
+  connectWallet: (walletName: string) => Promise<boolean>;
   disconnectWallet: () => Promise<void>;
   refreshWalletAssets: () => Promise<void>;
   switchWalletNetwork: () => Promise<void>;
@@ -48,6 +49,39 @@ function normalizeAddress(address: unknown): string | null {
     return address.toString();
   }
   return null;
+}
+
+function isUserRejectedConnectionError(error: unknown) {
+  if (!error) return false;
+
+  if (typeof error !== "object") {
+    const message = String(error).toLowerCase();
+    return [
+      "reject",
+      "cancel",
+      "dismiss",
+      "close",
+      "denied",
+      "declined",
+      "user aborted",
+      "user refused"
+    ].some((needle) => message.includes(needle));
+  }
+
+  const maybeError = error as { code?: unknown; message?: unknown; name?: unknown };
+  if (maybeError.code === 4001 || maybeError.code === "4001") return true;
+
+  const message = `${String(maybeError.name ?? "")} ${String(maybeError.message ?? "")}`.toLowerCase();
+  return [
+    "reject",
+    "cancel",
+    "dismiss",
+    "close",
+    "denied",
+    "declined",
+    "user aborted",
+    "user refused"
+  ].some((needle) => message.includes(needle));
 }
 
 function WalletBridge({ children }: { children: ReactNode }) {
@@ -66,6 +100,7 @@ function WalletBridge({ children }: { children: ReactNode }) {
   } = useWallet();
   const [connectingWalletName, setConnectingWalletName] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
+  const [walletConnectionIssue, setWalletConnectionIssue] = useState<"rejected" | "error" | null>(null);
   const [switchNetworkPending, setSwitchNetworkPending] = useState(false);
   const [walletBalance, setWalletBalance] = useState<string | null>(null);
   const [walletBalanceStatus, setWalletBalanceStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -85,10 +120,8 @@ function WalletBridge({ children }: { children: ReactNode }) {
   const hasConnectedAccount = connected && Boolean(walletAddress);
   const adapterTransitioning = isLoading || Boolean(connectingWalletName) || (connected && !walletAddress);
 
-  const blockingWalletError = walletError && !wrongNetwork;
-
-  const walletStatus: WalletStatus = blockingWalletError
-    ? "error"
+  const walletStatus: WalletStatus = walletConnectionIssue && !wrongNetwork
+    ? walletConnectionIssue
     : adapterTransitioning
       ? "connecting"
       : wrongNetwork
@@ -97,8 +130,8 @@ function WalletBridge({ children }: { children: ReactNode }) {
           ? "connected"
           : "disconnected";
 
-  const walletDisplayState: WalletDisplayState = blockingWalletError
-    ? "error"
+  const walletDisplayState: WalletDisplayState = walletConnectionIssue && !wrongNetwork
+    ? walletConnectionIssue
     : wrongNetwork
       ? "wrong_network"
       : hasConnectedAccount
@@ -237,19 +270,33 @@ function WalletBridge({ children }: { children: ReactNode }) {
       connectingWalletName,
       switchNetworkPending,
       walletError,
+      clearWalletError: () => {
+        setWalletError(null);
+        setWalletConnectionIssue(null);
+      },
       connectWallet: async (nextWalletName: string) => {
         setWalletError(null);
+        setWalletConnectionIssue(null);
         setConnectingWalletName(nextWalletName);
         try {
           await Promise.resolve(connect(nextWalletName));
+          return true;
         } catch (error) {
-          setWalletError(error instanceof Error ? error.message : "Wallet connection failed.");
+          if (isUserRejectedConnectionError(error)) {
+            setWalletError("Connection rejected.");
+            setWalletConnectionIssue("rejected");
+          } else {
+            setWalletError(error instanceof Error ? error.message : "Wallet connection failed.");
+            setWalletConnectionIssue("error");
+          }
+          return false;
         } finally {
           setConnectingWalletName(null);
         }
       },
       disconnectWallet: async () => {
         setWalletError(null);
+        setWalletConnectionIssue(null);
         await Promise.resolve(disconnect());
       },
       refreshWalletAssets,
@@ -257,6 +304,7 @@ function WalletBridge({ children }: { children: ReactNode }) {
         if (switchNetworkPending) return;
 
         setWalletError(null);
+        setWalletConnectionIssue(null);
         setSwitchNetworkPending(true);
         try {
           await Promise.resolve(changeNetwork(Network.TESTNET));
@@ -269,6 +317,7 @@ function WalletBridge({ children }: { children: ReactNode }) {
       },
       signAndSubmitTransaction: async (transaction: InputTransactionData) => {
         setWalletError(null);
+        setWalletConnectionIssue(null);
         const result = await signAndSubmitTransaction(transaction);
         return result.hash;
       }
