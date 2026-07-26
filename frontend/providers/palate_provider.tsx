@@ -501,7 +501,7 @@ function assertNoMockDataInConnectedMode(input: {
 }
 
 export function PalateProvider({ children }: { children: ReactNode }) {
-  const { signAndSubmitTransaction, walletAddress, walletStatus: walletConnectionStatus } = usePalateWallet();
+  const { refreshWalletAssets, signAndSubmitTransaction, walletAddress, walletStatus: walletConnectionStatus } = usePalateWallet();
   const connectedWalletReady = walletConnectionStatus === "connected" && Boolean(walletAddress);
   const [walletStatus, setWalletStatus] = useState<WalletStatus>("disconnected");
   const [balance, setBalance] = useState<PalateBalance>(loading_balance);
@@ -901,6 +901,13 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       }
     });
   }, [markWalletReadError, markWalletReadSuccess, runWalletReadOnce]);
+
+  const refreshDisplayedWalletAssetsForWallet = useCallback(async (ownerAddress: string, options: WalletRefreshOptions = {}) => {
+    await Promise.all([
+      refreshPalateBalanceForWallet(ownerAddress, options),
+      refreshWalletAssets()
+    ]);
+  }, [refreshPalateBalanceForWallet, refreshWalletAssets]);
 
   const refreshUserMediaForWallet = useCallback(async (ownerAddress: string, options: WalletRefreshOptions = {}) => {
     return runWalletReadOnce("userMedia", ownerAddress, async () => {
@@ -1369,7 +1376,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setFeedback(createFeedback("wallet", "info", `Transaction submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       invalidateReadGroups(walletAddress, { balance: true });
-      await refreshPalateBalanceForWallet(walletAddress, { force: true });
+      await refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true });
       setFeedback(createFeedback("wallet", "success", `${actionName === "deposit" ? "Deposit" : "Withdraw"} confirmed ${shortenTransactionHash(transactionHash)}.`));
     } catch (error) {
       console.error(`${actionName}Balance failed`, error);
@@ -1455,7 +1462,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setFeedback(createFeedback("general", "info", `Registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       invalidateReadGroups(walletAddress, { userMedia: true });
-      await refreshUserMediaForWallet(walletAddress, { force: true });
+      await Promise.all([
+        refreshUserMediaForWallet(walletAddress, { force: true }),
+        refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true })
+      ]);
       setUploadStep("completed");
       setUploadRecovery(initial_upload_recovery_state);
       setFeedback(createFeedback("general", "success", `Media registered in Palate ${shortenTransactionHash(transactionHash)}.`));
@@ -1490,7 +1500,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     setFeedback(createFeedback("general", "info", `Failed media registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
     await waitForPalateTransaction(transactionHash);
     invalidateReadGroups(walletAddress, { userMedia: true });
-    await refreshUserMediaForWallet(walletAddress, { force: true });
+    await Promise.all([
+      refreshUserMediaForWallet(walletAddress, { force: true }),
+      refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true })
+    ]);
     setUploadRecovery(initial_upload_recovery_state);
     setFeedback(createFeedback("general", "error", `${message} A failed media item was saved in My Media and can be deleted.`));
   }
@@ -1557,7 +1570,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         currentAssignment: true
       });
       await Promise.all([
-        refreshPalateBalanceForWallet(walletAddress, { force: true }),
+        refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true }),
         refreshPublicGameState({
           assignment: true,
           ownerAddress: walletAddress,
@@ -1663,7 +1676,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         currentAssignment: true
       });
       await Promise.all([
-        refreshPalateBalanceForWallet(walletAddress, { force: true }),
+        refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true }),
         refreshUserBuffRecordsForWallet(walletAddress, { force: true }),
         refreshUserSummaryForWallet(walletAddress, { force: true }),
         refreshPublicGameState({
@@ -1718,7 +1731,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         currentAssignment: true
       });
       await Promise.all([
-        refreshPalateBalanceForWallet(walletAddress, { force: true }),
+        refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true }),
         refreshPublicGameState({
           assignment: true,
           ownerAddress: walletAddress,
@@ -1765,7 +1778,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         publicHomeState: true
       });
       await Promise.all([
-        refreshPalateBalanceForWallet(walletAddress, { force: true }),
+        refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true }),
         refreshUserMediaForWallet(walletAddress, { force: true }),
         refreshClaimsForWallet(walletAddress, { force: true }),
         refreshUserBuffRecordsForWallet(walletAddress, { force: true }),
@@ -1829,7 +1842,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         userSummary: true
       });
       await Promise.all([
-        refreshPalateBalanceForWallet(walletAddress, { force: true }),
+        refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true }),
         refreshClaimsForWallet(walletAddress, { force: true }),
         refreshUserSummaryForWallet(walletAddress, { force: true })
       ]);
@@ -1907,6 +1920,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         submitShelbyRegistration: async (data) => signAndSubmitTransaction({ data }),
         waitForShelbyRegistration: waitForPalateTransaction
       });
+      await refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true });
 
       const draft: UploadRetryDraft = {
         registeredUpload,
@@ -1977,7 +1991,10 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       setFeedback(createFeedback("general", "info", `Registration submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(transactionHash);
       invalidateReadGroups(walletAddress, { userMedia: true });
-      await refreshUserMediaForWallet(walletAddress, { force: true });
+      await Promise.all([
+        refreshUserMediaForWallet(walletAddress, { force: true }),
+        refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true })
+      ]);
       setPendingRegistrationMedia((records) => records.filter((record) => record.id !== mediaId));
       setFeedback(createFeedback("general", "success", `Media registered in Palate ${shortenTransactionHash(transactionHash)}.`));
     } catch (error) {
@@ -2074,6 +2091,9 @@ export function PalateProvider({ children }: { children: ReactNode }) {
     const transactionHash = await signAndSubmitTransaction({ data });
     setFeedback(createFeedback("cleanup", "info", `Palate delete submitted ${shortenTransactionHash(transactionHash)}. Waiting for confirmation.`));
     await waitForPalateTransaction(transactionHash);
+    if (walletAddress) {
+      await refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true });
+    }
     return transactionHash;
   }
 
@@ -2113,6 +2133,9 @@ export function PalateProvider({ children }: { children: ReactNode }) {
       const shelbyDeleteHash = await signAndSubmitTransaction({ data: shelbyDeleteData });
       setFeedback(createFeedback("cleanup", "info", `Shelby delete submitted ${shortenTransactionHash(shelbyDeleteHash)}. Waiting for confirmation.`));
       await waitForPalateTransaction(shelbyDeleteHash);
+      if (walletAddress) {
+        await refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true });
+      }
       clearShelbyCleanupRequired(media);
       return "deleted" as const;
     } catch (error) {
@@ -2295,7 +2318,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         publicHomeState: true
       });
       await Promise.all([
-        refreshPalateBalanceForWallet(walletAddress, { force: true }),
+        refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true }),
         refreshUserMediaForWallet(walletAddress, { force: true }),
         refreshPublicGameState({
           waitingPushes: true,
@@ -2412,7 +2435,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         publicHomeState: true
       });
       await Promise.all([
-        refreshPalateBalanceForWallet(walletAddress, { force: true }),
+        refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true }),
         refreshUserMediaForWallet(walletAddress, { force: true }),
         refreshPublicGameState({
           waitingPushes: true,
@@ -2487,7 +2510,7 @@ export function PalateProvider({ children }: { children: ReactNode }) {
         publicHomeState: true
       });
       await Promise.all([
-        refreshPalateBalanceForWallet(walletAddress, { force: true }),
+        refreshDisplayedWalletAssetsForWallet(walletAddress, { force: true }),
         refreshUserMediaForWallet(walletAddress, { force: true }),
         refreshPublicGameState({
           waitingPushes: true,

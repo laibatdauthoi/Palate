@@ -9,7 +9,7 @@
   --wallet-avatar-size: 42px;
   --wallet-content-top-offset: 50px;
   --wallet-meta-shift-y: -3px;
-  --wallet-balance-shift-y: -2px;
+  --wallet-balance-shift-y: -3px;
   --wallet-control-hit-size: 40px;
   --wallet-control-size: 36px;
   --wallet-control-icon-size: 17px;
@@ -18,8 +18,8 @@
   display: grid;
   width: min(100%, var(--layout-wallet-object-width, 136px));
   min-width: 0;
-  height: 112px;
-  min-height: 112px;
+  height: 128px;
+  min-height: 128px;
   gap: 8px;
   margin-top: auto;
   margin-inline: 0;
@@ -81,19 +81,18 @@
   white-space: nowrap;
 }
 
-.wallet_balance_primary {
-  display: flex;
-  align-items: baseline;
-  min-width: 0;
-  gap: 4px;
-  margin: 0;
-  overflow: hidden;
-  color: var(--ui-text-primary);
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.wallet_compact_body_assets {
+  align-self: start;
+  box-sizing: border-box;
+  gap: 2px;
+  grid-template-rows: max-content max-content minmax(0, 1fr);
+  height: 100%;
+  padding-bottom: 10px;
+}
+
+.wallet_compact_body_assets .wallet_primary_value {
+  display: grid;
+  min-height: 0;
 }
 
 .wallet_primary_value {
@@ -102,29 +101,56 @@
   transform: translateY(var(--wallet-balance-shift-y));
 }
 
-.wallet_balance_value {
+.wallet_asset_rows {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.wallet_asset_row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(48px, max-content) minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.18;
+}
+
+.wallet_asset_label {
   min-width: 0;
   overflow: hidden;
-  color: var(--ui-text-primary);
+  color: var(--ui-text-muted);
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.wallet_balance_unit {
-  flex: 0 0 auto;
-  color: var(--ui-text-secondary);
-  font-size: 0.58em;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 1;
-  text-transform: uppercase;
+.wallet_asset_value {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-text-primary);
+  font-weight: 700;
+  gap: 2px;
+  text-align: right;
+  white-space: nowrap;
 }
 
-.wallet_balance_primary_status {
-  align-self: end;
-  font-size: 13px;
-  line-height: 1.1;
-  white-space: normal;
+.wallet_asset_number {
+  min-width: 0;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.wallet_asset_unit {
+  flex: 0 0 auto;
+  color: var(--ui-text-secondary);
+  font-size: 0.82em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
 }
 
 .wallet_address_line {
@@ -155,17 +181,6 @@
 .wallet_meta_line .wallet_network_value {
   color: var(--ui-accent);
   font-weight: 700;
-}
-
-.wallet_state_message {
-  display: block;
-  min-width: 0;
-  color: var(--ui-text-primary);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-  white-space: nowrap;
 }
 
 .chain_status_pill {

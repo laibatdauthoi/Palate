@@ -1,5 +1,6 @@
 import { AccountAddress, Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import type { InputGenerateTransactionPayloadData, SimpleEntryFunctionArgumentTypes } from "@aptos-labs/ts-sdk";
+import { SHELBYUSD_FA_METADATA_ADDRESS } from "@shelby-protocol/sdk/browser";
 import { app_config } from "@/config/app_config";
 import { logUiPerf, startUiPerf } from "@/utils/ui_perf";
 import type {
@@ -43,6 +44,19 @@ const DEBUG_READ_PERFORMANCE = false;
 const aptos_coin_type = "0x1::aptos_coin::AptosCoin";
 const aptos_coin_store_resource = `0x1::coin::CoinStore<${aptos_coin_type}>`;
 const aptos_api_key_header_name = "Authorization";
+const primary_fungible_store_balance_function = "0x1::primary_fungible_store::balance";
+const object_core_type = "0x1::object::ObjectCore";
+
+export type ShelbyTokenWalletBalance = {
+  ticker: string;
+  balance: string;
+  title: string;
+};
+
+export type ShelbyTokenMetadata = {
+  ticker: string;
+  decimals: number;
+};
 
 const module_id = `${app_config.moduleAddress}::${app_config.moduleName}`;
 
@@ -686,6 +700,22 @@ export function formatOctasToApt(octas: string | number | bigint): string {
   return `${whole.toString()}${fractionalText ? `.${fractionalText}` : ""} APT`;
 }
 
+function formatAtomicTokenAmount(amount: string | number | bigint, decimals: number): string {
+  const precision = Math.max(0, Math.trunc(decimals));
+  const value = BigInt(amount);
+
+  if (precision === 0) {
+    return value.toString();
+  }
+
+  const scale = BigInt(10) ** BigInt(precision);
+  const whole = value / scale;
+  const fractional = value % scale;
+  const fractionalText = fractional.toString().padStart(precision, "0").replace(/0+$/, "");
+
+  return `${whole.toString()}${fractionalText ? `.${fractionalText}` : ""}`;
+}
+
 function isNumericArgument(value: unknown): value is string | number {
   if (typeof value === "number") return Number.isFinite(value);
   if (typeof value === "string") return /^\d+$/.test(value);
@@ -1035,6 +1065,69 @@ export async function getWalletAptBalance(walletAddress: string): Promise<string
   }
 
   throw lastError instanceof Error ? lastError : new Error("Wallet balance unavailable.");
+}
+
+export async function getShelbyTokenMetadata(): Promise<ShelbyTokenMetadata> {
+  const metadata = await readWithDiagnostics(
+    "shelbyToken:metadata",
+    async () => {
+      const [entry] = await aptos.getFungibleAssetMetadata({
+        options: {
+          limit: 1,
+          where: {
+            asset_type: { _eq: SHELBYUSD_FA_METADATA_ADDRESS }
+          }
+        }
+      });
+
+      return entry;
+    },
+    {
+      endpoint: "indexer/fungible_asset_metadata",
+      retries: wallet_balance_retry_count,
+      delayMs: wallet_balance_retry_delay_ms,
+      dedupeKey: `shelby-token-metadata:${SHELBYUSD_FA_METADATA_ADDRESS}`
+    }
+  );
+
+  const ticker = typeof metadata?.symbol === "string" ? metadata.symbol.trim() : "";
+  const decimals = Number(metadata?.decimals);
+  if (!ticker || !Number.isInteger(decimals) || decimals < 0) {
+    throw new Error("Shelby token metadata is unavailable.");
+  }
+
+  return { ticker, decimals };
+}
+
+export async function getShelbyTokenWalletBalance(walletAddress: string, metadata?: ShelbyTokenMetadata): Promise<ShelbyTokenWalletBalance> {
+  const tokenMetadata = metadata ?? await getShelbyTokenMetadata();
+  const [rawBalance] = await readWithDiagnostics(
+    "shelbyToken:balance",
+    () =>
+      fetchJsonWithDiagnostics<[string | number]>("shelbyToken:balance", "/view", {
+        method: "POST",
+        body: JSON.stringify({
+          function: primary_fungible_store_balance_function,
+          type_arguments: [object_core_type],
+          arguments: [walletAddress, SHELBYUSD_FA_METADATA_ADDRESS]
+        })
+      }),
+    {
+      endpoint: "view:primary_fungible_store::balance",
+      functionId: primary_fungible_store_balance_function,
+      retries: wallet_balance_retry_count,
+      delayMs: wallet_balance_retry_delay_ms,
+      dedupeKey: `shelby-token-balance:${walletAddress}`
+    }
+  );
+
+  const balance = formatAtomicTokenAmount(rawBalance, tokenMetadata.decimals);
+
+  return {
+    ticker: tokenMetadata.ticker,
+    balance,
+    title: `${balance} ${tokenMetadata.ticker}`
+  };
 }
 
 function entryPayload(functionName: string, functionArguments: SimpleEntryFunctionArgumentTypes[]): InputGenerateTransactionPayloadData {

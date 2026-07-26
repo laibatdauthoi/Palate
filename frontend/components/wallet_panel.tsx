@@ -15,61 +15,70 @@ const wallet_status_copy = {
   error: "Error"
 } as const;
 
+const wallet_asset_value_max_length = 12;
+const wallet_asset_value_prefix_length = 5;
+const wallet_asset_value_suffix_length = 4;
+
 function shortenAddress(address: string) {
   if (address.length <= 12) return address;
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
-function formatCompactNumber(value: number, maximumFractionDigits: number) {
-  return new Intl.NumberFormat("en-US", {
-    maximumFractionDigits,
-    minimumFractionDigits: 0
-  }).format(value);
+function middleTruncateAssetValue(value: string) {
+  if (value.length <= wallet_asset_value_max_length) {
+    return value;
+  }
+
+  const decimalIndex = value.indexOf(".");
+  if (decimalIndex > wallet_asset_value_prefix_length) {
+    return value.slice(0, decimalIndex);
+  }
+
+  return `${value.slice(0, wallet_asset_value_prefix_length)}...${value.slice(-wallet_asset_value_suffix_length)}`;
 }
 
-function formatCompactTokenAmount(value: number) {
-  const sign = value < 0 ? "-" : "";
-  const absoluteValue = Math.abs(value);
-
-  if (absoluteValue >= 1_000_000_000) {
-    return `${sign}${formatCompactNumber(absoluteValue / 1_000_000_000, 2)}B`;
-  }
-
-  if (absoluteValue >= 1_000_000) {
-    return `${sign}${formatCompactNumber(absoluteValue / 1_000_000, 2)}M`;
-  }
-
-  if (absoluteValue >= 1_000) {
-    return `${sign}${formatCompactNumber(absoluteValue / 1_000, 2)}K`;
-  }
-
-  if (absoluteValue >= 1) {
-    return `${sign}${formatCompactNumber(absoluteValue, 2)}`;
-  }
-
-  if (absoluteValue === 0) {
-    return "0";
-  }
-
-  return `${sign}${formatCompactNumber(absoluteValue, absoluteValue >= 0.001 ? 4 : 6)}`;
+function normalizeShelbyTickerLabel(ticker: string) {
+  return /^shelby[_-]usd$/i.test(ticker) ? "SHELBY" : ticker;
 }
 
-function formatWalletBalance(value: string) {
-  const unitlessValue = value.replace(/\s*APT\s*$/i, "").trim();
-  const numericValue = Number(unitlessValue.replace(/,/g, ""));
+function normalizeExactBalanceText(value: string) {
+  const trimmedValue = value.trim();
+  const numericMatch = /^([+-]?\d[\d,]*)(?:\.(\d+))?$/.exec(trimmedValue);
 
-  if (!Number.isFinite(numericValue)) {
-    return {
-      display: unitlessValue || value,
-      title: unitlessValue ? `${unitlessValue} APT` : undefined
-    };
+  if (!numericMatch) {
+    return trimmedValue;
   }
+
+  const [, whole, fractional = ""] = numericMatch;
+  const trimmedFractional = fractional.replace(/0+$/, "");
+
+  return trimmedFractional ? `${whole}.${trimmedFractional}` : whole;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function formatExactAssetBalance(value: string, unit?: string) {
+  const unitPattern = unit ? new RegExp(`\\s*${escapeRegExp(unit)}\\s*$`, "i") : null;
+  const unitlessValue = unitPattern ? value.replace(unitPattern, "") : value;
+  const fullValue = normalizeExactBalanceText(unitlessValue);
 
   return {
-    display: formatCompactTokenAmount(numericValue),
-    title: `${unitlessValue || formatCompactTokenAmount(numericValue)} APT`
+    display: fullValue,
+    title: unit ? `${fullValue} ${unit}` : fullValue
   };
 }
+
+type WalletAssetBalanceDisplay = ReturnType<typeof formatExactAssetBalance>;
+
+type WalletAssetRow = {
+  key: "apt" | "shelby" | "deposited";
+  label: string;
+  labelTitle?: string;
+  unit?: string;
+  value: WalletAssetBalanceDisplay | null;
+};
 
 function getChainStatusCopy(status: "idle" | "loading" | "ready" | "error", warning: string | null) {
   if (warning) return "Using last read";
@@ -90,6 +99,12 @@ export function WalletPanel() {
     notDetectedWallets,
     switchNetworkPending,
     switchWalletNetwork,
+    shelbyTokenTicker,
+    shelbyTokenTickerStatus,
+    shelbyTokenBalance,
+    shelbyTokenBalanceStatus,
+    walletBalance,
+    walletBalanceStatus,
     walletAddress,
     walletDisplayState,
     walletError,
@@ -99,35 +114,41 @@ export function WalletPanel() {
   const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   const connected = walletDisplayState === "connected";
-  const hasWalletAccount = Boolean(walletAddress) && (walletDisplayState === "connected" || walletDisplayState === "wrong_network");
   const transitioning = walletDisplayState === "connecting" || walletDisplayState === "switching";
   const pending = transitioning || walletStatus === "connecting" || switchNetworkPending;
   const statusCopy = wallet_status_copy[walletDisplayState];
   const addressCopy = walletAddress ? shortenAddress(walletAddress) : statusCopy;
   const chainStatusCopy = getChainStatusCopy(chainRead.status, chainRead.warning);
-  const walletPrimaryCopy = connected
-    ? addressCopy
-    : walletDisplayState === "switching"
-      ? "Switching wallet..."
-      : walletDisplayState === "connecting"
-        ? "Connecting..."
-        : statusCopy;
   const showWrongNetworkAction = walletStatus === "wrong_network";
-  const formattedPalateBalance = connected && !showWrongNetworkAction && palateBalanceReadStatus === "ready" ? formatWalletBalance(balance.availableBalance) : null;
-  const palateBalanceCopy = formattedPalateBalance
-    ? formattedPalateBalance.display
-    : hasWalletAccount
-      ? palateBalanceReadStatus === "loading" || palateBalanceReadStatus === "refreshing"
-        ? "Syncing..."
-        : palateBalanceReadStatus === "error"
-          ? "Unavailable"
-          : walletDisplayState === "wrong_network"
-            ? "Wrong network"
-            : "Syncing..."
-      : transitioning
-        ? "Syncing..."
-        : "Disconnected";
-  const showBalanceUnit = Boolean(formattedPalateBalance);
+  const connectedOnTargetNetwork = connected && !showWrongNetworkAction;
+  const formattedAptBalance = connectedOnTargetNetwork && walletBalanceStatus === "ready" && walletBalance ? formatExactAssetBalance(walletBalance, "APT") : null;
+  const formattedDepositedBalance = connectedOnTargetNetwork && palateBalanceReadStatus === "ready" ? formatExactAssetBalance(balance.availableBalance, "APT") : null;
+  const formattedShelbyTokenBalance = connectedOnTargetNetwork && shelbyTokenBalanceStatus === "ready" && shelbyTokenBalance?.ticker
+    ? {
+        ...formatExactAssetBalance(shelbyTokenBalance.balance, shelbyTokenBalance.ticker),
+        ticker: shelbyTokenBalance.ticker,
+      }
+    : null;
+  const shelbyTickerLabel = shelbyTokenTickerStatus === "ready" && shelbyTokenTicker ? normalizeShelbyTickerLabel(shelbyTokenTicker) : "Token";
+  const walletAssetRows: WalletAssetRow[] = [
+    {
+      key: "apt",
+      label: "APT",
+      value: formattedAptBalance
+    },
+    {
+      key: "shelby",
+      label: shelbyTickerLabel,
+      labelTitle: shelbyTokenTicker ?? undefined,
+      value: formattedShelbyTokenBalance
+    },
+    {
+      key: "deposited",
+      label: "Deposited",
+      unit: "APT",
+      value: formattedDepositedBalance
+    }
+  ];
   const walletControlLabel = pending
     ? switchNetworkPending
       ? "Switching wallet network"
@@ -185,6 +206,18 @@ export function WalletPanel() {
     setWalletModalOpen(false);
   }
 
+  function renderAssetValue(assetValue: WalletAssetBalanceDisplay | null, unit?: string) {
+    const displayValue = assetValue ? middleTruncateAssetValue(assetValue.display) : "—";
+    const title = assetValue?.title;
+
+    return (
+      <span className="wallet_asset_value" aria-label={title ?? "Not ready"} title={title}>
+        <span className="wallet_asset_number">{displayValue}</span>
+        {assetValue && unit ? <span className="wallet_asset_unit">{unit}</span> : null}
+      </span>
+    );
+  }
+
   return (
     <>
       <section className="wallet_object wallet_panel" aria-label="Wallet">
@@ -200,34 +233,28 @@ export function WalletPanel() {
             {renderWalletControlIcon()}
           </button>
         </div>
-        <div className="wallet_compact_body">
-            {hasWalletAccount ? (
-              <>
-                <span className="wallet_address_line" title={walletAddress ?? undefined}>{addressCopy}</span>
-                <span className="wallet_meta_line">
-                  <span className="wallet_network_label">
-                    {walletName ?? "Wallet"}
-                    {" \u00b7 "}
-                  </span>
-                  <span className="wallet_network_value">{networkName ?? "Network"}</span>
-                  <span className="chain_status_pill" aria-label={chainStatusCopy}>
-                    {renderChainStatusIcon()}
-                  </span>
-                </span>
-                <div className="wallet_primary_value">
-                  {showWrongNetworkAction ? (
-                    <span className="wallet_state_message">Wrong network</span>
-                  ) : (
-                    <strong className="wallet_balance_primary" title={formattedPalateBalance?.title}>
-                      <span className="wallet_balance_value">{palateBalanceCopy}</span>
-                      {showBalanceUnit ? <span className="wallet_balance_unit">APT</span> : null}
-                    </strong>
-                  )}
+        <div className="wallet_compact_body wallet_compact_body_assets">
+          <span className="wallet_address_line" title={walletAddress ?? undefined}>{addressCopy}</span>
+          <span className="wallet_meta_line">
+            <span className="wallet_network_label">
+              {walletName ?? "Wallet"}
+              {" \u00b7 "}
+            </span>
+            <span className="wallet_network_value">{networkName ?? "Network"}</span>
+            <span className="chain_status_pill" aria-label={chainStatusCopy}>
+              {renderChainStatusIcon()}
+            </span>
+          </span>
+          <div className="wallet_primary_value">
+            <div className="wallet_asset_rows" aria-label="Wallet assets">
+              {walletAssetRows.map((row) => (
+                <div className="wallet_asset_row" key={row.key}>
+                  <span className="wallet_asset_label" title={row.labelTitle}>{row.label}</span>
+                  {renderAssetValue(row.value, row.unit)}
                 </div>
-              </>
-            ) : (
-              <strong className="wallet_balance_primary wallet_balance_primary_status">{walletPrimaryCopy}</strong>
-            )}
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

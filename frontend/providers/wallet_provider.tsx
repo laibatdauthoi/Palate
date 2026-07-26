@@ -8,8 +8,8 @@ import {
 } from "@aptos-labs/wallet-adapter-react";
 import type { InputTransactionData } from "@aptos-labs/wallet-adapter-core";
 import { Network } from "@aptos-labs/ts-sdk";
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { getWalletAptBalance } from "@/services/aptos_service";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { getShelbyTokenMetadata, getShelbyTokenWalletBalance, getWalletAptBalance, type ShelbyTokenMetadata, type ShelbyTokenWalletBalance } from "@/services/aptos_service";
 import type { WalletDisplayState, WalletStatus } from "@/types/palate";
 
 type WalletContextValue = {
@@ -22,6 +22,11 @@ type WalletContextValue = {
   walletBalance: string | null;
   walletBalanceStatus: "idle" | "loading" | "ready" | "error";
   walletBalanceError: string | null;
+  shelbyTokenTicker: string | null;
+  shelbyTokenTickerStatus: "idle" | "loading" | "ready" | "error";
+  shelbyTokenBalance: ShelbyTokenWalletBalance | null;
+  shelbyTokenBalanceStatus: "idle" | "loading" | "ready" | "error";
+  shelbyTokenBalanceError: string | null;
   availableWallets: ReadonlyArray<AdapterWallet>;
   notDetectedWallets: ReadonlyArray<AdapterNotDetectedWallet>;
   connectingWalletName: string | null;
@@ -29,6 +34,7 @@ type WalletContextValue = {
   walletError: string | null;
   connectWallet: (walletName: string) => Promise<void>;
   disconnectWallet: () => Promise<void>;
+  refreshWalletAssets: () => Promise<void>;
   switchWalletNetwork: () => Promise<void>;
   signAndSubmitTransaction: (transaction: InputTransactionData) => Promise<string>;
 };
@@ -64,7 +70,13 @@ function WalletBridge({ children }: { children: ReactNode }) {
   const [walletBalance, setWalletBalance] = useState<string | null>(null);
   const [walletBalanceStatus, setWalletBalanceStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [walletBalanceError, setWalletBalanceError] = useState<string | null>(null);
+  const [shelbyTokenMetadata, setShelbyTokenMetadata] = useState<ShelbyTokenMetadata | null>(null);
+  const [shelbyTokenTickerStatus, setShelbyTokenTickerStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [shelbyTokenBalance, setShelbyTokenBalance] = useState<ShelbyTokenWalletBalance | null>(null);
+  const [shelbyTokenBalanceStatus, setShelbyTokenBalanceStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [shelbyTokenBalanceError, setShelbyTokenBalanceError] = useState<string | null>(null);
   const lastResolvedWalletAddressRef = useRef<string | null>(null);
+  const walletAssetReadIdRef = useRef(0);
 
   const walletAddress = normalizeAddress(account?.address);
   const networkName = network?.name ? String(network.name) : null;
@@ -109,36 +121,100 @@ function WalletBridge({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadWalletBalance() {
-      if (!connected || !walletAddress || wrongNetwork) {
-        setWalletBalance(null);
-        setWalletBalanceStatus("idle");
-        setWalletBalanceError(null);
-        return;
-      }
-
-      setWalletBalanceStatus("loading");
-      setWalletBalanceError(null);
+    async function loadShelbyTokenMetadata() {
+      setShelbyTokenTickerStatus("loading");
 
       try {
-        const nextBalance = await getWalletAptBalance(walletAddress);
+        const nextMetadata = await getShelbyTokenMetadata();
         if (cancelled) return;
-        setWalletBalance(nextBalance);
-        setWalletBalanceStatus("ready");
+        setShelbyTokenMetadata(nextMetadata);
+        setShelbyTokenTickerStatus("ready");
       } catch (error) {
         if (cancelled) return;
-        console.error("[Wallet balance read failed]", error);
-        setWalletBalanceStatus("error");
-        setWalletBalanceError(error instanceof Error ? error.message : "Wallet balance unavailable.");
+        console.error("[Shelby token metadata read failed]", error);
+        setShelbyTokenMetadata(null);
+        setShelbyTokenTickerStatus("error");
       }
     }
 
-    loadWalletBalance();
+    loadShelbyTokenMetadata();
 
     return () => {
       cancelled = true;
     };
-  }, [connected, walletAddress, wrongNetwork]);
+  }, []);
+
+  const refreshWalletAssets = useCallback(async () => {
+    const readId = walletAssetReadIdRef.current + 1;
+    walletAssetReadIdRef.current = readId;
+
+    if (!connected || !walletAddress || wrongNetwork) {
+      setWalletBalance(null);
+      setWalletBalanceStatus("idle");
+      setWalletBalanceError(null);
+      setShelbyTokenBalance(null);
+      setShelbyTokenBalanceStatus("idle");
+      setShelbyTokenBalanceError(null);
+      return;
+    }
+
+    const ownerAddress = walletAddress;
+    setWalletBalanceStatus("loading");
+    setWalletBalanceError(null);
+    setShelbyTokenBalanceStatus("loading");
+    setShelbyTokenBalanceError(null);
+
+    const metadataRead = (async () => {
+      if (shelbyTokenMetadata) return shelbyTokenMetadata;
+
+      setShelbyTokenTickerStatus("loading");
+      return getShelbyTokenMetadata();
+    })();
+
+    const shelbyBalanceRead = metadataRead.then((tokenMetadata) =>
+      getShelbyTokenWalletBalance(ownerAddress, tokenMetadata)
+    );
+
+    const [nextWalletBalance, nextShelbyMetadata, nextShelbyTokenBalance] = await Promise.allSettled([
+      getWalletAptBalance(ownerAddress),
+      metadataRead,
+      shelbyBalanceRead
+    ]);
+
+    if (walletAssetReadIdRef.current !== readId) return;
+
+    if (nextWalletBalance.status === "fulfilled") {
+      setWalletBalance(nextWalletBalance.value);
+      setWalletBalanceStatus("ready");
+    } else {
+      console.error("[Wallet balance read failed]", nextWalletBalance.reason);
+      setWalletBalanceStatus("error");
+      setWalletBalanceError(nextWalletBalance.reason instanceof Error ? nextWalletBalance.reason.message : "Wallet balance unavailable.");
+    }
+
+    if (nextShelbyMetadata.status === "fulfilled") {
+      setShelbyTokenMetadata(nextShelbyMetadata.value);
+      setShelbyTokenTickerStatus("ready");
+    } else {
+      console.error("[Shelby token metadata read failed]", nextShelbyMetadata.reason);
+      setShelbyTokenMetadata(null);
+      setShelbyTokenTickerStatus("error");
+    }
+
+    if (nextShelbyTokenBalance.status === "fulfilled") {
+      setShelbyTokenBalance(nextShelbyTokenBalance.value);
+      setShelbyTokenBalanceStatus("ready");
+    } else {
+      console.error("[Shelby token balance read failed]", nextShelbyTokenBalance.reason);
+      setShelbyTokenBalance(null);
+      setShelbyTokenBalanceStatus("error");
+      setShelbyTokenBalanceError(nextShelbyTokenBalance.reason instanceof Error ? nextShelbyTokenBalance.reason.message : "Shelby token balance unavailable.");
+    }
+  }, [connected, shelbyTokenMetadata, walletAddress, wrongNetwork]);
+
+  useEffect(() => {
+    void refreshWalletAssets();
+  }, [refreshWalletAssets]);
 
   const value = useMemo<WalletContextValue>(
     () => ({
@@ -151,6 +227,11 @@ function WalletBridge({ children }: { children: ReactNode }) {
       walletBalance,
       walletBalanceStatus,
       walletBalanceError,
+      shelbyTokenTicker: shelbyTokenMetadata?.ticker ?? null,
+      shelbyTokenTickerStatus,
+      shelbyTokenBalance,
+      shelbyTokenBalanceStatus,
+      shelbyTokenBalanceError,
       availableWallets: wallets,
       notDetectedWallets,
       connectingWalletName,
@@ -171,6 +252,7 @@ function WalletBridge({ children }: { children: ReactNode }) {
         setWalletError(null);
         await Promise.resolve(disconnect());
       },
+      refreshWalletAssets,
       switchWalletNetwork: async () => {
         if (switchNetworkPending) return;
 
@@ -199,7 +281,13 @@ function WalletBridge({ children }: { children: ReactNode }) {
       networkName,
       notDetectedWallets,
       providerReady,
+      refreshWalletAssets,
       signAndSubmitTransaction,
+      shelbyTokenMetadata,
+      shelbyTokenBalance,
+      shelbyTokenBalanceError,
+      shelbyTokenBalanceStatus,
+      shelbyTokenTickerStatus,
       switchNetworkPending,
       walletBalance,
       walletBalanceError,
