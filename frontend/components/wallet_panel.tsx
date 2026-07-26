@@ -107,7 +107,6 @@ export function WalletPanel() {
     networkName,
     notDetectedWallets,
     switchNetworkPending,
-    switchWalletNetwork,
     shelbyTokenTicker,
     shelbyTokenTickerStatus,
     shelbyTokenBalance,
@@ -122,6 +121,7 @@ export function WalletPanel() {
   const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   const connected = walletDisplayState === "connected";
+  const walletAccountConnected = Boolean(walletAddress) && (walletDisplayState === "connected" || walletDisplayState === "wrong_network");
   const transitioning = walletDisplayState === "connecting" || walletDisplayState === "switching";
   const pending = transitioning || walletStatus === "connecting" || switchNetworkPending;
   const activeWalletLoading = transitioning || walletStatus === "connecting" || switchNetworkPending;
@@ -147,7 +147,7 @@ export function WalletPanel() {
       : chainRead.status === "error"
         ? "Connection error"
         : "Wallet connected";
-  const formattedAptBalance = connectedOnTargetNetwork && walletBalanceStatus === "ready" && walletBalance ? formatExactAssetBalance(walletBalance, "APT") : null;
+  const formattedAptBalance = walletAccountConnected && walletBalanceStatus === "ready" && walletBalance ? formatExactAssetBalance(walletBalance, "APT") : null;
   const formattedDepositedBalance = connectedOnTargetNetwork && palateBalanceReadStatus === "ready" ? formatExactAssetBalance(balance.availableBalance, "APT") : null;
   const formattedShelbyTokenBalance = connectedOnTargetNetwork && shelbyTokenBalanceStatus === "ready" && shelbyTokenBalance?.ticker
     ? {
@@ -160,8 +160,8 @@ export function WalletPanel() {
     {
       key: "apt",
       label: "APT",
-      status: getAssetRowStatus(formattedAptBalance, walletBalanceStatus, connectedOnTargetNetwork, activeWalletLoading),
-      statusTitle: connectedOnTargetNetwork && walletBalanceStatus === "error" ? "APT balance unavailable" : walletIssueTitle,
+      status: getAssetRowStatus(formattedAptBalance, walletBalanceStatus, walletAccountConnected, activeWalletLoading),
+      statusTitle: walletAccountConnected && walletBalanceStatus === "error" ? "APT balance unavailable" : walletIssueTitle,
       value: formattedAptBalance
     },
     {
@@ -187,9 +187,7 @@ export function WalletPanel() {
       : walletDisplayState === "switching"
       ? "Switching wallet"
       : "Connecting wallet"
-    : showWrongNetworkAction
-      ? "Switch wallet network to Aptos Testnet"
-      : connected
+    : walletAccountConnected
         ? "Disconnect wallet"
         : "Connect wallet";
 
@@ -210,7 +208,7 @@ export function WalletPanel() {
       return <LoaderCircle aria-hidden="true" className="wallet_control_icon wallet_control_icon_loading" strokeWidth={2.2} />;
     }
 
-    if (connected || showWrongNetworkAction) {
+    if (walletAccountConnected) {
       return <Unplug aria-hidden="true" className="wallet_control_icon" strokeWidth={2.2} />;
     }
 
@@ -220,12 +218,7 @@ export function WalletPanel() {
   async function handleWalletControlClick() {
     if (pending) return;
 
-    if (showWrongNetworkAction) {
-      await switchWalletNetwork();
-      return;
-    }
-
-    if (connected) {
+    if (walletAccountConnected) {
       await disconnectWallet();
       return;
     }

@@ -33,6 +33,7 @@ const aptos_config = new AptosConfig({
     : undefined
 });
 const aptos = new Aptos(aptos_config);
+const aptos_clients_by_network = new Map<Network, Aptos>([[Network.TESTNET, aptos]]);
 const OCTAS_PER_APT = BigInt(100000000);
 const view_retry_count = 2;
 const view_retry_delay_ms = 250;
@@ -46,6 +47,17 @@ const aptos_coin_store_resource = `0x1::coin::CoinStore<${aptos_coin_type}>`;
 const aptos_api_key_header_name = "Authorization";
 const primary_fungible_store_balance_function = "0x1::primary_fungible_store::balance";
 const object_core_type = "0x1::object::ObjectCore";
+
+function getAptosClientForNetwork(network: Network) {
+  const cachedClient = aptos_clients_by_network.get(network);
+  if (cachedClient) {
+    return cachedClient;
+  }
+
+  const nextClient = new Aptos(new AptosConfig({ network }));
+  aptos_clients_by_network.set(network, nextClient);
+  return nextClient;
+}
 
 export type ShelbyTokenWalletBalance = {
   ticker: string;
@@ -1003,41 +1015,48 @@ export async function getProtocolConfig(options: ReadGroupOptions = {}): Promise
   );
 }
 
-export async function getWalletAptBalance(walletAddress: string): Promise<string> {
+export async function getWalletAptBalance(walletAddress: string, options: { network?: Network } = {}): Promise<string> {
+  const network = options.network ?? Network.TESTNET;
+  const walletAptosClient = getAptosClientForNetwork(network);
   const readers: Array<() => Promise<number | string | bigint>> = [
     () =>
       readWithDiagnostics(
         "wallet:getBalance",
-        () => aptos.getBalance({ accountAddress: walletAddress, asset: aptos_coin_type }),
+        () => walletAptosClient.getBalance({ accountAddress: walletAddress, asset: aptos_coin_type }),
         {
           endpoint: "accounts/getBalance",
           retries: wallet_balance_retry_count,
           delayMs: wallet_balance_retry_delay_ms,
-          dedupeKey: `wallet-balance:${walletAddress}`
-        }
-      ),
-    () =>
-      readWithDiagnostics(
-        "wallet:getAccountResource:CoinStore",
-        async () => {
-          const resource = await fetchJsonWithDiagnostics<{ data: { coin?: { value?: string | number | bigint } } }>(
-            "wallet:getAccountResource:CoinStore",
-            `/accounts/${walletAddress}/resource/${encodeURIComponent(aptos_coin_store_resource)}`
-          );
-          const value = resource.data?.coin?.value;
-          if (value === undefined || value === null) {
-            throw new Error("CoinStore balance field is missing.");
-          }
-          return value;
-        },
-        {
-          endpoint: `/accounts/${walletAddress}/resource/${aptos_coin_store_resource}`,
-          retries: wallet_balance_retry_count,
-          delayMs: wallet_balance_retry_delay_ms,
-          dedupeKey: `wallet-balance:${walletAddress}:fallback`
+          dedupeKey: `wallet-balance:${network}:${walletAddress}`
         }
       )
   ];
+
+  if (network === Network.TESTNET) {
+    readers.push(
+      () =>
+        readWithDiagnostics(
+          "wallet:getAccountResource:CoinStore",
+          async () => {
+            const resource = await fetchJsonWithDiagnostics<{ data: { coin?: { value?: string | number | bigint } } }>(
+              "wallet:getAccountResource:CoinStore",
+              `/accounts/${walletAddress}/resource/${encodeURIComponent(aptos_coin_store_resource)}`
+            );
+            const value = resource.data?.coin?.value;
+            if (value === undefined || value === null) {
+              throw new Error("CoinStore balance field is missing.");
+            }
+            return value;
+          },
+          {
+            endpoint: `/accounts/${walletAddress}/resource/${aptos_coin_store_resource}`,
+            retries: wallet_balance_retry_count,
+            delayMs: wallet_balance_retry_delay_ms,
+            dedupeKey: `wallet-balance:${network}:${walletAddress}:fallback`
+          }
+        )
+    );
+  }
 
   let lastError: unknown;
   let sawMissingCoinStore = false;
