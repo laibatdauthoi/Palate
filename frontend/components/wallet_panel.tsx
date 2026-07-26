@@ -87,9 +87,11 @@ type WalletAssetRow = {
 function getAssetRowStatus(
   value: WalletAssetBalanceDisplay | null,
   readStatus: "idle" | "loading" | "refreshing" | "ready" | "error",
-  connectedOnTargetNetwork: boolean
+  connectedOnTargetNetwork: boolean,
+  activeWalletLoading: boolean
 ): WalletAssetRowStatus {
   if (value) return "ready";
+  if (activeWalletLoading) return "loading";
   if (!connectedOnTargetNetwork || readStatus === "error") return "warning";
   return "loading";
 }
@@ -122,6 +124,7 @@ export function WalletPanel() {
   const connected = walletDisplayState === "connected";
   const transitioning = walletDisplayState === "connecting" || walletDisplayState === "switching";
   const pending = transitioning || walletStatus === "connecting" || switchNetworkPending;
+  const activeWalletLoading = transitioning || walletStatus === "connecting" || switchNetworkPending;
   const statusCopy = wallet_status_copy[walletDisplayState];
   const addressCopy = walletAddress ? shortenAddress(walletAddress) : statusCopy;
   const showWrongNetworkAction = walletStatus === "wrong_network";
@@ -157,7 +160,7 @@ export function WalletPanel() {
     {
       key: "apt",
       label: "APT",
-      status: getAssetRowStatus(formattedAptBalance, walletBalanceStatus, connectedOnTargetNetwork),
+      status: getAssetRowStatus(formattedAptBalance, walletBalanceStatus, connectedOnTargetNetwork, activeWalletLoading),
       statusTitle: connectedOnTargetNetwork && walletBalanceStatus === "error" ? "APT balance unavailable" : walletIssueTitle,
       value: formattedAptBalance
     },
@@ -165,14 +168,14 @@ export function WalletPanel() {
       key: "shelby",
       label: shelbyTickerLabel,
       labelTitle: shelbyTokenTicker ?? undefined,
-      status: getAssetRowStatus(formattedShelbyTokenBalance, shelbyTokenBalanceStatus, connectedOnTargetNetwork),
+      status: getAssetRowStatus(formattedShelbyTokenBalance, shelbyTokenBalanceStatus, connectedOnTargetNetwork, activeWalletLoading),
       statusTitle: connectedOnTargetNetwork && shelbyTokenBalanceStatus === "error" ? "SHELBY balance unavailable" : walletIssueTitle,
       value: formattedShelbyTokenBalance
     },
     {
       key: "deposited",
       label: "Deposited",
-      status: getAssetRowStatus(formattedDepositedBalance, palateBalanceReadStatus, connectedOnTargetNetwork),
+      status: getAssetRowStatus(formattedDepositedBalance, palateBalanceReadStatus, connectedOnTargetNetwork, activeWalletLoading),
       statusTitle: connectedOnTargetNetwork && palateBalanceReadStatus === "error" ? "Deposited balance unavailable" : walletIssueTitle,
       unit: "APT",
       value: formattedDepositedBalance
@@ -191,6 +194,10 @@ export function WalletPanel() {
         : "Connect wallet";
 
   function renderChainStatusIcon() {
+    if (activeWalletLoading) {
+      return <LoaderCircle aria-hidden="true" className="chain_status_icon_svg wallet_control_icon_loading" strokeWidth={2.2} />;
+    }
+
     if (!connectedOnTargetNetwork || chainRead.warning || chainRead.status === "error") {
       return <CircleAlert aria-hidden="true" className="chain_status_icon_svg chain_status_icon_svg_error" strokeWidth={2.2} />;
     }
