@@ -129,7 +129,7 @@ export function WalletPanel() {
         ticker: shelbyTokenBalance.ticker,
       }
     : null;
-  const shelbyTickerLabel = shelbyTokenTickerStatus === "ready" && shelbyTokenTicker ? normalizeShelbyTickerLabel(shelbyTokenTicker) : "Token";
+  const shelbyTickerLabel = shelbyTokenTickerStatus === "ready" && shelbyTokenTicker ? normalizeShelbyTickerLabel(shelbyTokenTicker) : "SHELBY";
   const walletAssetRows: WalletAssetRow[] = [
     {
       key: "apt",
@@ -207,13 +207,21 @@ export function WalletPanel() {
   }
 
   function renderAssetValue(assetValue: WalletAssetBalanceDisplay | null, unit?: string) {
-    const displayValue = assetValue ? middleTruncateAssetValue(assetValue.display) : "—";
-    const title = assetValue?.title;
+    if (!assetValue) {
+      return (
+        <span className="wallet_asset_value wallet_asset_value_loading" aria-label="Loading">
+          <LoaderCircle aria-hidden="true" className="wallet_asset_loading_icon" strokeWidth={2.2} />
+        </span>
+      );
+    }
+
+    const displayValue = middleTruncateAssetValue(assetValue.display);
+    const title = assetValue.title;
 
     return (
       <span className="wallet_asset_value" aria-label={title ?? "Not ready"} title={title}>
         <span className="wallet_asset_number">{displayValue}</span>
-        {assetValue && unit ? <span className="wallet_asset_unit">{unit}</span> : null}
+        {unit ? <span className="wallet_asset_unit">{unit}</span> : null}
       </span>
     );
   }

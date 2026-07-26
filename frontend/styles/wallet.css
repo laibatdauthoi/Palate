@@ -9,7 +9,7 @@
   --wallet-avatar-size: 42px;
   --wallet-content-top-offset: 50px;
   --wallet-meta-shift-y: -3px;
-  --wallet-balance-shift-y: -3px;
+  --wallet-balance-shift-y: -2px;
   --wallet-control-hit-size: 40px;
   --wallet-control-size: 36px;
   --wallet-control-icon-size: 17px;
@@ -104,7 +104,7 @@
 .wallet_asset_rows {
   display: grid;
   min-width: 0;
-  gap: 3px;
+  gap: 1px;
 }
 
 .wallet_asset_row {
@@ -113,7 +113,7 @@
   grid-template-columns: minmax(48px, max-content) minmax(0, 1fr);
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.18;
 }
 
@@ -137,6 +137,18 @@
   gap: 2px;
   text-align: right;
   white-space: nowrap;
+}
+
+.wallet_asset_value_loading {
+  align-items: center;
+}
+
+.wallet_asset_loading_icon {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  color: var(--ui-text-muted);
+  animation: loading_spinner_rotate 0.9s linear infinite;
 }
 
 .wallet_asset_number {
