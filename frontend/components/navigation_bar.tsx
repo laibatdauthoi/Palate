@@ -35,8 +35,8 @@ function getActiveNavIndex(pathname: string) {
   return nav_items.findIndex((item) => (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)));
 }
 
-function getShapeClass(sequenceIndex: number) {
-  return Math.abs(sequenceIndex % 2) === 0 ? "nav_shape_a" : "nav_shape_b";
+function getShapeClass(slotIndex: number) {
+  return slotIndex === 1 ? "nav_shape_b" : "nav_shape_a";
 }
 
 export function BrandRegion() {
@@ -94,7 +94,7 @@ export function NavigationRegion() {
           item: nav_items[itemIndex],
           itemIndex,
           sequenceIndex,
-          shapeClass: getShapeClass(sequenceIndex),
+          shapeClass: getShapeClass(slotIndex),
           slot
         };
       }),
