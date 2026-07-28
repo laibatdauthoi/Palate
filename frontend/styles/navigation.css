@@ -25,6 +25,13 @@
   --nav-panel-height: clamp(118px, 14.5vh, 142px);
   --nav-panel-gap: 0px;
   --nav-panel-overlap: -16px;
+  --nav-slot-step: calc(var(--nav-panel-height) + var(--nav-panel-overlap));
+  --nav-backing-inset: 6px;
+  --nav-backing-edge-width: 1px;
+  --nav-backing-width: calc(var(--nav-panel-width) + var(--nav-backing-inset) + var(--nav-backing-inset));
+  --nav-backing-height: calc(var(--nav-panel-height) + var(--nav-slot-step) + var(--nav-slot-step) + var(--nav-backing-inset) + var(--nav-backing-inset));
+  --nav-tab-edge-rise: calc(var(--nav-panel-height) * 0.19);
+  --nav-backing-slant: calc(var(--nav-tab-edge-rise) * var(--nav-backing-width) / var(--nav-panel-width));
   --nav-panel-pad-x: 9px;
   --nav-panel-pad-y: 14px;
   --nav-link-label-size: 16px;
@@ -90,6 +97,8 @@
 }
 
 .nav_links {
+  position: relative;
+  isolation: isolate;
   display: grid;
   align-content: start;
   align-items: start;
@@ -101,10 +110,42 @@
   margin-left: 0;
   padding-right: 0;
   padding-left: 0;
-  overflow: hidden;
+  overflow: visible;
   cursor: grab;
   touch-action: pan-x;
   user-select: none;
+}
+
+.nav_links::before,
+.nav_links::after {
+  position: absolute;
+  left: 50%;
+  content: "";
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.nav_links::before {
+  z-index: 0;
+  top: calc(-1 * var(--nav-backing-inset));
+  width: var(--nav-backing-width);
+  height: var(--nav-backing-height);
+  background: var(--ui-border-subtle);
+  clip-path: polygon(0 0, 100% var(--nav-backing-slant), 100% calc(100% - var(--nav-backing-slant)), 0 100%);
+}
+
+.nav_links::after {
+  z-index: 0;
+  top: calc(-1 * var(--nav-backing-inset) + var(--nav-backing-edge-width));
+  width: calc(var(--nav-backing-width) - var(--nav-backing-edge-width) - var(--nav-backing-edge-width));
+  height: calc(var(--nav-backing-height) - var(--nav-backing-edge-width) - var(--nav-backing-edge-width));
+  background: var(--ui-surface-3);
+  clip-path: polygon(
+    0 0,
+    100% calc(var(--nav-backing-slant) - var(--nav-backing-edge-width)),
+    100% calc(100% - var(--nav-backing-slant) + var(--nav-backing-edge-width)),
+    0 100%
+  );
 }
 
 .nav_links[data-dragging="true"] {
@@ -112,6 +153,8 @@
 }
 
 .nav_wheel_stack {
+  position: relative;
+  z-index: 1;
   display: grid;
   align-content: start;
   justify-items: center;
