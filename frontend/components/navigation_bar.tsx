@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent } from "react";
-import { House, Images, UserRound } from "lucide-react";
+import { House, Images, Trophy, UserRound } from "lucide-react";
 import { usePalate } from "@/providers/palate_provider";
 import { logUiPerf, startRouteTransition, uiPerfNow } from "@/utils/ui_perf";
 import { WalletPanel } from "./wallet_panel";
@@ -13,7 +13,8 @@ import { WalletPanel } from "./wallet_panel";
 const nav_items = [
   { label: "Home", href: "/", icon: House },
   { label: "My Media", href: "/my-media", icon: Images },
-  { label: "Profile", href: "/profile", icon: UserRound }
+  { label: "Profile", href: "/profile", icon: UserRound },
+  { label: "Leaderboard", href: "/leaderboard", icon: Trophy }
 ];
 
 const BRAND_LOGO_SOURCE_SIZE = 96;
@@ -247,7 +248,14 @@ export function NavigationRegion() {
     setPointerInsideNav(false);
   };
 
-  const handleNavFocus = () => {
+  const handleNavFocus = (event: FocusEvent<HTMLDivElement>) => {
+    const keyboardFocus = event.target instanceof HTMLElement && event.target.matches(":focus-visible");
+
+    if (!keyboardFocus) {
+      setFocusInsideNav(false);
+      return;
+    }
+
     clearAutoAdvanceTimer();
     setFocusInsideNav(true);
   };
@@ -417,7 +425,7 @@ export function NavigationRegion() {
                 data-sequence={sequenceIndex}
                 data-slot={slot}
                 href={item.href}
-                key={`${sequenceIndex}-${item.href}`}
+                key={item.href}
                 onClick={() => {
                   recordNavigation(item.label, item.href);
                 }}
