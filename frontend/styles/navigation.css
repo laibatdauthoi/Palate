@@ -29,6 +29,7 @@
   --nav-backing-inset: 7px;
   --nav-backing-block-inset: 8px;
   --nav-backing-edge-width: 1px;
+  --nav-backing-side-edge-width: 0.5px;
   --nav-backing-width: calc(var(--nav-panel-width) + var(--nav-backing-inset) + var(--nav-backing-inset));
   --nav-backing-height: calc(var(--nav-panel-height) + var(--nav-slot-step) + var(--nav-slot-step) + var(--nav-backing-block-inset) + var(--nav-backing-block-inset));
   --nav-tab-edge-rise: calc(var(--nav-panel-height) * 0.19);
@@ -138,7 +139,7 @@
 .nav_links::after {
   z-index: 0;
   top: calc(-1 * var(--nav-backing-block-inset) + var(--nav-backing-edge-width));
-  width: calc(var(--nav-backing-width) - var(--nav-backing-edge-width) - var(--nav-backing-edge-width));
+  width: calc(var(--nav-backing-width) - var(--nav-backing-side-edge-width) - var(--nav-backing-side-edge-width));
   height: calc(var(--nav-backing-height) - var(--nav-backing-edge-width) - var(--nav-backing-edge-width));
   background: var(--ui-surface-3);
   clip-path: polygon(
