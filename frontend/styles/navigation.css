@@ -131,7 +131,7 @@
   top: calc(-1 * var(--nav-backing-block-inset));
   width: var(--nav-backing-width);
   height: var(--nav-backing-height);
-  background: var(--ui-border-subtle);
+  background: color-mix(in srgb, var(--ui-border-subtle) 60%, var(--ui-border-strong));
   clip-path: polygon(0 0, 100% var(--nav-backing-slant), 100% calc(100% - var(--nav-backing-slant)), 0 100%);
 }
 
