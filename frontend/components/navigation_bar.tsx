@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from "react";
+import type { CSSProperties, FocusEvent, KeyboardEvent, MouseEvent, PointerEvent } from "react";
 import { House, Images, UserRound } from "lucide-react";
 import { usePalate } from "@/providers/palate_provider";
 import { logUiPerf, startRouteTransition, uiPerfNow } from "@/utils/ui_perf";
@@ -20,6 +20,7 @@ const BRAND_LOGO_SOURCE_SIZE = 96;
 const NAV_WHEEL_THRESHOLD = 48;
 const NAV_WHEEL_COOLDOWN_MS = 220;
 const NAV_MOTION_MS = 220;
+const NAV_AUTO_ADVANCE_MS = 5000;
 const NAV_DRAG_THRESHOLD_PX = 6;
 const NAV_DRAG_STEP = 56;
 const NAV_DRAG_LIMIT = 128;
@@ -77,11 +78,15 @@ export function NavigationRegion() {
   const [motionDirection, setMotionDirection] = useState<NavMotionDirection>("idle");
   const [dragging, setDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
+  const [pointerInsideNav, setPointerInsideNav] = useState(false);
+  const [focusInsideNav, setFocusInsideNav] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const navLinksRef = useRef<HTMLDivElement | null>(null);
   const wheelAccumulatorRef = useRef(0);
   const wheelLockedRef = useRef(false);
   const wheelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const motionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoAdvanceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activePointerIdRef = useRef<number | null>(null);
   const dragStartYRef = useRef(0);
   const dragOffsetRef = useRef(0);
@@ -110,6 +115,13 @@ export function NavigationRegion() {
     if (motionTimerRef.current) {
       clearTimeout(motionTimerRef.current);
       motionTimerRef.current = null;
+    }
+  }, []);
+
+  const clearAutoAdvanceTimer = useCallback(() => {
+    if (autoAdvanceTimerRef.current) {
+      clearInterval(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
     }
   }, []);
 
@@ -183,17 +195,70 @@ export function NavigationRegion() {
     };
   }, [handleWheelDelta]);
 
+  useEffect(() => {
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncReducedMotion = () => setReducedMotion(reducedMotionQuery.matches);
+
+    syncReducedMotion();
+    reducedMotionQuery.addEventListener("change", syncReducedMotion);
+
+    return () => {
+      reducedMotionQuery.removeEventListener("change", syncReducedMotion);
+    };
+  }, []);
+
+  useEffect(() => {
+    clearAutoAdvanceTimer();
+
+    if (pointerInsideNav || focusInsideNav || reducedMotion) {
+      return undefined;
+    }
+
+    autoAdvanceTimerRef.current = setInterval(() => {
+      if (motionTimerRef.current || wheelLockedRef.current || possibleDragRef.current || draggingRef.current) {
+        return;
+      }
+
+      rotateCarouselBy(1);
+    }, NAV_AUTO_ADVANCE_MS);
+
+    return clearAutoAdvanceTimer;
+  }, [clearAutoAdvanceTimer, focusInsideNav, pointerInsideNav, reducedMotion, rotateCarouselBy]);
+
   useEffect(
     () => () => {
       clearMotionTimer();
+      clearAutoAdvanceTimer();
 
       if (wheelTimerRef.current) {
         clearTimeout(wheelTimerRef.current);
         wheelTimerRef.current = null;
       }
     },
-    [clearMotionTimer]
+    [clearAutoAdvanceTimer, clearMotionTimer]
   );
+
+  const handleNavPointerEnter = () => {
+    clearAutoAdvanceTimer();
+    setPointerInsideNav(true);
+  };
+
+  const handleNavPointerLeave = () => {
+    setPointerInsideNav(false);
+  };
+
+  const handleNavFocus = () => {
+    clearAutoAdvanceTimer();
+    setFocusInsideNav(true);
+  };
+
+  const handleNavBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (event.relatedTarget && event.currentTarget.contains(event.relatedTarget as Node)) {
+      return;
+    }
+
+    setFocusInsideNav(false);
+  };
 
   const handleNavKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "ArrowDown") {
@@ -328,9 +393,13 @@ export function NavigationRegion() {
         data-dragging={dragging ? "true" : "false"}
         data-motion={motionDirection}
         onClickCapture={handleNavClickCapture}
+        onBlur={handleNavBlur}
+        onFocus={handleNavFocus}
         onKeyDown={handleNavKeyDown}
         onPointerCancel={cancelPointerDrag}
         onPointerDown={handlePointerDown}
+        onPointerEnter={handleNavPointerEnter}
+        onPointerLeave={handleNavPointerLeave}
         onPointerMove={handlePointerMove}
         onPointerUp={finishPointerDrag}
         ref={navLinksRef}
