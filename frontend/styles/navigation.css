@@ -26,7 +26,7 @@
   --nav-panel-gap: 0px;
   --nav-panel-overlap: -16px;
   --nav-slot-step: calc(var(--nav-panel-height) + var(--nav-panel-overlap));
-  --nav-backing-inset: 6px;
+  --nav-backing-inset: 7px;
   --nav-backing-edge-width: 1px;
   --nav-backing-width: calc(var(--nav-panel-width) + var(--nav-backing-inset) + var(--nav-backing-inset));
   --nav-backing-height: calc(var(--nav-panel-height) + var(--nav-slot-step) + var(--nav-slot-step) + var(--nav-backing-inset) + var(--nav-backing-inset));
