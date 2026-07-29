@@ -27,9 +27,10 @@
   --nav-panel-overlap: -16px;
   --nav-slot-step: calc(var(--nav-panel-height) + var(--nav-panel-overlap));
   --nav-backing-inset: 7px;
+  --nav-backing-block-inset: 8px;
   --nav-backing-edge-width: 1px;
   --nav-backing-width: calc(var(--nav-panel-width) + var(--nav-backing-inset) + var(--nav-backing-inset));
-  --nav-backing-height: calc(var(--nav-panel-height) + var(--nav-slot-step) + var(--nav-slot-step) + var(--nav-backing-inset) + var(--nav-backing-inset));
+  --nav-backing-height: calc(var(--nav-panel-height) + var(--nav-slot-step) + var(--nav-slot-step) + var(--nav-backing-block-inset) + var(--nav-backing-block-inset));
   --nav-tab-edge-rise: calc(var(--nav-panel-height) * 0.19);
   --nav-backing-slant: calc(var(--nav-tab-edge-rise) * var(--nav-backing-width) / var(--nav-panel-width));
   --nav-panel-pad-x: 9px;
@@ -127,7 +128,7 @@
 
 .nav_links::before {
   z-index: 0;
-  top: calc(-1 * var(--nav-backing-inset));
+  top: calc(-1 * var(--nav-backing-block-inset));
   width: var(--nav-backing-width);
   height: var(--nav-backing-height);
   background: var(--ui-border-subtle);
@@ -136,7 +137,7 @@
 
 .nav_links::after {
   z-index: 0;
-  top: calc(-1 * var(--nav-backing-inset) + var(--nav-backing-edge-width));
+  top: calc(-1 * var(--nav-backing-block-inset) + var(--nav-backing-edge-width));
   width: calc(var(--nav-backing-width) - var(--nav-backing-edge-width) - var(--nav-backing-edge-width));
   height: calc(var(--nav-backing-height) - var(--nav-backing-edge-width) - var(--nav-backing-edge-width));
   background: var(--ui-surface-3);
