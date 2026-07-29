@@ -39,6 +39,11 @@ function getShapeClass(slotIndex: number) {
   return slotIndex === 1 ? "nav_shape_b" : "nav_shape_a";
 }
 
+function getWheelRotationSteps(accumulatedDeltaY: number) {
+  // Wheel-up is a negative delta and should move the visual stack upward by one slot.
+  return accumulatedDeltaY < 0 ? 1 : -1;
+}
+
 export function BrandRegion() {
   const [logoAvailable, setLogoAvailable] = useState(true);
 
@@ -143,7 +148,7 @@ export function NavigationRegion() {
         return;
       }
 
-      const steps = wheelAccumulatorRef.current > 0 ? 1 : -1;
+      const steps = getWheelRotationSteps(wheelAccumulatorRef.current);
       wheelAccumulatorRef.current = 0;
       wheelLockedRef.current = true;
       rotateCarouselBy(steps);
