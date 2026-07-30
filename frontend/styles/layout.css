@@ -13,6 +13,7 @@
   --layout-wallet-region-bottom: var(--wallet-outer-inset);
   --layout-left-wallet-hide-height: 624px;
   --layout-left-nav-hide-height: 496px;
+  --layout-left-collapse-width: 560px;
   display: grid;
   grid-template-areas:
     "brand main"
@@ -103,7 +104,7 @@
 }
 
 /* Mirrors --layout-left-nav-hide-height. */
-@media (max-height: 496px) {
+@media (max-height: 496px), (max-width: 560px) {
   .app_shell {
     grid-template-areas: "main";
     grid-template-columns: minmax(0, 1fr);
