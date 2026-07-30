@@ -14,6 +14,10 @@
   --layout-left-wallet-hide-height: 624px;
   --layout-left-nav-hide-height: 496px;
   --layout-left-collapse-width: 560px;
+  --layout-main-inset: clamp(20px, 2vw, 32px);
+  --layout-main-top-inset: calc(var(--layout-main-inset) - 6px);
+  --layout-main-start-inset: clamp(24px, 1.6vw, 28px);
+  --layout-main-bottom-inset: clamp(36px, 5vw, 72px);
   display: grid;
   grid-template-areas:
     "brand main"
@@ -35,7 +39,7 @@
   grid-area: brand;
   align-self: start;
   justify-self: center;
-  margin-top: 20px;
+  margin-top: 14px;
 }
 
 .navigation_region {
@@ -69,7 +73,7 @@
   min-width: 0;
   min-height: 0;
   margin: 0;
-  padding: clamp(32px, 5vw, 72px) clamp(28px, 5vw, 88px) clamp(48px, 7vw, 96px);
+  padding: var(--layout-main-top-inset) var(--layout-main-inset) var(--layout-main-bottom-inset) var(--layout-main-start-inset);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
