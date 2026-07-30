@@ -84,37 +84,28 @@
   }
 }
 
-.mobile_only {
-  display: none;
-}
-
-@media (max-width: 639px) {
-  body {
-    padding-bottom: calc(var(--bottom-nav-height) + var(--spacing-2xl));
-  }
-
-  .desktop_only {
-    display: none !important;
-  }
-
-  .mobile_only {
-    display: block;
-  }
-
-  .mobile_bottom_nav.mobile_only {
-    display: grid;
-  }
-
+@media (max-height: 624px) {
   .app_shell {
-    display: block;
-    height: auto;
-    overflow: visible;
+    grid-template-areas: "main";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .app_shell .brand_region,
+  .app_shell .navigation_region,
+  .app_shell .wallet_region {
+    display: none;
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .main_content {
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-    padding: var(--spacing-md) var(--spacing-md) calc(var(--spacing-2xl) + 96px);
+    justify-self: center;
+    max-width: 1180px;
+    padding: clamp(24px, 4vw, 56px) clamp(20px, 4vw, 56px) clamp(36px, 6vw, 72px);
   }
+}
+
+.mobile_only {
+  display: none;
 }
