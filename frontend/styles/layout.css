@@ -126,7 +126,7 @@
   .main_content {
     justify-self: center;
     max-width: 1180px;
-    padding: clamp(24px, 4vw, 56px) clamp(20px, 4vw, 56px) clamp(36px, 6vw, 72px);
+    padding: var(--layout-main-top-inset) clamp(20px, 4vw, 56px) clamp(36px, 6vw, 72px);
   }
 }
 
