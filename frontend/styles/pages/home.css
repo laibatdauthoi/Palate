@@ -316,27 +316,26 @@
      or shared responsive constraints. */
 }
 
-/* Editorial desktop composition: keep the waiting and match collections
-   related, but give the primary item more room than its companions. */
+/* Editorial desktop composition: keep Home in a single top-to-bottom reading
+   order while allowing the waiting and match collections to keep desktop width. */
 @media (min-width: 1200px) {
   .page_home {
     width: min(100%, 1180px);
     margin-inline: auto;
-    grid-template-columns: minmax(260px, 0.74fr) minmax(0, 1.26fr);
-    column-gap: clamp(36px, 5vw, 84px);
+    grid-template-columns: minmax(0, 1fr);
     row-gap: var(--spacing-3xl);
   }
 
   .page_home > .page_header {
     grid-column: 1;
-    grid-row: 1 / span 3;
+    grid-row: auto;
     align-self: start;
   }
 
   .page_home > .filter_bar,
   .page_home > .feedback_text,
   .page_home > .home_activity_content {
-    grid-column: 2;
+    grid-column: 1;
   }
 
   .page_home .page_header_content {

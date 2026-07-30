@@ -17,7 +17,13 @@
   --layout-main-inset: clamp(20px, 2vw, 32px);
   --layout-main-top-inset: calc(var(--layout-main-inset) - 6px);
   --layout-main-start-inset: clamp(24px, 1.6vw, 28px);
+  --layout-main-end-inset: var(--layout-main-inset);
   --layout-main-bottom-inset: clamp(36px, 5vw, 72px);
+  --layout-main-collapsed-inline-inset: clamp(20px, 4vw, 56px);
+  --layout-main-collapsed-bottom-inset: clamp(36px, 6vw, 72px);
+  --layout-main-current-start-inset: var(--layout-main-start-inset);
+  --layout-main-current-end-inset: var(--layout-main-end-inset);
+  --layout-main-current-bottom-inset: var(--layout-main-bottom-inset);
   display: grid;
   grid-template-areas:
     "brand main"
@@ -73,7 +79,7 @@
   min-width: 0;
   min-height: 0;
   margin: 0;
-  padding: var(--layout-main-top-inset) var(--layout-main-inset) var(--layout-main-bottom-inset) var(--layout-main-start-inset);
+  padding: var(--layout-main-top-inset) var(--layout-main-current-end-inset) var(--layout-main-current-bottom-inset) var(--layout-main-current-start-inset);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -110,6 +116,9 @@
 /* Mirrors --layout-left-nav-hide-height. */
 @media (max-height: 496px), (max-width: 560px) {
   .app_shell {
+    --layout-main-current-start-inset: var(--layout-main-collapsed-inline-inset);
+    --layout-main-current-end-inset: var(--layout-main-collapsed-inline-inset);
+    --layout-main-current-bottom-inset: var(--layout-main-collapsed-bottom-inset);
     grid-template-areas: "main";
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
@@ -126,7 +135,6 @@
   .main_content {
     justify-self: center;
     max-width: 1180px;
-    padding: var(--layout-main-top-inset) clamp(20px, 4vw, 56px) clamp(36px, 6vw, 72px);
   }
 }
 
