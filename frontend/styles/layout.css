@@ -11,6 +11,8 @@
   --layout-brand-row-height: 134px;
   --layout-wallet-region-width: var(--layout-wallet-object-width);
   --layout-wallet-region-bottom: var(--wallet-outer-inset);
+  --layout-left-wallet-hide-height: 624px;
+  --layout-left-nav-hide-height: 496px;
   display: grid;
   grid-template-areas:
     "brand main"
@@ -84,7 +86,24 @@
   }
 }
 
+/* Mirrors --layout-left-wallet-hide-height; custom properties cannot drive media queries. */
 @media (max-height: 624px) {
+  .app_shell {
+    grid-template-areas:
+      "brand main"
+      "navigation main";
+    grid-template-rows: var(--layout-brand-row-height) minmax(0, 1fr);
+  }
+
+  .app_shell .wallet_region {
+    display: none;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+/* Mirrors --layout-left-nav-hide-height. */
+@media (max-height: 496px) {
   .app_shell {
     grid-template-areas: "main";
     grid-template-columns: minmax(0, 1fr);
