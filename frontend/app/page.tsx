@@ -247,9 +247,9 @@ function HomePageContent() {
         lifted
         actions={
           <>
-            <ActionButton className="home_cta_button hero_primary_cta" onClick={() => setBuffWorkflowOpen(true)}>Buff Random Match</ActionButton>
-            <ActionButton className="home_cta_button" href="/my-media/upload" variant="secondary">Upload Media</ActionButton>
-            <ActionButton className="home_cta_button" onClick={() => setPushWorkflowOpen(true)} variant="secondary">Push Media</ActionButton>
+            <ActionButton className="home_cta_button hero_primary_cta" onClick={() => setBuffWorkflowOpen(true)}>Buff</ActionButton>
+            <ActionButton className="home_cta_button" onClick={() => setPushWorkflowOpen(true)} variant="secondary">Push</ActionButton>
+            <ActionButton className="home_cta_button" href="/my-media/upload" variant="secondary">Upload</ActionButton>
           </>
         }
       />
