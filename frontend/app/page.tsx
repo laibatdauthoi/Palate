@@ -1,6 +1,8 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { ImageUp, Send, Sparkles } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ActionButton } from "@/components/action_button";
 import { BuffWorkflow } from "@/components/buff_workflow";
@@ -246,11 +248,20 @@ function HomePageContent() {
         stacked
         lifted
         actions={
-          <>
-            <ActionButton className="home_cta_button hero_primary_cta" onClick={() => setBuffWorkflowOpen(true)}>Buff</ActionButton>
-            <ActionButton className="home_cta_button" onClick={() => setPushWorkflowOpen(true)} variant="secondary">Push</ActionButton>
-            <ActionButton className="home_cta_button" href="/my-media/upload" variant="secondary">Upload</ActionButton>
-          </>
+          <div aria-label="Home actions" className="home_command_tiles" role="group">
+            <button className="home_command_tile home_command_tile_primary" onClick={() => setBuffWorkflowOpen(true)} type="button">
+              <Sparkles aria-hidden="true" className="home_command_tile_icon" />
+              <span className="home_command_tile_label">Buff</span>
+            </button>
+            <button className="home_command_tile" onClick={() => setPushWorkflowOpen(true)} type="button">
+              <Send aria-hidden="true" className="home_command_tile_icon" />
+              <span className="home_command_tile_label">Push</span>
+            </button>
+            <Link className="home_command_tile" href="/my-media/upload">
+              <ImageUp aria-hidden="true" className="home_command_tile_icon" />
+              <span className="home_command_tile_label">Upload</span>
+            </Link>
+          </div>
         }
       />
 
