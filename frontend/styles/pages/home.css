@@ -29,34 +29,33 @@
 .home_command_tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: min(100%, 336px);
-  gap: var(--home-command-tile-gap, 8px);
+  width: min(100%, 300px);
+  gap: var(--home-command-tile-gap, 10px);
 }
 
 .home_command_tile {
   appearance: none;
+  position: relative;
   display: grid;
   place-items: center;
   align-content: center;
   min-width: 0;
-  min-height: 74px;
+  min-height: 68px;
   gap: 6px;
-  padding: 10px 12px;
-  border: 1px solid var(--ui-border-subtle);
+  padding: 9px 10px;
+  border: 0;
   border-radius: 0;
-  background: var(--ui-surface-2);
+  background: transparent;
   color: var(--ui-text-primary);
   font: inherit;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+  transition: color var(--transition-fast), opacity var(--transition-fast);
 }
 
 .home_command_tile:hover {
-  border-color: var(--ui-border-strong);
-  background: var(--ui-surface-1);
-  color: var(--ui-text-primary);
+  color: var(--ui-accent-hover);
 }
 
 .home_command_tile:focus-visible {
@@ -64,20 +63,31 @@
   outline-offset: 2px;
 }
 
+.home_command_tile::after {
+  content: "";
+  width: 16px;
+  height: 2px;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity var(--transition-fast), width var(--transition-fast);
+}
+
+.home_command_tile:hover::after,
+.home_command_tile:focus-visible::after {
+  width: 24px;
+  opacity: 0.42;
+}
+
 .home_command_tile_primary {
-  border-color: transparent;
-  background: var(--ui-accent);
-  color: #fff;
+  color: var(--ui-accent);
 }
 
 .home_command_tile_primary:hover {
-  border-color: transparent;
-  background: var(--ui-accent-hover);
-  color: #fff;
+  color: var(--ui-accent-hover);
 }
 
 .home_command_tile_primary:active {
-  background: var(--ui-accent-active);
+  color: var(--ui-accent-active);
 }
 
 .home_command_tile_icon {
